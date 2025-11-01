@@ -3,7 +3,7 @@
 const axios = require('axios');
 const { analyzeGameGenre } = require('./arabic-genre-detector');
 
-const API_BASE = 'http://localhost:5001/api';
+const API_BASE = 'http://localhost:5000/api';
 
 // تسجيل الدخول للحصول على التوكن
 async function login() {
