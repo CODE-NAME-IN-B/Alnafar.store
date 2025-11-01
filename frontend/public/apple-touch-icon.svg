@@ -1,0 +1,11 @@
+<svg width="180" height="180" viewBox="0 0 180 180" xmlns="http://www.w3.org/2000/svg">
+  <rect width="180" height="180" fill="#14b8a6" rx="18"/>
+  <text x="50%" y="50%" dominant-baseline="middle" text-anchor="middle" 
+        font-family="Arial, sans-serif" font-size="54" font-weight="bold" fill="white">
+    🎮
+  </text>
+  <text x="50%" y="75%" dominant-baseline="middle" text-anchor="middle" 
+        font-family="Arial, sans-serif" font-size="21.599999999999998" fill="white">
+    Alnafar
+  </text>
+</svg>

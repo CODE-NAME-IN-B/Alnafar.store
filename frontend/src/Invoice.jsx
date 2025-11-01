@@ -397,19 +397,18 @@ function InvoicePreview({ invoiceNumber, customerInfo, cart, total, date, onClos
         {/* أزرار التحكم */}
         <div className="p-4 border-t border-gray-200 flex gap-3 no-print">
           <button
-            onClick={() => printInvoice(invoiceData)}
-            className="flex-1 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2.5 rounded-lg transition-colors font-medium flex items-center justify-center gap-2"
-          >
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
-            </svg>
-            طباعة حرارية
-          </button>
-          <button
-            onClick={() => window.print()}
+            onClick={() => {
+              // Use enhanced print if available (PWA), otherwise fallback to regular print
+              if (window.enhancedPrint) {
+                window.enhancedPrint(document.querySelector('.invoice-print').innerHTML);
+              } else {
+                window.print();
+              }
+            }}
             className="flex-1 bg-green-600 hover:bg-green-700 text-white px-4 py-2.5 rounded-lg transition-colors font-medium flex items-center justify-center gap-2"
           >
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2H9a2 2 0 00-2 2v4h10z" />
             </svg>
             طباعة عادية

@@ -44,6 +44,153 @@
   <body>
     <div id="root"></div>
     <script type="module" src="/src/main.jsx"></script>
+    
+    <!-- PWA Service Worker Registration -->
+    <script>
+      // Register Service Worker for PWA functionality
+      if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+          navigator.serviceWorker.register('/sw.js')
+            .then((registration) => {
+              console.log('SW registered: ', registration);
+              
+              // Check for updates
+              registration.addEventListener('updatefound', () => {
+                const newWorker = registration.installing;
+                newWorker.addEventListener('statechange', () => {
+                  if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                    // New content is available, show update notification
+                    if (confirm('تحديث جديد متاح. هل تريد تحديث التطبيق؟')) {
+                      window.location.reload();
+                    }
+                  }
+                });
+              });
+            })
+            .catch((registrationError) => {
+              console.log('SW registration failed: ', registrationError);
+            });
+        });
+      }
+
+      // PWA Install Prompt
+      let deferredPrompt;
+      window.addEventListener('beforeinstallprompt', (e) => {
+        // Prevent Chrome 67 and earlier from automatically showing the prompt
+        e.preventDefault();
+        // Stash the event so it can be triggered later
+        deferredPrompt = e;
+        
+        // Show install button or notification
+        showInstallPromotion();
+      });
+
+      function showInstallPromotion() {
+        // Create install button if it doesn't exist
+        if (!document.getElementById('install-button')) {
+          const installButton = document.createElement('button');
+          installButton.id = 'install-button';
+          installButton.innerHTML = '📱 تثبيت التطبيق';
+          installButton.style.cssText = `
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background: #14b8a6;
+            color: white;
+            border: none;
+            padding: 12px 20px;
+            border-radius: 25px;
+            font-family: Cairo, sans-serif;
+            font-weight: 600;
+            cursor: pointer;
+            box-shadow: 0 4px 12px rgba(20, 184, 166, 0.3);
+            z-index: 1000;
+            transition: all 0.3s ease;
+          `;
+          
+          installButton.addEventListener('click', async () => {
+            if (deferredPrompt) {
+              // Show the install prompt
+              deferredPrompt.prompt();
+              // Wait for the user to respond to the prompt
+              const { outcome } = await deferredPrompt.userChoice;
+              console.log(`User response to the install prompt: ${outcome}`);
+              // Clear the deferredPrompt
+              deferredPrompt = null;
+              // Hide the install button
+              installButton.remove();
+            }
+          });
+          
+          installButton.addEventListener('mouseenter', () => {
+            installButton.style.transform = 'scale(1.05)';
+            installButton.style.boxShadow = '0 6px 20px rgba(20, 184, 166, 0.4)';
+          });
+          
+          installButton.addEventListener('mouseleave', () => {
+            installButton.style.transform = 'scale(1)';
+            installButton.style.boxShadow = '0 4px 12px rgba(20, 184, 166, 0.3)';
+          });
+          
+          document.body.appendChild(installButton);
+          
+          // Auto-hide after 10 seconds
+          setTimeout(() => {
+            if (installButton && installButton.parentNode) {
+              installButton.style.opacity = '0';
+              setTimeout(() => installButton.remove(), 300);
+            }
+          }, 10000);
+        }
+      }
+
+      // Handle app installation
+      window.addEventListener('appinstalled', (evt) => {
+        console.log('App was installed');
+        // Hide install button if it exists
+        const installButton = document.getElementById('install-button');
+        if (installButton) {
+          installButton.remove();
+        }
+        
+        // Show success message
+        const successMsg = document.createElement('div');
+        successMsg.innerHTML = '✅ تم تثبيت التطبيق بنجاح!';
+        successMsg.style.cssText = `
+          position: fixed;
+          top: 20px;
+          right: 20px;
+          background: #10b981;
+          color: white;
+          padding: 12px 20px;
+          border-radius: 8px;
+          font-family: Cairo, sans-serif;
+          z-index: 1001;
+          box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+        `;
+        document.body.appendChild(successMsg);
+        setTimeout(() => successMsg.remove(), 3000);
+      });
+
+      // Enhanced print function for PWA
+      window.enhancedPrint = function(content) {
+        if ('serviceWorker' in navigator && navigator.serviceWorker.controller) {
+          // Send print request to service worker
+          const channel = new MessageChannel();
+          channel.port1.onmessage = function(event) {
+            console.log('Print response:', event.data);
+          };
+          
+          navigator.serviceWorker.controller.postMessage({
+            type: 'PRINT_INVOICE',
+            content: content
+          }, [channel.port2]);
+        }
+        
+        // Fallback to regular print
+        window.print();
+      };
+    </script>
   </body>
   </html>
 

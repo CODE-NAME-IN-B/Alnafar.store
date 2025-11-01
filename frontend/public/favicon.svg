@@ -1,0 +1,11 @@
+<svg width="32" height="32" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg">
+  <rect width="32" height="32" fill="#14b8a6" rx="3.2"/>
+  <text x="50%" y="50%" dominant-baseline="middle" text-anchor="middle" 
+        font-family="Arial, sans-serif" font-size="9.6" font-weight="bold" fill="white">
+    🎮
+  </text>
+  <text x="50%" y="75%" dominant-baseline="middle" text-anchor="middle" 
+        font-family="Arial, sans-serif" font-size="3.84" fill="white">
+    Alnafar
+  </text>
+</svg>
