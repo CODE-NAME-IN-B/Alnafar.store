@@ -6,6 +6,70 @@ function currency(num) {
 }
 
 export default function Invoice({ cart, total, onClose, onSuccess }) {
+  // إضافة أنماط الطباعة
+  React.useEffect(() => {
+    const printStyles = `
+      @media print {
+        body * {
+          visibility: hidden;
+        }
+        .invoice-print, .invoice-print * {
+          visibility: visible;
+        }
+        .invoice-print {
+          position: absolute;
+          left: 0;
+          top: 0;
+          width: 100%;
+          background: white !important;
+          color: black !important;
+        }
+        .no-print {
+          display: none !important;
+        }
+        .invoice-content {
+          max-width: none !important;
+          box-shadow: none !important;
+          border: none !important;
+          margin: 0 !important;
+          padding: 20px !important;
+        }
+        .invoice-header {
+          text-align: center;
+          margin-bottom: 20px;
+        }
+        .invoice-details {
+          font-size: 14px;
+          line-height: 1.6;
+        }
+        .invoice-items {
+          width: 100%;
+          border-collapse: collapse;
+          margin: 20px 0;
+        }
+        .invoice-items th,
+        .invoice-items td {
+          border: 1px solid #ddd;
+          padding: 8px;
+          text-align: right;
+        }
+        .invoice-total {
+          font-size: 16px;
+          font-weight: bold;
+          text-align: right;
+          margin-top: 20px;
+        }
+      }
+    `;
+    
+    const styleSheet = document.createElement("style");
+    styleSheet.innerText = printStyles;
+    document.head.appendChild(styleSheet);
+    
+    return () => {
+      document.head.removeChild(styleSheet);
+    };
+  }, []);
   const [customerInfo, setCustomerInfo] = useState({
     name: '',
     phone: '',
@@ -272,17 +336,17 @@ export default function Invoice({ cart, total, onClose, onSuccess }) {
 // مكون معاينة الفاتورة
 function InvoicePreview({ invoiceNumber, customerInfo, cart, total, date, onClose, onPrintAgain }) {
   return (
-    <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
-      <div className="bg-white w-full max-w-md rounded-xl shadow-2xl max-h-[90vh] overflow-y-auto">
-        {/* Header */}
-        <div className="bg-primary text-white p-4 text-center">
-          <h1 className="text-xl font-bold">متجر الألعاب</h1>
-          <h2 className="text-lg">Alnafar Store</h2>
-          <p className="text-sm opacity-90 mt-1">فاتورة مبيعات</p>
+    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+      <div className="bg-white rounded-xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-hidden invoice-print">
+        {/* header */}
+        <div className="bg-gradient-to-r from-primary to-emerald-500 text-white p-6 text-center invoice-header">
+          <h2 className="text-2xl font-bold mb-2">فاتورة مبيعات</h2>
+          <p className="text-primary-light">رقم الفاتورة: {invoiceNumber}</p>
+          <p className="text-primary-light text-sm">{currentDate}</p>
         </div>
 
         {/* محتوى الفاتورة */}
-        <div className="p-4 text-gray-800 space-y-4">
+        <div className="p-4 text-gray-800 space-y-4 invoice-content invoice-details">
           {/* معلومات الفاتورة */}
           <div className="flex justify-between items-start text-sm">
             <div>
@@ -331,15 +395,24 @@ function InvoicePreview({ invoiceNumber, customerInfo, cart, total, date, onClos
         </div>
 
         {/* أزرار التحكم */}
-        <div className="p-4 border-t border-gray-200 flex gap-3">
+        <div className="p-4 border-t border-gray-200 flex gap-3 no-print">
           <button
-            onClick={onPrintAgain}
-            className="flex-1 px-4 py-2 bg-gray-600 hover:bg-gray-700 text-white rounded-lg font-medium transition-colors flex items-center justify-center gap-2"
+            onClick={() => printInvoice(invoiceData)}
+            className="flex-1 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2.5 rounded-lg transition-colors font-medium flex items-center justify-center gap-2"
           >
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
             </svg>
-            طباعة مرة أخرى
+            طباعة حرارية
+          </button>
+          <button
+            onClick={() => window.print()}
+            className="flex-1 bg-green-600 hover:bg-green-700 text-white px-4 py-2.5 rounded-lg transition-colors font-medium flex items-center justify-center gap-2"
+          >
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2H9a2 2 0 00-2 2v4h10z" />
+            </svg>
+            طباعة عادية
           </button>
           <button
             onClick={onClose}
