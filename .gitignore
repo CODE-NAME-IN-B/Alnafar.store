@@ -1,0 +1,8 @@
+node_modules/
+dist/
+.env
+.DS_Store
+
+# Keep database and uploads for Railway deployment
+# backend/data/database.sqlite
+# backend/data/uploads/
