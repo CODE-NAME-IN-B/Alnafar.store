@@ -27,22 +27,84 @@ export default function InvoicesTab() {
     }
   }
 
-  const reprintInvoice = async (invoice) => {
-    try {
-      await api.post('/print-invoice', {
-        invoiceNumber: invoice.invoice_number,
-        customerName: invoice.customer_name,
-        customerPhone: invoice.customer_phone,
-        customerAddress: invoice.customer_address,
-        items: JSON.parse(invoice.items),
-        total: invoice.total,
-        date: invoice.created_at,
-        notes: invoice.notes
-      })
-      alert('تم إعادة طباعة الفاتورة بنجاح!')
-      loadInvoices()
-    } catch (error) {
-      alert('فشل في إعادة الطباعة')
+  const reprintInvoice = (invoice) => {
+    // إنشاء نافذة جديدة لطباعة الفاتورة
+    const printWindow = window.open('', '_blank', 'width=800,height=600')
+    
+    const invoiceHTML = `
+      <!DOCTYPE html>
+      <html lang="ar" dir="rtl">
+      <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>فاتورة ${invoice.invoice_number}</title>
+        <style>
+          body { font-family: 'Cairo', Arial, sans-serif; margin: 20px; background: white; color: black; }
+          .invoice-header { background: linear-gradient(135deg, #14b8a6 0%, #10b981 100%); color: white; padding: 20px; text-align: center; border-radius: 8px; margin-bottom: 20px; }
+          .invoice-content { padding: 20px; }
+          .section { margin-bottom: 20px; padding-bottom: 15px; border-bottom: 1px solid #e5e7eb; }
+          .item { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid #f3f4f6; }
+          .total { font-size: 18px; font-weight: bold; text-align: right; margin-top: 20px; padding-top: 15px; border-top: 2px solid #333; }
+          .footer { text-align: center; font-size: 12px; color: #666; margin-top: 30px; border-top: 1px solid #ddd; padding-top: 15px; }
+          @media print {
+            body { margin: 0; }
+            .no-print { display: none; }
+          }
+        </style>
+      </head>
+      <body>
+        <div class="invoice-header">
+          <h2>فاتورة مبيعات</h2>
+          <p>رقم الفاتورة: ${invoice.invoice_number}</p>
+          <p>${new Date(invoice.created_at).toLocaleDateString('ar-LY')}</p>
+        </div>
+        
+        <div class="invoice-content">
+          <div class="section">
+            <h3>بيانات العميل:</h3>
+            <p><strong>الاسم:</strong> ${invoice.customer_name}</p>
+            <p><strong>الهاتف:</strong> ${invoice.customer_phone}</p>
+            ${invoice.customer_address ? `<p><strong>العنوان:</strong> ${invoice.customer_address}</p>` : ''}
+            ${invoice.notes ? `<p><strong>ملاحظات:</strong> ${invoice.notes}</p>` : ''}
+          </div>
+          
+          <div class="section">
+            <h3>تفاصيل الطلب:</h3>
+            ${JSON.parse(invoice.items).map(item => `
+              <div class="item">
+                <span>${item.title}</span>
+                <span>${new Intl.NumberFormat('ar-LY', { style: 'currency', currency: 'LYD' }).format(item.price)}</span>
+              </div>
+            `).join('')}
+          </div>
+          
+          <div class="total">
+            الإجمالي: ${new Intl.NumberFormat('ar-LY', { style: 'currency', currency: 'LYD' }).format(invoice.total)}
+          </div>
+          
+          <div class="footer">
+            <p>شكراً لتسوقكم معنا</p>
+            <p>للاستفسارات: +218xxxxxxxxx</p>
+            <p>تم إنشاء هذه الفاتورة بواسطة متجر النفار</p>
+          </div>
+        </div>
+        
+        <div class="no-print" style="text-align: center; margin-top: 30px;">
+          <button onclick="window.print()" style="background: #14b8a6; color: white; padding: 12px 24px; border: none; border-radius: 6px; font-size: 16px; cursor: pointer;">طباعة أو حفظ PDF</button>
+          <button onclick="window.close()" style="background: #6b7280; color: white; padding: 12px 24px; border: none; border-radius: 6px; font-size: 16px; cursor: pointer; margin-left: 10px;">إغلاق</button>
+        </div>
+      </body>
+      </html>
+    `
+    
+    printWindow.document.write(invoiceHTML)
+    printWindow.document.close()
+    
+    // فتح نافذة الطباعة تلقائياً بعد تحميل الصفحة
+    printWindow.onload = () => {
+      setTimeout(() => {
+        printWindow.print()
+      }, 500)
     }
   }
 
