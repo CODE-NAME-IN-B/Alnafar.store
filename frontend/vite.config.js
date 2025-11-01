@@ -4,9 +4,9 @@ import react from '@vitejs/plugin-react'
 export default defineConfig({
   plugins: [react()],
   build: {
-    outDir: 'dist'
+    outDir: '../dist',
+    emptyOutDir: true
   },
-  root: '.',
   server: {
     host: '0.0.0.0', // السماح بالوصول من أي عنوان IP
     port: 5001,
