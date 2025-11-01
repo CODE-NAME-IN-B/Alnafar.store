@@ -2049,18 +2049,38 @@ async function start() {
 
     // Serve built frontend
 
-    const clientDist = path.join(__dirname, '..', 'frontend', 'dist');
+    const clientDist = path.join(__dirname, '..', 'dist');
+    
+    console.log('🔍 Looking for dist folder at:', clientDist);
+    console.log('📁 Dist exists:', fs.existsSync(clientDist));
 
     if (fs.existsSync(clientDist)) {
-
+      console.log('✅ Serving static files from:', clientDist);
       app.use(express.static(clientDist));
 
       app.get('*', (_req, res) => {
-
-        res.sendFile(path.join(clientDist, 'index.html'));
-
+        const indexPath = path.join(clientDist, 'index.html');
+        console.log('📄 Serving index.html from:', indexPath);
+        res.sendFile(indexPath);
       });
 
+    } else {
+      console.warn('⚠️ Dist folder not found at:', clientDist);
+      try {
+        console.warn('📁 Available files:', fs.readdirSync(path.join(__dirname, '..')));
+      } catch (e) {
+        console.warn('❌ Cannot read directory:', e.message);
+      }
+      
+      // Fallback: serve a simple message
+      app.get('*', (_req, res) => {
+        res.status(404).send(`
+          <h1>Build Error</h1>
+          <p>Frontend build files not found.</p>
+          <p>Expected location: ${clientDist}</p>
+          <p>Please check the build process.</p>
+        `);
+      });
     }
 
   } else {
