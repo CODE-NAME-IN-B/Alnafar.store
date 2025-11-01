@@ -150,6 +150,8 @@ export default function Invoice({ cart, total, onClose, onSuccess }) {
   })
   const [isProcessing, setIsProcessing] = useState(false)
   const [showPreview, setShowPreview] = useState(false)
+  const [showPDFOptions, setShowPDFOptions] = useState(false)
+  const [pdfBlob, setPdfBlob] = useState(null)
   const invoiceRef = useRef()
 
   const invoiceNumber = `INV-${Date.now()}`
@@ -188,20 +190,18 @@ export default function Invoice({ cart, total, onClose, onSuccess }) {
       }
 
       // حفظ الفاتورة في قاعدة البيانات
-      const response = await api.post('/invoices', invoiceData)
+      const response = await api.post('/api/invoices', invoiceData)
       
-      // طباعة الفاتورة على جهاز Sunmi V2
-      const printResult = await printInvoice(invoiceData)
-      
-      // إظهار معاينة الفاتورة
-      setShowPreview(true)
-      
-      // استدعاء callback النجاح مع معلومات الطباعة
-      if (onSuccess) {
-        onSuccess({
-          ...response.data,
-          cloudMode: printResult?.cloudMode || false
-        })
+      if (response.data.success) {
+        // Show preview first, then generate PDF
+        setShowPreview(true)
+        
+        // Generate PDF automatically after showing preview
+        setTimeout(() => {
+          generatePDFInterface(invoiceData)
+        }, 500)
+        
+        onSuccess(response.data)
       }
       
     } catch (error) {
@@ -209,6 +209,57 @@ export default function Invoice({ cart, total, onClose, onSuccess }) {
       alert('حدث خطأ في إنشاء الفاتورة. يرجى المحاولة مرة أخرى.')
     } finally {
       setIsProcessing(false)
+    }
+  }
+
+  // دالة إنشاء واجهة PDF
+  const generatePDFInterface = async (invoiceData) => {
+    try {
+      const invoiceElement = document.querySelector('.invoice-print')
+      if (!invoiceElement || !window.html2pdf) {
+        alert('لا يمكن إنشاء PDF في الوقت الحالي')
+        return
+      }
+
+      // إعدادات PDF محسنة للطابعات الحرارية
+      const opt = {
+        margin: [1, 1, 1, 1],
+        filename: `فاتورة-${invoiceData.invoiceNumber}-${new Date().toLocaleDateString('ar-EG')}.pdf`,
+        image: { 
+          type: 'jpeg', 
+          quality: 1.0 
+        },
+        html2canvas: { 
+          scale: 4,
+          useCORS: true,
+          allowTaint: true,
+          backgroundColor: '#ffffff',
+          width: 302,
+          height: 800,
+          letterRendering: true,
+          logging: false
+        },
+        jsPDF: { 
+          unit: 'mm', 
+          format: [80, 210],
+          orientation: 'portrait',
+          compress: false,
+          precision: 16
+        },
+        pagebreak: { 
+          mode: ['avoid-all', 'css', 'legacy']
+        }
+      }
+
+      // إنشاء PDF وحفظه كـ blob
+      const pdf = await html2pdf().set(opt).from(invoiceElement).toPdf().get('pdf')
+      const blob = pdf.output('blob')
+      setPdfBlob(blob)
+      setShowPDFOptions(true)
+      
+    } catch (error) {
+      console.error('فشل في إنشاء PDF:', error)
+      alert('فشل في إنشاء PDF. حاول مرة أخرى.')
     }
   }
 
@@ -239,16 +290,36 @@ export default function Invoice({ cart, total, onClose, onSuccess }) {
     }))
   }
 
+  if (showPDFOptions && pdfBlob) {
+    return (
+      <PDFOptionsModal 
+        pdfBlob={pdfBlob}
+        invoiceNumber={invoiceNumber}
+        onClose={() => {
+          setShowPDFOptions(false)
+          setPdfBlob(null)
+          onClose()
+        }}
+        onBackToPreview={() => {
+          setShowPDFOptions(false)
+          setPdfBlob(null)
+        }}
+      />
+    )
+  }
+
   if (showPreview) {
-    return <InvoicePreview 
-      invoiceNumber={invoiceNumber}
-      customerInfo={customerInfo}
-      cart={cart}
-      total={total}
-      date={currentDate}
-      onClose={onClose}
-      onPrintAgain={() => printInvoice({ invoiceNumber, customerInfo, items: cart, total, date: new Date().toISOString() })}
-    />
+    return (
+      <InvoicePreview 
+        invoiceNumber={invoiceNumber}
+        customerInfo={customerInfo}
+        cart={cart}
+        total={total}
+        date={currentDate}
+        onClose={onClose}
+        onPrintAgain={(data) => printInvoice(data)}
+      />
+    )
   }
 
   return (
@@ -467,7 +538,73 @@ function InvoicePreview({ invoiceNumber, customerInfo, cart, total, date, onClos
         </div>
 
         {/* أزرار التحكم */}
-        <div className="p-4 border-t border-gray-200 flex gap-3 no-print">
+        <div className="p-4 border-t border-gray-200 flex flex-wrap gap-2 no-print">
+          <button
+            onClick={() => {
+              const invoiceElement = document.querySelector('.invoice-print');
+              if (window.html2pdf && invoiceElement) {
+                // Generate and download PDF optimized for thermal printers
+                const opt = {
+                  margin: [1, 1, 1, 1], // Minimal margins for thermal printers
+                  filename: `فاتورة-${invoiceNumber}-${new Date().toLocaleDateString('ar-EG')}.pdf`,
+                  image: { 
+                    type: 'jpeg', 
+                    quality: 1.0 // Maximum quality for thermal printing
+                  },
+                  html2canvas: { 
+                    scale: 4, // High resolution for crisp thermal printing
+                    useCORS: true,
+                    allowTaint: true,
+                    backgroundColor: '#ffffff',
+                    width: 302, // 80mm at 96 DPI (80 * 96 / 25.4)
+                    height: 800, // Long receipt format
+                    letterRendering: true, // Better text rendering
+                    logging: false
+                  },
+                  jsPDF: { 
+                    unit: 'mm', 
+                    format: [80, 210], // Standard thermal receipt size (80mm width)
+                    orientation: 'portrait',
+                    compress: false, // Don't compress for better thermal printing
+                    precision: 16 // High precision for thermal printers
+                  },
+                  pagebreak: { 
+                    mode: ['avoid-all', 'css', 'legacy'],
+                    before: '.page-break-before',
+                    after: '.page-break-after'
+                  }
+                };
+                
+                // Show loading message
+                const button = event.target.closest('button');
+                const originalText = button.innerHTML;
+                button.innerHTML = '<svg class="w-4 h-4 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg> جاري الحفظ...';
+                button.disabled = true;
+                
+                html2pdf().set(opt).from(invoiceElement).save().then(() => {
+                  // Show success message
+                  button.innerHTML = '<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg> تم الحفظ!';
+                  setTimeout(() => {
+                    button.innerHTML = originalText;
+                    button.disabled = false;
+                  }, 2000);
+                }).catch((error) => {
+                  console.error('PDF save failed:', error);
+                  button.innerHTML = originalText;
+                  button.disabled = false;
+                  alert('فشل في حفظ PDF. حاول مرة أخرى.');
+                });
+              } else {
+                alert('مكتبة PDF غير متاحة');
+              }
+            }}
+            className="flex-1 bg-purple-600 hover:bg-purple-700 text-white px-3 py-2 rounded-lg transition-colors font-medium flex items-center justify-center gap-1 text-sm"
+          >
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+            </svg>
+            حفظ PDF
+          </button>
           <button
             onClick={() => {
               const invoiceElement = document.querySelector('.invoice-print');
@@ -485,10 +622,10 @@ function InvoicePreview({ invoiceNumber, customerInfo, cart, total, date, onClos
                 window.print();
               }
             }}
-            className="flex-1 bg-green-600 hover:bg-green-700 text-white px-4 py-2.5 rounded-lg transition-colors font-medium flex items-center justify-center gap-2"
+            className="flex-1 bg-green-600 hover:bg-green-700 text-white px-3 py-2 rounded-lg transition-colors font-medium flex items-center justify-center gap-1 text-sm"
           >
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
             </svg>
             طباعة PDF
           </button>
@@ -519,7 +656,7 @@ function InvoicePreview({ invoiceNumber, customerInfo, cart, total, date, onClos
                 window.print();
               }
             }}
-            className="flex-1 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2.5 rounded-lg transition-colors font-medium flex items-center justify-center gap-2"
+            className="flex-1 bg-blue-600 hover:bg-blue-700 text-white px-3 py-2 rounded-lg transition-colors font-medium flex items-center justify-center gap-1 text-sm"
           >
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
@@ -528,9 +665,131 @@ function InvoicePreview({ invoiceNumber, customerInfo, cart, total, date, onClos
           </button>
           <button
             onClick={onClose}
-            className="flex-1 px-4 py-2 bg-primary hover:bg-primary-dark text-white rounded-lg font-medium transition-colors"
+            className="w-full mt-2 px-4 py-2 bg-gray-600 hover:bg-gray-700 text-white rounded-lg font-medium transition-colors"
           >
             إغلاق
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// مكون واجهة خيارات PDF
+function PDFOptionsModal({ pdfBlob, invoiceNumber, onClose, onBackToPreview }) {
+  const pdfUrl = URL.createObjectURL(pdfBlob)
+
+  const handleDownload = () => {
+    const link = document.createElement('a')
+    link.href = pdfUrl
+    link.download = `فاتورة-${invoiceNumber}-${new Date().toLocaleDateString('ar-EG')}.pdf`
+    link.click()
+  }
+
+  const handlePrint = () => {
+    const printWindow = window.open(pdfUrl, '_blank')
+    if (printWindow) {
+      printWindow.onload = function() {
+        printWindow.print()
+      }
+    } else {
+      alert('تعذر فتح نافذة الطباعة. يرجى تحميل الملف والطباعة يدوياً.')
+    }
+  }
+
+  const handleOpenInNewTab = () => {
+    window.open(pdfUrl, '_blank')
+  }
+
+  return (
+    <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+      <div className="bg-white rounded-xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-hidden">
+        {/* Header */}
+        <div className="bg-gradient-to-r from-green-600 to-blue-600 text-white p-6 text-center">
+          <h2 className="text-2xl font-bold mb-2">📄 فاتورة PDF جاهزة!</h2>
+          <p className="text-green-100">رقم الفاتورة: {invoiceNumber}</p>
+        </div>
+
+        {/* PDF Preview */}
+        <div className="p-6">
+          <div className="bg-gray-100 rounded-lg p-4 mb-6 text-center">
+            <div className="w-16 h-20 bg-red-500 text-white rounded mx-auto mb-3 flex items-center justify-center text-2xl font-bold">
+              PDF
+            </div>
+            <p className="text-gray-700 font-medium">
+              فاتورة-{invoiceNumber}-{new Date().toLocaleDateString('ar-EG')}.pdf
+            </p>
+            <p className="text-sm text-gray-500 mt-1">
+              جاهز للتحميل أو الطباعة
+            </p>
+          </div>
+
+          {/* Action Buttons */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-4">
+            <button
+              onClick={handleDownload}
+              className="flex items-center justify-center gap-2 bg-green-600 hover:bg-green-700 text-white px-4 py-3 rounded-lg transition-colors font-medium"
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+              </svg>
+              تحميل PDF
+            </button>
+
+            <button
+              onClick={handlePrint}
+              className="flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-3 rounded-lg transition-colors font-medium"
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
+              </svg>
+              طباعة PDF
+            </button>
+
+            <button
+              onClick={handleOpenInNewTab}
+              className="flex items-center justify-center gap-2 bg-purple-600 hover:bg-purple-700 text-white px-4 py-3 rounded-lg transition-colors font-medium"
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+              </svg>
+              فتح في تبويب جديد
+            </button>
+
+            <button
+              onClick={onBackToPreview}
+              className="flex items-center justify-center gap-2 bg-gray-600 hover:bg-gray-700 text-white px-4 py-3 rounded-lg transition-colors font-medium"
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 17l-5-5m0 0l5-5m-5 5h12" />
+              </svg>
+              العودة للفاتورة
+            </button>
+          </div>
+
+          {/* Info Box */}
+          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
+            <div className="flex items-start gap-3">
+              <svg className="w-5 h-5 text-blue-600 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              <div>
+                <h4 className="font-medium text-blue-900 mb-1">نصائح للطباعة الحرارية:</h4>
+                <ul className="text-sm text-blue-700 space-y-1">
+                  <li>• حمل الملف واستخدمه في برنامج الطباعة الحرارية</li>
+                  <li>• الملف محسن لطابعات 80mm</li>
+                  <li>• جودة عالية مناسبة للطباعة الاحترافية</li>
+                </ul>
+              </div>
+            </div>
+          </div>
+
+          {/* Close Button */}
+          <button
+            onClick={onClose}
+            className="w-full bg-gray-200 hover:bg-gray-300 text-gray-800 px-4 py-3 rounded-lg transition-colors font-medium"
+          >
+            إنهاء وإغلاق
           </button>
         </div>
       </div>
