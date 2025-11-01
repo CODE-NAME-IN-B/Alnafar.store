@@ -1,5 +1,6 @@
-import React, { useState, useRef } from 'react'
+import React, { useState, useRef, useEffect } from 'react'
 import { api } from './api'
+import PDFOptionsModal from './PDFOptionsModal'
 
 function currency(num) {
   return new Intl.NumberFormat('ar-LY', { style: 'currency', currency: 'LYD' }).format(num)
@@ -180,6 +181,9 @@ export default function Invoice({ cart, total, onClose, onSuccess }) {
   })
   const [isProcessing, setIsProcessing] = useState(false)
   const [showPreview, setShowPreview] = useState(false)
+  const [showPDFOptions, setShowPDFOptions] = useState(false)
+  const [pdfBlob, setPdfBlob] = useState(null)
+  const [invoiceDataForPDF, setInvoiceDataForPDF] = useState(null)
   const invoiceRef = useRef()
 
   const invoiceNumber = `INV-${Date.now()}`
@@ -190,6 +194,17 @@ export default function Invoice({ cart, total, onClose, onSuccess }) {
     hour: '2-digit',
     minute: '2-digit'
   })
+
+  // Auto-generate PDF when preview is shown
+  useEffect(() => {
+    if (showPreview && invoiceDataForPDF && !showPDFOptions) {
+      console.log('🎯 Preview shown, triggering PDF generation...')
+      const timer = setTimeout(() => {
+        generatePDFInterface(invoiceDataForPDF)
+      }, 1000)
+      return () => clearTimeout(timer)
+    }
+  }, [showPreview, invoiceDataForPDF, showPDFOptions])
 
   const handleSubmit = async (e) => {
     e.preventDefault()
@@ -221,13 +236,11 @@ export default function Invoice({ cart, total, onClose, onSuccess }) {
       const response = await api.post('/api/invoices', invoiceData)
       
       if (response.data.success) {
-        // Show preview first
-        setShowPreview(true)
+        // Save invoice data for PDF generation
+        setInvoiceDataForPDF(invoiceData)
         
-        // Generate PDF automatically after showing preview
-        setTimeout(() => {
-          generatePDFInterface(invoiceData)
-        }, 800)
+        // Show preview - this will trigger useEffect to generate PDF
+        setShowPreview(true)
         
         onSuccess(response.data)
       }
@@ -336,6 +349,24 @@ export default function Invoice({ cart, total, onClose, onSuccess }) {
     }))
   }
 
+  // Show PDF options modal if PDF is ready
+  if (showPDFOptions && pdfBlob) {
+    return (
+      <PDFOptionsModal 
+        pdfBlob={pdfBlob}
+        invoiceNumber={invoiceNumber}
+        onClose={() => {
+          setShowPDFOptions(false)
+          setPdfBlob(null)
+          onClose()
+        }}
+        onBackToPreview={() => {
+          setShowPDFOptions(false)
+          setPdfBlob(null)
+        }}
+      />
+    )
+  }
 
   if (showPreview) {
     return (
