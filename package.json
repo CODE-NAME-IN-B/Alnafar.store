@@ -5,7 +5,7 @@
   "description": "Full-stack Game Store (Express + SQLite, React + Tailwind) with integrated dev server",
   "scripts": {
     "dev": "nodemon backend/server.js",
-    "build": "cd frontend && vite build",
+    "build": "cd frontend && npm install && npm run build",
     "start": "cross-env NODE_ENV=production node backend/server.js",
     "start:render": "node start.js",
     "postinstall": "echo postinstall"
