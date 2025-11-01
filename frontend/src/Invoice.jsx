@@ -242,12 +242,26 @@ export default function Invoice({ cart, total, onClose, onSuccess }) {
 
   // دالة إنشاء واجهة PDF
   const generatePDFInterface = async (invoiceData) => {
+    console.log('🔄 Starting PDF generation...')
+    console.log('html2pdf available:', !!window.html2pdf)
+    
     try {
       const invoiceElement = document.querySelector('.invoice-print')
-      if (!invoiceElement || !window.html2pdf) {
-        console.warn('PDF generation not available')
+      console.log('Invoice element found:', !!invoiceElement)
+      
+      if (!invoiceElement) {
+        console.error('❌ Invoice element not found!')
+        alert('لم يتم العثور على عنصر الفاتورة. حاول مرة أخرى.')
         return
       }
+      
+      if (!window.html2pdf) {
+        console.error('❌ html2pdf library not loaded!')
+        alert('مكتبة PDF غير محملة. يرجى تحديث الصفحة والمحاولة مرة أخرى.')
+        return
+      }
+      
+      console.log('✅ Starting PDF generation...')
 
       // إعدادات PDF محسنة للطابعات الحرارية
       const opt = {
@@ -280,14 +294,18 @@ export default function Invoice({ cart, total, onClose, onSuccess }) {
       }
 
       // إنشاء PDF وحفظه كـ blob
+      console.log('📄 Generating PDF blob...')
       const pdf = await html2pdf().set(opt).from(invoiceElement).toPdf().get('pdf')
       const blob = pdf.output('blob')
+      console.log('✅ PDF blob created:', blob.size, 'bytes')
+      
       setPdfBlob(blob)
       setShowPDFOptions(true)
+      console.log('✅ PDF options modal should now be visible!')
       
     } catch (error) {
-      console.error('فشل في إنشاء PDF:', error)
-      // Don't show alert, just log the error
+      console.error('❌ فشل في إنشاء PDF:', error)
+      alert('فشل في إنشاء PDF: ' + error.message)
     }
   }
 
