@@ -23,6 +23,7 @@ export default function Invoice({ cart, total, onClose, onSuccess }) {
           width: 100%;
           background: white !important;
           color: black !important;
+          font-family: 'Cairo', Arial, sans-serif !important;
         }
         .no-print {
           display: none !important;
@@ -32,33 +33,104 @@ export default function Invoice({ cart, total, onClose, onSuccess }) {
           box-shadow: none !important;
           border: none !important;
           margin: 0 !important;
-          padding: 20px !important;
+          padding: 10px !important;
+          font-size: 12px !important;
+          line-height: 1.4 !important;
         }
         .invoice-header {
           text-align: center;
-          margin-bottom: 20px;
+          margin-bottom: 15px;
+          background: none !important;
+          color: black !important;
+          padding: 10px !important;
         }
         .invoice-details {
-          font-size: 14px;
-          line-height: 1.6;
+          font-size: 11px;
+          line-height: 1.5;
+          margin-bottom: 10px;
         }
         .invoice-items {
           width: 100%;
           border-collapse: collapse;
-          margin: 20px 0;
+          margin: 10px 0;
+          font-size: 10px;
         }
         .invoice-items th,
         .invoice-items td {
-          border: 1px solid #ddd;
-          padding: 8px;
+          border: 1px solid #333;
+          padding: 4px;
           text-align: right;
+        }
+        .invoice-items th {
+          background-color: #f0f0f0 !important;
+          font-weight: bold;
         }
         .invoice-total {
-          font-size: 16px;
+          font-size: 12px;
           font-weight: bold;
           text-align: right;
-          margin-top: 20px;
+          margin-top: 10px;
+          border-top: 2px solid #333;
+          padding-top: 5px;
         }
+        .invoice-footer {
+          text-align: center;
+          font-size: 9px;
+          margin-top: 15px;
+          border-top: 1px solid #ddd;
+          padding-top: 10px;
+        }
+      }
+      
+      /* Receipt-specific styles for PDF generation */
+      .receipt-format {
+        width: 80mm !important;
+        max-width: 80mm !important;
+        margin: 0 auto;
+        padding: 5mm;
+        font-family: 'Cairo', 'Courier New', monospace;
+        font-size: 12px;
+        line-height: 1.3;
+        background: white;
+        color: black;
+      }
+      
+      .receipt-format .invoice-header {
+        text-align: center;
+        margin-bottom: 10px;
+        border-bottom: 1px dashed #333;
+        padding-bottom: 8px;
+      }
+      
+      .receipt-format .invoice-header h2 {
+        font-size: 16px;
+        margin: 0 0 5px 0;
+        font-weight: bold;
+      }
+      
+      .receipt-format .invoice-details {
+        margin: 8px 0;
+        font-size: 11px;
+      }
+      
+      .receipt-format table {
+        width: 100%;
+        border-collapse: collapse;
+        margin: 8px 0;
+      }
+      
+      .receipt-format th,
+      .receipt-format td {
+        padding: 2px 4px;
+        text-align: right;
+        border-bottom: 1px dotted #666;
+      }
+      
+      .receipt-format .invoice-total {
+        border-top: 1px solid #333;
+        margin-top: 8px;
+        padding-top: 5px;
+        font-weight: bold;
       }
     `;
     
@@ -337,7 +409,7 @@ export default function Invoice({ cart, total, onClose, onSuccess }) {
 function InvoicePreview({ invoiceNumber, customerInfo, cart, total, date, onClose, onPrintAgain }) {
   return (
     <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-      <div className="bg-white rounded-xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-hidden invoice-print">
+      <div className="bg-white rounded-xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-hidden invoice-print receipt-format">
         {/* header */}
         <div className="bg-gradient-to-r from-primary to-emerald-500 text-white p-6 text-center invoice-header">
           <h2 className="text-2xl font-bold mb-2">فاتورة مبيعات</h2>
@@ -398,9 +470,17 @@ function InvoicePreview({ invoiceNumber, customerInfo, cart, total, date, onClos
         <div className="p-4 border-t border-gray-200 flex gap-3 no-print">
           <button
             onClick={() => {
-              // Use enhanced print if available (PWA), otherwise fallback to regular print
-              if (window.enhancedPrint) {
-                window.enhancedPrint(document.querySelector('.invoice-print').innerHTML);
+              const invoiceElement = document.querySelector('.invoice-print');
+              if (window.enhancedPrint && invoiceElement) {
+                // Use enhanced print with PDF generation
+                window.enhancedPrint(invoiceElement, {
+                  filename: `فاتورة-${invoiceNumber}.pdf`,
+                  jsPDF: { 
+                    unit: 'mm', 
+                    format: [80, 150], // Receipt size optimized
+                    orientation: 'portrait'
+                  }
+                });
               } else {
                 window.print();
               }
@@ -408,10 +488,43 @@ function InvoicePreview({ invoiceNumber, customerInfo, cart, total, date, onClos
             className="flex-1 bg-green-600 hover:bg-green-700 text-white px-4 py-2.5 rounded-lg transition-colors font-medium flex items-center justify-center gap-2"
           >
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2H9a2 2 0 00-2 2v4h10z" />
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
             </svg>
-            طباعة عادية
+            طباعة PDF
+          </button>
+          <button
+            onClick={() => {
+              const invoiceElement = document.querySelector('.invoice-print');
+              if (invoiceElement) {
+                // Try Sunmi innerPrinter first, then fallback
+                const isSunmiDevice = navigator.userAgent.includes('sunmi') || 
+                                     window.sunmiInnerPrinter || 
+                                     window.SunmiInnerPrinter;
+                
+                if (isSunmiDevice) {
+                  try {
+                    if (window.sunmiInnerPrinter) {
+                      window.sunmiInnerPrinter.print(invoiceElement.innerHTML);
+                      return;
+                    } else if (window.SunmiInnerPrinter) {
+                      window.SunmiInnerPrinter.print(invoiceElement.innerHTML);
+                      return;
+                    }
+                  } catch (error) {
+                    console.log('Sunmi print failed:', error);
+                  }
+                }
+                
+                // Fallback to regular print
+                window.print();
+              }
+            }}
+            className="flex-1 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2.5 rounded-lg transition-colors font-medium flex items-center justify-center gap-2"
+          >
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
+            </svg>
+            طباعة مباشرة
           </button>
           <button
             onClick={onClose}

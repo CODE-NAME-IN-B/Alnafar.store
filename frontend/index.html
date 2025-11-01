@@ -37,9 +37,13 @@
     <!-- Preload critical resources -->
     <link rel="preload" href="/src/styles.css" as="style" />
     
+    <!-- PDF Generation Libraries -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    
     <!-- Performance optimization -->
     <link rel="dns-prefetch" href="//fonts.googleapis.com" />
     <link rel="dns-prefetch" href="//fonts.gstatic.com" />
+    <link rel="dns-prefetch" href="//cdnjs.cloudflare.com" />
   </head>
   <body>
     <div id="root"></div>
@@ -172,24 +176,99 @@
         setTimeout(() => successMsg.remove(), 3000);
       });
 
-      // Enhanced print function for PWA
-      window.enhancedPrint = function(content) {
-        if ('serviceWorker' in navigator && navigator.serviceWorker.controller) {
-          // Send print request to service worker
-          const channel = new MessageChannel();
-          channel.port1.onmessage = function(event) {
-            console.log('Print response:', event.data);
-          };
-          
-          navigator.serviceWorker.controller.postMessage({
-            type: 'PRINT_INVOICE',
-            content: content
-          }, [channel.port2]);
+      // Enhanced print function for PWA with PDF and Sunmi support
+      window.enhancedPrint = function(element, options = {}) {
+        console.log('🖨️ Enhanced print called');
+        
+        // Check if we're on Sunmi device
+        const isSunmiDevice = navigator.userAgent.includes('sunmi') || 
+                             window.sunmiInnerPrinter || 
+                             window.SunmiInnerPrinter;
+        
+        if (isSunmiDevice) {
+          console.log('📱 Sunmi device detected, attempting innerPrinter');
+          try {
+            // Try to use Sunmi innerPrinter
+            if (window.sunmiInnerPrinter) {
+              window.sunmiInnerPrinter.print(element.innerHTML);
+              return;
+            } else if (window.SunmiInnerPrinter) {
+              window.SunmiInnerPrinter.print(element.innerHTML);
+              return;
+            }
+          } catch (error) {
+            console.log('⚠️ Sunmi innerPrinter failed:', error);
+          }
         }
         
-        // Fallback to regular print
-        window.print();
+        // Generate PDF for better printing
+        if (window.html2pdf && element) {
+          console.log('📄 Generating PDF for printing');
+          
+          const opt = {
+            margin: [5, 5, 5, 5],
+            filename: `invoice-${Date.now()}.pdf`,
+            image: { type: 'jpeg', quality: 0.98 },
+            html2canvas: { 
+              scale: 2,
+              useCORS: true,
+              allowTaint: true,
+              backgroundColor: '#ffffff'
+            },
+            jsPDF: { 
+              unit: 'mm', 
+              format: [80, 200], // Receipt size
+              orientation: 'portrait',
+              compress: true
+            },
+            pagebreak: { mode: ['avoid-all', 'css', 'legacy'] }
+          };
+          
+          // Merge custom options
+          Object.assign(opt, options);
+          
+          html2pdf().set(opt).from(element).toPdf().get('pdf').then(function (pdf) {
+            // Auto print the PDF
+            const blob = pdf.output('blob');
+            const url = URL.createObjectURL(blob);
+            
+            // Open in new window for printing
+            const printWindow = window.open(url, '_blank');
+            if (printWindow) {
+              printWindow.onload = function() {
+                printWindow.print();
+              };
+            } else {
+              // Fallback: download PDF
+              const a = document.createElement('a');
+              a.href = url;
+              a.download = opt.filename;
+              a.click();
+            }
+          }).catch(function(error) {
+            console.error('PDF generation failed:', error);
+            // Fallback to regular print
+            window.print();
+          });
+        } else {
+          // Fallback to regular print
+          console.log('🖨️ Fallback to regular print');
+          window.print();
+        }
       };
+      
+      // Sunmi innerPrinter detection and setup
+      window.addEventListener('load', function() {
+        // Check for Sunmi innerPrinter availability
+        if (typeof Android !== 'undefined' && Android.innerPrinter) {
+          window.sunmiInnerPrinter = Android.innerPrinter;
+          console.log('✅ Sunmi innerPrinter detected via Android interface');
+        } else if (window.sunmiInnerPrinter) {
+          console.log('✅ Sunmi innerPrinter already available');
+        } else {
+          console.log('ℹ️ Sunmi innerPrinter not detected, using web printing');
+        }
+      });
     </script>
   </body>
   </html>
