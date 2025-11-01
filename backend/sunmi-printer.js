@@ -14,6 +14,9 @@ class SunmiPrinter {
       alignment: 'center', // left, center, right
       charset: 'UTF-8'
     };
+    
+    // تحقق من البيئة
+    this.isCloudEnvironment = process.env.NODE_ENV === 'production' && !process.env.SUNMI_DEVICE_IP;
   }
 
   // دالة لتحويل النص العربي لتنسيق مناسب للطباعة
@@ -157,6 +160,21 @@ class SunmiPrinter {
   async printInvoice(invoiceData, storeSettings = null) {
     try {
       const content = this.generateInvoiceContent(invoiceData, storeSettings);
+      
+      // تحقق من البيئة السحابية
+      if (this.isCloudEnvironment) {
+        console.log('⚠️ الطباعة غير متاحة في البيئة السحابية');
+        console.log('📄 محتوى الفاتورة:');
+        console.log(content);
+        
+        return {
+          success: true,
+          message: 'تم إنشاء الفاتورة (الطباعة غير متاحة في البيئة السحابية)',
+          invoiceNumber: invoiceData.invoiceNumber,
+          content: content,
+          cloudMode: true
+        };
+      }
       
       // إعداد أمر الطباعة لجهاز Sunmi V2
       const printCommand = {

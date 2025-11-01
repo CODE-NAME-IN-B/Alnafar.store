@@ -1156,24 +1156,30 @@ app.post('/api/send-telegram', async (req, res) => {
   }
 });
 
-// Stats
+// Stats - Updated to use invoices table
 app.get('/api/stats', (req, res) => {
-  const totals = get('SELECT COUNT(*) as totalOrders FROM orders');
-  const orders = all('SELECT games FROM orders');
+  const totals = get('SELECT COUNT(*) as totalOrders FROM invoices');
+  const invoices = all('SELECT items FROM invoices');
   const counts = new Map();
-  for (const o of orders) {
+  
+  for (const invoice of invoices) {
     try {
-      const arr = JSON.parse(o.games || '[]');
-      for (const it of arr) {
-        const key = String(it.id);
-        counts.set(key, (counts.get(key) || 0) + 1);
+      const items = JSON.parse(invoice.items);
+      for (const item of items) {
+        const id = item.id;
+        counts.set(id, (counts.get(id) || 0) + 1);
       }
-    } catch {}
+    } catch (e) {
+      console.error('Error parsing invoice items:', e);
+    }
   }
+  
   const top = Array.from(counts.entries())
-    .map(([gameId, count]) => ({ gameId, count }))
+    .map(([gameId, count]) => ({ gameId: parseInt(gameId), count }))
     .sort((a, b) => b.count - a.count)
     .slice(0, 10);
+    
+  console.log('📊 Stats generated:', { totalOrders: totals.totalOrders || 0, topGames: top });
   res.json({ totalOrders: totals.totalOrders || 0, topGames: top });
 });
 
@@ -1951,45 +1957,6 @@ app.put('/api/settings', authMiddleware, (req, res) => {
 
 
 
-// Stats
-
-app.get('/api/stats', (req, res) => {
-
-  const totals = get('SELECT COUNT(*) as totalOrders FROM orders');
-
-  const orders = all('SELECT games FROM orders');
-
-  const counts = new Map();
-
-  for (const o of orders) {
-
-    try {
-
-      const arr = JSON.parse(o.games || '[]');
-
-      for (const it of arr) {
-
-        const key = String(it.id);
-
-        counts.set(key, (counts.get(key) || 0) + 1);
-
-      }
-
-    } catch {}
-
-  }
-
-  const top = Array.from(counts.entries())
-
-    .map(([gameId, count]) => ({ gameId, count }))
-
-    .sort((a, b) => b.count - a.count)
-
-    .slice(0, 10);
-
-  res.json({ totalOrders: totals.totalOrders || 0, topGames: top });
-
-});
 
 
 

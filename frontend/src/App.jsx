@@ -94,6 +94,7 @@ export default function App() {
   const [loginForm, setLoginForm] = useState({ username: '', password: '' })
   const [loginLoading, setLoginLoading] = useState(false)
   const [showInvoice, setShowInvoice] = useState(false)
+  const [showMobileCart, setShowMobileCart] = useState(false)
 
   // whether telegram is actually ready to be used (enabled and tokens present)
   const telegramConfigured = (settings && settings.communication_method === 'telegram' && settings.telegram_enabled && settings.telegram_bot_token && settings.telegram_chat_id)
@@ -383,10 +384,39 @@ export default function App() {
       {/* Header */}
       <header className="bg-gradient-to-r from-gray-900 to-black border-b border-white/10 sticky top-0 z-50">
         <div className="max-w-6xl mx-auto px-3 sm:px-4">
-          {/* Top row - Logo and Login */}
+          {/* Top row - Logo, Cart Icon (mobile), and Login */}
           <div className="h-14 sm:h-16 flex items-center justify-between">
-            <img src={logo} alt="logo" className="h-10 sm:h-12 md:h-14 w-auto" />
-            <button onClick={()=>setShowLogin(true)} className="px-3 sm:px-4 py-2 rounded-lg bg-primary text-white hover:bg-primary-dark text-sm sm:text-base font-semibold">تسجيل الدخول</button>
+            <div className="flex items-center gap-3">
+              <img src={logo} alt="Logo" className="h-8 w-8 sm:h-10 sm:w-10" />
+              <h1 className="text-lg sm:text-xl font-bold bg-gradient-to-r from-primary to-emerald-400 bg-clip-text text-transparent">
+                متجر النفار
+              </h1>
+            </div>
+            
+            <div className="flex items-center gap-2 sm:gap-3">
+              {/* Mobile Cart Icon */}
+              <button 
+                onClick={() => setShowMobileCart(true)}
+                className="lg:hidden relative p-2 bg-white/10 hover:bg-white/20 rounded-lg transition-colors"
+                aria-label="السلة"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
+                </svg>
+                {cart.length > 0 && (
+                  <span className="absolute -top-1 -right-1 bg-primary text-black text-xs font-bold rounded-full h-5 w-5 flex items-center justify-center">
+                    {cart.length}
+                  </span>
+                )}
+              </button>
+              
+              <button 
+                onClick={() => setShowLogin(true)}
+                className="text-xs sm:text-sm bg-white/10 hover:bg-white/20 px-3 py-2 rounded-lg transition-colors"
+              >
+                تسجيل دخول
+              </button>
+            </div>
           </div>
           
           {/* Mobile Search Bar */}
@@ -752,6 +782,85 @@ export default function App() {
               </button>
             </div>
           </form>
+        </div>
+      )}
+
+      {/* Mobile Cart Modal */}
+      {showMobileCart && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 lg:hidden">
+          <div className="absolute bottom-0 left-0 right-0 bg-card rounded-t-2xl max-h-[80vh] overflow-hidden">
+            {/* Header */}
+            <div className="flex items-center justify-between p-4 border-b border-white/10">
+              <h2 className="text-xl font-bold">السلة</h2>
+              <button 
+                onClick={() => setShowMobileCart(false)}
+                className="p-2 hover:bg-white/10 rounded-lg transition-colors"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+            
+            {/* Cart Content */}
+            <div className="p-4 overflow-y-auto max-h-[60vh]">
+              {cart.length === 0 ? (
+                <div className="text-center py-8 text-gray-400">
+                  <svg className="w-16 h-16 mx-auto mb-4 opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
+                  </svg>
+                  <p>السلة فارغة</p>
+                </div>
+              ) : (
+                <>
+                  <ul className="space-y-3 mb-6">
+                    {cart.map((g, i) => (
+                      <li key={i} className="flex items-center gap-3 p-3 bg-white/5 rounded-lg">
+                        <div className="flex-1 min-w-0">
+                          <p className="font-medium truncate" title={g.title}>
+                            {g.title}
+                          </p>
+                          <p className="text-primary font-bold">
+                            {currency(g.price)}
+                          </p>
+                        </div>
+                        <button 
+                          onClick={() => removeFromCart(i)} 
+                          className="text-red-400 hover:text-red-300 p-2 rounded-full hover:bg-red-900/20 transition-colors"
+                          aria-label="حذف من السلة"
+                        >
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                          </svg>
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                  
+                  <div className="border-t border-white/10 pt-4">
+                    <div className="flex justify-between items-center mb-4">
+                      <span className="text-lg font-bold">الإجمالي:</span>
+                      <span className="text-xl font-bold text-primary">{currency(total)}</span>
+                    </div>
+                    
+                    <button 
+                      disabled={cart.length === 0} 
+                      onClick={() => {
+                        setShowMobileCart(false)
+                        sendOrder()
+                      }} 
+                      className="w-full bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 disabled:opacity-50 disabled:cursor-not-allowed text-white font-bold py-4 px-4 rounded-lg transition-all duration-300 flex items-center justify-center gap-2"
+                    >
+                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                      </svg>
+                      إنشاء فاتورة وطباعة
+                    </button>
+                  </div>
+                </>
+              )}
+            </div>
+          </div>
         </div>
       )}
 
