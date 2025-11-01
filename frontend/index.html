@@ -35,10 +35,8 @@
     <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;600;700;900&family=Inter:wght@300;400;600;700;900&display=swap" rel="stylesheet">
     
     <!-- Preload critical resources -->
-    <link rel="preload" href="/src/styles.css" as="style" />
+    <!-- <link rel="preload" href="/src/styles.css" as="style" /> -->
     
-    <!-- PDF Generation Library -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js" integrity="sha512-GsLlZN/3F2ErC5ifS5QtgpiJtWd43JWSuIgh7mbzZ8zBps+dvLusV+eNQATqgA/HdeKFVgA5v3S/cIrLF7QnIg==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
     
     <!-- Performance optimization -->
     <link rel="dns-prefetch" href="//fonts.googleapis.com" />
@@ -176,32 +174,8 @@
         setTimeout(() => successMsg.remove(), 3000);
       });
 
-      // Enhanced print function - opens browser print dialog
-      window.enhancedPrint = function(element, options = {}) {
-        console.log('🖨️ Opening browser print dialog');
-        
-        // Check if we're on Sunmi device
-        const isSunmiDevice = navigator.userAgent.includes('sunmi') || 
-                             window.sunmiInnerPrinter || 
-                             window.SunmiInnerPrinter;
-        
-        if (isSunmiDevice) {
-          console.log('📱 Sunmi device detected, attempting innerPrinter');
-          try {
-            // Try to use Sunmi innerPrinter
-            if (window.sunmiInnerPrinter) {
-              window.sunmiInnerPrinter.print(element.innerHTML);
-              return;
-            } else if (window.SunmiInnerPrinter) {
-              window.SunmiInnerPrinter.print(element.innerHTML);
-              return;
-            }
-          } catch (error) {
-            console.log('⚠️ Sunmi innerPrinter failed:', error);
-          }
-        }
-        
-        // Open browser print dialog (supports Save as PDF)
+      // Simple print function - opens browser print dialog like printatestpage.com
+      window.enhancedPrint = function() {
         console.log('🖨️ Opening browser print dialog');
         window.print();
       };

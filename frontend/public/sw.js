@@ -43,38 +43,19 @@ self.addEventListener('activate', (event) => {
 
 // Fetch event - serve from cache, fallback to network
 self.addEventListener('fetch', (event) => {
-  // Skip cross-origin requests
-  if (!event.request.url.startsWith(self.location.origin)) {
+  // Skip cross-origin requests and development files
+  if (!event.request.url.startsWith(self.location.origin) || 
+      event.request.url.includes('/src/') ||
+      event.request.url.includes('/@vite/') ||
+      event.request.url.includes('/@react-refresh')) {
     return;
   }
 
   event.respondWith(
-    caches.match(event.request)
-      .then((response) => {
-        // Return cached version or fetch from network
-        return response || fetch(event.request)
-          .then((fetchResponse) => {
-            // Don't cache POST requests or non-successful responses
-            if (event.request.method !== 'GET' || !fetchResponse.ok) {
-              return fetchResponse;
-            }
-
-            // Clone the response
-            const responseToCache = fetchResponse.clone();
-
-            caches.open(CACHE_NAME)
-              .then((cache) => {
-                cache.put(event.request, responseToCache);
-              });
-
-            return fetchResponse;
-          });
-      })
+    fetch(event.request)
       .catch(() => {
-        // Fallback for offline
-        if (event.request.destination === 'document') {
-          return caches.match('/');
-        }
+        // Fallback to cache only if network fails
+        return caches.match(event.request);
       })
   );
 });
