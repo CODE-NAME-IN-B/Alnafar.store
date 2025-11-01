@@ -55,14 +55,17 @@ export default function Invoice({ cart, total, onClose, onSuccess }) {
       const response = await api.post('/invoices', invoiceData)
       
       // طباعة الفاتورة على جهاز Sunmi V2
-      await printInvoice(invoiceData)
+      const printResult = await printInvoice(invoiceData)
       
       // إظهار معاينة الفاتورة
       setShowPreview(true)
       
-      // استدعاء callback النجاح
+      // استدعاء callback النجاح مع معلومات الطباعة
       if (onSuccess) {
-        onSuccess(response.data)
+        onSuccess({
+          ...response.data,
+          cloudMode: printResult?.cloudMode || false
+        })
       }
       
     } catch (error) {
@@ -75,7 +78,7 @@ export default function Invoice({ cart, total, onClose, onSuccess }) {
 
   const printInvoice = async (invoiceData) => {
     try {
-      await api.post('/print-invoice', {
+      const response = await api.post('/print-invoice', {
         invoiceNumber: invoiceData.invoiceNumber,
         customerName: invoiceData.customerInfo.name,
         customerPhone: invoiceData.customerInfo.phone,
@@ -85,9 +88,11 @@ export default function Invoice({ cart, total, onClose, onSuccess }) {
         date: invoiceData.date,
         notes: invoiceData.customerInfo.notes
       })
+      return response.data
     } catch (error) {
       console.error('خطأ في الطباعة:', error)
       // لا نوقف العملية إذا فشلت الطباعة
+      return { cloudMode: true }
     }
   }
 

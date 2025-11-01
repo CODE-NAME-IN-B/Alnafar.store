@@ -352,7 +352,13 @@ export default function App() {
     // مسح السلة بعد نجاح إنشاء الفاتورة
     setCart([])
     setShowInvoice(false)
-    alert('تم إنشاء وطباعة الفاتورة بنجاح!')
+    
+    // رسالة مختلفة حسب البيئة
+    if (invoice && invoice.cloudMode) {
+      alert('تم إنشاء الفاتورة بنجاح!\n\nملاحظة: الطباعة غير متاحة في النسخة السحابية.\nللطباعة، يرجى تشغيل النظام محلياً.')
+    } else {
+      alert('تم إنشاء وطباعة الفاتورة بنجاح!')
+    }
   }
 
   const handleInvoiceClose = () => {
