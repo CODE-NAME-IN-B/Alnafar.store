@@ -70,8 +70,8 @@ export default function Invoice({ cart, total, onClose, onSuccess }) {
           .rc-total { font-size: calc(var(--font-size) + 2px); font-weight: 900; padding-top: 10px; border-top: 2px solid #111; }
           .rc-footer { text-align: center; font-size: calc(var(--font-size) - 2px); color: #555; margin-top: 12px; }
           @media print {
-            @page { size: var(--paper-width) auto; margin: 0; }
-            html, body { width: var(--paper-width) !important; margin: 0 !important; }
+            @page { size: 80mm auto; margin: 0; }
+            html, body { width: 80mm !important; margin: 0 !important; }
             .no-print { display: none !important; }
             .receipt { width: 100% !important; margin: 0 auto !important; font-size: var(--font-size) !important; }
           }
