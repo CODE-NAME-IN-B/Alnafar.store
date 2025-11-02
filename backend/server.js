@@ -309,7 +309,7 @@ function initializeDatabase() {
 
   db.exec(`CREATE TABLE IF NOT EXISTS invoice_settings (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
-      store_name TEXT DEFAULT 'الشارجه للإلكترونيات',
+      store_name TEXT DEFAULT 'الشارده للإلكترونيات',
       store_name_english TEXT DEFAULT 'Alnafar Store',
       store_address TEXT DEFAULT 'شارع الفضائيه، مقابل محطة الفضيل',
       store_phone TEXT DEFAULT '0920595447',
@@ -1667,7 +1667,7 @@ app.get('/api/invoice-settings', (req, res) => {
         store_email, store_website, footer_message, header_logo_text,
         show_store_info, show_footer, paper_width, font_size
       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`, [
-        'الشارجه للإلكترونيات',
+        'الشارده للإلكترونيات',
         'Alnafar Store', 
         'شارع الفضائيه، مقابل محطة الفضيل',
         '0920595447',

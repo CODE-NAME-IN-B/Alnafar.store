@@ -13,6 +13,7 @@ export default function Invoice({ cart, total, onClose, onSuccess }) {
     address: '',
     notes: ''
   })
+  const [discount, setDiscount] = useState(0)
   const [isProcessing, setIsProcessing] = useState(false)
 
   const invoiceNumber = `INV-${Date.now()}`
@@ -88,12 +89,12 @@ export default function Invoice({ cart, total, onClose, onSuccess }) {
             padding: 1mm 1.5mm;
             background: #fff;
           }
-          img.logo { display:block; margin: 0 auto 0.5mm; width: 50%; max-width: 120px; image-rendering: pixelated; }
+          img.logo { display:block; margin: 0 auto 0.2mm; width: 50%; max-width: 120px; image-rendering: pixelated; }
           .store-name-ar { 
             font-size: ${titleSize}; 
             font-weight: bold; 
             text-align: center; 
-            margin: 0.5mm 0 1px 0;
+            margin: 0.2mm 0 1px 0;
           }
           .text-center { text-align: center; }
           .text-right { text-align: right; }
@@ -227,9 +228,18 @@ export default function Invoice({ cart, total, onClose, onSuccess }) {
             <span class="item-price">${currency(item.price)}</span>
           </div>`).join('')}
           
+          ${discount > 0 ? `
+          <div class="info-row">
+            <span class="info-label">المجموع قبل الخصم:</span>
+            <span class="info-value">${currency(total)}</span>
+          </div>
+          <div class="info-row">
+            <span class="info-label">الخصم:</span>
+            <span class="info-value">-${currency(discount)}</span>
+          </div>` : ''}
           <div class="total-row">
-            <span class="total-label">الإجمالي:</span>
-            <span class="total-value">${currency(total)}</span>
+            <span class="total-label">الإجمالي النهائي:</span>
+            <span class="total-value">${currency(total - discount)}</span>
           </div>
           
           ${showStoreInfo && (storeAddr || storePhone || storeEmail || storeWeb) ? `
@@ -277,6 +287,8 @@ export default function Invoice({ cart, total, onClose, onSuccess }) {
         customerInfo,
         items: cart,
         total,
+        discount,
+        finalTotal: total - discount,
         date: new Date().toISOString(),
         status: 'pending'
       }
@@ -407,10 +419,29 @@ export default function Invoice({ cart, total, onClose, onSuccess }) {
                 </div>
               ))}
               
-              <div className="pt-3 border-t border-gray-600">
+              <div className="pt-3 border-t border-gray-600 space-y-3">
                 <div className="flex justify-between items-center">
-                  <span className="text-lg font-bold text-white">الإجمالي:</span>
-                  <span className="text-xl font-bold text-primary">{currency(total)}</span>
+                  <label className="text-sm font-medium text-gray-300">الخصم (دينار ليبي):</label>
+                  <input
+                    type="number"
+                    min="0"
+                    max={total}
+                    step="0.01"
+                    value={discount}
+                    onChange={(e) => setDiscount(Number(e.target.value) || 0)}
+                    className="w-24 bg-gray-700 border border-gray-600 rounded px-2 py-1 text-white text-sm text-center"
+                    placeholder="0.00"
+                  />
+                </div>
+                {discount > 0 && (
+                  <div className="flex justify-between items-center text-sm">
+                    <span className="text-gray-400">المجموع قبل الخصم:</span>
+                    <span className="text-gray-400">{currency(total)}</span>
+                  </div>
+                )}
+                <div className="flex justify-between items-center">
+                  <span className="text-lg font-bold text-white">الإجمالي النهائي:</span>
+                  <span className="text-xl font-bold text-primary">{currency(total - discount)}</span>
                 </div>
               </div>
             </div>
