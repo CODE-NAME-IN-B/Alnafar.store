@@ -1375,6 +1375,154 @@ app.get('/api/invoices/:invoiceNumber', (req, res) => {
   }
 });
 
+// تعديل فاتورة
+app.put('/api/invoices/:id', authMiddleware, (req, res) => {
+  try {
+    const { id } = req.params;
+    const {
+      customer_name,
+      customer_phone,
+      customer_address,
+      customer_notes,
+      items,
+      total,
+      status
+    } = req.body;
+
+    const invoice = get('SELECT * FROM invoices WHERE id = ?', [id]);
+    if (!invoice || !invoice.id) {
+      return res.status(404).json({ success: false, message: 'الفاتورة غير موجودة' });
+    }
+
+    run(`UPDATE invoices SET 
+      customer_name = ?, 
+      customer_phone = ?, 
+      customer_address = ?, 
+      customer_notes = ?,
+      items = ?,
+      total = ?,
+      status = ?
+      WHERE id = ?`, [
+      customer_name || invoice.customer_name,
+      customer_phone || invoice.customer_phone,
+      customer_address || invoice.customer_address || '',
+      customer_notes || invoice.customer_notes || '',
+      items ? JSON.stringify(items) : invoice.items,
+      total || invoice.total,
+      status || invoice.status,
+      id
+    ]);
+
+    const updated = get('SELECT * FROM invoices WHERE id = ?', [id]);
+    res.json({
+      success: true,
+      message: 'تم تحديث الفاتورة بنجاح',
+      invoice: { ...updated, items: JSON.parse(updated.items) }
+    });
+
+  } catch (error) {
+    console.error('خطأ في تعديل الفاتورة:', error);
+    res.status(500).json({ 
+      success: false, 
+      message: 'حدث خطأ في تعديل الفاتورة',
+      error: error.message 
+    });
+  }
+});
+
+// حذف فاتورة
+app.delete('/api/invoices/:id', authMiddleware, (req, res) => {
+  try {
+    const { id } = req.params;
+    
+    const invoice = get('SELECT * FROM invoices WHERE id = ?', [id]);
+    if (!invoice || !invoice.id) {
+      return res.status(404).json({ success: false, message: 'الفاتورة غير موجودة' });
+    }
+
+    run('DELETE FROM invoices WHERE id = ?', [id]);
+    
+    res.json({
+      success: true,
+      message: 'تم حذف الفاتورة بنجاح'
+    });
+
+  } catch (error) {
+    console.error('خطأ في حذف الفاتورة:', error);
+    res.status(500).json({ 
+      success: false, 
+      message: 'حدث خطأ في حذف الفاتورة',
+      error: error.message 
+    });
+  }
+});
+
+// حذف جميع الفواتير
+app.delete('/api/invoices', authMiddleware, (req, res) => {
+  try {
+    const count = get('SELECT COUNT(*) as count FROM invoices').count;
+    
+    run('DELETE FROM invoices');
+    run("DELETE FROM sqlite_sequence WHERE name='invoices'");
+    
+    res.json({
+      success: true,
+      message: `تم حذف ${count} فاتورة بنجاح`,
+      deletedCount: count
+    });
+
+  } catch (error) {
+    console.error('خطأ في حذف جميع الفواتير:', error);
+    res.status(500).json({ 
+      success: false, 
+      message: 'حدث خطأ في حذف الفواتير',
+      error: error.message 
+    });
+  }
+});
+
+// حساب إجمالي الفواتير
+app.get('/api/invoices-summary', authMiddleware, (req, res) => {
+  try {
+    const summary = get(`
+      SELECT 
+        COUNT(*) as totalInvoices,
+        COALESCE(SUM(total), 0) as totalRevenue,
+        COALESCE(AVG(total), 0) as averageInvoice,
+        COALESCE(MAX(total), 0) as highestInvoice,
+        COALESCE(MIN(total), 0) as lowestInvoice
+      FROM invoices
+    `);
+
+    const todayStart = new Date();
+    todayStart.setHours(0, 0, 0, 0);
+    
+    const todaySummary = get(`
+      SELECT 
+        COUNT(*) as todayInvoices,
+        COALESCE(SUM(total), 0) as todayRevenue
+      FROM invoices
+      WHERE created_at >= ?
+    `, [todayStart.toISOString()]);
+
+    res.json({
+      success: true,
+      summary: {
+        ...summary,
+        ...todaySummary
+      }
+    });
+
+  } catch (error) {
+    console.error('خطأ في حساب إجمالي الفواتير:', error);
+    res.status(500).json({ 
+      success: false, 
+      message: 'حدث خطأ في حساب الإجمالي',
+      error: error.message 
+    });
+  }
+});
+
 // طباعة تجريبية لاختبار الاتصال بجهاز Sunmi V2
 app.post('/api/print-test', authMiddleware, async (req, res) => {
   try {
@@ -1417,6 +1565,91 @@ app.post('/api/printer-settings', authMiddleware, (req, res) => {
     res.status(500).json({ 
       success: false, 
       message: 'حدث خطأ في تحديث إعدادات الطابعة',
+      error: error.message 
+    });
+  }
+});
+
+// إنشاء نسخة احتياطية من قاعدة البيانات
+app.get('/api/backup-database', authMiddleware, (req, res) => {
+  try {
+    // حفظ قاعدة البيانات الحالية
+    persistDb();
+    
+    // قراءة ملف قاعدة البيانات
+    const dbBuffer = fs.readFileSync(DB_PATH);
+    
+    // إنشاء اسم ملف النسخة الاحتياطية مع التاريخ والوقت
+    const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, -5);
+    const backupFilename = `database-backup-${timestamp}.sqlite`;
+    
+    // إرسال الملف للتحميل
+    res.setHeader('Content-Type', 'application/octet-stream');
+    res.setHeader('Content-Disposition', `attachment; filename="${backupFilename}"`);
+    res.setHeader('Content-Length', dbBuffer.length);
+    res.send(dbBuffer);
+    
+    console.log(`✅ تم إنشاء نسخة احتياطية: ${backupFilename}`);
+
+  } catch (error) {
+    console.error('خطأ في إنشاء النسخة الاحتياطية:', error);
+    res.status(500).json({ 
+      success: false, 
+      message: 'حدث خطأ في إنشاء النسخة الاحتياطية',
+      error: error.message 
+    });
+  }
+});
+
+// استعادة قاعدة البيانات من نسخة احتياطية
+app.post('/api/restore-database', authMiddleware, async (req, res) => {
+  try {
+    const { backupData } = req.body;
+    
+    if (!backupData) {
+      return res.status(400).json({ 
+        success: false, 
+        message: 'لم يتم إرسال بيانات النسخة الاحتياطية' 
+      });
+    }
+    
+    // إنشاء نسخة احتياطية من قاعدة البيانات الحالية قبل الاستعادة
+    const currentDbBuffer = fs.readFileSync(DB_PATH);
+    const backupPath = path.join(DATA_DIR, `database-before-restore-${Date.now()}.sqlite`);
+    fs.writeFileSync(backupPath, currentDbBuffer);
+    console.log(`✅ تم حفظ نسخة احتياطية من قاعدة البيانات الحالية: ${backupPath}`);
+    
+    // تحويل البيانات من base64 إلى buffer
+    const buffer = Buffer.from(backupData, 'base64');
+    
+    // كتابة قاعدة البيانات الجديدة
+    fs.writeFileSync(DB_PATH, buffer);
+    
+    // إعادة تحميل قاعدة البيانات
+    if (db) {
+      try {
+        db.close();
+      } catch (e) {
+        console.warn('Warning closing old DB:', e.message);
+      }
+    }
+    
+    const fileBuffer = fs.readFileSync(DB_PATH);
+    db = new SQL.Database(fileBuffer);
+    
+    res.json({
+      success: true,
+      message: 'تم استعادة قاعدة البيانات بنجاح',
+      backupLocation: backupPath
+    });
+    
+    console.log('✅ تم استعادة قاعدة البيانات بنجاح');
+
+  } catch (error) {
+    console.error('خطأ في استعادة قاعدة البيانات:', error);
+    res.status(500).json({ 
+      success: false, 
+      message: 'حدث خطأ في استعادة قاعدة البيانات',
       error: error.message 
     });
   }

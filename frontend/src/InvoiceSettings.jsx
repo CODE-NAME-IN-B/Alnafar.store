@@ -18,6 +18,8 @@ export default function InvoiceSettings() {
   })
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
+  const [backingUp, setBackingUp] = useState(false)
+  const [restoring, setRestoring] = useState(false)
 
   useEffect(() => {
     loadSettings()
@@ -52,6 +54,81 @@ export default function InvoiceSettings() {
 
   const handleInputChange = (field, value) => {
     setSettings(prev => ({ ...prev, [field]: value }))
+  }
+
+  const handleBackupDatabase = async () => {
+    try {
+      setBackingUp(true)
+      const response = await api.get('/backup-database', { responseType: 'blob' })
+      
+      // إنشاء رابط تحميل
+      const url = window.URL.createObjectURL(new Blob([response.data]))
+      const link = document.createElement('a')
+      link.href = url
+      
+      // اسم الملف مع التاريخ
+      const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, -5)
+      link.setAttribute('download', `database-backup-${timestamp}.sqlite`)
+      
+      document.body.appendChild(link)
+      link.click()
+      link.remove()
+      window.URL.revokeObjectURL(url)
+      
+      alert('✅ تم تحميل النسخة الاحتياطية بنجاح!')
+    } catch (error) {
+      alert('❌ حدث خطأ في إنشاء النسخة الاحتياطية')
+      console.error(error)
+    } finally {
+      setBackingUp(false)
+    }
+  }
+
+  const handleRestoreDatabase = async () => {
+    if (!confirm('⚠️ تحذير: سيتم استبدال قاعدة البيانات الحالية. هل أنت متأكد؟')) return
+    
+    const input = document.createElement('input')
+    input.type = 'file'
+    input.accept = '.sqlite'
+    
+    input.onchange = async (e) => {
+      const file = e.target.files[0]
+      if (!file) return
+      
+      try {
+        setRestoring(true)
+        
+        // قراءة الملف كـ base64
+        const reader = new FileReader()
+        reader.onload = async (event) => {
+          try {
+            const base64Data = event.target.result.split(',')[1]
+            
+            const { data } = await api.post('/restore-database', {
+              backupData: base64Data
+            })
+            
+            if (data.success) {
+              alert('✅ تم استعادة قاعدة البيانات بنجاح! سيتم إعادة تحميل الصفحة...')
+              setTimeout(() => window.location.reload(), 1500)
+            }
+          } catch (error) {
+            alert('❌ حدث خطأ في استعادة قاعدة البيانات')
+            console.error(error)
+          } finally {
+            setRestoring(false)
+          }
+        }
+        
+        reader.readAsDataURL(file)
+      } catch (error) {
+        alert('❌ حدث خطأ في قراءة الملف')
+        console.error(error)
+        setRestoring(false)
+      }
+    }
+    
+    input.click()
   }
 
   if (loading) {
@@ -167,7 +244,7 @@ export default function InvoiceSettings() {
         </div>
 
         {/* أزرار التحكم */}
-        <div className="flex gap-4 pt-4">
+        <div className="flex flex-wrap gap-4 pt-4">
           <button
             type="submit"
             disabled={saving}
@@ -190,6 +267,70 @@ export default function InvoiceSettings() {
           >
             طباعة تجريبية
           </button>
+        </div>
+
+        {/* قسم النسخ الاحتياطي */}
+        <div className="mt-8 pt-8 border-t border-gray-700">
+          <h3 className="text-xl font-bold text-white mb-4">💾 النسخ الاحتياطي واستعادة البيانات</h3>
+          <p className="text-gray-400 mb-6">احفظ نسخة احتياطية من قاعدة البيانات أو استعد نسخة سابقة</p>
+          
+          <div className="flex flex-wrap gap-4">
+            <button
+              type="button"
+              onClick={handleBackupDatabase}
+              disabled={backingUp}
+              className="px-6 py-3 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white font-bold rounded-lg transition-colors flex items-center gap-2"
+            >
+              {backingUp ? (
+                <>
+                  <svg className="animate-spin w-5 h-5" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                  </svg>
+                  جاري التحميل...
+                </>
+              ) : (
+                <>
+                  📥 تحميل نسخة احتياطية
+                </>
+              )}
+            </button>
+            
+            <button
+              type="button"
+              onClick={handleRestoreDatabase}
+              disabled={restoring}
+              className="px-6 py-3 bg-orange-600 hover:bg-orange-700 disabled:opacity-50 text-white font-bold rounded-lg transition-colors flex items-center gap-2"
+            >
+              {restoring ? (
+                <>
+                  <svg className="animate-spin w-5 h-5" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                  </svg>
+                  جاري الاستعادة...
+                </>
+              ) : (
+                <>
+                  📤 استعادة من نسخة احتياطية
+                </>
+              )}
+            </button>
+          </div>
+          
+          <div className="mt-4 bg-yellow-900/20 border border-yellow-600/30 rounded-lg p-4">
+            <div className="flex items-start gap-3">
+              <span className="text-2xl">⚠️</span>
+              <div className="text-sm text-yellow-200">
+                <p className="font-semibold mb-1">تنبيه هام:</p>
+                <ul className="list-disc list-inside space-y-1 text-yellow-300/90">
+                  <li>قم بإنشاء نسخة احتياطية بشكل دوري للحفاظ على بياناتك</li>
+                  <li>عند الاستعادة، سيتم حفظ نسخة احتياطية تلقائية من البيانات الحالية</li>
+                  <li>تأكد من صحة ملف النسخة الاحتياطية قبل الاستعادة</li>
+                </ul>
+              </div>
+            </div>
+          </div>
         </div>
       </form>
     </div>

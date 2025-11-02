@@ -130,18 +130,27 @@ export default function Invoice({ cart, total, onClose, onSuccess }) {
       ctx.fillRect(0, 0, width, h)
       ctx.fillStyle = '#000'
       ctx.textBaseline = 'top'
-      const ctxFont = (size, w = 700) => { ctx.font = `${w} ${size}px "Cairo", "Noto Naskh Arabic", Tahoma, Arial, sans-serif` }
-      try { ctx.direction = 'rtl' } catch(_) {}
+      const ctxFont = (size, w = 700) => { 
+        ctx.font = `${w} ${size}px "Cairo", "Noto Naskh Arabic", "Tahoma", "Arial", sans-serif`
+      }
+      try { 
+        ctx.direction = 'rtl'
+        ctx.textRendering = 'optimizeLegibility'
+      } catch(_) {}
       const drawSep = () => { ctx.fillRect(pad, y + 4, width - pad * 2, 2); y += 12 }
       const formatCurrency = v => new Intl.NumberFormat('ar-LY', { style: 'currency', currency: 'LYD' }).format(v)
 
-      // دالة التفاف نص عربي بسيط حسب العرض المتاح
+      // دالة التفاف نص بسيط حسب العرض المتاح - تدعم العربي والإنجليزي
       function drawWrapped(text, align, x, yStart, maxWidth, lh) {
         const words = String(text||'').split(/\s+/)
         let line = ''
         let y = yStart
+        
+        // للنصوص RTL (العربية)، نبني السطر من اليمين لليسار
+        const isRTL = align === 'right'
+        
         for (let i=0;i<words.length;i++) {
-          const test = line ? (words[i] + ' ' + line) : words[i]
+          const test = isRTL ? (line ? (words[i] + ' ' + line) : words[i]) : (line ? (line + ' ' + words[i]) : words[i])
           const w = ctx.measureText(test).width
           if (w > maxWidth && line) {
             ctx.textAlign = align
@@ -168,21 +177,22 @@ export default function Invoice({ cart, total, onClose, onSuccess }) {
           drawSep()
         } else if (ln.kv) {
           ctxFont(base, 700);
-          // المفتاح يسار والقيمة يمين
-          ctx.textAlign = 'left'; ctx.fillText(ln.kv[0], pad, y)
-          ctx.textAlign = 'right'
-          const rightX = width - pad
+          // المفتاح العربي على اليمين والقيمة على اليسار
+          ctx.textAlign = 'right'; ctx.fillText(ln.kv[0], width - pad, y)
+          ctx.textAlign = 'left'
+          const leftX = pad
           const startY = y
-          y = drawWrapped(ln.kv[1], 'right', rightX, startY, rightX - pad - 40, base + 4)
+          const maxW = width - pad * 2 - ctx.measureText(ln.kv[0]).width - 10
+          y = drawWrapped(ln.kv[1], 'left', leftX, startY, maxW, base + 4)
         } else if (ln.item) {
           ctxFont(base, 700)
-          // العنوان يسار والسعر يمين
-          ctx.textAlign = 'right'; ctx.fillText(formatCurrency(ln.item.price), width - pad, y)
-          ctx.textAlign = 'left'
+          // اسم اللعبة على اليمين والسعر على اليسار
+          ctx.textAlign = 'left'; ctx.fillText(formatCurrency(ln.item.price), pad, y)
+          ctx.textAlign = 'right'
           const maxW = width - pad*2 - 120
-          y = drawWrapped(ln.item.title, 'left', pad, y, maxW, base)
+          y = drawWrapped(ln.item.title, 'right', width - pad, y, maxW, base)
         } else if (ln.type==='total') {
-          drawSep(); ctxFont(base + 4, 900); ctx.textAlign = 'left'; ctx.fillText('الإجمالي', pad, y); ctx.textAlign = 'right'; ctx.fillText(formatCurrency(data.total), width - pad, y); y += base + lineGap
+          drawSep(); ctxFont(base + 4, 900); ctx.textAlign = 'right'; ctx.fillText('الإجمالي', width - pad, y); ctx.textAlign = 'left'; ctx.fillText(formatCurrency(data.total), pad, y); y += base + lineGap
         } else if (ln.type === 'footer') {
           ctxFont(small, 600); ctx.textAlign = 'center'; ctx.fillText(ln.t, width / 2, y); y += small + lineGap
         }
@@ -207,10 +217,14 @@ export default function Invoice({ cart, total, onClose, onSuccess }) {
       <html lang="ar" dir="rtl">
       <head>
         <meta charset="UTF-8">
+        <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <title>فاتورة ${invoiceNumber}</title>
+        <link rel="preconnect" href="https://fonts.googleapis.com">
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800;900&family=Noto+Naskh+Arabic:wght@400;500;600;700&display=swap" rel="stylesheet">
         <style>
-          html, body { background:#fff; margin:0; }
+          html, body { background:#fff; margin:0; font-family: 'Cairo', 'Noto Naskh Arabic', 'Tahoma', 'Arial', sans-serif; }
           @page { size: ${paperMM}mm auto; margin: 0; }
           body { width:${paperMM}mm; margin:0 auto; }
           img#print-image { width:${paperMM}mm; display:block; image-rendering: pixelated; -webkit-print-color-adjust: exact; }

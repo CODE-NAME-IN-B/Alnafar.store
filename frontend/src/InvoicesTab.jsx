@@ -9,9 +9,12 @@ export default function InvoicesTab() {
   const [invoices, setInvoices] = useState([])
   const [loading, setLoading] = useState(true)
   const [pagination, setPagination] = useState({ page: 1, pages: 1, total: 0, limit: 50 })
+  const [summary, setSummary] = useState(null)
+  const [editingInvoice, setEditingInvoice] = useState(null)
 
   useEffect(() => {
     loadInvoices()
+    loadSummary()
   }, [])
 
   const loadInvoices = async (page = 1) => {
@@ -24,6 +27,48 @@ export default function InvoicesTab() {
       console.error('خطأ في تحميل الفواتير:', error)
     } finally {
       setLoading(false)
+    }
+  }
+
+  const loadSummary = async () => {
+    try {
+      const { data } = await api.get('/invoices-summary')
+      if (data.success) setSummary(data.summary)
+    } catch (error) {
+      console.error('خطأ في تحميل الإحصائيات:', error)
+    }
+  }
+
+  const deleteInvoice = async (id) => {
+    if (!confirm('هل أنت متأكد من حذف هذه الفاتورة؟')) return
+    
+    try {
+      const { data } = await api.delete(`/invoices/${id}`)
+      if (data.success) {
+        alert('تم حذف الفاتورة بنجاح')
+        loadInvoices(pagination.page)
+        loadSummary()
+      }
+    } catch (error) {
+      alert('حدث خطأ في حذف الفاتورة')
+      console.error(error)
+    }
+  }
+
+  const deleteAllInvoices = async () => {
+    if (!confirm('⚠️ تحذير: هل أنت متأكد من حذف جميع الفواتير؟ هذا الإجراء لا يمكن التراجع عنه!')) return
+    if (!confirm('تأكيد نهائي: سيتم حذف جميع الفواتير نهائياً!')) return
+    
+    try {
+      const { data } = await api.delete('/invoices')
+      if (data.success) {
+        alert(data.message)
+        loadInvoices(1)
+        loadSummary()
+      }
+    } catch (error) {
+      alert('حدث خطأ في حذف الفواتير')
+      console.error(error)
     }
   }
 
@@ -119,7 +164,37 @@ export default function InvoicesTab() {
 
   return (
     <div className="p-8">
-      <h2 className="text-3xl font-bold text-white mb-8">إدارة الفواتير</h2>
+      <div className="flex items-center justify-between mb-8">
+        <h2 className="text-3xl font-bold text-white">إدارة الفواتير</h2>
+        <button
+          onClick={deleteAllInvoices}
+          className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg font-medium transition-colors"
+        >
+          🗑️ حذف جميع الفواتير
+        </button>
+      </div>
+
+      {/* إحصائيات الفواتير */}
+      {summary && (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+          <div className="bg-gradient-to-br from-blue-600 to-blue-700 p-6 rounded-xl text-white">
+            <div className="text-sm opacity-90 mb-1">إجمالي الفواتير</div>
+            <div className="text-3xl font-bold">{summary.totalInvoices}</div>
+          </div>
+          <div className="bg-gradient-to-br from-green-600 to-green-700 p-6 rounded-xl text-white">
+            <div className="text-sm opacity-90 mb-1">إجمالي الإيرادات</div>
+            <div className="text-2xl font-bold">{currency(summary.totalRevenue)}</div>
+          </div>
+          <div className="bg-gradient-to-br from-purple-600 to-purple-700 p-6 rounded-xl text-white">
+            <div className="text-sm opacity-90 mb-1">فواتير اليوم</div>
+            <div className="text-3xl font-bold">{summary.todayInvoices}</div>
+          </div>
+          <div className="bg-gradient-to-br from-orange-600 to-orange-700 p-6 rounded-xl text-white">
+            <div className="text-sm opacity-90 mb-1">إيرادات اليوم</div>
+            <div className="text-2xl font-bold">{currency(summary.todayRevenue)}</div>
+          </div>
+        </div>
+      )}
 
       {invoices.length === 0 ? (
         <div className="bg-gray-800 p-8 rounded-xl text-center">
@@ -152,30 +227,41 @@ export default function InvoicesTab() {
                     {invoice.print_count || 0} {invoice.printed_at ? `— آخر طباعة: ${new Date(invoice.printed_at).toLocaleString('ar-LY')}` : ''}
                   </td>
                   <td className="py-3 px-4 text-center">
-                    <button
-                      onClick={() => reprintInvoice(invoice)}
-                      className="px-3 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg text-sm"
-                    >
-                      إعادة طباعة
-                    </button>
-                    <button
-                      onClick={() => {
-                        const items = Array.isArray(invoice.items) ? invoice.items : (()=>{ try { return JSON.parse(invoice.items) } catch { return [] } })()
-                        const info = [
-                          `رقم: ${invoice.invoice_number}`,
-                          `التاريخ: ${new Date(invoice.created_at).toLocaleString('ar-LY')}`,
-                          `الاسم: ${invoice.customer_name}`,
-                          `الهاتف: ${invoice.customer_phone}`,
-                          invoice.customer_address ? `العنوان: ${invoice.customer_address}` : '',
-                          `الإجمالي: ${new Intl.NumberFormat('ar-LY', { style: 'currency', currency: 'LYD' }).format(invoice.total)}`,
-                          `العناصر:\n` + items.map((it,i)=>`${i+1}. ${it.title} — ${new Intl.NumberFormat('ar-LY', { style: 'currency', currency: 'LYD' }).format(it.price)}`).join('\n')
-                        ].filter(Boolean).join('\n')
-                        alert(info)
-                      }}
-                      className="ml-2 px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm"
-                    >
-                      عرض
-                    </button>
+                    <div className="flex gap-2 justify-center">
+                      <button
+                        onClick={() => reprintInvoice(invoice)}
+                        className="px-3 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg text-sm"
+                        title="إعادة طباعة"
+                      >
+                        🖨️
+                      </button>
+                      <button
+                        onClick={() => {
+                          const items = Array.isArray(invoice.items) ? invoice.items : (()=>{ try { return JSON.parse(invoice.items) } catch { return [] } })()
+                          const info = [
+                            `رقم: ${invoice.invoice_number}`,
+                            `التاريخ: ${new Date(invoice.created_at).toLocaleString('ar-LY')}`,
+                            `الاسم: ${invoice.customer_name}`,
+                            `الهاتف: ${invoice.customer_phone}`,
+                            invoice.customer_address ? `العنوان: ${invoice.customer_address}` : '',
+                            `الإجمالي: ${new Intl.NumberFormat('ar-LY', { style: 'currency', currency: 'LYD' }).format(invoice.total)}`,
+                            `العناصر:\n` + items.map((it,i)=>`${i+1}. ${it.title} — ${new Intl.NumberFormat('ar-LY', { style: 'currency', currency: 'LYD' }).format(it.price)}`).join('\n')
+                          ].filter(Boolean).join('\n')
+                          alert(info)
+                        }}
+                        className="px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm"
+                        title="عرض التفاصيل"
+                      >
+                        👁️
+                      </button>
+                      <button
+                        onClick={() => deleteInvoice(invoice.id)}
+                        className="px-3 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg text-sm"
+                        title="حذف الفاتورة"
+                      >
+                        🗑️
+                      </button>
+                    </div>
                   </td>
                 </tr>
               ))}
