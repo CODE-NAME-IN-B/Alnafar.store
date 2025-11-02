@@ -55,25 +55,27 @@ export default function Invoice({ cart, total, onClose, onSuccess }) {
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <title>فاتورة ${invoiceNumber}</title>
         <style>
-          :root { --paper-width: 80mm; --font-size: 14px; }
+          :root { --font-size: 16px; }
           html, body { background: #fff; color: #111; font-family: 'Cairo', Arial, sans-serif; }
-          .receipt { width: 360px; margin: 0 auto; padding: 14px 12px; font-size: var(--font-size); line-height: 1.5; }
-          .rc-title { text-align: center; font-weight: 800; font-size: calc(var(--font-size) + 2px); }
-          .rc-sub { text-align: center; color: #555; font-size: calc(var(--font-size) - 2px); margin-top: 2px; }
-          .rc-sep { border-top: 1px dashed #999; margin: 10px 0; }
-          .rc-caption { font-weight: 700; margin-bottom: 6px; font-size: var(--font-size); }
-          .rc-line, .rc-item, .rc-total { display: flex; justify-content: space-between; gap: 10px; }
+          /* على الشاشة */
+          .receipt { width: 100%; max-width: 900px; margin: 0 auto; padding: 18px 20px; font-size: var(--font-size); line-height: 1.6; }
+          .rc-title { text-align: center; font-weight: 800; font-size: calc(var(--font-size) + 4px); }
+          .rc-sub { text-align: center; color: #555; font-size: calc(var(--font-size) - 1px); margin-top: 4px; }
+          .rc-sep { border-top: 1px dashed #999; margin: 12px 0; }
+          .rc-caption { font-weight: 800; margin-bottom: 8px; font-size: var(--font-size); }
+          .rc-line, .rc-item, .rc-total { display: flex; justify-content: space-between; gap: 16px; }
           .rc-line span:first-child { color: #444; }
-          .rc-item { padding: 8px 0; border-bottom: 1px dashed #eee; }
+          .rc-item { padding: 10px 0; border-bottom: 1px dashed #e5e7eb; }
           .rc-item span { word-break: break-word; }
-          .price { direction: ltr; font-weight: 800; }
-          .rc-total { font-size: calc(var(--font-size) + 2px); font-weight: 900; padding-top: 10px; border-top: 2px solid #111; }
-          .rc-footer { text-align: center; font-size: calc(var(--font-size) - 2px); color: #555; margin-top: 12px; }
+          .price { direction: ltr; font-weight: 900; }
+          .rc-total { font-size: calc(var(--font-size) + 4px); font-weight: 900; padding-top: 12px; border-top: 2px solid #111; }
+          .rc-footer { text-align: center; font-size: calc(var(--font-size) - 2px); color: #555; margin-top: 14px; }
+          /* في الطباعة: صفحة كاملة A4 وهوامش مناسبة */
           @media print {
-            @page { size: 80mm auto; margin: 0; }
-            html, body { width: 80mm !important; margin: 0 !important; }
+            @page { size: A4; margin: 10mm; }
+            html, body { width: auto !important; margin: 0 !important; }
             .no-print { display: none !important; }
-            .receipt { width: 100% !important; margin: 0 auto !important; font-size: var(--font-size) !important; }
+            .receipt { width: 100% !important; max-width: 100% !important; margin: 0 !important; font-size: var(--font-size) !important; }
           }
         </style>
       </head>
@@ -325,27 +327,27 @@ function InvoicePreview({ invoiceNumber, customerInfo, cart, total, date, onClos
     <>
       {/* أنماط المعاينة والطباعة بنمط إيصال 58mm مناسب لـ Sunmi V2 */}
       <style>{`
-        :root { --paper-width: 80mm; --font-size: 14px; }
-        .receipt { width: 360px; margin: 12px auto; padding: 14px 12px; font-size: var(--font-size); line-height: 1.5; color: #111; background: #fff; }
-        .rc-title { text-align: center; font-weight: 800; font-size: calc(var(--font-size) + 2px); }
-        .rc-sub { text-align: center; color: #555; font-size: calc(var(--font-size) - 2px); margin-top: 2px; }
-        .rc-sep { border-top: 1px dashed #999; margin: 10px 0; }
-        .rc-caption { font-weight: 700; margin-bottom: 6px; font-size: var(--font-size); }
-        .rc-line, .rc-item, .rc-total { display: flex; justify-content: space-between; gap: 10px; }
+        :root { --font-size: 16px; }
+        .receipt { width: 100%; max-width: 100%; margin: 0; padding: 18px 20px; font-size: var(--font-size); line-height: 1.6; color: #111; background: #fff; }
+        .rc-title { text-align: center; font-weight: 800; font-size: calc(var(--font-size) + 4px); }
+        .rc-sub { text-align: center; color: #555; font-size: calc(var(--font-size) - 1px); margin-top: 4px; }
+        .rc-sep { border-top: 1px dashed #999; margin: 12px 0; }
+        .rc-caption { font-weight: 800; margin-bottom: 8px; font-size: var(--font-size); }
+        .rc-line, .rc-item, .rc-total { display: flex; justify-content: space-between; gap: 16px; }
         .rc-line span:first-child { color: #444; }
-        .rc-item { padding: 8px 0; border-bottom: 1px dashed #eee; }
+        .rc-item { padding: 10px 0; border-bottom: 1px dashed #e5e7eb; }
         .rc-item span { word-break: break-word; }
-        .price { direction: ltr; font-weight: 800; }
-        .rc-total { font-size: calc(var(--font-size) + 2px); font-weight: 900; padding-top: 10px; border-top: 2px solid #111; }
-        .rc-footer { text-align: center; font-size: calc(var(--font-size) - 2px); color: #555; margin-top: 12px; }
+        .price { direction: ltr; font-weight: 900; }
+        .rc-total { font-size: calc(var(--font-size) + 4px); font-weight: 900; padding-top: 12px; border-top: 2px solid #111; }
+        .rc-footer { text-align: center; font-size: calc(var(--font-size) - 2px); color: #555; margin-top: 14px; }
 
         @media print {
           body * { visibility: hidden; }
           .invoice-print, .invoice-print * { visibility: visible; }
-          .invoice-print { position: absolute; left: 0; top: 0; width: 100%; background: #fff !important; color: #000 !important; font-family: 'Cairo', Arial, sans-serif !important; }
+          .invoice-print { position: absolute; left: 0; top: 0; width: 100%; max-width: none !important; background: #fff !important; color: #000 !important; font-family: 'Cairo', Arial, sans-serif !important; }
           .no-print { display: none !important; }
-          @page { size: var(--paper-width) auto; margin: 0; }
-          .receipt { width: var(--paper-width); margin: 0 auto; font-size: var(--font-size); }
+          @page { size: A4; margin: 10mm; }
+          .receipt { width: 100% !important; margin: 0 !important; font-size: var(--font-size) !important; }
         }
       `}</style>
       
