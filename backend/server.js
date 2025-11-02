@@ -1211,6 +1211,8 @@ app.post('/api/invoices', async (req, res) => {
       customerInfo,
       items,
       total,
+      discount = 0,
+      finalTotal,
       date,
       status = 'completed'
     } = req.body;
@@ -1230,8 +1232,8 @@ app.post('/api/invoices', async (req, res) => {
     // حفظ الفاتورة في قاعدة البيانات
     run(`INSERT INTO invoices (
       invoice_number, customer_name, customer_phone, customer_address, 
-      customer_notes, items, total, status, created_at
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`, [
+      customer_notes, items, total, discount, final_total, status, created_at
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`, [
       invoiceNumber,
       customerInfo.name,
       customerInfo.phone,
@@ -1239,6 +1241,8 @@ app.post('/api/invoices', async (req, res) => {
       customerInfo.notes || '',
       JSON.stringify(items),
       total,
+      discount,
+      finalTotal || (total - discount),
       status,
       date
     ]);

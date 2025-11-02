@@ -208,6 +208,8 @@ export default function InvoicesTab() {
               <tr className="border-b border-gray-600">
                 <th className="text-right py-3 px-4">رقم الفاتورة</th>
                 <th className="text-right py-3 px-4">اسم العميل</th>
+                <th className="text-right py-3 px-4">المجموع</th>
+                <th className="text-right py-3 px-4">الخصم</th>
                 <th className="text-right py-3 px-4">الإجمالي</th>
                 <th className="text-right py-3 px-4">التاريخ</th>
                 <th className="text-right py-3 px-4">الطباعة</th>
@@ -219,7 +221,9 @@ export default function InvoicesTab() {
                 <tr key={invoice.id} className="border-b border-gray-700 hover:bg-gray-700/30">
                   <td className="py-3 px-4 font-mono text-primary">{invoice.invoice_number}</td>
                   <td className="py-3 px-4">{invoice.customer_name}</td>
-                  <td className="py-3 px-4 font-bold text-green-400">{currency(invoice.total)}</td>
+                  <td className="py-3 px-4 text-gray-300">{currency(invoice.total)}</td>
+                  <td className="py-3 px-4 text-red-400">{invoice.discount > 0 ? `-${currency(invoice.discount)}` : '—'}</td>
+                  <td className="py-3 px-4 font-bold text-green-400">{currency((invoice.total || 0) - (invoice.discount || 0))}</td>
                   <td className="py-3 px-4 text-gray-300">
                     {new Date(invoice.created_at).toLocaleString('ar-LY')}
                   </td>
@@ -244,7 +248,9 @@ export default function InvoicesTab() {
                             `الاسم: ${invoice.customer_name}`,
                             `الهاتف: ${invoice.customer_phone}`,
                             invoice.customer_address ? `العنوان: ${invoice.customer_address}` : '',
-                            `الإجمالي: ${new Intl.NumberFormat('ar-LY', { style: 'currency', currency: 'LYD' }).format(invoice.total)}`,
+                            `المجموع قبل الخصم: ${new Intl.NumberFormat('ar-LY', { style: 'currency', currency: 'LYD' }).format(invoice.total)}`,
+                            invoice.discount > 0 ? `الخصم: -${new Intl.NumberFormat('ar-LY', { style: 'currency', currency: 'LYD' }).format(invoice.discount)}` : '',
+                            `الإجمالي النهائي: ${new Intl.NumberFormat('ar-LY', { style: 'currency', currency: 'LYD' }).format((invoice.total || 0) - (invoice.discount || 0))}`,
                             `العناصر:\n` + items.map((it,i)=>`${i+1}. ${it.title} — ${new Intl.NumberFormat('ar-LY', { style: 'currency', currency: 'LYD' }).format(it.price)}`).join('\n')
                           ].filter(Boolean).join('\n')
                           alert(info)
