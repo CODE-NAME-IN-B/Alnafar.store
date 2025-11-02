@@ -1,5 +1,6 @@
 import React, { useState } from 'react'
 import { api } from './api'
+import logo from '../assites/logo.png'
 
 function currency(num) {
   return new Intl.NumberFormat('ar-LY', { style: 'currency', currency: 'LYD' }).format(num)
@@ -47,8 +48,8 @@ export default function Invoice({ cart, total, onClose, onSuccess }) {
 
     const paperMM = Number(invSettings?.paper_width) || 80
     const fs = String(invSettings?.font_size || 'normal').toLowerCase()
-    const fontSize = fs === 'large' ? '13px' : fs === 'small' ? '10px' : '11px'
-    const titleSize = fs === 'large' ? '16px' : fs === 'small' ? '13px' : '14px'
+    const fontSize = fs === 'large' ? '11px' : fs === 'small' ? '9px' : '10px'
+    const titleSize = fs === 'large' ? '14px' : fs === 'small' ? '12px' : '13px'
 
     const headerText = invSettings?.header_logo_text || 'فاتورة مبيعات'
     const showStoreInfo = !!Number(invSettings?.show_store_info ?? 1)
@@ -70,13 +71,10 @@ export default function Invoice({ cart, total, onClose, onSuccess }) {
         <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <title>فاتورة ${invoiceNumber}</title>
-        <link rel="preconnect" href="https://fonts.googleapis.com">
-        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-        <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800;900&display=swap" rel="stylesheet">
         <style>
           * { margin: 0; padding: 0; box-sizing: border-box; }
           body { 
-            font-family: 'Cairo', 'Tahoma', 'Arial', sans-serif; 
+            font-family: 'Noto Naskh Arabic', 'Droid Arabic Naskh', Tahoma, Arial, Helvetica, sans-serif; 
             background: #fff; 
             color: #000;
             font-size: ${fontSize};
@@ -87,34 +85,34 @@ export default function Invoice({ cart, total, onClose, onSuccess }) {
           .receipt { 
             width: ${paperMM}mm; 
             margin: 0 auto; 
-            padding: 3mm 2mm;
+            padding: 1mm 1.5mm;
             background: #fff;
           }
+          img.logo { display:block; margin: 0 auto 1mm; width: 50%; max-width: 120px; image-rendering: pixelated; }
           .text-center { text-align: center; }
           .text-right { text-align: right; }
           .font-bold { font-weight: 700; }
           .font-extrabold { font-weight: 900; }
           .title { 
             font-size: ${titleSize}; 
-            font-weight: 900; 
+            font-weight: bold; 
             text-align: center; 
-            margin-bottom: 2px;
+            margin-bottom: 1px;
           }
           .subtitle { 
             font-size: calc(${fontSize} - 1px); 
             text-align: center; 
-            color: #333; 
-            margin-bottom: 1px;
+            margin-bottom: 0px;
           }
           .section-title { 
             font-size: ${fontSize}; 
-            font-weight: 800; 
-            margin: 4px 0 2px 0;
+            font-weight: bold; 
+            margin: 2px 0 1px 0;
             text-align: right;
           }
           .separator { 
             border-top: 1px dashed #999; 
-            margin: 3px 0; 
+            margin: 1px 0; 
           }
           .separator-solid { 
             border-top: 2px solid #000; 
@@ -123,26 +121,26 @@ export default function Invoice({ cart, total, onClose, onSuccess }) {
           .info-row { 
             display: flex; 
             justify-content: space-between; 
-            margin: 2px 0;
-            gap: 6px;
+            margin: 1px 0;
+            gap: 4px;
           }
           .info-label { 
-            font-weight: 700; 
+            font-weight: bold; 
             color: #000;
             flex-shrink: 0;
           }
           .info-value { 
             text-align: left; 
-            color: #333;
+            color: #000;
             word-break: break-word;
           }
           .item-row { 
             display: flex; 
             justify-content: space-between; 
-            margin: 2px 0;
-            padding: 2px 0;
+            margin: 1px 0;
+            padding: 1px 0;
             border-bottom: 1px dashed #ddd;
-            gap: 6px;
+            gap: 4px;
           }
           .item-name { 
             text-align: right;
@@ -151,7 +149,7 @@ export default function Invoice({ cart, total, onClose, onSuccess }) {
           }
           .item-price { 
             text-align: left; 
-            font-weight: 700;
+            font-weight: bold;
             direction: ltr;
             flex-shrink: 0;
             min-width: 80px;
@@ -159,11 +157,11 @@ export default function Invoice({ cart, total, onClose, onSuccess }) {
           .total-row { 
             display: flex; 
             justify-content: space-between; 
-            margin-top: 4px;
-            padding-top: 4px;
+            margin-top: 2px;
+            padding-top: 2px;
             border-top: 2px solid #000;
-            font-size: calc(${fontSize} + 1px);
-            font-weight: 900;
+            font-size: ${fontSize};
+            font-weight: bold;
           }
           .total-label { text-align: right; }
           .total-value { 
@@ -174,8 +172,8 @@ export default function Invoice({ cart, total, onClose, onSuccess }) {
             text-align: center; 
             font-size: calc(${fontSize} - 2px); 
             color: #555; 
-            margin-top: 4px;
-            line-height: 1.4;
+            margin-top: 2px;
+            line-height: 1.2;
           }
           @media print {
             body { margin: 0; padding: 0; }
@@ -185,6 +183,7 @@ export default function Invoice({ cart, total, onClose, onSuccess }) {
       </head>
       <body>
         <div class="receipt">
+          <img class="logo" src="${logo}" alt="logo" />
           ${showStoreInfo && storeName ? `<div class="section-title text-center">${storeName}</div>` : ''}
           ${showStoreInfo && storeNameEn ? `<div class="subtitle">${storeNameEn}</div>` : ''}
           <div class="title">${headerText}</div>
@@ -252,10 +251,16 @@ export default function Invoice({ cart, total, onClose, onSuccess }) {
       printWindow.document.close()
       
       printWindow.onload = () => {
-        setTimeout(() => {
-          printWindow.focus()
-          printWindow.print()
-        }, 500)
+        try {
+          const doc = printWindow.document
+          const imgs = Array.from(doc.images || [])
+          const waitImgs = imgs.length
+            ? Promise.all(imgs.map(img => img.complete ? Promise.resolve() : new Promise(res => { img.onload = img.onerror = res })))
+            : Promise.resolve()
+          waitImgs.then(() => { printWindow.focus(); printWindow.print() })
+        } catch (_) {
+          printWindow.focus(); printWindow.print()
+        }
       }
     }
 
