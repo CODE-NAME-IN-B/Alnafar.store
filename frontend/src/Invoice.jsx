@@ -53,7 +53,7 @@ export default function Invoice({ cart, total, onClose, onSuccess }) {
       }
 
       // حفظ الفاتورة في قاعدة البيانات
-      const response = await api.post('/api/invoices', invoiceData)
+      const response = await api.post('/invoices', invoiceData)
       
       if (response.data.success) {
         // عرض الفاتورة مباشرة بدون تعقيد
