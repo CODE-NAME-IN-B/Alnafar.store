@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { api } from './api'
 
 function currency(num) {
@@ -39,10 +39,82 @@ export default function Invoice({ cart, total, onClose, onSuccess }) {
       return
     }
 
-    setIsProcessing(true)
-    
+    // فتح نافذة طباعة مخصصة كجزء من تفاعل المستخدم (موثوق في كل المتصفحات)
+    const printWindow = window.open('', '_blank', 'width=800,height=600')
+    const itemsHtml = cart.map(item => `
+      <div class="rc-item">
+        <span>${item.title}</span>
+        <span class="price">${new Intl.NumberFormat('ar-LY', { style: 'currency', currency: 'LYD' }).format(item.price)}</span>
+      </div>
+    `).join('')
+    const invoiceHTML = `
+      <!DOCTYPE html>
+      <html lang="ar" dir="rtl">
+      <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>فاتورة ${invoiceNumber}</title>
+        <style>
+          :root { --paper-width: 58mm; }
+          html, body { background: #fff; color: #111; font-family: 'Cairo', Arial, sans-serif; }
+          .receipt { width: 320px; margin: 0 auto; padding: 12px 10px; font-size: 12px; line-height: 1.45; }
+          .rc-title { text-align: center; font-weight: 800; font-size: 16px; }
+          .rc-sub { text-align: center; color: #555; font-size: 11px; margin-top: 2px; }
+          .rc-sep { border-top: 1px dashed #999; margin: 8px 0; }
+          .rc-caption { font-weight: 600; margin-bottom: 4px; font-size: 12px; }
+          .rc-line, .rc-item, .rc-total { display: flex; justify-content: space-between; gap: 10px; }
+          .rc-item { padding: 6px 0; border-bottom: 1px dashed #eee; }
+          .price { direction: ltr; font-weight: 700; }
+          .rc-total { font-size: 14px; font-weight: 800; padding-top: 8px; border-top: 2px solid #111; }
+          .rc-footer { text-align: center; font-size: 11px; color: #555; margin-top: 10px; }
+          @media print {
+            @page { size: auto; margin: 0; }
+            .no-print { display: none !important; }
+            .receipt { width: var(--paper-width); margin: 0 auto; }
+          }
+        </style>
+      </head>
+      <body>
+        <div class="receipt">
+          <div class="rc-title">فاتورة مبيعات</div>
+          <div class="rc-sub">رقم الفاتورة: ${invoiceNumber}</div>
+          <div class="rc-sub">${new Date().toLocaleDateString('ar-LY')}</div>
+          <div class="rc-sep"></div>
+          <div class="rc-caption">بيانات العميل</div>
+          <div class="rc-line"><span>الاسم</span><span>${customerInfo.name}</span></div>
+          <div class="rc-line"><span>الهاتف</span><span>${customerInfo.phone}</span></div>
+          ${customerInfo.address ? `<div class="rc-line"><span>العنوان</span><span>${customerInfo.address}</span></div>` : ''}
+          ${customerInfo.notes ? `<div class="rc-line"><span>ملاحظات</span><span>${customerInfo.notes}</span></div>` : ''}
+          <div class="rc-sep"></div>
+          <div class="rc-caption">تفاصيل الطلب</div>
+          ${itemsHtml}
+          <div class="rc-total"><span>الإجمالي</span><span class="price">${new Intl.NumberFormat('ar-LY', { style: 'currency', currency: 'LYD' }).format(total)}</span></div>
+          <div class="rc-footer">
+            <div>شكراً لتسوقكم معنا</div>
+            <div>للاستفسارات: +218xxxxxxxxx</div>
+          </div>
+        </div>
+        <div class="no-print" style="text-align: center; margin-top: 30px;">
+          <button onclick="window.print()" style="background:#14b8a6;color:#fff;padding:12px 24px;border:none;border-radius:6px;font-size:16px;cursor:pointer;">طباعة أو حفظ PDF</button>
+          <button onclick="window.close()" style="background:#6b7280;color:#fff;padding:12px 24px;border:none;border-radius:6px;font-size:16px;cursor:pointer;margin-inline-start:10px;">إغلاق</button>
+        </div>
+      </body>
+      </html>
+    `
+    if (printWindow) {
+      printWindow.document.write(invoiceHTML)
+      printWindow.document.close()
+      printWindow.onload = () => { try { printWindow.print() } catch (_) {} }
+    } else {
+      console.warn('تم حظر النافذة المنبثقة من المتصفح، سيتم الطباعة في نفس الصفحة')
+      // افتح المعاينة واطبع في نفس الصفحة كحل بديل
+      setShowPreview(true)
+      try { window.print() } catch (_) {}
+    }
+
+    // حفظ الفاتورة في الخلفية دون تعطيل الطباعة
     try {
-      // إنشاء الفاتورة
+      setIsProcessing(true)
       const invoiceData = {
         invoiceNumber,
         customerInfo,
@@ -52,18 +124,10 @@ export default function Invoice({ cart, total, onClose, onSuccess }) {
         status: 'pending'
       }
 
-      // حفظ الفاتورة في قاعدة البيانات
       const response = await api.post('/invoices', invoiceData)
-      
-      if (response.data.success) {
-        // عرض الفاتورة مباشرة بدون تعقيد
-        setShowPreview(true)
-        onSuccess(response.data)
-      }
-      
+      if (response.data?.success) onSuccess(response.data)
     } catch (error) {
       console.error('خطأ في إنشاء الفاتورة:', error)
-      alert('حدث خطأ في إنشاء الفاتورة. يرجى المحاولة مرة أخرى.')
     } finally {
       setIsProcessing(false)
     }
@@ -256,88 +320,65 @@ export default function Invoice({ cart, total, onClose, onSuccess }) {
 function InvoicePreview({ invoiceNumber, customerInfo, cart, total, date, onClose, onPrint }) {
   return (
     <>
-      {/* أنماط الطباعة */}
+      {/* أنماط المعاينة والطباعة بنمط إيصال 58mm مناسب لـ Sunmi V2 */}
       <style>{`
+        :root { --paper-width: 58mm; }
+        .receipt { width: 320px; margin: 12px auto; padding: 12px 10px; font-size: 12px; line-height: 1.45; color: #111; background: #fff; }
+        .rc-title { text-align: center; font-weight: 800; font-size: 16px; }
+        .rc-sub { text-align: center; color: #555; font-size: 11px; margin-top: 2px; }
+        .rc-sep { border-top: 1px dashed #999; margin: 8px 0; }
+        .rc-caption { font-weight: 700; margin-bottom: 4px; font-size: 12px; }
+        .rc-line, .rc-item, .rc-total { display: flex; justify-content: space-between; gap: 10px; }
+        .rc-line span:first-child { color: #444; }
+        .rc-item { padding: 6px 0; border-bottom: 1px dashed #eee; }
+        .rc-item span { word-break: break-word; }
+        .price { direction: ltr; font-weight: 700; }
+        .rc-total { font-size: 14px; font-weight: 800; padding-top: 8px; border-top: 2px solid #111; }
+        .rc-footer { text-align: center; font-size: 11px; color: #555; margin-top: 10px; }
+
         @media print {
-          body * {
-            visibility: hidden;
-          }
-          .invoice-print, .invoice-print * {
-            visibility: visible;
-          }
-          .invoice-print {
-            position: absolute;
-            left: 0;
-            top: 0;
-            width: 100%;
-            background: white !important;
-            color: black !important;
-            font-family: 'Cairo', Arial, sans-serif !important;
-          }
-          .no-print {
-            display: none !important;
-          }
-          @page {
-            size: A4;
-            margin: 15mm;
-          }
-          .invoice-header {
-            background: linear-gradient(135deg, #14b8a6 0%, #10b981 100%) !important;
-            color: white !important;
-            -webkit-print-color-adjust: exact;
-            print-color-adjust: exact;
-          }
+          body * { visibility: hidden; }
+          .invoice-print, .invoice-print * { visibility: visible; }
+          .invoice-print { position: absolute; left: 0; top: 0; width: 100%; background: #fff !important; color: #000 !important; font-family: 'Cairo', Arial, sans-serif !important; }
+          .no-print { display: none !important; }
+          @page { size: auto; margin: 0; }
+          .receipt { width: var(--paper-width); margin: 0 auto; }
         }
       `}</style>
       
       <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
         <div className="bg-white rounded-xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-hidden invoice-print">
-          {/* هيدر الفاتورة */}
-          <div className="bg-gradient-to-r from-primary to-emerald-500 text-white p-6 text-center invoice-header">
-            <h2 className="text-2xl font-bold mb-2">فاتورة مبيعات</h2>
-            <p className="text-primary-light">رقم الفاتورة: {invoiceNumber}</p>
-            <p className="text-primary-light text-sm">{date}</p>
-          </div>
+          <div className="p-4">
+            <div className="receipt">
+              <div className="rc-title">فاتورة مبيعات</div>
+              <div className="rc-sub">رقم الفاتورة: {invoiceNumber}</div>
+              <div className="rc-sub">{date}</div>
+              <div className="rc-sep"></div>
 
-          {/* محتوى الفاتورة */}
-          <div className="p-6 text-gray-800 space-y-4">
-            {/* معلومات العميل */}
-            <div className="border-b border-gray-200 pb-3">
-              <h3 className="font-semibold mb-2 text-gray-700">بيانات العميل:</h3>
-              <div className="text-sm space-y-1">
-                <p><strong>الاسم:</strong> {customerInfo.name}</p>
-                <p><strong>الهاتف:</strong> {customerInfo.phone}</p>
-                {customerInfo.address && <p><strong>العنوان:</strong> {customerInfo.address}</p>}
-                {customerInfo.notes && <p><strong>ملاحظات:</strong> {customerInfo.notes}</p>}
+              <div className="rc-caption">بيانات العميل</div>
+              <div className="rc-line"><span>الاسم</span><span>{customerInfo.name}</span></div>
+              <div className="rc-line"><span>الهاتف</span><span>{customerInfo.phone}</span></div>
+              {customerInfo.address && (
+                <div className="rc-line"><span>العنوان</span><span>{customerInfo.address}</span></div>
+              )}
+              {customerInfo.notes && (
+                <div className="rc-line"><span>ملاحظات</span><span>{customerInfo.notes}</span></div>
+              )}
+
+              <div className="rc-sep"></div>
+              <div className="rc-caption">تفاصيل الطلب</div>
+              {cart.map((item, index) => (
+                <div key={index} className="rc-item">
+                  <span>{item.title}</span>
+                  <span className="price">{currency(item.price)}</span>
+                </div>
+              ))}
+
+              <div className="rc-total"><span>الإجمالي</span><span className="price">{currency(total)}</span></div>
+              <div className="rc-footer">
+                <div>شكراً لتسوقكم معنا</div>
+                <div>للاستفسارات: +218xxxxxxxxx</div>
               </div>
-            </div>
-
-            {/* تفاصيل الألعاب */}
-            <div className="border-b border-gray-200 pb-3">
-              <h3 className="font-semibold mb-2 text-gray-700">تفاصيل الطلب:</h3>
-              <div className="space-y-2">
-                {cart.map((item, index) => (
-                  <div key={index} className="flex justify-between items-center text-sm py-2 border-b border-gray-100 last:border-b-0">
-                    <span className="flex-1 font-medium">{item.title}</span>
-                    <span className="font-bold text-primary">{currency(item.price)}</span>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            {/* الإجمالي */}
-            <div className="bg-gray-50 p-4 rounded-lg">
-              <div className="flex justify-between items-center">
-                <span className="text-lg font-bold text-gray-800">الإجمالي:</span>
-                <span className="text-2xl font-bold text-primary">{currency(total)}</span>
-              </div>
-            </div>
-
-            {/* تذييل الفاتورة */}
-            <div className="text-center text-sm text-gray-500 border-t border-gray-200 pt-4">
-              <p className="font-medium">شكراً لتسوقكم معنا</p>
-              <p>للاستفسارات: +218xxxxxxxxx</p>
-              <p className="mt-2 text-xs">تم إنشاء هذه الفاتورة بواسطة متجر النفار</p>
             </div>
           </div>
 
