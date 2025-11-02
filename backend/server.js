@@ -6,6 +6,8 @@ const path = require('path');
 const fs = require('fs');
 const express = require('express');
 const cors = require('cors');
+const { createServer } = require('http');
+const { Server } = require('socket.io');
 const initSqlJs = require('sql.js');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
@@ -381,10 +383,31 @@ function initializeDatabase() {
 // initializeDatabase will be called after DB init in start()
 
 const app = express();
+const httpServer = createServer(app);
+const io = new Server(httpServer, {
+  cors: {
+    origin: "*",
+    methods: ["GET", "POST"]
+  }
+});
+
+// Socket.IO للتحديثات الفورية
+io.on('connection', (socket) => {
+  console.log('🔌 عميل متصل:', socket.id);
+  
+  socket.on('disconnect', () => {
+    console.log('🔌 عميل منقطع:', socket.id);
+  });
+});
+
+// دالة لإرسال التحديثات الفورية
+function broadcastUpdate(event, data) {
+  io.emit(event, data);
+}
+
 app.use(cors());
-// زيادة حد الـ payload لدعم الصور الكبيرة (50MB)
 app.use(express.json({ limit: '50mb' }));
-app.use(express.urlencoded({ limit: '50mb', extended: true }));
+app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 // serve uploaded files
 app.use('/uploads', express.static(UPLOADS_DIR));
 
@@ -985,7 +1008,16 @@ app.post('/api/games', authMiddleware, (req, res) => {
   run('INSERT INTO games (title, image, description, price, category_id, genre, series, features) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
     [title, image, description || '', price, category_id || null, genre || null, series || null, features || null]);
   const row = get('SELECT last_insert_rowid() as id');
-  res.status(201).json({ id: row.id, title, image, description: description || '', price, category_id: category_id || null, genre: genre || null, series: series || null, features: features || null });
+  
+  const newGame = { id: row.id, title, image, description: description || '', price, category_id: category_id || null, genre: genre || null, series: series || null, features: features || null };
+  
+  // إرسال تحديث فوري
+  broadcastUpdate('game_added', {
+    game: newGame,
+    message: 'تم إضافة لعبة جديدة'
+  });
+  
+  res.status(201).json(newGame);
 });
 
 app.put('/api/games/:id', authMiddleware, (req, res) => {
@@ -1249,6 +1281,12 @@ app.post('/api/invoices', async (req, res) => {
 
     // الحصول على الفاتورة المحفوظة
     const savedInvoice = get('SELECT * FROM invoices WHERE invoice_number = ?', [invoiceNumber]);
+
+    // إرسال تحديث فوري للعملاء المتصلين
+    broadcastUpdate('invoice_created', {
+      invoice: savedInvoice,
+      message: 'تم إنشاء فاتورة جديدة'
+    });
 
     res.status(201).json({
       success: true,
@@ -2367,8 +2405,9 @@ async function start() {
 
   // استخدم منفذ ثابت من البيئة أو 5000 لضمان توافق بروكسي Vite
   const listenPort = Number(process.env.PORT) || 5000;
-  app.listen(listenPort, '0.0.0.0', () => {
+  httpServer.listen(listenPort, '0.0.0.0', () => {
     console.log(`🚀 Server listening on port ${listenPort}`);
+    console.log(`🔌 Socket.IO enabled for real-time updates`);
     console.log(`🌐 Environment: ${process.env.NODE_ENV || 'development'}`);
     console.log(`📊 Admin panel: /#/admin`);
     if (process.env.NODE_ENV !== 'production') {

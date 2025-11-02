@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react'
 import { api } from './api'
+import socket from './socket'
 import Admin from './Admin'
 import Invoice from './Invoice'
 import logo from '../assites/logo.png'
@@ -102,7 +103,26 @@ export default function App() {
   useEffect(() => {
     const onHash = () => setRoute(window.location.hash || '#/')
     window.addEventListener('hashchange', onHash)
-    return () => window.removeEventListener('hashchange', onHash)
+
+    // الاستماع للتحديثات الفورية
+    socket.on('game_added', (data) => {
+      console.log('🎮 لعبة جديدة:', data.message);
+      // إضافة اللعبة الجديدة للقائمة
+      setGames(prevGames => [data.game, ...prevGames]);
+      
+      // إشعار بصري
+      if (Notification.permission === 'granted') {
+        new Notification('لعبة جديدة', {
+          body: `تم إضافة: ${data.game.title}`,
+          icon: '/favicon.svg'
+        });
+      }
+    });
+
+    return () => {
+      window.removeEventListener('hashchange', onHash);
+      socket.off('game_added');
+    };
   }, [])
 
   useEffect(() => {

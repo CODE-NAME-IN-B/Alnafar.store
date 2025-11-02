@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import { api } from './api'
+import socket from './socket'
 
 function currency(num) {
   return new Intl.NumberFormat('ar-LY', { style: 'currency', currency: 'LYD' }).format(num)
@@ -15,6 +16,30 @@ export default function InvoicesTab() {
   useEffect(() => {
     loadInvoices()
     loadSummary()
+
+    // الاستماع للتحديثات الفورية
+    socket.on('invoice_created', (data) => {
+      console.log('📄 فاتورة جديدة:', data.message);
+      loadInvoices(pagination.page); // إعادة تحميل الفواتير
+      loadSummary(); // إعادة تحميل الإحصائيات
+      
+      // إشعار بصري
+      if (Notification.permission === 'granted') {
+        new Notification('فاتورة جديدة', {
+          body: data.message,
+          icon: '/favicon.svg'
+        });
+      }
+    });
+
+    // طلب إذن الإشعارات
+    if (Notification.permission === 'default') {
+      Notification.requestPermission();
+    }
+
+    return () => {
+      socket.off('invoice_created');
+    };
   }, [])
 
   const loadInvoices = async (page = 1) => {

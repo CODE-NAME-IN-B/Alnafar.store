@@ -89,12 +89,12 @@ export default function Invoice({ cart, total, onClose, onSuccess }) {
             padding: 1mm 1.5mm;
             background: #fff;
           }
-          img.logo { display:block; margin: 0 auto 0.2mm; width: 50%; max-width: 120px; image-rendering: auto; filter: contrast(1.2) brightness(1.1); }
+          img.logo { display:block; margin: 0 auto 0.1mm; width: 50%; max-width: 120px; image-rendering: auto; filter: contrast(1.2) brightness(1.1); }
           .store-name-ar { 
             font-size: ${titleSize}; 
             font-weight: bold; 
             text-align: center; 
-            margin: 0.2mm 0 1px 0;
+            margin: 0.1mm 0 1px 0;
           }
           .text-center { text-align: center; }
           .text-right { text-align: right; }
