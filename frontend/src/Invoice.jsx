@@ -88,7 +88,13 @@ export default function Invoice({ cart, total, onClose, onSuccess }) {
             padding: 1mm 1.5mm;
             background: #fff;
           }
-          img.logo { display:block; margin: 0 auto 1mm; width: 50%; max-width: 120px; image-rendering: pixelated; }
+          img.logo { display:block; margin: 0 auto 0.5mm; width: 50%; max-width: 120px; image-rendering: pixelated; }
+          .store-name-ar { 
+            font-size: ${titleSize}; 
+            font-weight: bold; 
+            text-align: center; 
+            margin: 0.5mm 0 1px 0;
+          }
           .text-center { text-align: center; }
           .text-right { text-align: right; }
           .font-bold { font-weight: 700; }
@@ -184,7 +190,7 @@ export default function Invoice({ cart, total, onClose, onSuccess }) {
       <body>
         <div class="receipt">
           <img class="logo" src="${logo}" alt="logo" />
-          ${showStoreInfo && storeName ? `<div class="section-title text-center">${storeName}</div>` : ''}
+          ${showStoreInfo && storeName ? `<div class="store-name-ar">${storeName}</div>` : ''}
           ${showStoreInfo && storeNameEn ? `<div class="subtitle">${storeNameEn}</div>` : ''}
           <div class="title">${headerText}</div>
           <div class="subtitle">رقم: ${invoiceNumber}</div>
