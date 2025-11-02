@@ -3,6 +3,7 @@ import { api, setAuthToken, loadAuthFromStorage } from './api'
 import GamesTabNew from './GamesTabNew'
 import InvoiceSettings from './InvoiceSettings'
 import InvoicesTab from './InvoicesTab'
+import DailyReportTab from './DailyReportTab'
 import GenreSeriesManager from './GenreSeriesManager'
 
 function currency(num) {
@@ -80,6 +81,7 @@ export default function Admin() {
               { id: 'categories', label: 'التصنيفات', icon: '📂' },
               { id: 'genres', label: 'الأنواع والسلاسل', icon: '🏷️' },
               { id: 'invoices', label: 'الفواتير', icon: '🧾' },
+              { id: 'daily-report', label: 'الجرد اليومي', icon: '📈' },
               { id: 'invoice-settings', label: 'إعدادات الفاتورة', icon: '🖨️' },
               { id: 'orders', label: 'الطلبات', icon: '📋' },
               { id: 'settings', label: 'الإعدادات', icon: '⚙️' },
@@ -109,6 +111,7 @@ export default function Admin() {
           {tab === 'categories' && <CategoriesTab />}
           {tab === 'genres' && <GenreSeriesManager />}
           {tab === 'invoices' && <InvoicesTab />}
+          {tab === 'daily-report' && <DailyReportTab />}
           {tab === 'invoice-settings' && <InvoiceSettings />}
           {tab === 'orders' && <OrdersTab />}
           {tab === 'settings' && <SettingsTab />}

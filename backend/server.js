@@ -327,6 +327,21 @@ function initializeDatabase() {
       updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
     );`);
 
+  // جدول الفواتير اليومية لتتبع الترقيم اليومي
+  db.exec(`CREATE TABLE IF NOT EXISTS daily_invoices (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      date TEXT NOT NULL UNIQUE, -- YYYY-MM-DD format
+      last_invoice_number INTEGER DEFAULT 0,
+      total_invoices INTEGER DEFAULT 0,
+      total_revenue REAL DEFAULT 0,
+      total_discount REAL DEFAULT 0,
+      net_revenue REAL DEFAULT 0,
+      is_closed BOOLEAN DEFAULT 0, -- للجرد اليومي
+      closed_at DATETIME,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    );`);
+
   // Seed default settings if empty
   const settingsCount = get('SELECT COUNT(*) as count FROM settings').count;
   if (settingsCount === 0) {
@@ -403,6 +418,46 @@ io.on('connection', (socket) => {
 // دالة لإرسال التحديثات الفورية
 function broadcastUpdate(event, data) {
   io.emit(event, data);
+}
+
+// دالة للحصول على رقم الفاتورة اليومي التسلسلي
+function getDailyInvoiceNumber() {
+  const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
+  
+  // البحث عن سجل اليوم
+  let dailyRecord = get('SELECT * FROM daily_invoices WHERE date = ?', [today]);
+  
+  if (!dailyRecord) {
+    // إنشاء سجل جديد لليوم
+    run(`INSERT INTO daily_invoices (date, last_invoice_number, total_invoices) VALUES (?, ?, ?)`, 
+      [today, 1, 0]);
+    return { dailyNumber: 1, fullNumber: `${today.replace(/-/g, '')}-001` };
+  }
+  
+  // زيادة رقم الفاتورة
+  const nextNumber = (dailyRecord.last_invoice_number || 0) + 1;
+  run('UPDATE daily_invoices SET last_invoice_number = ? WHERE date = ?', [nextNumber, today]);
+  
+  // تنسيق الرقم: YYYYMMDD-XXX
+  const formattedNumber = String(nextNumber).padStart(3, '0');
+  const fullNumber = `${today.replace(/-/g, '')}-${formattedNumber}`;
+  
+  return { dailyNumber: nextNumber, fullNumber };
+}
+
+// دالة لتحديث إحصائيات اليوم
+function updateDailyStats(invoiceData) {
+  const today = new Date().toISOString().split('T')[0];
+  const { total, discount = 0 } = invoiceData;
+  const netRevenue = total - discount;
+  
+  run(`UPDATE daily_invoices SET 
+    total_invoices = total_invoices + 1,
+    total_revenue = total_revenue + ?,
+    total_discount = total_discount + ?,
+    net_revenue = net_revenue + ?,
+    updated_at = CURRENT_TIMESTAMP
+    WHERE date = ?`, [total, discount, netRevenue, today]);
 }
 
 app.use(cors());
@@ -1239,7 +1294,6 @@ const printer = new SunmiPrinter();
 app.post('/api/invoices', async (req, res) => {
   try {
     const {
-      invoiceNumber,
       customerInfo,
       items,
       total,
@@ -1249,9 +1303,12 @@ app.post('/api/invoices', async (req, res) => {
       status = 'completed'
     } = req.body;
 
-    if (!invoiceNumber || !customerInfo || !items || !total) {
+    if (!customerInfo || !items || !total) {
       return res.status(400).json({ message: 'بيانات الفاتورة غير مكتملة' });
     }
+
+    // الحصول على رقم الفاتورة اليومي التسلسلي
+    const { dailyNumber, fullNumber } = getDailyInvoiceNumber();
 
     if (!customerInfo.name || !customerInfo.phone) {
       return res.status(400).json({ message: 'اسم العميل ورقم الهاتف مطلوبان' });
@@ -1266,7 +1323,7 @@ app.post('/api/invoices', async (req, res) => {
       invoice_number, customer_name, customer_phone, customer_address, 
       customer_notes, items, total, discount, final_total, status, created_at
     ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`, [
-      invoiceNumber,
+      fullNumber,
       customerInfo.name,
       customerInfo.phone,
       customerInfo.address || '',
@@ -1279,8 +1336,11 @@ app.post('/api/invoices', async (req, res) => {
       date
     ]);
 
+    // تحديث إحصائيات اليوم
+    updateDailyStats({ total, discount });
+
     // الحصول على الفاتورة المحفوظة
-    const savedInvoice = get('SELECT * FROM invoices WHERE invoice_number = ?', [invoiceNumber]);
+    const savedInvoice = get('SELECT * FROM invoices WHERE invoice_number = ?', [fullNumber]);
 
     // إرسال تحديث فوري للعملاء المتصلين
     broadcastUpdate('invoice_created', {
@@ -1518,6 +1578,137 @@ app.delete('/api/invoices', authMiddleware, (req, res) => {
     res.status(500).json({ 
       success: false, 
       message: 'حدث خطأ في حذف الفواتير',
+      error: error.message 
+    });
+  }
+});
+
+// الحصول على الجرد اليومي
+app.get('/api/daily-report/:date?', authMiddleware, (req, res) => {
+  try {
+    const date = req.params.date || new Date().toISOString().split('T')[0];
+    
+    // الحصول على بيانات اليوم
+    const dailyRecord = get('SELECT * FROM daily_invoices WHERE date = ?', [date]);
+    
+    if (!dailyRecord) {
+      return res.json({
+        success: true,
+        report: {
+          date,
+          totalInvoices: 0,
+          totalRevenue: 0,
+          totalDiscount: 0,
+          netRevenue: 0,
+          lastInvoiceNumber: 0,
+          isClosed: false,
+          invoices: []
+        }
+      });
+    }
+    
+    // الحصول على فواتير اليوم
+    const invoices = all(`
+      SELECT * FROM invoices 
+      WHERE DATE(created_at) = ? 
+      ORDER BY created_at ASC
+    `, [date]);
+    
+    res.json({
+      success: true,
+      report: {
+        ...dailyRecord,
+        invoices: invoices.map(invoice => ({
+          ...invoice,
+          items: JSON.parse(invoice.items)
+        }))
+      }
+    });
+    
+  } catch (error) {
+    console.error('خطأ في جلب الجرد اليومي:', error);
+    res.status(500).json({ 
+      success: false, 
+      message: 'حدث خطأ في جلب الجرد اليومي',
+      error: error.message 
+    });
+  }
+});
+
+// إغلاق الجرد اليومي
+app.post('/api/daily-report/:date/close', authMiddleware, (req, res) => {
+  try {
+    const date = req.params.date;
+    
+    // التحقق من وجود السجل
+    const dailyRecord = get('SELECT * FROM daily_invoices WHERE date = ?', [date]);
+    
+    if (!dailyRecord) {
+      return res.status(404).json({ 
+        success: false, 
+        message: 'لا يوجد سجل لهذا التاريخ' 
+      });
+    }
+    
+    if (dailyRecord.is_closed) {
+      return res.status(400).json({ 
+        success: false, 
+        message: 'تم إغلاق الجرد لهذا التاريخ مسبقاً' 
+      });
+    }
+    
+    // إغلاق الجرد
+    run(`UPDATE daily_invoices SET 
+      is_closed = 1, 
+      closed_at = CURRENT_TIMESTAMP,
+      updated_at = CURRENT_TIMESTAMP
+      WHERE date = ?`, [date]);
+    
+    res.json({
+      success: true,
+      message: 'تم إغلاق الجرد اليومي بنجاح'
+    });
+    
+  } catch (error) {
+    console.error('خطأ في إغلاق الجرد اليومي:', error);
+    res.status(500).json({ 
+      success: false, 
+      message: 'حدث خطأ في إغلاق الجرد اليومي',
+      error: error.message 
+    });
+  }
+});
+
+// الحصول على تقرير الأيام السابقة
+app.get('/api/daily-reports', authMiddleware, (req, res) => {
+  try {
+    const limit = parseInt(req.query.limit) || 30;
+    const offset = parseInt(req.query.offset) || 0;
+    
+    const reports = all(`
+      SELECT * FROM daily_invoices 
+      ORDER BY date DESC 
+      LIMIT ? OFFSET ?
+    `, [limit, offset]);
+    
+    const total = get('SELECT COUNT(*) as count FROM daily_invoices').count;
+    
+    res.json({
+      success: true,
+      reports,
+      pagination: {
+        total,
+        limit,
+        offset,
+        hasMore: (offset + limit) < total
+      }
+    });
+    
+  } catch (error) {
+    console.error('خطأ في جلب التقارير اليومية:', error);
+    res.status(500).json({ 
+      success: false, 
+      message: 'حدث خطأ في جلب التقارير اليومية',
       error: error.message 
     });
   }

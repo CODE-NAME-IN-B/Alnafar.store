@@ -16,7 +16,7 @@ export default function Invoice({ cart, total, onClose, onSuccess }) {
   const [discount, setDiscount] = useState(0)
   const [isProcessing, setIsProcessing] = useState(false)
 
-  const invoiceNumber = `INV-${Date.now()}`
+  // سيتم إنشاء رقم الفاتورة تلقائياً في الخادم
   const currentDate = new Date().toLocaleDateString('ar-LY', {
     year: 'numeric',
     month: 'long',
@@ -283,7 +283,6 @@ export default function Invoice({ cart, total, onClose, onSuccess }) {
     // حفظ الفاتورة في قاعدة البيانات
     try {
       const invoiceData = {
-        invoiceNumber,
         customerInfo,
         items: cart,
         total,
