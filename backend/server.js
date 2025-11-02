@@ -11,7 +11,7 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const axios = require('axios');
 const { GoogleGenerativeAI } = require('@google/generative-ai');
-const { analyzeGameGenre, batchAnalyzeGames, ARABIC_GENRES } = require('../arabic-genre-detector');
+// const { analyzeGameGenre, batchAnalyzeGames, ARABIC_GENRES } = require('../arabic-genre-detector'); // تم إزالة الملف
 const SunmiPrinter = require('./sunmi-printer');
 
 // Initialize Gemini AI (بعد تحميل .env)
@@ -311,7 +311,7 @@ function initializeDatabase() {
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       store_name TEXT DEFAULT 'الشارده للإلكترونيات',
       store_name_english TEXT DEFAULT 'Alnafar Store',
-      store_address TEXT DEFAULT 'شارع الفضائيه، مقابل محطة الفضيل',
+      store_address TEXT DEFAULT 'شارع الفضائيه، بالقرب من مطحنة الفضيل',
       store_phone TEXT DEFAULT '0920595447',
       store_email TEXT DEFAULT 'info@alnafar.store',
       store_website TEXT DEFAULT '',
@@ -341,13 +341,13 @@ function initializeDatabase() {
     ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`, [
       'الشارجه للإلكترونيات',
       'Alnafar Store', 
-      'شارع الفضائيه، مقابل محطة الفضيل',
+      'شارع الفضائيه، بالقرب من مطحنة الفضيل',
       '0920595447',
       'info@alnafar.store',
       '',
       'شكراً لتسوقكم معنا - للاستفسارات اتصل بنا',
       'فاتورة مبيعات',
-      1, 1, 58, 'normal'
+      1, 1, 58, 'large'
     ]);
   }
   } else {
@@ -1673,13 +1673,13 @@ app.get('/api/invoice-settings', (req, res) => {
       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`, [
         'الشارده للإلكترونيات',
         'Alnafar Store', 
-        'شارع الفضائيه، مقابل محطة الفضيل',
+        'شارع الفضائيه، بالقرب من مطحنة الفضيل',
         '0920595447',
         'info@alnafar.store',
         '',
         'شكراً لتسوقكم معنا - للاستفسارات اتصل بنا',
         'فاتورة مبيعات',
-        1, 1, 58, 'normal'
+        1, 1, 58, 'large'
       ]);
       
       settings = get('SELECT * FROM invoice_settings ORDER BY id DESC LIMIT 1');
@@ -1731,7 +1731,7 @@ app.post('/api/invoice-settings', authMiddleware, (req, res) => {
         WHERE id = ?`, [
         store_name || 'الشارجه للإلكترونيات',
         store_name_english || 'Alnafar Store',
-        store_address || 'شارع الفضائيه، مقابل محطة الفضيل',
+        store_address || 'شارع الفضائيه، بالقرب من مطحنة الفضيل',
         store_phone || '0920595447',
         store_email || 'info@alnafar.store',
         store_website || '',
@@ -1752,7 +1752,7 @@ app.post('/api/invoice-settings', authMiddleware, (req, res) => {
       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`, [
         store_name || 'الشارجه للإلكترونيات',
         store_name_english || 'Alnafar Store',
-        store_address || 'شارع الفضائيه، مقابل محطة الفضيل',
+        store_address || 'شارع الفضائيه، بالقرب من مطحنة الفضيل',
         store_phone || '0920595447',
         store_email || 'info@alnafar.store',
         store_website || '',

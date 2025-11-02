@@ -49,8 +49,8 @@ export default function Invoice({ cart, total, onClose, onSuccess }) {
 
     const paperMM = Number(invSettings?.paper_width) || 80
     const fs = String(invSettings?.font_size || 'normal').toLowerCase()
-    const fontSize = fs === 'large' ? '11px' : fs === 'small' ? '9px' : '10px'
-    const titleSize = fs === 'large' ? '14px' : fs === 'small' ? '12px' : '13px'
+    const fontSize = fs === 'large' ? '12px' : fs === 'small' ? '10px' : '11px'
+    const titleSize = fs === 'large' ? '15px' : fs === 'small' ? '13px' : '14px'
 
     const headerText = invSettings?.header_logo_text || 'فاتورة مبيعات'
     const showStoreInfo = !!Number(invSettings?.show_store_info ?? 1)
@@ -89,7 +89,7 @@ export default function Invoice({ cart, total, onClose, onSuccess }) {
             padding: 1mm 1.5mm;
             background: #fff;
           }
-          img.logo { display:block; margin: 0 auto 0.2mm; width: 50%; max-width: 120px; image-rendering: pixelated; }
+          img.logo { display:block; margin: 0 auto 0.2mm; width: 50%; max-width: 120px; image-rendering: auto; filter: contrast(1.2) brightness(1.1); }
           .store-name-ar { 
             font-size: ${titleSize}; 
             font-weight: bold; 
