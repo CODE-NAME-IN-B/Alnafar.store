@@ -47,8 +47,8 @@ export default function Invoice({ cart, total, onClose, onSuccess }) {
 
     const paperMM = Number(invSettings?.paper_width) || 80
     const fs = String(invSettings?.font_size || 'normal').toLowerCase()
-    const fontSize = fs === 'large' ? '16px' : fs === 'small' ? '12px' : '14px'
-    const titleSize = fs === 'large' ? '22px' : fs === 'small' ? '16px' : '18px'
+    const fontSize = fs === 'large' ? '13px' : fs === 'small' ? '10px' : '11px'
+    const titleSize = fs === 'large' ? '16px' : fs === 'small' ? '13px' : '14px'
 
     const headerText = invSettings?.header_logo_text || 'فاتورة مبيعات'
     const showStoreInfo = !!Number(invSettings?.show_store_info ?? 1)
@@ -80,14 +80,14 @@ export default function Invoice({ cart, total, onClose, onSuccess }) {
             background: #fff; 
             color: #000;
             font-size: ${fontSize};
-            line-height: 1.6;
+            line-height: 1.3;
             direction: rtl;
           }
           @page { size: ${paperMM}mm auto; margin: 0; }
           .receipt { 
             width: ${paperMM}mm; 
             margin: 0 auto; 
-            padding: 8mm 4mm;
+            padding: 3mm 2mm;
             background: #fff;
           }
           .text-center { text-align: center; }
@@ -98,33 +98,33 @@ export default function Invoice({ cart, total, onClose, onSuccess }) {
             font-size: ${titleSize}; 
             font-weight: 900; 
             text-align: center; 
-            margin-bottom: 4px;
+            margin-bottom: 2px;
           }
           .subtitle { 
             font-size: calc(${fontSize} - 1px); 
             text-align: center; 
             color: #333; 
-            margin-bottom: 3px;
+            margin-bottom: 1px;
           }
           .section-title { 
             font-size: ${fontSize}; 
             font-weight: 800; 
-            margin: 8px 0 6px 0;
+            margin: 4px 0 2px 0;
             text-align: right;
           }
           .separator { 
             border-top: 1px dashed #999; 
-            margin: 8px 0; 
+            margin: 3px 0; 
           }
           .separator-solid { 
             border-top: 2px solid #000; 
-            margin: 8px 0; 
+            margin: 3px 0; 
           }
           .info-row { 
             display: flex; 
             justify-content: space-between; 
-            margin: 4px 0;
-            gap: 8px;
+            margin: 2px 0;
+            gap: 6px;
           }
           .info-label { 
             font-weight: 700; 
@@ -139,10 +139,10 @@ export default function Invoice({ cart, total, onClose, onSuccess }) {
           .item-row { 
             display: flex; 
             justify-content: space-between; 
-            margin: 6px 0;
-            padding: 4px 0;
+            margin: 2px 0;
+            padding: 2px 0;
             border-bottom: 1px dashed #ddd;
-            gap: 8px;
+            gap: 6px;
           }
           .item-name { 
             text-align: right;
@@ -159,10 +159,10 @@ export default function Invoice({ cart, total, onClose, onSuccess }) {
           .total-row { 
             display: flex; 
             justify-content: space-between; 
-            margin-top: 8px;
-            padding-top: 8px;
+            margin-top: 4px;
+            padding-top: 4px;
             border-top: 2px solid #000;
-            font-size: calc(${fontSize} + 2px);
+            font-size: calc(${fontSize} + 1px);
             font-weight: 900;
           }
           .total-label { text-align: right; }
@@ -174,8 +174,8 @@ export default function Invoice({ cart, total, onClose, onSuccess }) {
             text-align: center; 
             font-size: calc(${fontSize} - 2px); 
             color: #555; 
-            margin-top: 10px;
-            line-height: 1.8;
+            margin-top: 4px;
+            line-height: 1.4;
           }
           @media print {
             body { margin: 0; padding: 0; }
