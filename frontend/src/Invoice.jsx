@@ -41,12 +41,13 @@ export default function Invoice({ cart, total, onClose, onSuccess }) {
 
     // فتح نافذة طباعة مخصصة كجزء من تفاعل المستخدم (موثوق في كل المتصفحات)
     const printWindow = window.open('', '_blank', 'width=800,height=600')
-    const itemsHtml = cart.map(item => `
-      <div class="rc-item">
-        <span>${item.title}</span>
-        <span class="price">${new Intl.NumberFormat('ar-LY', { style: 'currency', currency: 'LYD' }).format(item.price)}</span>
-      </div>
-    `).join('')
+    const payload = {
+      invoiceNumber,
+      date: new Date().toLocaleString('ar-LY'),
+      customerInfo,
+      items: cart,
+      total
+    }
     const invoiceHTML = `
       <!DOCTYPE html>
       <html lang="ar" dir="rtl">
@@ -55,54 +56,110 @@ export default function Invoice({ cart, total, onClose, onSuccess }) {
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <title>فاتورة ${invoiceNumber}</title>
         <style>
-          :root { --font-size: 16px; }
-          html, body { background: #fff; color: #111; font-family: 'Cairo', Arial, sans-serif; }
-          /* على الشاشة */
-          .receipt { width: 100%; max-width: 900px; margin: 0 auto; padding: 18px 20px; font-size: var(--font-size); line-height: 1.6; }
-          .rc-title { text-align: center; font-weight: 800; font-size: calc(var(--font-size) + 4px); }
-          .rc-sub { text-align: center; color: #555; font-size: calc(var(--font-size) - 1px); margin-top: 4px; }
-          .rc-sep { border-top: 1px dashed #999; margin: 12px 0; }
-          .rc-caption { font-weight: 800; margin-bottom: 8px; font-size: var(--font-size); }
-          .rc-line, .rc-item, .rc-total { display: flex; justify-content: space-between; gap: 16px; }
-          .rc-line span:first-child { color: #444; }
-          .rc-item { padding: 10px 0; border-bottom: 1px dashed #e5e7eb; }
-          .rc-item span { word-break: break-word; }
-          .price { direction: ltr; font-weight: 900; }
-          .rc-total { font-size: calc(var(--font-size) + 4px); font-weight: 900; padding-top: 12px; border-top: 2px solid #111; }
-          .rc-footer { text-align: center; font-size: calc(var(--font-size) - 2px); color: #555; margin-top: 14px; }
-          /* في الطباعة: صفحة كاملة A4 وهوامش مناسبة */
-          @media print {
-            @page { size: A4; margin: 10mm; }
-            html, body { width: auto !important; margin: 0 !important; }
-            .no-print { display: none !important; }
-            .receipt { width: 100% !important; max-width: 100% !important; margin: 0 !important; font-size: var(--font-size) !important; }
-          }
+          html, body { background:#fff; margin:0; }
+          @page { size: 80mm auto; margin: 0; }
+          body { width:80mm; margin:0 auto; }
+          img#print-image { width:80mm; display:block; }
+          .no-print { display:none; }
         </style>
       </head>
       <body>
-        <div class="receipt">
-          <div class="rc-title">فاتورة مبيعات</div>
-          <div class="rc-sub">رقم الفاتورة: ${invoiceNumber}</div>
-          <div class="rc-sub">${new Date().toLocaleDateString('ar-LY')}</div>
-          <div class="rc-sep"></div>
-          <div class="rc-caption">بيانات العميل</div>
-          <div class="rc-line"><span>الاسم</span><span>${customerInfo.name}</span></div>
-          <div class="rc-line"><span>الهاتف</span><span>${customerInfo.phone}</span></div>
-          ${customerInfo.address ? `<div class="rc-line"><span>العنوان</span><span>${customerInfo.address}</span></div>` : ''}
-          ${customerInfo.notes ? `<div class="rc-line"><span>ملاحظات</span><span>${customerInfo.notes}</span></div>` : ''}
-          <div class="rc-sep"></div>
-          <div class="rc-caption">تفاصيل الطلب</div>
-          ${itemsHtml}
-          <div class="rc-total"><span>الإجمالي</span><span class="price">${new Intl.NumberFormat('ar-LY', { style: 'currency', currency: 'LYD' }).format(total)}</span></div>
-          <div class="rc-footer">
-            <div>شكراً لتسوقكم معنا</div>
-            <div>للاستفسارات: +218xxxxxxxxx</div>
-          </div>
-        </div>
-        <div class="no-print" style="text-align: center; margin-top: 30px;">
-          <button onclick="window.print()" style="background:#14b8a6;color:#fff;padding:12px 24px;border:none;border-radius:6px;font-size:16px;cursor:pointer;">طباعة أو حفظ PDF</button>
-          <button onclick="window.close()" style="background:#6b7280;color:#fff;padding:12px 24px;border:none;border-radius:6px;font-size:16px;cursor:pointer;margin-inline-start:10px;">إغلاق</button>
-        </div>
+        <img id="print-image" alt="invoice" />
+        <script>
+          const data = ${JSON.stringify(payload)};
+          const dpi = 203; // thermal dpi
+          const mm2px = mm => Math.round(mm * dpi / 25.4);
+          const paperMM = 80;
+          const width = mm2px(paperMM);
+          const pad = mm2px(3);
+          const titleSize = 40; // px
+          const base = 30;      // px
+          const small = 26;
+          const lineGap = 8;
+          const row = base + lineGap;
+          const ctxFont = (size, w=700) => ctx.font = w + ' ' + size + 'px \'Cairo\', Arial, sans-serif';
+
+          const lines = [];
+          lines.push({t: 'فاتورة مبيعات', type:'title'});
+          lines.push({t: 'رقم: ' + data.invoiceNumber, type:'sub'});
+          lines.push({t: data.date, type:'sub'});
+          lines.push({type:'sep'});
+          lines.push({t:'بيانات العميل', type:'caption'});
+          lines.push({kv:['الاسم', data.customerInfo.name||'-']});
+          lines.push({kv:['الهاتف', data.customerInfo.phone||'-']});
+          if (data.customerInfo.address) lines.push({kv:['العنوان', data.customerInfo.address]});
+          if (data.customerInfo.notes) lines.push({kv:['ملاحظات', data.customerInfo.notes]});
+          lines.push({type:'sep'});
+          lines.push({t:'تفاصيل الطلب', type:'caption'});
+          for (const it of data.items) {
+            lines.push({item: it});
+          }
+          lines.push({type:'total'});
+          lines.push({t:'شكراً لتسوقكم معنا', type:'footer'});
+
+          // compute height
+          let h = pad;
+          for (const ln of lines) {
+            if (ln.type==='title') h += titleSize + lineGap;
+            else if (ln.type==='sep') h += 12;
+            else if (ln.type==='caption') h += base + lineGap;
+            else if (ln.type==='sub' || ln.type==='footer') h += small + lineGap;
+            else if (ln.type==='total') h += base + lineGap;
+            else if (ln.kv) h += base + lineGap;
+            else if (ln.item) h += base + lineGap;
+          }
+          h += pad;
+
+          const canvas = document.createElement('canvas');
+          canvas.width = width; canvas.height = h;
+          const ctx = canvas.getContext('2d');
+          ctx.fillStyle = '#fff'; ctx.fillRect(0,0,width,h);
+          ctx.fillStyle = '#000';
+          ctx.textBaseline = 'top';
+
+          let y = pad;
+          // helpers
+          const drawSep = () => { ctx.fillRect(pad, y + 4, width - pad*2, 2); y += 12; };
+          const formatCurrency = v => new Intl.NumberFormat('ar-LY', {style:'currency', currency:'LYD'}).format(v);
+
+          for (const ln of lines) {
+            if (ln.type==='title') {
+              ctxFont(titleSize, 800); ctx.textAlign='center';
+              ctx.fillText(ln.t, width/2, y); y += titleSize + lineGap;
+            } else if (ln.type==='sub') {
+              ctxFont(small, 600); ctx.textAlign='center';
+              ctx.fillText(ln.t, width/2, y); y += small + lineGap;
+            } else if (ln.type==='caption') {
+              ctxFont(base, 800); ctx.textAlign='right';
+              ctx.fillText(ln.t, width - pad, y); y += base + lineGap;
+            } else if (ln.type==='sep') {
+              drawSep();
+            } else if (ln.kv) {
+              ctxFont(base, 700);
+              ctx.textAlign='left'; ctx.fillText(ln.kv[0], pad, y);
+              ctx.textAlign='right'; ctx.fillText(ln.kv[1], width - pad, y);
+              y += base + lineGap;
+            } else if (ln.item) {
+              ctxFont(base, 700);
+              ctx.textAlign='left'; ctx.fillText(ln.item.title, pad, y);
+              ctx.textAlign='right'; ctx.fillText(formatCurrency(ln.item.price), width - pad, y);
+              y += base + lineGap;
+            } else if (ln.type==='total') {
+              drawSep();
+              ctxFont(base+4, 900);
+              ctx.textAlign='left'; ctx.fillText('الإجمالي', pad, y);
+              ctx.textAlign='right'; ctx.fillText(formatCurrency(data.total), width - pad, y);
+              y += base + lineGap;
+            } else if (ln.type==='footer') {
+              ctxFont(small, 600); ctx.textAlign='center';
+              ctx.fillText(ln.t, width/2, y); y += small + lineGap;
+            }
+          }
+
+          const img = document.getElementById('print-image');
+          img.onload = () => { setTimeout(() => window.print(), 50); };
+          img.src = canvas.toDataURL('image/png');
+        </script>
       </body>
       </html>
     `
