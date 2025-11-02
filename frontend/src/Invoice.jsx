@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react'
 import { api } from './api'
-import logo from '../assites/logo.png'
 
 function currency(num) {
   return new Intl.NumberFormat('ar-LY', { style: 'currency', currency: 'LYD' }).format(num)
@@ -110,15 +109,6 @@ export default function Invoice({ cart, total, onClose, onSuccess }) {
 
       // احسب الارتفاع المطلوب
       let h = pad + topClear
-      let logoH = 0
-      let hasLogo = true
-      try {
-        const img = new Image()
-        img.src = logo
-        await new Promise((res, rej) => { img.onload = res; img.onerror = () => { hasLogo = false; res() } })
-        if (hasLogo) logoH = Math.min(mm2px(12), Math.round((img.height / img.width) * (width - pad*2))) + mm2px(2)
-      } catch (_) { hasLogo = false }
-      if (hasLogo) h += logoH
       for (const ln of lines) {
         if (ln.type === 'title') h += titleSize + lineGap
         else if (ln.type === 'sep') h += 12
@@ -167,20 +157,6 @@ export default function Invoice({ cart, total, onClose, onSuccess }) {
       }
 
       let y = pad + topClear
-      // رسم الشعار إن وُجد
-      if (hasLogo) {
-        try {
-          const img = new Image()
-          img.src = logo
-          await new Promise((res, rej) => { img.onload = res; img.onerror = res })
-          const drawW = width - pad*2
-          const ratio = img.width ? (img.height / img.width) : 1
-          const drawH = Math.min(logoH, Math.round(drawW * ratio))
-          const x = pad
-          ctx.drawImage(img, x, y, drawW, drawH)
-          y += drawH + mm2px(2)
-        } catch(_) {}
-      }
       for (const ln of lines) {
         if (ln.type === 'title') {
           ctxFont(titleSize, 800); ctx.textAlign = 'center'; ctx.fillText(ln.t, width / 2, y); y += titleSize + lineGap

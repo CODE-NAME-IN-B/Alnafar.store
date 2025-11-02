@@ -135,6 +135,7 @@ export default function InvoicesTab() {
                 <th className="text-right py-3 px-4">اسم العميل</th>
                 <th className="text-right py-3 px-4">الإجمالي</th>
                 <th className="text-right py-3 px-4">التاريخ</th>
+                <th className="text-right py-3 px-4">الطباعة</th>
                 <th className="text-center py-3 px-4">الإجراءات</th>
               </tr>
             </thead>
