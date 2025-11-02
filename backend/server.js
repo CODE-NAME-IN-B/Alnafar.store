@@ -435,6 +435,23 @@ app.post('/api/analyze-game-genre', async (req, res) => {
   }
 });
 
+// وسم فاتورة بأنها مطبوعة (بدون طباعة فعلية) - يفيد في الجرد
+app.post('/api/invoices/:invoiceNumber/mark-printed', (req, res) => {
+  try {
+    const { invoiceNumber } = req.params;
+    const exists = get('SELECT id FROM invoices WHERE invoice_number = ?', [invoiceNumber]);
+    if (!exists) {
+      return res.status(404).json({ success: false, message: 'الفاتورة غير موجودة' });
+    }
+    run(`UPDATE invoices SET printed_at = CURRENT_TIMESTAMP, print_count = COALESCE(print_count, 0) + 1 WHERE invoice_number = ?`, [invoiceNumber]);
+    const updated = get('SELECT * FROM invoices WHERE invoice_number = ?', [invoiceNumber]);
+    res.json({ success: true, invoice: { ...updated, items: JSON.parse(updated.items) } });
+  } catch (error) {
+    console.error('mark-printed error:', error);
+    res.status(500).json({ success: false, message: 'تعذر تحديث حالة الطباعة', error: error.message });
+  }
+});
+
 // Batch analyze all games for Arabic genres
 app.post('/api/batch-analyze-genres', authMiddleware, async (req, res) => {
   try {

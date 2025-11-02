@@ -64,6 +64,7 @@ export default function Invoice({ cart, total, onClose, onSuccess }) {
       const paperMM = Number(data.settings?.paper_width) || 80
       const width = mm2px(paperMM)
       const pad = mm2px(3)
+      const topClear = mm2px(4)
       const fs = String(data.settings?.font_size || 'normal').toLowerCase()
       const titleSize = fs==='large' ? 46 : fs==='small' ? 36 : 40
       const base = fs==='large' ? 34 : fs==='small' ? 26 : 30
@@ -108,7 +109,7 @@ export default function Invoice({ cart, total, onClose, onSuccess }) {
       if (showFooter && footerMsg) lines.push({ t: footerMsg, type: 'footer' })
 
       // احسب الارتفاع المطلوب
-      let h = pad
+      let h = pad + topClear
       let logoH = 0
       let hasLogo = true
       try {
@@ -165,7 +166,7 @@ export default function Invoice({ cart, total, onClose, onSuccess }) {
         return y
       }
 
-      let y = pad
+      let y = pad + topClear
       // رسم الشعار إن وُجد
       if (hasLogo) {
         try {
@@ -210,7 +211,7 @@ export default function Invoice({ cart, total, onClose, onSuccess }) {
           ctxFont(small, 600); ctx.textAlign = 'center'; ctx.fillText(ln.t, width / 2, y); y += small + lineGap
         }
       }
-      return canvas.toDataURL('image/png')
+      return canvas.toDataURL('image/jpeg', 0.92)
     }
 
     const imgDataUrl = await renderReceiptToDataURL(payload)
@@ -236,7 +237,7 @@ export default function Invoice({ cart, total, onClose, onSuccess }) {
           html, body { background:#fff; margin:0; }
           @page { size: ${paperMM}mm auto; margin: 0; }
           body { width:${paperMM}mm; margin:0 auto; }
-          img#print-image { width:${paperMM}mm; display:block; }
+          img#print-image { width:${paperMM}mm; display:block; image-rendering: pixelated; -webkit-print-color-adjust: exact; }
           .no-print { display:none; }
         </style>
       </head>
@@ -248,7 +249,10 @@ export default function Invoice({ cart, total, onClose, onSuccess }) {
     if (printWindow) {
       printWindow.document.write(invoiceHTML)
       printWindow.document.close()
+      const markPrinted = async () => { try { await api.post(`/invoices/${invoiceNumber}/mark-printed`) } catch (e) { console.warn('mark-printed failed', e) } }
       const startPrint = () => { try { printWindow.focus(); printWindow.print() } catch (_) {} }
+      // بعد إغلاق نافذة الطباعة
+      try { printWindow.onafterprint = markPrinted } catch (_) {}
       printWindow.onload = () => {
         try {
           const img = printWindow.document.getElementById('print-image')
@@ -263,12 +267,16 @@ export default function Invoice({ cart, total, onClose, onSuccess }) {
         } catch (_) { setTimeout(startPrint, 300) }
       }
       // Fallback in case onload miss-fires in some browsers
-      setTimeout(startPrint, 1500)
+      setTimeout(() => { startPrint(); markPrinted() }, 2000)
     } else {
       console.warn('تم حظر النافذة المنبثقة من المتصفح، سيتم الطباعة في نفس الصفحة')
       // افتح المعاينة واطبع في نفس الصفحة كحل بديل
       setShowPreview(true)
+      const markPrinted = async () => { try { await api.post(`/invoices/${invoiceNumber}/mark-printed`) } catch (e) { console.warn('mark-printed failed', e) } }
+      const onAfter = () => { markPrinted(); window.removeEventListener('afterprint', onAfter) }
+      try { window.addEventListener('afterprint', onAfter, { once: true }) } catch (_) {}
       try { window.print() } catch (_) {}
+      setTimeout(markPrinted, 3000)
     }
 
     // حفظ الفاتورة في الخلفية دون تعطيل الطباعة

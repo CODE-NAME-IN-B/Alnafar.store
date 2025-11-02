@@ -8,18 +8,18 @@ function currency(num) {
 export default function InvoicesTab() {
   const [invoices, setInvoices] = useState([])
   const [loading, setLoading] = useState(true)
+  const [pagination, setPagination] = useState({ page: 1, pages: 1, total: 0, limit: 50 })
 
   useEffect(() => {
     loadInvoices()
   }, [])
 
-  const loadInvoices = async () => {
+  const loadInvoices = async (page = 1) => {
     try {
       setLoading(true)
-      const { data } = await api.get('/invoices')
-      if (data.success) {
-        setInvoices(data.invoices || [])
-      }
+      const { data } = await api.get('/invoices', { params: { page } })
+      setInvoices(data.invoices || [])
+      if (data.pagination) setPagination(data.pagination)
     } catch (error) {
       console.error('خطأ في تحميل الفواتير:', error)
     } finally {
@@ -145,7 +145,10 @@ export default function InvoicesTab() {
                   <td className="py-3 px-4">{invoice.customer_name}</td>
                   <td className="py-3 px-4 font-bold text-green-400">{currency(invoice.total)}</td>
                   <td className="py-3 px-4 text-gray-300">
-                    {new Date(invoice.created_at).toLocaleDateString('ar-LY')}
+                    {new Date(invoice.created_at).toLocaleString('ar-LY')}
+                  </td>
+                  <td className="py-3 px-4 text-gray-300">
+                    {invoice.print_count || 0} {invoice.printed_at ? `— آخر طباعة: ${new Date(invoice.printed_at).toLocaleString('ar-LY')}` : ''}
                   </td>
                   <td className="py-3 px-4 text-center">
                     <button
@@ -154,11 +157,35 @@ export default function InvoicesTab() {
                     >
                       إعادة طباعة
                     </button>
+                    <button
+                      onClick={() => {
+                        const items = Array.isArray(invoice.items) ? invoice.items : (()=>{ try { return JSON.parse(invoice.items) } catch { return [] } })()
+                        const info = [
+                          `رقم: ${invoice.invoice_number}`,
+                          `التاريخ: ${new Date(invoice.created_at).toLocaleString('ar-LY')}`,
+                          `الاسم: ${invoice.customer_name}`,
+                          `الهاتف: ${invoice.customer_phone}`,
+                          invoice.customer_address ? `العنوان: ${invoice.customer_address}` : '',
+                          `الإجمالي: ${new Intl.NumberFormat('ar-LY', { style: 'currency', currency: 'LYD' }).format(invoice.total)}`,
+                          `العناصر:\n` + items.map((it,i)=>`${i+1}. ${it.title} — ${new Intl.NumberFormat('ar-LY', { style: 'currency', currency: 'LYD' }).format(it.price)}`).join('\n')
+                        ].filter(Boolean).join('\n')
+                        alert(info)
+                      }}
+                      className="ml-2 px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm"
+                    >
+                      عرض
+                    </button>
                   </td>
                 </tr>
               ))}
             </tbody>
           </table>
+          {/* Pagination */}
+          <div className="flex items-center justify-center gap-3 mt-4">
+            <button disabled={pagination.page<=1} onClick={()=>loadInvoices(pagination.page-1)} className="px-3 py-1.5 bg-gray-700 disabled:opacity-50 rounded">السابق</button>
+            <span className="text-gray-300">صفحة {pagination.page} من {pagination.pages}</span>
+            <button disabled={pagination.page>=pagination.pages} onClick={()=>loadInvoices(pagination.page+1)} className="px-3 py-1.5 bg-gray-700 disabled:opacity-50 rounded">التالي</button>
+          </div>
         </div>
       )}
     </div>
