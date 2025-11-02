@@ -15,6 +15,13 @@ export default function Invoice({ cart, total, onClose, onSuccess }) {
   })
   const [discount, setDiscount] = useState(0)
   const [isProcessing, setIsProcessing] = useState(false)
+  
+  // إنشاء رقم فاتورة مؤقت للعرض
+  const [invoiceNumber, setInvoiceNumber] = useState(() => {
+    const today = new Date().toISOString().split('T')[0].replace(/-/g, '')
+    const randomSuffix = Math.floor(Math.random() * 1000).toString().padStart(3, '0')
+    return `${today}-${randomSuffix}`
+  })
 
   // سيتم إنشاء رقم الفاتورة تلقائياً في الخادم
   const currentDate = new Date().toLocaleDateString('ar-LY', {
@@ -294,6 +301,10 @@ export default function Invoice({ cart, total, onClose, onSuccess }) {
 
       const response = await api.post('/invoices', invoiceData)
       if (response.data?.success) {
+        // تحديث رقم الفاتورة بالرقم الفعلي من الخادم
+        if (response.data.invoice?.invoice_number) {
+          setInvoiceNumber(response.data.invoice.invoice_number)
+        }
         onSuccess(response.data)
       }
     } catch (error) {
