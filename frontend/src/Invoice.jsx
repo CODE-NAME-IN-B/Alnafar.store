@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import { api } from './api'
+import logo from '../assites/logo.png'
 
 function currency(num) {
   return new Intl.NumberFormat('ar-LY', { style: 'currency', currency: 'LYD' }).format(num)
@@ -41,28 +42,49 @@ export default function Invoice({ cart, total, onClose, onSuccess }) {
 
     // فتح نافذة طباعة مخصصة كجزء من تفاعل المستخدم (موثوق في كل المتصفحات)
     const printWindow = window.open('', '_blank', 'width=800,height=600')
+    let invSettings = {}
+    try {
+      const r = await api.get('/invoice-settings')
+      invSettings = r?.data?.settings || {}
+    } catch (_) { invSettings = {} }
+
     const payload = {
       invoiceNumber,
       date: new Date().toLocaleString('ar-LY'),
       customerInfo,
       items: cart,
-      total
+      total,
+      settings: invSettings
     }
 
     // ارسم الإيصال كصورة في نافذة الأب لتجنب حظر سكربتات inline في نافذة الطباعة
-    const renderReceiptToDataURL = (data) => {
-      const dpi = 203 // thermal dpi
+    const renderReceiptToDataURL = async (data) => {
+      const dpi = 203
       const mm2px = mm => Math.round(mm * dpi / 25.4)
-      const paperMM = 80
+      const paperMM = Number(data.settings?.paper_width) || 80
       const width = mm2px(paperMM)
       const pad = mm2px(3)
-      const titleSize = 40
-      const base = 30
-      const small = 26
+      const fs = String(data.settings?.font_size || 'normal').toLowerCase()
+      const titleSize = fs==='large' ? 46 : fs==='small' ? 36 : 40
+      const base = fs==='large' ? 34 : fs==='small' ? 26 : 30
+      const small = fs==='large' ? 30 : fs==='small' ? 22 : 26
       const lineGap = 8
 
       const lines = []
-      lines.push({ t: 'فاتورة مبيعات', type: 'title' })
+      const headerText = data.settings?.header_logo_text || 'فاتورة مبيعات'
+      const showStoreInfo = !!Number(data.settings?.show_store_info ?? 1)
+      const showFooter = !!Number(data.settings?.show_footer ?? 1)
+      const storeName = data.settings?.store_name || ''
+      const storeNameEn = data.settings?.store_name_english || ''
+      const storeAddr = data.settings?.store_address || ''
+      const storePhone = data.settings?.store_phone || ''
+      const storeEmail = data.settings?.store_email || ''
+      const storeWeb = data.settings?.store_website || ''
+      const footerMsg = data.settings?.footer_message || 'شكراً لتسوقكم معنا'
+
+      if (showStoreInfo && storeName) lines.push({ t: storeName, type: 'caption' })
+      if (showStoreInfo && storeNameEn) lines.push({ t: storeNameEn, type: 'sub' })
+      lines.push({ t: headerText, type: 'title' })
       lines.push({ t: 'رقم: ' + data.invoiceNumber, type: 'sub' })
       lines.push({ t: data.date, type: 'sub' })
       lines.push({ type: 'sep' })
@@ -75,10 +97,27 @@ export default function Invoice({ cart, total, onClose, onSuccess }) {
       lines.push({ t: 'تفاصيل الطلب', type: 'caption' })
       for (const it of data.items) lines.push({ item: it })
       lines.push({ type: 'total' })
-      lines.push({ t: 'شكراً لتسوقكم معنا', type: 'footer' })
+      if (showStoreInfo && (storeAddr || storePhone || storeEmail || storeWeb)) {
+        lines.push({ type: 'sep' })
+        lines.push({ t: 'معلومات المتجر', type: 'caption' })
+        if (storeAddr) lines.push({ kv: ['العنوان', storeAddr] })
+        if (storePhone) lines.push({ kv: ['الهاتف', storePhone] })
+        if (storeEmail) lines.push({ kv: ['البريد', storeEmail] })
+        if (storeWeb) lines.push({ kv: ['الموقع', storeWeb] })
+      }
+      if (showFooter && footerMsg) lines.push({ t: footerMsg, type: 'footer' })
 
       // احسب الارتفاع المطلوب
       let h = pad
+      let logoH = 0
+      let hasLogo = true
+      try {
+        const img = new Image()
+        img.src = logo
+        await new Promise((res, rej) => { img.onload = res; img.onerror = () => { hasLogo = false; res() } })
+        if (hasLogo) logoH = Math.min(mm2px(12), Math.round((img.height / img.width) * (width - pad*2))) + mm2px(2)
+      } catch (_) { hasLogo = false }
+      if (hasLogo) h += logoH
       for (const ln of lines) {
         if (ln.type === 'title') h += titleSize + lineGap
         else if (ln.type === 'sep') h += 12
@@ -90,6 +129,8 @@ export default function Invoice({ cart, total, onClose, onSuccess }) {
       }
       h += pad
 
+      // تأكد من تحميل الخطوط قبل الرسم لتحسين تشكيل العربية
+      try { if (document.fonts && document.fonts.ready) await document.fonts.ready } catch (_) {}
       const canvas = document.createElement('canvas')
       canvas.width = width
       canvas.height = h
@@ -98,11 +139,47 @@ export default function Invoice({ cart, total, onClose, onSuccess }) {
       ctx.fillRect(0, 0, width, h)
       ctx.fillStyle = '#000'
       ctx.textBaseline = 'top'
-      const ctxFont = (size, w = 700) => { ctx.font = `${w} ${size}px sans-serif` }
+      const ctxFont = (size, w = 700) => { ctx.font = `${w} ${size}px "Cairo", "Noto Naskh Arabic", Tahoma, Arial, sans-serif` }
+      try { ctx.direction = 'rtl' } catch(_) {}
       const drawSep = () => { ctx.fillRect(pad, y + 4, width - pad * 2, 2); y += 12 }
       const formatCurrency = v => new Intl.NumberFormat('ar-LY', { style: 'currency', currency: 'LYD' }).format(v)
 
+      // دالة التفاف نص عربي بسيط حسب العرض المتاح
+      function drawWrapped(text, align, x, yStart, maxWidth, lh) {
+        const words = String(text||'').split(/\s+/)
+        let line = ''
+        let y = yStart
+        for (let i=0;i<words.length;i++) {
+          const test = line ? (words[i] + ' ' + line) : words[i]
+          const w = ctx.measureText(test).width
+          if (w > maxWidth && line) {
+            ctx.textAlign = align
+            ctx.fillText(line, x, y)
+            y += lh
+            line = words[i]
+          } else {
+            line = test
+          }
+        }
+        if (line) { ctx.textAlign = align; ctx.fillText(line, x, y); y += lh }
+        return y
+      }
+
       let y = pad
+      // رسم الشعار إن وُجد
+      if (hasLogo) {
+        try {
+          const img = new Image()
+          img.src = logo
+          await new Promise((res, rej) => { img.onload = res; img.onerror = res })
+          const drawW = width - pad*2
+          const ratio = img.width ? (img.height / img.width) : 1
+          const drawH = Math.min(logoH, Math.round(drawW * ratio))
+          const x = pad
+          ctx.drawImage(img, x, y, drawW, drawH)
+          y += drawH + mm2px(2)
+        } catch(_) {}
+      }
       for (const ln of lines) {
         if (ln.type === 'title') {
           ctxFont(titleSize, 800); ctx.textAlign = 'center'; ctx.fillText(ln.t, width / 2, y); y += titleSize + lineGap
@@ -113,10 +190,21 @@ export default function Invoice({ cart, total, onClose, onSuccess }) {
         } else if (ln.type === 'sep') {
           drawSep()
         } else if (ln.kv) {
-          ctxFont(base, 700); ctx.textAlign = 'left'; ctx.fillText(ln.kv[0], pad, y); ctx.textAlign = 'right'; ctx.fillText(ln.kv[1], width - pad, y); y += base + lineGap
+          ctxFont(base, 700);
+          // المفتاح يسار والقيمة يمين
+          ctx.textAlign = 'left'; ctx.fillText(ln.kv[0], pad, y)
+          ctx.textAlign = 'right'
+          const rightX = width - pad
+          const startY = y
+          y = drawWrapped(ln.kv[1], 'right', rightX, startY, rightX - pad - 40, base + 4)
         } else if (ln.item) {
-          ctxFont(base, 700); ctx.textAlign = 'left'; ctx.fillText(ln.item.title, pad, y); ctx.textAlign = 'right'; ctx.fillText(formatCurrency(ln.item.price), width - pad, y); y += base + lineGap
-        } else if (ln.type === 'total') {
+          ctxFont(base, 700)
+          // العنوان يسار والسعر يمين
+          ctx.textAlign = 'right'; ctx.fillText(formatCurrency(ln.item.price), width - pad, y)
+          ctx.textAlign = 'left'
+          const maxW = width - pad*2 - 120
+          y = drawWrapped(ln.item.title, 'left', pad, y, maxW, base)
+        } else if (ln.type==='total') {
           drawSep(); ctxFont(base + 4, 900); ctx.textAlign = 'left'; ctx.fillText('الإجمالي', pad, y); ctx.textAlign = 'right'; ctx.fillText(formatCurrency(data.total), width - pad, y); y += base + lineGap
         } else if (ln.type === 'footer') {
           ctxFont(small, 600); ctx.textAlign = 'center'; ctx.fillText(ln.t, width / 2, y); y += small + lineGap
@@ -125,8 +213,18 @@ export default function Invoice({ cart, total, onClose, onSuccess }) {
       return canvas.toDataURL('image/png')
     }
 
-    const imgDataUrl = renderReceiptToDataURL(payload)
+    const imgDataUrl = await renderReceiptToDataURL(payload)
+    const blobUrl = await (async () => {
+      try {
+        const res = await fetch(imgDataUrl)
+        const blob = await res.blob()
+        return URL.createObjectURL(blob)
+      } catch (_) {
+        return imgDataUrl
+      }
+    })()
 
+    const paperMM = Number(payload.settings?.paper_width) || 80
     const invoiceHTML = `
       <!DOCTYPE html>
       <html lang="ar" dir="rtl">
@@ -136,14 +234,14 @@ export default function Invoice({ cart, total, onClose, onSuccess }) {
         <title>فاتورة ${invoiceNumber}</title>
         <style>
           html, body { background:#fff; margin:0; }
-          @page { size: 80mm auto; margin: 0; }
-          body { width:80mm; margin:0 auto; }
-          img#print-image { width:80mm; display:block; }
+          @page { size: ${paperMM}mm auto; margin: 0; }
+          body { width:${paperMM}mm; margin:0 auto; }
+          img#print-image { width:${paperMM}mm; display:block; }
           .no-print { display:none; }
         </style>
       </head>
       <body>
-        <img id="print-image" alt="invoice" src="${imgDataUrl}" />
+        <img id="print-image" alt="invoice" />
       </body>
       </html>
     `
@@ -155,12 +253,10 @@ export default function Invoice({ cart, total, onClose, onSuccess }) {
         try {
           const img = printWindow.document.getElementById('print-image')
           if (img) {
-            if (img.complete && img.naturalWidth > 0) {
-              startPrint()
-            } else {
-              img.onload = startPrint
-              img.onerror = startPrint
-            }
+            // عَيِّن المصدر من النافذة الأصلية لتفادي قيود CSP على data:
+            img.onload = startPrint
+            img.onerror = startPrint
+            img.src = `${blobUrl}`
           } else {
             setTimeout(startPrint, 200)
           }

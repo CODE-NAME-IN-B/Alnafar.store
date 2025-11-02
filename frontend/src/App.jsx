@@ -338,7 +338,29 @@ export default function App() {
 
   const total = useMemo(() => cart.reduce((sum, g) => sum + g.price, 0), [cart])
 
-  function addToCart(game) { setCart(prev => [...prev, game]) }
+  function playAddFeedback() {
+    try {
+      if ('vibrate' in navigator) navigator.vibrate([20])
+      const AudioCtx = window.AudioContext || window.webkitAudioContext
+      if (AudioCtx) {
+        const ctx = new AudioCtx()
+        const osc = ctx.createOscillator()
+        const gain = ctx.createGain()
+        osc.type = 'square'
+        osc.frequency.value = 880
+        gain.gain.value = 0.04
+        osc.connect(gain)
+        gain.connect(ctx.destination)
+        osc.start()
+        setTimeout(() => { try { osc.stop(); ctx.close() } catch(_){} }, 120)
+      }
+    } catch (_) {}
+  }
+
+  function addToCart(game) { 
+    setCart(prev => [...prev, game])
+    playAddFeedback()
+  }
   function removeFromCart(index) { setCart(prev => prev.filter((_, i) => i !== index)) }
 
   async function sendOrder() {
