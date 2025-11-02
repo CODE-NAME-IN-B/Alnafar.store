@@ -1,6 +1,5 @@
 import React, { useState } from 'react'
 import { api } from './api'
-import logo from '../assites/logo.png'
 
 function currency(num) {
   return new Intl.NumberFormat('ar-LY', { style: 'currency', currency: 'LYD' }).format(num)
@@ -96,7 +95,6 @@ export default function Invoice({ cart, total, onClose, onSuccess }) {
             padding: 1mm 1.5mm;
             background: #fff;
           }
-          img.logo { display:block; margin: 0 auto 0.1mm; width: 50%; max-width: 120px; image-rendering: auto; filter: contrast(1.2) brightness(1.1); }
           .store-name-ar { 
             font-size: ${titleSize}; 
             font-weight: bold; 
@@ -197,7 +195,6 @@ export default function Invoice({ cart, total, onClose, onSuccess }) {
       </head>
       <body>
         <div class="receipt">
-          <img class="logo" src="${logo}" alt="logo" />
           ${showStoreInfo && storeName ? `<div class="store-name-ar">${storeName}</div>` : ''}
           ${showStoreInfo && storeNameEn ? `<div class="subtitle">${storeNameEn}</div>` : ''}
           <div class="title">${headerText}</div>
