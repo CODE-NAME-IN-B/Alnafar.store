@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState } from 'react'
 import { api } from './api'
 
 function currency(num) {
@@ -13,7 +13,6 @@ export default function Invoice({ cart, total, onClose, onSuccess }) {
     notes: ''
   })
   const [isProcessing, setIsProcessing] = useState(false)
-  const [showPreview, setShowPreview] = useState(false)
 
   const invoiceNumber = `INV-${Date.now()}`
   const currentDate = new Date().toLocaleDateString('ar-LY', {
@@ -23,8 +22,6 @@ export default function Invoice({ cart, total, onClose, onSuccess }) {
     hour: '2-digit',
     minute: '2-digit'
   })
-
-  // تبسيط معالجة الطباعة - بدون PDF معقد
 
   const handleSubmit = async (e) => {
     e.preventDefault()
@@ -39,179 +36,32 @@ export default function Invoice({ cart, total, onClose, onSuccess }) {
       return
     }
 
-    // فتح نافذة طباعة مخصصة كجزء من تفاعل المستخدم (موثوق في كل المتصفحات)
-    const printWindow = window.open('', '_blank', 'width=800,height=600')
+    setIsProcessing(true)
+
+    // جلب إعدادات الفاتورة
     let invSettings = {}
     try {
       const r = await api.get('/invoice-settings')
       invSettings = r?.data?.settings || {}
     } catch (_) { invSettings = {} }
 
-    const payload = {
-      invoiceNumber,
-      date: new Date().toLocaleString('ar-LY'),
-      customerInfo,
-      items: cart,
-      total,
-      settings: invSettings
-    }
+    const paperMM = Number(invSettings?.paper_width) || 80
+    const fs = String(invSettings?.font_size || 'normal').toLowerCase()
+    const fontSize = fs === 'large' ? '16px' : fs === 'small' ? '12px' : '14px'
+    const titleSize = fs === 'large' ? '22px' : fs === 'small' ? '16px' : '18px'
 
-    // ارسم الإيصال كصورة في نافذة الأب لتجنب حظر سكربتات inline في نافذة الطباعة
-    const renderReceiptToDataURL = async (data) => {
-      const dpi = 203
-      const mm2px = mm => Math.round(mm * dpi / 25.4)
-      const paperMM = Number(data.settings?.paper_width) || 80
-      const width = mm2px(paperMM)
-      const pad = mm2px(3)
-      const topClear = mm2px(4)
-      const fs = String(data.settings?.font_size || 'normal').toLowerCase()
-      const titleSize = fs==='large' ? 46 : fs==='small' ? 36 : 40
-      const base = fs==='large' ? 34 : fs==='small' ? 26 : 30
-      const small = fs==='large' ? 30 : fs==='small' ? 22 : 26
-      const lineGap = 8
+    const headerText = invSettings?.header_logo_text || 'فاتورة مبيعات'
+    const showStoreInfo = !!Number(invSettings?.show_store_info ?? 1)
+    const showFooter = !!Number(invSettings?.show_footer ?? 1)
+    const storeName = invSettings?.store_name || ''
+    const storeNameEn = invSettings?.store_name_english || ''
+    const storeAddr = invSettings?.store_address || ''
+    const storePhone = invSettings?.store_phone || ''
+    const storeEmail = invSettings?.store_email || ''
+    const storeWeb = invSettings?.store_website || ''
+    const footerMsg = invSettings?.footer_message || 'شكراً لتسوقكم معنا'
 
-      const lines = []
-      const headerText = data.settings?.header_logo_text || 'فاتورة مبيعات'
-      const showStoreInfo = !!Number(data.settings?.show_store_info ?? 1)
-      const showFooter = !!Number(data.settings?.show_footer ?? 1)
-      const storeName = data.settings?.store_name || ''
-      const storeNameEn = data.settings?.store_name_english || ''
-      const storeAddr = data.settings?.store_address || ''
-      const storePhone = data.settings?.store_phone || ''
-      const storeEmail = data.settings?.store_email || ''
-      const storeWeb = data.settings?.store_website || ''
-      const footerMsg = data.settings?.footer_message || 'شكراً لتسوقكم معنا'
-
-      if (showStoreInfo && storeName) lines.push({ t: storeName, type: 'caption' })
-      if (showStoreInfo && storeNameEn) lines.push({ t: storeNameEn, type: 'sub' })
-      lines.push({ t: headerText, type: 'title' })
-      lines.push({ t: 'رقم: ' + data.invoiceNumber, type: 'sub' })
-      lines.push({ t: data.date, type: 'sub' })
-      lines.push({ type: 'sep' })
-      lines.push({ t: 'بيانات العميل', type: 'caption' })
-      lines.push({ kv: ['الاسم', data.customerInfo.name || '-' ] })
-      lines.push({ kv: ['الهاتف', data.customerInfo.phone || '-' ] })
-      if (data.customerInfo.address) lines.push({ kv: ['العنوان', data.customerInfo.address] })
-      if (data.customerInfo.notes)   lines.push({ kv: ['ملاحظات', data.customerInfo.notes] })
-      lines.push({ type: 'sep' })
-      lines.push({ t: 'تفاصيل الطلب', type: 'caption' })
-      for (const it of data.items) lines.push({ item: it })
-      lines.push({ type: 'total' })
-      if (showStoreInfo && (storeAddr || storePhone || storeEmail || storeWeb)) {
-        lines.push({ type: 'sep' })
-        lines.push({ t: 'معلومات المتجر', type: 'caption' })
-        if (storeAddr) lines.push({ kv: ['العنوان', storeAddr] })
-        if (storePhone) lines.push({ kv: ['الهاتف', storePhone] })
-        if (storeEmail) lines.push({ kv: ['البريد', storeEmail] })
-        if (storeWeb) lines.push({ kv: ['الموقع', storeWeb] })
-      }
-      if (showFooter && footerMsg) lines.push({ t: footerMsg, type: 'footer' })
-
-      // احسب الارتفاع المطلوب
-      let h = pad + topClear
-      for (const ln of lines) {
-        if (ln.type === 'title') h += titleSize + lineGap
-        else if (ln.type === 'sep') h += 12
-        else if (ln.type === 'caption') h += base + lineGap
-        else if (ln.type === 'sub' || ln.type === 'footer') h += small + lineGap
-        else if (ln.type === 'total') h += base + lineGap
-        else if (ln.kv) h += base + lineGap
-        else if (ln.item) h += base + lineGap
-      }
-      h += pad
-
-      // تأكد من تحميل الخطوط قبل الرسم لتحسين تشكيل العربية
-      try { if (document.fonts && document.fonts.ready) await document.fonts.ready } catch (_) {}
-      const canvas = document.createElement('canvas')
-      canvas.width = width
-      canvas.height = h
-      const ctx = canvas.getContext('2d')
-      ctx.fillStyle = '#fff'
-      ctx.fillRect(0, 0, width, h)
-      ctx.fillStyle = '#000'
-      ctx.textBaseline = 'top'
-      const ctxFont = (size, w = 700) => { 
-        ctx.font = `${w} ${size}px "Cairo", "Noto Naskh Arabic", "Tahoma", "Arial", sans-serif`
-      }
-      try { 
-        ctx.direction = 'rtl'
-        ctx.textRendering = 'optimizeLegibility'
-      } catch(_) {}
-      const drawSep = () => { ctx.fillRect(pad, y + 4, width - pad * 2, 2); y += 12 }
-      const formatCurrency = v => new Intl.NumberFormat('ar-LY', { style: 'currency', currency: 'LYD' }).format(v)
-
-      // دالة التفاف نص بسيط حسب العرض المتاح - تدعم العربي والإنجليزي
-      function drawWrapped(text, align, x, yStart, maxWidth, lh) {
-        const words = String(text||'').split(/\s+/)
-        let line = ''
-        let y = yStart
-        
-        // للنصوص RTL (العربية)، نبني السطر من اليمين لليسار
-        const isRTL = align === 'right'
-        
-        for (let i=0;i<words.length;i++) {
-          const test = isRTL ? (line ? (words[i] + ' ' + line) : words[i]) : (line ? (line + ' ' + words[i]) : words[i])
-          const w = ctx.measureText(test).width
-          if (w > maxWidth && line) {
-            ctx.textAlign = align
-            ctx.fillText(line, x, y)
-            y += lh
-            line = words[i]
-          } else {
-            line = test
-          }
-        }
-        if (line) { ctx.textAlign = align; ctx.fillText(line, x, y); y += lh }
-        return y
-      }
-
-      let y = pad + topClear
-      for (const ln of lines) {
-        if (ln.type === 'title') {
-          ctxFont(titleSize, 800); ctx.textAlign = 'center'; ctx.fillText(ln.t, width / 2, y); y += titleSize + lineGap
-        } else if (ln.type === 'sub') {
-          ctxFont(small, 600); ctx.textAlign = 'center'; ctx.fillText(ln.t, width / 2, y); y += small + lineGap
-        } else if (ln.type === 'caption') {
-          ctxFont(base, 800); ctx.textAlign = 'right'; ctx.fillText(ln.t, width - pad, y); y += base + lineGap
-        } else if (ln.type === 'sep') {
-          drawSep()
-        } else if (ln.kv) {
-          ctxFont(base, 700);
-          // المفتاح العربي على اليمين والقيمة على اليسار
-          ctx.textAlign = 'right'; ctx.fillText(ln.kv[0], width - pad, y)
-          ctx.textAlign = 'left'
-          const leftX = pad
-          const startY = y
-          const maxW = width - pad * 2 - ctx.measureText(ln.kv[0]).width - 10
-          y = drawWrapped(ln.kv[1], 'left', leftX, startY, maxW, base + 4)
-        } else if (ln.item) {
-          ctxFont(base, 700)
-          // اسم اللعبة على اليمين والسعر على اليسار
-          ctx.textAlign = 'left'; ctx.fillText(formatCurrency(ln.item.price), pad, y)
-          ctx.textAlign = 'right'
-          const maxW = width - pad*2 - 120
-          y = drawWrapped(ln.item.title, 'right', width - pad, y, maxW, base)
-        } else if (ln.type==='total') {
-          drawSep(); ctxFont(base + 4, 900); ctx.textAlign = 'right'; ctx.fillText('الإجمالي', width - pad, y); ctx.textAlign = 'left'; ctx.fillText(formatCurrency(data.total), pad, y); y += base + lineGap
-        } else if (ln.type === 'footer') {
-          ctxFont(small, 600); ctx.textAlign = 'center'; ctx.fillText(ln.t, width / 2, y); y += small + lineGap
-        }
-      }
-      return canvas.toDataURL('image/jpeg', 0.92)
-    }
-
-    const imgDataUrl = await renderReceiptToDataURL(payload)
-    const blobUrl = await (async () => {
-      try {
-        const res = await fetch(imgDataUrl)
-        const blob = await res.blob()
-        return URL.createObjectURL(blob)
-      } catch (_) {
-        return imgDataUrl
-      }
-    })()
-
-    const paperMM = Number(payload.settings?.paper_width) || 80
+    // إنشاء HTML للفاتورة
     const invoiceHTML = `
       <!DOCTYPE html>
       <html lang="ar" dir="rtl">
@@ -222,56 +72,195 @@ export default function Invoice({ cart, total, onClose, onSuccess }) {
         <title>فاتورة ${invoiceNumber}</title>
         <link rel="preconnect" href="https://fonts.googleapis.com">
         <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-        <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800;900&family=Noto+Naskh+Arabic:wght@400;500;600;700&display=swap" rel="stylesheet">
+        <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800;900&display=swap" rel="stylesheet">
         <style>
-          html, body { background:#fff; margin:0; font-family: 'Cairo', 'Noto Naskh Arabic', 'Tahoma', 'Arial', sans-serif; }
+          * { margin: 0; padding: 0; box-sizing: border-box; }
+          body { 
+            font-family: 'Cairo', 'Tahoma', 'Arial', sans-serif; 
+            background: #fff; 
+            color: #000;
+            font-size: ${fontSize};
+            line-height: 1.6;
+            direction: rtl;
+          }
           @page { size: ${paperMM}mm auto; margin: 0; }
-          body { width:${paperMM}mm; margin:0 auto; }
-          img#print-image { width:${paperMM}mm; display:block; image-rendering: pixelated; -webkit-print-color-adjust: exact; }
-          .no-print { display:none; }
+          .receipt { 
+            width: ${paperMM}mm; 
+            margin: 0 auto; 
+            padding: 8mm 4mm;
+            background: #fff;
+          }
+          .text-center { text-align: center; }
+          .text-right { text-align: right; }
+          .font-bold { font-weight: 700; }
+          .font-extrabold { font-weight: 900; }
+          .title { 
+            font-size: ${titleSize}; 
+            font-weight: 900; 
+            text-align: center; 
+            margin-bottom: 4px;
+          }
+          .subtitle { 
+            font-size: calc(${fontSize} - 1px); 
+            text-align: center; 
+            color: #333; 
+            margin-bottom: 3px;
+          }
+          .section-title { 
+            font-size: ${fontSize}; 
+            font-weight: 800; 
+            margin: 8px 0 6px 0;
+            text-align: right;
+          }
+          .separator { 
+            border-top: 1px dashed #999; 
+            margin: 8px 0; 
+          }
+          .separator-solid { 
+            border-top: 2px solid #000; 
+            margin: 8px 0; 
+          }
+          .info-row { 
+            display: flex; 
+            justify-content: space-between; 
+            margin: 4px 0;
+            gap: 8px;
+          }
+          .info-label { 
+            font-weight: 700; 
+            color: #000;
+            flex-shrink: 0;
+          }
+          .info-value { 
+            text-align: left; 
+            color: #333;
+            word-break: break-word;
+          }
+          .item-row { 
+            display: flex; 
+            justify-content: space-between; 
+            margin: 6px 0;
+            padding: 4px 0;
+            border-bottom: 1px dashed #ddd;
+            gap: 8px;
+          }
+          .item-name { 
+            text-align: right;
+            word-break: break-word;
+            flex: 1;
+          }
+          .item-price { 
+            text-align: left; 
+            font-weight: 700;
+            direction: ltr;
+            flex-shrink: 0;
+            min-width: 80px;
+          }
+          .total-row { 
+            display: flex; 
+            justify-content: space-between; 
+            margin-top: 8px;
+            padding-top: 8px;
+            border-top: 2px solid #000;
+            font-size: calc(${fontSize} + 2px);
+            font-weight: 900;
+          }
+          .total-label { text-align: right; }
+          .total-value { 
+            text-align: left; 
+            direction: ltr;
+          }
+          .footer { 
+            text-align: center; 
+            font-size: calc(${fontSize} - 2px); 
+            color: #555; 
+            margin-top: 10px;
+            line-height: 1.8;
+          }
+          @media print {
+            body { margin: 0; padding: 0; }
+            .no-print { display: none !important; }
+          }
         </style>
       </head>
       <body>
-        <img id="print-image" alt="invoice" />
+        <div class="receipt">
+          ${showStoreInfo && storeName ? `<div class="section-title text-center">${storeName}</div>` : ''}
+          ${showStoreInfo && storeNameEn ? `<div class="subtitle">${storeNameEn}</div>` : ''}
+          <div class="title">${headerText}</div>
+          <div class="subtitle">رقم: ${invoiceNumber}</div>
+          <div class="subtitle">${new Date().toLocaleString('ar-LY')}</div>
+          
+          <div class="separator"></div>
+          
+          <div class="section-title">بيانات العميل</div>
+          <div class="info-row">
+            <span class="info-label">الاسم:</span>
+            <span class="info-value">${customerInfo.name}</span>
+          </div>
+          <div class="info-row">
+            <span class="info-label">الهاتف:</span>
+            <span class="info-value">${customerInfo.phone}</span>
+          </div>
+          ${customerInfo.address ? `
+          <div class="info-row">
+            <span class="info-label">العنوان:</span>
+            <span class="info-value">${customerInfo.address}</span>
+          </div>` : ''}
+          ${customerInfo.notes ? `
+          <div class="info-row">
+            <span class="info-label">ملاحظات:</span>
+            <span class="info-value">${customerInfo.notes}</span>
+          </div>` : ''}
+          
+          <div class="separator"></div>
+          
+          <div class="section-title">تفاصيل الطلب</div>
+          ${cart.map(item => `
+          <div class="item-row">
+            <span class="item-name">${item.title}</span>
+            <span class="item-price">${currency(item.price)}</span>
+          </div>`).join('')}
+          
+          <div class="total-row">
+            <span class="total-label">الإجمالي:</span>
+            <span class="total-value">${currency(total)}</span>
+          </div>
+          
+          ${showStoreInfo && (storeAddr || storePhone || storeEmail || storeWeb) ? `
+          <div class="separator"></div>
+          <div class="section-title">معلومات المتجر</div>
+          ${storeAddr ? `<div class="info-row"><span class="info-label">العنوان:</span><span class="info-value">${storeAddr}</span></div>` : ''}
+          ${storePhone ? `<div class="info-row"><span class="info-label">الهاتف:</span><span class="info-value">${storePhone}</span></div>` : ''}
+          ${storeEmail ? `<div class="info-row"><span class="info-label">البريد:</span><span class="info-value">${storeEmail}</span></div>` : ''}
+          ${storeWeb ? `<div class="info-row"><span class="info-label">الموقع:</span><span class="info-value">${storeWeb}</span></div>` : ''}
+          ` : ''}
+          
+          ${showFooter && footerMsg ? `
+          <div class="footer">
+            <div>${footerMsg}</div>
+          </div>` : ''}
+        </div>
       </body>
       </html>
     `
+
+    // فتح نافذة طباعة
+    const printWindow = window.open('', '_blank', 'width=800,height=600')
     if (printWindow) {
       printWindow.document.write(invoiceHTML)
       printWindow.document.close()
-      const markPrinted = async () => { try { await api.post(`/invoices/${invoiceNumber}/mark-printed`) } catch (e) { console.warn('mark-printed failed', e) } }
-      const startPrint = () => { try { printWindow.focus(); printWindow.print() } catch (_) {} }
-      // بعد إغلاق نافذة الطباعة
-      try { printWindow.onafterprint = markPrinted } catch (_) {}
+      
       printWindow.onload = () => {
-        try {
-          const img = printWindow.document.getElementById('print-image')
-          if (img) {
-            // عَيِّن المصدر من النافذة الأصلية لتفادي قيود CSP على data:
-            img.onload = startPrint
-            img.onerror = startPrint
-            img.src = `${blobUrl}`
-          } else {
-            setTimeout(startPrint, 200)
-          }
-        } catch (_) { setTimeout(startPrint, 300) }
+        setTimeout(() => {
+          printWindow.focus()
+          printWindow.print()
+        }, 500)
       }
-      // Fallback in case onload miss-fires in some browsers
-      setTimeout(() => { startPrint(); markPrinted() }, 2000)
-    } else {
-      console.warn('تم حظر النافذة المنبثقة من المتصفح، سيتم الطباعة في نفس الصفحة')
-      // افتح المعاينة واطبع في نفس الصفحة كحل بديل
-      setShowPreview(true)
-      const markPrinted = async () => { try { await api.post(`/invoices/${invoiceNumber}/mark-printed`) } catch (e) { console.warn('mark-printed failed', e) } }
-      const onAfter = () => { markPrinted(); window.removeEventListener('afterprint', onAfter) }
-      try { window.addEventListener('afterprint', onAfter, { once: true }) } catch (_) {}
-      try { window.print() } catch (_) {}
-      setTimeout(markPrinted, 3000)
     }
 
-    // حفظ الفاتورة في الخلفية دون تعطيل الطباعة
+    // حفظ الفاتورة في قاعدة البيانات
     try {
-      setIsProcessing(true)
       const invoiceData = {
         invoiceNumber,
         customerInfo,
@@ -282,41 +271,22 @@ export default function Invoice({ cart, total, onClose, onSuccess }) {
       }
 
       const response = await api.post('/invoices', invoiceData)
-      if (response.data?.success) onSuccess(response.data)
+      if (response.data?.success) {
+        onSuccess(response.data)
+      }
     } catch (error) {
       console.error('خطأ في إنشاء الفاتورة:', error)
+      alert('حدث خطأ في حفظ الفاتورة')
     } finally {
       setIsProcessing(false)
     }
   }
 
-  // دالة طباعة بسيطة مثل printatestpage.com
-  const handlePrint = () => {
-    console.log('🖨️ فتح نافذة طباعة المتصفح')
-    window.print()
-  }
-
-  // دالة تحديث معلومات العميل
   const handleInputChange = (field, value) => {
     setCustomerInfo(prev => ({
       ...prev,
       [field]: value
     }))
-  }
-
-  // عرض معاينة الفاتورة مع زر طباعة بسيط
-  if (showPreview) {
-    return (
-      <InvoicePreview 
-        invoiceNumber={invoiceNumber}
-        customerInfo={customerInfo}
-        cart={cart}
-        total={total}
-        date={currentDate}
-        onClose={onClose}
-        onPrint={handlePrint}
-      />
-    )
   }
 
   return (
@@ -472,111 +442,3 @@ export default function Invoice({ cart, total, onClose, onSuccess }) {
     </div>
   )
 }
-
-// مكون معاينة الفاتورة الجديد - مثل printatestpage.com
-function InvoicePreview({ invoiceNumber, customerInfo, cart, total, date, onClose, onPrint }) {
-  return (
-    <>
-      {/* أنماط المعاينة والطباعة بنمط إيصال 58mm مناسب لـ Sunmi V2 */}
-      <style>{`
-        :root { --font-size: 16px; }
-        .receipt { width: 100%; max-width: 100%; margin: 0; padding: 18px 20px; font-size: var(--font-size); line-height: 1.6; color: #111; background: #fff; }
-        .rc-title { text-align: center; font-weight: 800; font-size: calc(var(--font-size) + 4px); }
-        .rc-sub { text-align: center; color: #555; font-size: calc(var(--font-size) - 1px); margin-top: 4px; }
-        .rc-sep { border-top: 1px dashed #999; margin: 12px 0; }
-        .rc-caption { font-weight: 800; margin-bottom: 8px; font-size: var(--font-size); }
-        .rc-line, .rc-item, .rc-total { display: flex; justify-content: space-between; gap: 16px; }
-        .rc-line span:first-child { color: #444; }
-        .rc-item { padding: 10px 0; border-bottom: 1px dashed #e5e7eb; }
-        .rc-item span { word-break: break-word; }
-        .price { direction: ltr; font-weight: 900; }
-        .rc-total { font-size: calc(var(--font-size) + 4px); font-weight: 900; padding-top: 12px; border-top: 2px solid #111; }
-        .rc-footer { text-align: center; font-size: calc(var(--font-size) - 2px); color: #555; margin-top: 14px; }
-
-        @media print {
-          body * { visibility: hidden; }
-          .invoice-print, .invoice-print * { visibility: visible; }
-          .invoice-print { position: absolute; left: 0; top: 0; width: 100%; max-width: none !important; background: #fff !important; color: #000 !important; font-family: 'Cairo', Arial, sans-serif !important; }
-          .no-print { display: none !important; }
-          @page { size: A4; margin: 10mm; }
-          .receipt { width: 100% !important; margin: 0 !important; font-size: var(--font-size) !important; }
-        }
-      `}</style>
-      
-      <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-        <div className="bg-white rounded-xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-hidden invoice-print">
-          <div className="p-4">
-            <div className="receipt">
-              <div className="rc-title">فاتورة مبيعات</div>
-              <div className="rc-sub">رقم الفاتورة: {invoiceNumber}</div>
-              <div className="rc-sub">{date}</div>
-              <div className="rc-sep"></div>
-
-              <div className="rc-caption">بيانات العميل</div>
-              <div className="rc-line"><span>الاسم</span><span>{customerInfo.name}</span></div>
-              <div className="rc-line"><span>الهاتف</span><span>{customerInfo.phone}</span></div>
-              {customerInfo.address && (
-                <div className="rc-line"><span>العنوان</span><span>{customerInfo.address}</span></div>
-              )}
-              {customerInfo.notes && (
-                <div className="rc-line"><span>ملاحظات</span><span>{customerInfo.notes}</span></div>
-              )}
-
-              <div className="rc-sep"></div>
-              <div className="rc-caption">تفاصيل الطلب</div>
-              {cart.map((item, index) => (
-                <div key={index} className="rc-item">
-                  <span>{item.title}</span>
-                  <span className="price">{currency(item.price)}</span>
-                </div>
-              ))}
-
-              <div className="rc-total"><span>الإجمالي</span><span className="price">{currency(total)}</span></div>
-              <div className="rc-footer">
-                <div>شكراً لتسوقكم معنا</div>
-                <div>للاستفسارات: +218xxxxxxxxx</div>
-              </div>
-            </div>
-          </div>
-
-          {/* أزرار التحكم - مخفية في الطباعة */}
-          <div className="p-4 border-t border-gray-200 flex flex-col gap-3 no-print">
-            <button
-              onClick={onPrint}
-              className="w-full bg-gradient-to-r from-primary to-emerald-500 hover:from-primary-dark hover:to-emerald-600 text-white px-6 py-4 rounded-lg transition-all duration-300 font-bold flex items-center justify-center gap-2 text-lg shadow-lg"
-            >
-              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
-              </svg>
-              طباعة أو حفظ PDF
-            </button>
-            
-            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-              <div className="flex items-start gap-3">
-                <svg className="w-5 h-5 text-blue-600 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-                <div className="text-sm text-blue-800">
-                  <p className="font-semibold mb-1">💡 كيفية الاستخدام:</p>
-                  <ul className="space-y-1">
-                    <li>• اضغط على زر "طباعة أو حفظ PDF"</li>
-                    <li>• في نافذة الطباعة، اختر "حفظ كـ PDF" من الوجهة</li>
-                    <li>• أو اختر طابعة للطباعة المباشرة</li>
-                  </ul>
-                </div>
-              </div>
-            </div>
-            
-            <button
-              onClick={onClose}
-              className="w-full px-4 py-3 bg-gray-600 hover:bg-gray-700 text-white rounded-lg font-medium transition-colors"
-            >
-              إغلاق
-            </button>
-          </div>
-        </div>
-      </div>
-    </>
-  )
-}
-
