@@ -55,22 +55,25 @@ export default function Invoice({ cart, total, onClose, onSuccess }) {
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <title>فاتورة ${invoiceNumber}</title>
         <style>
-          :root { --paper-width: 58mm; }
+          :root { --paper-width: 80mm; --font-size: 14px; }
           html, body { background: #fff; color: #111; font-family: 'Cairo', Arial, sans-serif; }
-          .receipt { width: 320px; margin: 0 auto; padding: 12px 10px; font-size: 12px; line-height: 1.45; }
-          .rc-title { text-align: center; font-weight: 800; font-size: 16px; }
-          .rc-sub { text-align: center; color: #555; font-size: 11px; margin-top: 2px; }
-          .rc-sep { border-top: 1px dashed #999; margin: 8px 0; }
-          .rc-caption { font-weight: 600; margin-bottom: 4px; font-size: 12px; }
+          .receipt { width: 360px; margin: 0 auto; padding: 14px 12px; font-size: var(--font-size); line-height: 1.5; }
+          .rc-title { text-align: center; font-weight: 800; font-size: calc(var(--font-size) + 2px); }
+          .rc-sub { text-align: center; color: #555; font-size: calc(var(--font-size) - 2px); margin-top: 2px; }
+          .rc-sep { border-top: 1px dashed #999; margin: 10px 0; }
+          .rc-caption { font-weight: 700; margin-bottom: 6px; font-size: var(--font-size); }
           .rc-line, .rc-item, .rc-total { display: flex; justify-content: space-between; gap: 10px; }
-          .rc-item { padding: 6px 0; border-bottom: 1px dashed #eee; }
-          .price { direction: ltr; font-weight: 700; }
-          .rc-total { font-size: 14px; font-weight: 800; padding-top: 8px; border-top: 2px solid #111; }
-          .rc-footer { text-align: center; font-size: 11px; color: #555; margin-top: 10px; }
+          .rc-line span:first-child { color: #444; }
+          .rc-item { padding: 8px 0; border-bottom: 1px dashed #eee; }
+          .rc-item span { word-break: break-word; }
+          .price { direction: ltr; font-weight: 800; }
+          .rc-total { font-size: calc(var(--font-size) + 2px); font-weight: 900; padding-top: 10px; border-top: 2px solid #111; }
+          .rc-footer { text-align: center; font-size: calc(var(--font-size) - 2px); color: #555; margin-top: 12px; }
           @media print {
-            @page { size: auto; margin: 0; }
+            @page { size: var(--paper-width) auto; margin: 0; }
+            html, body { width: var(--paper-width) !important; margin: 0 !important; }
             .no-print { display: none !important; }
-            .receipt { width: var(--paper-width); margin: 0 auto; }
+            .receipt { width: 100% !important; margin: 0 auto !important; font-size: var(--font-size) !important; }
           }
         </style>
       </head>
@@ -322,27 +325,27 @@ function InvoicePreview({ invoiceNumber, customerInfo, cart, total, date, onClos
     <>
       {/* أنماط المعاينة والطباعة بنمط إيصال 58mm مناسب لـ Sunmi V2 */}
       <style>{`
-        :root { --paper-width: 58mm; }
-        .receipt { width: 320px; margin: 12px auto; padding: 12px 10px; font-size: 12px; line-height: 1.45; color: #111; background: #fff; }
-        .rc-title { text-align: center; font-weight: 800; font-size: 16px; }
-        .rc-sub { text-align: center; color: #555; font-size: 11px; margin-top: 2px; }
-        .rc-sep { border-top: 1px dashed #999; margin: 8px 0; }
-        .rc-caption { font-weight: 700; margin-bottom: 4px; font-size: 12px; }
+        :root { --paper-width: 80mm; --font-size: 14px; }
+        .receipt { width: 360px; margin: 12px auto; padding: 14px 12px; font-size: var(--font-size); line-height: 1.5; color: #111; background: #fff; }
+        .rc-title { text-align: center; font-weight: 800; font-size: calc(var(--font-size) + 2px); }
+        .rc-sub { text-align: center; color: #555; font-size: calc(var(--font-size) - 2px); margin-top: 2px; }
+        .rc-sep { border-top: 1px dashed #999; margin: 10px 0; }
+        .rc-caption { font-weight: 700; margin-bottom: 6px; font-size: var(--font-size); }
         .rc-line, .rc-item, .rc-total { display: flex; justify-content: space-between; gap: 10px; }
         .rc-line span:first-child { color: #444; }
-        .rc-item { padding: 6px 0; border-bottom: 1px dashed #eee; }
+        .rc-item { padding: 8px 0; border-bottom: 1px dashed #eee; }
         .rc-item span { word-break: break-word; }
-        .price { direction: ltr; font-weight: 700; }
-        .rc-total { font-size: 14px; font-weight: 800; padding-top: 8px; border-top: 2px solid #111; }
-        .rc-footer { text-align: center; font-size: 11px; color: #555; margin-top: 10px; }
+        .price { direction: ltr; font-weight: 800; }
+        .rc-total { font-size: calc(var(--font-size) + 2px); font-weight: 900; padding-top: 10px; border-top: 2px solid #111; }
+        .rc-footer { text-align: center; font-size: calc(var(--font-size) - 2px); color: #555; margin-top: 12px; }
 
         @media print {
           body * { visibility: hidden; }
           .invoice-print, .invoice-print * { visibility: visible; }
           .invoice-print { position: absolute; left: 0; top: 0; width: 100%; background: #fff !important; color: #000 !important; font-family: 'Cairo', Arial, sans-serif !important; }
           .no-print { display: none !important; }
-          @page { size: auto; margin: 0; }
-          .receipt { width: var(--paper-width); margin: 0 auto; }
+          @page { size: var(--paper-width) auto; margin: 0; }
+          .receipt { width: var(--paper-width); margin: 0 auto; font-size: var(--font-size); }
         }
       `}</style>
       
