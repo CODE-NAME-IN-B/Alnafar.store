@@ -1491,10 +1491,10 @@ app.get('/api/invoices-summary', authMiddleware, (req, res) => {
     const summary = get(`
       SELECT 
         COUNT(*) as totalInvoices,
-        COALESCE(SUM(total), 0) as totalRevenue,
-        COALESCE(AVG(total), 0) as averageInvoice,
-        COALESCE(MAX(total), 0) as highestInvoice,
-        COALESCE(MIN(total), 0) as lowestInvoice
+        COALESCE(SUM(CASE WHEN final_total > 0 THEN final_total ELSE (total - COALESCE(discount, 0)) END), 0) as totalRevenue,
+        COALESCE(AVG(CASE WHEN final_total > 0 THEN final_total ELSE (total - COALESCE(discount, 0)) END), 0) as averageInvoice,
+        COALESCE(MAX(CASE WHEN final_total > 0 THEN final_total ELSE (total - COALESCE(discount, 0)) END), 0) as highestInvoice,
+        COALESCE(MIN(CASE WHEN final_total > 0 THEN final_total ELSE (total - COALESCE(discount, 0)) END), 0) as lowestInvoice
       FROM invoices
     `);
 
@@ -1504,7 +1504,7 @@ app.get('/api/invoices-summary', authMiddleware, (req, res) => {
     const todaySummary = get(`
       SELECT 
         COUNT(*) as todayInvoices,
-        COALESCE(SUM(total), 0) as todayRevenue
+        COALESCE(SUM(CASE WHEN final_total > 0 THEN final_total ELSE (total - COALESCE(discount, 0)) END), 0) as todayRevenue
       FROM invoices
       WHERE created_at >= ?
     `, [todayStart.toISOString()]);
