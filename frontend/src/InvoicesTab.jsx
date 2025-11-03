@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useMemo } from 'react'
 import { api } from './api'
 import socket from './socket'
 
@@ -12,6 +12,8 @@ export default function InvoicesTab() {
   const [pagination, setPagination] = useState({ page: 1, pages: 1, total: 0, limit: 50 })
   const [summary, setSummary] = useState(null)
   const [editingInvoice, setEditingInvoice] = useState(null)
+  const [search, setSearch] = useState('')
+  const [pageLimit, setPageLimit] = useState(50)
 
   useEffect(() => {
     loadInvoices()
@@ -42,10 +44,20 @@ export default function InvoicesTab() {
     };
   }, [])
 
+  const filteredInvoices = useMemo(() => {
+    const q = search.trim().toLowerCase()
+    if (!q) return invoices
+    return invoices.filter(inv => {
+      const num = String(inv.invoice_number || '').toLowerCase()
+      const name = String(inv.customer_name || '').toLowerCase()
+      return num.includes(q) || name.includes(q)
+    })
+  }, [invoices, search])
+
   const loadInvoices = async (page = 1) => {
     try {
       setLoading(true)
-      const { data } = await api.get('/invoices', { params: { page } })
+      const { data } = await api.get('/invoices', { params: { page, limit: pageLimit } })
       setInvoices(data.invoices || [])
       if (data.pagination) setPagination(data.pagination)
     } catch (error) {
@@ -54,6 +66,8 @@ export default function InvoicesTab() {
       setLoading(false)
     }
   }
+
+  useEffect(() => { loadInvoices(1) }, [pageLimit])
 
   const loadSummary = async () => {
     try {
@@ -81,18 +95,17 @@ export default function InvoicesTab() {
   }
 
   const deleteAllInvoices = async () => {
-    if (!confirm('⚠️ تحذير: هل أنت متأكد من حذف جميع الفواتير؟ هذا الإجراء لا يمكن التراجع عنه!')) return
-    if (!confirm('تأكيد نهائي: سيتم حذف جميع الفواتير نهائياً!')) return
+    if (!confirm('سيتم حذف فواتير اليوم فقط. هل تريد المتابعة؟')) return
     
     try {
-      const { data } = await api.delete('/invoices')
+      const { data } = await api.delete('/invoices/today')
       if (data.success) {
         alert(data.message)
         loadInvoices(1)
         loadSummary()
       }
     } catch (error) {
-      alert('حدث خطأ في حذف الفواتير')
+      alert('حدث خطأ في حذف فواتير اليوم')
       console.error(error)
     }
   }
@@ -191,12 +204,32 @@ export default function InvoicesTab() {
     <div className="p-8">
       <div className="flex items-center justify-between mb-8">
         <h2 className="text-3xl font-bold text-white">إدارة الفواتير</h2>
-        <button
-          onClick={deleteAllInvoices}
-          className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg font-medium transition-colors"
+        <div className="flex gap-2">
+          <button
+            onClick={deleteAllInvoices}
+            className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg font-medium transition-colors"
+          >
+            🗑️ حذف فواتير اليوم
+          </button>
+        </div>
+      </div>
+
+      <div className="flex flex-wrap items-center gap-2 mb-4">
+        <input 
+          value={search}
+          onChange={e=>setSearch(e.target.value)}
+          placeholder="ابحث برقم الفاتورة أو اسم العميل..."
+          className="flex-1 min-w-[240px] bg-gray-800 border border-gray-700 rounded-lg px-3 py-2.5 text-white"
+        />
+        <select 
+          value={pageLimit}
+          onChange={e=>setPageLimit(parseInt(e.target.value)||50)}
+          className="bg-gray-800 border border-gray-700 rounded-lg px-3 py-2.5 text-white"
         >
-          🗑️ حذف جميع الفواتير
-        </button>
+          <option value={20}>20 لكل صفحة</option>
+          <option value={50}>50 لكل صفحة</option>
+          <option value={100}>100 لكل صفحة</option>
+        </select>
       </div>
 
       {/* إحصائيات الفواتير */}
@@ -242,7 +275,7 @@ export default function InvoicesTab() {
               </tr>
             </thead>
             <tbody>
-              {invoices.map((invoice) => (
+              {filteredInvoices.map((invoice) => (
                 <tr key={invoice.id} className="border-b border-gray-700 hover:bg-gray-700/30">
                   <td className="py-3 px-4 font-mono text-primary">{invoice.invoice_number}</td>
                   <td className="py-3 px-4">{invoice.customer_name}</td>

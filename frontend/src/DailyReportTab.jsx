@@ -12,6 +12,11 @@ export default function DailyReportTab() {
   const [loading, setLoading] = useState(true)
   const [reports, setReports] = useState([])
   const [showHistory, setShowHistory] = useState(false)
+  const [rangeStart, setRangeStart] = useState(new Date().toISOString().split('T')[0])
+  const [rangeEnd, setRangeEnd] = useState(new Date().toISOString().split('T')[0])
+  const [range, setRange] = useState(null)
+  const [exporting, setExporting] = useState(false)
+  const [closeNotes, setCloseNotes] = useState('')
 
   useEffect(() => {
     loadDailyReport(selectedDate)
@@ -51,17 +56,67 @@ export default function DailyReportTab() {
     }
   }
 
+  const loadRange = async () => {
+    if (!rangeStart) { alert('يرجى اختيار تاريخ البداية'); return }
+    try {
+      const { data } = await api.get('/daily-report-range', { params: { start: rangeStart, end: rangeEnd } })
+      if (data.success) setRange(data.range)
+    } catch (error) {
+      console.error('خطأ في تحميل تقارير النطاق:', error)
+      alert('فشل تحميل تقارير النطاق')
+    }
+  }
+
+  const exportCsv = async () => {
+    if (!rangeStart) { alert('يرجى اختيار تاريخ البداية'); return }
+    try {
+      setExporting(true)
+      const res = await api.get('/daily-report/export.csv', { params: { start: rangeStart, end: rangeEnd }, responseType: 'blob' })
+      const blob = new Blob([res.data], { type: 'text/csv;charset=utf-8;' })
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = `daily-report-${rangeStart}${rangeEnd!==rangeStart?('_'+rangeEnd):''}.csv`
+      document.body.appendChild(a)
+      a.click()
+      a.remove()
+      URL.revokeObjectURL(url)
+    } catch (error) {
+      console.error('خطأ في التصدير CSV:', error)
+      alert('فشل تصدير CSV')
+    } finally {
+      setExporting(false)
+    }
+  }
+
+  const deleteAllInvoicesAllDays = async () => {
+    if (!confirm('⚠️ تحذير: سيتم حذف جميع الفواتير لكل الأيام والأشهر. هل أنت متأكد؟')) return
+    if (!confirm('تأكيد نهائي: هذا الإجراء لا يمكن التراجع عنه. متابعة الحذف؟')) return
+    try {
+      const { data } = await api.delete('/invoices')
+      if (data.success) {
+        alert(data.message)
+        await loadDailyReport(selectedDate)
+        await loadReportsHistory()
+      }
+    } catch (error) {
+      console.error('خطأ في حذف جميع الفواتير:', error)
+      alert('حدث خطأ في حذف جميع الفواتير')
+    }
+  }
+
   const closeDailyReport = async (date) => {
     if (!confirm(`هل أنت متأكد من إغلاق الجرد ليوم ${date}؟ لن تتمكن من التراجع عن هذا الإجراء.`)) {
       return
     }
 
     try {
-      const { data } = await api.post(`/daily-report/${date}/close`)
+      const { data } = await api.post(`/daily-report/${date}/close`, { notes: closeNotes })
       if (data.success) {
         alert('تم إغلاق الجرد اليومي بنجاح')
         loadDailyReport(selectedDate)
         loadReportsHistory()
+        setCloseNotes('')
       }
     } catch (error) {
       console.error('خطأ في إغلاق الجرد:', error)
@@ -82,7 +137,7 @@ export default function DailyReportTab() {
     <div className="p-8">
       <div className="flex items-center justify-between mb-8">
         <h2 className="text-3xl font-bold text-white">الجرد اليومي</h2>
-        <div className="flex gap-4">
+        <div className="flex gap-2 flex-wrap justify-end">
           <input
             type="date"
             value={selectedDate}
@@ -94,6 +149,37 @@ export default function DailyReportTab() {
             className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors"
           >
             {showHistory ? 'إخفاء التاريخ' : 'عرض التاريخ'}
+          </button>
+          <button
+            onClick={deleteAllInvoicesAllDays}
+            className="px-4 py-2 bg-red-700 hover:bg-red-800 text-white rounded-lg font-medium transition-colors"
+          >
+            🗑️ حذف كل الفواتير
+          </button>
+          <input
+            type="date"
+            value={rangeStart}
+            onChange={(e) => setRangeStart(e.target.value)}
+            className="bg-gray-700 border border-gray-600 rounded-lg px-4 py-2 text-white"
+          />
+          <input
+            type="date"
+            value={rangeEnd}
+            onChange={(e) => setRangeEnd(e.target.value)}
+            className="bg-gray-700 border border-gray-600 rounded-lg px-4 py-2 text-white"
+          />
+          <button
+            onClick={loadRange}
+            className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg font-medium transition-colors"
+          >
+            📅 عرض النطاق
+          </button>
+          <button
+            onClick={exportCsv}
+            disabled={exporting}
+            className="px-4 py-2 bg-amber-600 hover:bg-amber-700 disabled:opacity-60 text-white rounded-lg font-medium transition-colors"
+          >
+            ⬇️ تصدير CSV
           </button>
         </div>
       </div>
@@ -142,12 +228,23 @@ export default function DailyReportTab() {
               </div>
 
               {!report.is_closed && report.total_invoices > 0 && (
-                <button
-                  onClick={() => closeDailyReport(selectedDate)}
-                  className="w-full mt-6 px-4 py-3 bg-red-600 hover:bg-red-700 text-white rounded-lg font-medium transition-colors"
-                >
-                  🔒 إغلاق الجرد اليومي
-                </button>
+                <div className="mt-6 space-y-3">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-300 mb-2">ملاحظات الإغلاق (اختياري)</label>
+                    <input 
+                      className="w-full bg-gray-700 border border-gray-600 rounded-lg px-4 py-2 text-white"
+                      value={closeNotes}
+                      onChange={(e)=>setCloseNotes(e.target.value)}
+                      placeholder="اكتب ملاحظات الجرد..."
+                    />
+                  </div>
+                  <button
+                    onClick={() => closeDailyReport(selectedDate)}
+                    className="w-full px-4 py-3 bg-red-600 hover:bg-red-700 text-white rounded-lg font-medium transition-colors"
+                  >
+                    🔒 إغلاق الجرد اليومي
+                  </button>
+                </div>
               )}
             </div>
           </div>
@@ -196,6 +293,59 @@ export default function DailyReportTab() {
                 </div>
               )}
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* تقارير نطاق التاريخ */}
+      {range && (
+        <div className="mt-8 bg-gray-800 p-6 rounded-xl">
+          <h3 className="text-xl font-bold text-white mb-4">تقارير من {range.start} إلى {range.end}</h3>
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-3 mb-4">
+            <div className="p-4 bg-gray-700 rounded-lg">
+              <div className="text-gray-300 text-sm">عدد الفواتير</div>
+              <div className="text-2xl font-bold text-white">{range.totals.total_invoices}</div>
+            </div>
+            <div className="p-4 bg-gray-700 rounded-lg">
+              <div className="text-gray-300 text-sm">إجمالي المبيعات</div>
+              <div className="text-lg font-bold text-green-400">{currency(range.totals.total_revenue)}</div>
+            </div>
+            <div className="p-4 bg-gray-700 rounded-lg">
+              <div className="text-gray-300 text-sm">إجمالي الخصومات</div>
+              <div className="text-lg font-bold text-red-400">{currency(range.totals.total_discount)}</div>
+            </div>
+            <div className="p-4 bg-gray-700 rounded-lg">
+              <div className="text-gray-300 text-sm">الصافي</div>
+              <div className="text-lg font-bold text-white">{currency(range.totals.net_revenue)}</div>
+            </div>
+          </div>
+          <div className="overflow-x-auto">
+            <table className="w-full text-white">
+              <thead>
+                <tr className="border-b border-gray-600">
+                  <th className="text-right py-3 px-4">التاريخ</th>
+                  <th className="text-right py-3 px-4">الفواتير</th>
+                  <th className="text-right py-3 px-4">المبيعات</th>
+                  <th className="text-right py-3 px-4">الخصومات</th>
+                  <th className="text-right py-3 px-4">الصافي</th>
+                  <th className="text-right py-3 px-4">الحالة</th>
+                  <th className="text-right py-3 px-4">ملاحظات</th>
+                </tr>
+              </thead>
+              <tbody>
+                {range.days.map(d => (
+                  <tr key={d.date} className="border-b border-gray-700">
+                    <td className="py-3 px-4">{d.date}</td>
+                    <td className="py-3 px-4">{d.total_invoices}</td>
+                    <td className="py-3 px-4 text-green-400">{currency(d.total_revenue)}</td>
+                    <td className="py-3 px-4 text-red-400">{currency(d.total_discount)}</td>
+                    <td className="py-3 px-4 font-bold text-white">{currency(d.net_revenue)}</td>
+                    <td className="py-3 px-4">{d.is_closed ? 'مغلق' : 'مفتوح'}</td>
+                    <td className="py-3 px-4 text-gray-300">{d.notes || '—'}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
         </div>
       )}

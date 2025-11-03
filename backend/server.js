@@ -237,6 +237,8 @@ function initializeDatabase() {
       username TEXT UNIQUE NOT NULL,
       password TEXT NOT NULL
     );`);
+  try { run("ALTER TABLE users ADD COLUMN role TEXT DEFAULT 'admin'"); } catch (e) {}
+  try { run("ALTER TABLE users ADD COLUMN created_at DATETIME DEFAULT CURRENT_TIMESTAMP"); } catch (e) {}
 
   db.exec(`CREATE TABLE IF NOT EXISTS categories (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -303,11 +305,17 @@ function initializeDatabase() {
       customer_notes TEXT,
       items TEXT NOT NULL,
       total REAL NOT NULL,
+      discount REAL DEFAULT 0,
+      final_total REAL,
       status TEXT DEFAULT 'completed',
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
       printed_at DATETIME,
       print_count INTEGER DEFAULT 0
     );`);
+
+  // Migrate existing DBs to include discount/final_total if missing
+  try { run('ALTER TABLE invoices ADD COLUMN discount REAL DEFAULT 0'); } catch (e) {}
+  try { run('ALTER TABLE invoices ADD COLUMN final_total REAL'); } catch (e) {}
 
   db.exec(`CREATE TABLE IF NOT EXISTS invoice_settings (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -338,9 +346,11 @@ function initializeDatabase() {
       net_revenue REAL DEFAULT 0,
       is_closed BOOLEAN DEFAULT 0, -- للجرد اليومي
       closed_at DATETIME,
+      notes TEXT,
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
       updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
     );`);
+  try { run('ALTER TABLE daily_invoices ADD COLUMN notes TEXT'); } catch (e) {}
 
   // Seed default settings if empty
   const settingsCount = get('SELECT COUNT(*) as count FROM settings').count;
@@ -358,7 +368,7 @@ function initializeDatabase() {
     ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`, [
       'الشارجه للإلكترونيات',
       'Alnafar Store', 
-      'شارع الفضائيه، بالقرب من مطحنة الفضيل',
+      'شارع القضائيه، مقابل مطحنة الفضيل',
       '0920595447',
       'info@alnafar.store',
       '',
@@ -390,7 +400,7 @@ function initializeDatabase() {
     const username = process.env.ADMIN_USERNAME || 'admin';
     const password = process.env.ADMIN_PASSWORD || 'admin123';
     const hashed = bcrypt.hashSync(password, 10);
-    run('INSERT INTO users (username, password) VALUES (?, ?)', [username, hashed]);
+    run('INSERT INTO users (username, password, role) VALUES (?, ?, ?)', [username, hashed, 'admin']);
     console.log('Seeded admin user:', username);
   }
 }
@@ -403,6 +413,70 @@ const io = new Server(httpServer, {
   cors: {
     origin: "*",
     methods: ["GET", "POST"]
+  }
+});
+
+// تقارير بنطاق تاريخ
+app.get('/api/daily-report-range', authMiddleware, (req, res) => {
+  try {
+    const start = (req.query.start || '').slice(0, 10);
+    const end = ((req.query.end || start) || '').slice(0, 10);
+    if (!start) return res.status(400).json({ success: false, message: 'start مطلوب' });
+    const rows = all(`
+      SELECT date, total_invoices, total_revenue, total_discount, net_revenue, is_closed, closed_at, COALESCE(notes,'') AS notes
+      FROM daily_invoices
+      WHERE date BETWEEN ? AND ?
+      ORDER BY date ASC
+    `, [start, end]);
+    const totals = rows.reduce((acc, r) => {
+      acc.total_invoices += (r.total_invoices || 0);
+      acc.total_revenue += (r.total_revenue || 0);
+      acc.total_discount += (r.total_discount || 0);
+      acc.net_revenue += (r.net_revenue || 0);
+      return acc;
+    }, { total_invoices: 0, total_revenue: 0, total_discount: 0, net_revenue: 0 });
+    res.json({ success: true, range: { start, end, days: rows, totals } });
+  } catch (e) {
+    console.error('daily-report-range error:', e);
+    res.status(500).json({ success: false, message: 'فشل في جلب تقارير النطاق', error: e.message });
+  }
+});
+
+// تصدير CSV لنطاق تاريخ
+app.get('/api/daily-report/export.csv', authMiddleware, (req, res) => {
+  try {
+    const start = (req.query.start || '').slice(0, 10);
+    const end = ((req.query.end || start) || '').slice(0, 10);
+    if (!start) return res.status(400).json({ message: 'start مطلوب' });
+    const rows = all(`
+      SELECT date, total_invoices, total_revenue, total_discount, net_revenue, is_closed, closed_at, COALESCE(notes,'') AS notes
+      FROM daily_invoices
+      WHERE date BETWEEN ? AND ?
+      ORDER BY date ASC
+    `, [start, end]);
+    function csvEscape(val) {
+      const s = String(val == null ? '' : val).replace(/"/g, '""');
+      return '"' + s + '"';
+    }
+    const header = ['date','total_invoices','total_revenue','total_discount','net_revenue','is_closed','closed_at','notes'];
+    const lines = [header.join(',')].concat(rows.map(r => [
+      r.date,
+      r.total_invoices,
+      r.total_revenue,
+      r.total_discount,
+      r.net_revenue,
+      r.is_closed ? 1 : 0,
+      r.closed_at || '',
+      r.notes || ''
+    ].map(csvEscape).join(',')));
+    const csv = '\uFEFF' + lines.join('\n');
+    const fname = `daily-report-${start}${start!==end?('_'+end):''}.csv`;
+    res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+    res.setHeader('Content-Disposition', `attachment; filename="${fname}"`);
+    res.send(csv);
+  } catch (e) {
+    console.error('daily-report export error:', e);
+    res.status(500).json({ message: 'فشل تصدير CSV', error: e.message });
   }
 });
 
@@ -458,6 +532,31 @@ function updateDailyStats(invoiceData) {
     net_revenue = net_revenue + ?,
     updated_at = CURRENT_TIMESTAMP
     WHERE date = ?`, [total, discount, netRevenue, today]);
+}
+
+// إعادة احتساب إحصائيات الجرد اليومي من جدول الفواتير
+function recomputeDailyStats(dateStr) {
+  const date = dateStr || new Date().toISOString().split('T')[0];
+  const agg = get(`
+    SELECT 
+      COUNT(*) AS total_invoices,
+      COALESCE(SUM(total), 0) AS total_revenue,
+      COALESCE(SUM(COALESCE(discount, 0)), 0) AS total_discount
+    FROM invoices
+    WHERE DATE(created_at) = ?
+  `, [date]);
+  const lastNum = get(`
+    SELECT COALESCE(MAX(CAST(substr(invoice_number, 10) AS INTEGER)), 0) AS last
+    FROM invoices
+    WHERE DATE(created_at) = ?
+  `, [date]);
+  const net = (agg.total_revenue || 0) - (agg.total_discount || 0);
+  const existing = get('SELECT * FROM daily_invoices WHERE date = ?', [date]);
+  if (!existing || !existing.id) {
+    run(`INSERT INTO daily_invoices (date, last_invoice_number, total_invoices, total_revenue, total_discount, net_revenue, updated_at) VALUES (?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)`, [date, lastNum.last || 0, agg.total_invoices || 0, agg.total_revenue || 0, agg.total_discount || 0, net]);
+  } else {
+    run(`UPDATE daily_invoices SET last_invoice_number = ?, total_invoices = ?, total_revenue = ?, total_discount = ?, net_revenue = ?, updated_at = CURRENT_TIMESTAMP WHERE date = ?`, [lastNum.last || 0, agg.total_invoices || 0, agg.total_revenue || 0, agg.total_discount || 0, net, date]);
+  }
 }
 
 app.use(cors());
@@ -767,6 +866,13 @@ function authMiddleware(req, res, next) {
   }
 }
 
+function requireAdmin(req, res, next) {
+  if (!req.user || req.user.role !== 'admin') {
+    return res.status(403).json({ message: 'Forbidden' });
+  }
+  next();
+}
+
 // Auth
 app.post('/api/auth/login', (req, res) => {
   const { username, password } = req.body;
@@ -775,8 +881,91 @@ app.post('/api/auth/login', (req, res) => {
   if (!user) return res.status(401).json({ message: 'Invalid credentials' });
   const ok = bcrypt.compareSync(password, user.password);
   if (!ok) return res.status(401).json({ message: 'Invalid credentials' });
-  const token = jwt.sign({ id: user.id, username: user.username }, JWT_SECRET, { expiresIn: '7d' });
+  const token = jwt.sign({ id: user.id, username: user.username, role: user.role || 'admin' }, JWT_SECRET, { expiresIn: '7d' });
   res.json({ token });
+});
+
+app.get('/api/auth/me', authMiddleware, (req, res) => {
+  try {
+    const user = get('SELECT id, username, role, created_at FROM users WHERE id = ?', [req.user.id]);
+    if (!user || !user.id) return res.status(404).json({ message: 'User not found' });
+    res.json({ user });
+  } catch (e) {
+    res.status(500).json({ message: 'Failed to fetch profile', error: e.message });
+  }
+});
+
+// Users management (admin only)
+app.get('/api/users', authMiddleware, requireAdmin, (req, res) => {
+  try {
+    const rows = all('SELECT id, username, role, created_at FROM users ORDER BY id DESC');
+    res.json({ users: rows });
+  } catch (e) {
+    res.status(500).json({ message: 'Failed to fetch users', error: e.message });
+  }
+});
+
+app.post('/api/users', authMiddleware, requireAdmin, (req, res) => {
+  try {
+    const { username, password, role = 'staff' } = req.body || {};
+    if (!username || !password) return res.status(400).json({ message: 'username and password are required' });
+    const exists = get('SELECT id FROM users WHERE username = ?', [username]);
+    if (exists && exists.id) return res.status(409).json({ message: 'Username already exists' });
+    const hashed = bcrypt.hashSync(password, 10);
+    run('INSERT INTO users (username, password, role) VALUES (?, ?, ?)', [username, hashed, role]);
+    const created = get('SELECT id, username, role, created_at FROM users WHERE username = ?', [username]);
+    res.status(201).json({ success: true, user: created });
+  } catch (e) {
+    res.status(500).json({ message: 'Failed to create user', error: e.message });
+  }
+});
+
+app.put('/api/users/:id', authMiddleware, requireAdmin, (req, res) => {
+  try {
+    const { id } = req.params;
+    const { username, role } = req.body || {};
+    const user = get('SELECT * FROM users WHERE id = ?', [id]);
+    if (!user || !user.id) return res.status(404).json({ message: 'User not found' });
+    if (username && username !== user.username) {
+      const dupe = get('SELECT id FROM users WHERE username = ? AND id != ?', [username, id]);
+      if (dupe && dupe.id) return res.status(409).json({ message: 'Username already exists' });
+    }
+    run('UPDATE users SET username = COALESCE(?, username), role = COALESCE(?, role) WHERE id = ?', [username || null, role || null, id]);
+    const updated = get('SELECT id, username, role, created_at FROM users WHERE id = ?', [id]);
+    res.json({ success: true, user: updated });
+  } catch (e) {
+    res.status(500).json({ message: 'Failed to update user', error: e.message });
+  }
+});
+
+app.put('/api/users/:id/password', authMiddleware, requireAdmin, (req, res) => {
+  try {
+    const { id } = req.params;
+    const { password } = req.body || {};
+    if (!password || String(password).length < 6) return res.status(400).json({ message: 'Password must be at least 6 characters' });
+    const user = get('SELECT * FROM users WHERE id = ?', [id]);
+    if (!user || !user.id) return res.status(404).json({ message: 'User not found' });
+    const hashed = bcrypt.hashSync(password, 10);
+    run('UPDATE users SET password = ? WHERE id = ?', [hashed, id]);
+    res.json({ success: true });
+  } catch (e) {
+    res.status(500).json({ message: 'Failed to update password', error: e.message });
+  }
+});
+
+app.delete('/api/users/:id', authMiddleware, requireAdmin, (req, res) => {
+  try {
+    const { id } = req.params;
+    if (String(req.user.id) === String(id)) {
+      return res.status(400).json({ message: 'Cannot delete your own account' });
+    }
+    const user = get('SELECT * FROM users WHERE id = ?', [id]);
+    if (!user || !user.id) return res.status(404).json({ message: 'User not found' });
+    run('DELETE FROM users WHERE id = ?', [id]);
+    res.json({ success: true });
+  } catch (e) {
+    res.status(500).json({ message: 'Failed to delete user', error: e.message });
+  }
 });
 
 // Categories
@@ -1543,6 +1732,11 @@ app.delete('/api/invoices/:id', authMiddleware, (req, res) => {
     }
 
     run('DELETE FROM invoices WHERE id = ?', [id]);
+    // إعادة احتساب الجرد لليوم الموافق لتاريخ هذه الفاتورة
+    try {
+      const dateStr = (invoice.created_at || '').slice(0,10) || new Date().toISOString().split('T')[0];
+      recomputeDailyStats(dateStr);
+    } catch (_) {}
     
     res.json({
       success: true,
@@ -1559,6 +1753,30 @@ app.delete('/api/invoices/:id', authMiddleware, (req, res) => {
   }
 });
 
+// حذف فواتير اليوم فقط
+app.delete('/api/invoices/today', authMiddleware, (req, res) => {
+  try {
+    const today = new Date().toISOString().split('T')[0];
+    const count = get('SELECT COUNT(*) as count FROM invoices WHERE DATE(created_at) = ?', [today]).count;
+    run('DELETE FROM invoices WHERE DATE(created_at) = ?', [today]);
+    // إعادة احتساب الجرد لليوم
+    recomputeDailyStats(today);
+    res.json({
+      success: true,
+      message: `تم حذف ${count} من فواتير اليوم (${today}) بنجاح`,
+      deletedCount: count,
+      date: today
+    });
+  } catch (error) {
+    console.error('خطأ في حذف فواتير اليوم:', error);
+    res.status(500).json({ 
+      success: false, 
+      message: 'حدث خطأ في حذف فواتير اليوم',
+      error: error.message 
+    });
+  }
+});
+
 // حذف جميع الفواتير
 app.delete('/api/invoices', authMiddleware, (req, res) => {
   try {
@@ -1566,6 +1784,9 @@ app.delete('/api/invoices', authMiddleware, (req, res) => {
     
     run('DELETE FROM invoices');
     run("DELETE FROM sqlite_sequence WHERE name='invoices'");
+    // Clear daily reports as well since invoices are wiped
+    run('DELETE FROM daily_invoices');
+    run("DELETE FROM sqlite_sequence WHERE name='daily_invoices'");
     
     res.json({
       success: true,
@@ -1657,12 +1878,14 @@ app.post('/api/daily-report/:date/close', authMiddleware, (req, res) => {
       });
     }
     
-    // إغلاق الجرد
+    // إغلاق الجرد مع ملاحظات اختيارية
+    const notes = req.body && typeof req.body.notes !== 'undefined' ? String(req.body.notes) : null;
     run(`UPDATE daily_invoices SET 
       is_closed = 1, 
       closed_at = CURRENT_TIMESTAMP,
-      updated_at = CURRENT_TIMESTAMP
-      WHERE date = ?`, [date]);
+      updated_at = CURRENT_TIMESTAMP,
+      notes = COALESCE(?, notes)
+      WHERE date = ?`, [notes, date]);
     
     res.json({
       success: true,

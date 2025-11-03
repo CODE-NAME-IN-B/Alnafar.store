@@ -5,6 +5,8 @@ import InvoiceSettings from './InvoiceSettings'
 import InvoicesTab from './InvoicesTab'
 import DailyReportTab from './DailyReportTab'
 import GenreSeriesManager from './GenreSeriesManager'
+import logo from '../assites/logo.png'
+import UsersTab from './UsersTab'
 
 function currency(num) {
   return new Intl.NumberFormat('ar-LY', { style: 'currency', currency: 'LYD' }).format(num)
@@ -14,8 +16,14 @@ export default function Admin() {
   const [loggedIn, setLoggedIn] = useState(false)
   const [tab, setTab] = useState('games')
   const [loginForm, setLoginForm] = useState({ username: '', password: '' })
+  const [currentUser, setCurrentUser] = useState(null)
 
-  useEffect(() => { loadAuthFromStorage(); setLoggedIn(!!localStorage.getItem('token')) }, [])
+  useEffect(() => { 
+    loadAuthFromStorage(); 
+    const has = !!localStorage.getItem('token');
+    setLoggedIn(has)
+    if (has) { api.get('/auth/me').then(r => setCurrentUser(r.data?.user || null)).catch(()=>{}) }
+  }, [])
 
   async function submitLogin(e) {
     e.preventDefault()
@@ -23,6 +31,7 @@ export default function Admin() {
       const { data } = await api.post('/auth/login', loginForm)
       setAuthToken(data.token)
       setLoggedIn(true)
+      try { const r = await api.get('/auth/me'); setCurrentUser(r.data?.user||null) } catch {}
     } catch {
       alert('Invalid credentials')
     }
@@ -55,9 +64,7 @@ export default function Admin() {
         <div className="max-w-7xl mx-auto px-6 py-6">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-4">
-              <div className="w-10 h-10 bg-gradient-to-r from-blue-500 to-purple-600 rounded-lg flex items-center justify-center">
-                <span className="text-white font-bold text-xl">A</span>
-              </div>
+              <img src={logo} alt="Logo" className="w-10 h-10 rounded-lg object-contain bg-white" />
               <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent">
                 لوحة تحكم المدير
               </h1>
@@ -72,50 +79,65 @@ export default function Admin() {
         </div>
       </nav>
 
-      {/* Navigation Tabs */}
-      <div className="bg-gray-800/50 backdrop-blur-sm border-b border-gray-700">
-        <div className="max-w-7xl mx-auto px-6">
-          <div className="flex space-x-2 py-4">
-            {[
-              { id: 'games', label: 'الألعاب', icon: '🎮' },
-              { id: 'categories', label: 'التصنيفات', icon: '📂' },
-              { id: 'genres', label: 'الأنواع والسلاسل', icon: '🏷️' },
-              { id: 'invoices', label: 'الفواتير', icon: '🧾' },
-              { id: 'daily-report', label: 'الجرد اليومي', icon: '📈' },
-              { id: 'invoice-settings', label: 'إعدادات الفاتورة', icon: '🖨️' },
-              { id: 'orders', label: 'الطلبات', icon: '📋' },
-              { id: 'settings', label: 'الإعدادات', icon: '⚙️' },
-              { id: 'stats', label: 'الإحصائيات', icon: '📊' }
-            ].map(({ id, label, icon }) => (
-              <button
-                key={id}
-                onClick={() => setTab(id)}
-                className={`px-6 py-3 rounded-xl font-semibold transition-all duration-300 transform hover:scale-105 ${
-                  tab === id
-                    ? 'bg-gradient-to-r from-blue-500 to-purple-600 text-white shadow-lg'
-                    : 'bg-gray-700/50 text-gray-300 hover:bg-gray-600/50 hover:text-white'
-                }`}
-              >
-                <span className="mr-2">{icon}</span>
-                {label}
-              </button>
-            ))}
-          </div>
-        </div>
-      </div>
-
       {/* Main Content */}
       <div className="max-w-7xl mx-auto px-6 py-8">
-        <div className="bg-gray-800/30 backdrop-blur-sm rounded-2xl border border-gray-700 shadow-2xl">
-          {tab === 'games' && <GamesTabNew />}
-          {tab === 'categories' && <CategoriesTab />}
-          {tab === 'genres' && <GenreSeriesManager />}
-          {tab === 'invoices' && <InvoicesTab />}
-          {tab === 'daily-report' && <DailyReportTab />}
-          {tab === 'invoice-settings' && <InvoiceSettings />}
-          {tab === 'orders' && <OrdersTab />}
-          {tab === 'settings' && <SettingsTab />}
-          {tab === 'stats' && <StatsTab />}
+        <div className="grid grid-cols-12 gap-6">
+          <aside className="col-span-12 md:col-span-3">
+            <div className="bg-gray-800/60 backdrop-blur-sm rounded-2xl border border-gray-700 p-4">
+              <div className="flex items-center mb-4">
+                <div className="w-10 h-10 bg-white rounded-lg overflow-hidden mr-3">
+                  <img src={logo} alt="Logo" className="w-full h-full object-contain" />
+                </div>
+                <div>
+                  <div className="font-bold">لوحة التحكم</div>
+                  {currentUser && (
+                    <div className="text-xs text-gray-300">{currentUser.username} — {currentUser.role}</div>
+                  )}
+                </div>
+              </div>
+              <div className="space-y-2">
+                {[
+                  { id: 'games', label: 'الألعاب', icon: '🎮' },
+                  { id: 'categories', label: 'التصنيفات', icon: '📂' },
+                  { id: 'genres', label: 'الأنواع والسلاسل', icon: '🏷️' },
+                  { id: 'invoices', label: 'الفواتير', icon: '🧾' },
+                  { id: 'daily-report', label: 'الجرد اليومي', icon: '📈' },
+                  { id: 'invoice-settings', label: 'إعدادات الفاتورة', icon: '🖨️' },
+                  { id: 'orders', label: 'الطلبات', icon: '📋' },
+                  { id: 'settings', label: 'الإعدادات', icon: '⚙️' },
+                  { id: 'stats', label: 'الإحصائيات', icon: '📊' },
+                  ...(currentUser?.role === 'admin' ? [{ id: 'users', label: 'الإدمن', icon: '🛡️' }] : [])
+                ].map(({ id, label, icon }) => (
+                  <button
+                    key={id}
+                    onClick={() => setTab(id)}
+                    className={`w-full text-right px-4 py-3 rounded-xl font-semibold transition-all duration-200 ${
+                      tab === id
+                        ? 'bg-gradient-to-r from-blue-500 to-purple-600 text-white shadow-lg'
+                        : 'bg-gray-700/50 text-gray-300 hover:bg-gray-600/50 hover:text-white'
+                    }`}
+                  >
+                    <span className="ml-2">{icon}</span>
+                    {label}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </aside>
+          <section className="col-span-12 md:col-span-9">
+            <div className="bg-gray-800/30 backdrop-blur-sm rounded-2xl border border-gray-700 shadow-2xl">
+              {tab === 'games' && <GamesTabNew />}
+              {tab === 'categories' && <CategoriesTab />}
+              {tab === 'genres' && <GenreSeriesManager />}
+              {tab === 'invoices' && <InvoicesTab />}
+              {tab === 'daily-report' && <DailyReportTab />}
+              {tab === 'invoice-settings' && <InvoiceSettings />}
+              {tab === 'orders' && <OrdersTab />}
+              {tab === 'settings' && <SettingsTab />}
+              {tab === 'stats' && <StatsTab />}
+              {tab === 'users' && currentUser?.role === 'admin' && <UsersTab />}
+            </div>
+          </section>
         </div>
       </div>
     </div>
