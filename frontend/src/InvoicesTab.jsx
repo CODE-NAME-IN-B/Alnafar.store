@@ -110,84 +110,118 @@ export default function InvoicesTab() {
     }
   }
 
-  const reprintInvoice = (invoice) => {
-    // إنشاء نافذة جديدة لطباعة الفاتورة
-    const printWindow = window.open('', '_blank', 'width=800,height=600')
-    
-    const invoiceHTML = `
-      <!DOCTYPE html>
-      <html lang="ar" dir="rtl">
-      <head>
-        <meta charset="UTF-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>فاتورة ${invoice.invoice_number}</title>
-        <style>
-          body { font-family: 'Cairo', Arial, sans-serif; margin: 20px; background: white; color: black; }
-          .invoice-header { background: linear-gradient(135deg, #14b8a6 0%, #10b981 100%); color: white; padding: 20px; text-align: center; border-radius: 8px; margin-bottom: 20px; }
-          .invoice-content { padding: 20px; }
-          .section { margin-bottom: 20px; padding-bottom: 15px; border-bottom: 1px solid #e5e7eb; }
-          .item { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid #f3f4f6; }
-          .total { font-size: 18px; font-weight: bold; text-align: right; margin-top: 20px; padding-top: 15px; border-top: 2px solid #333; }
-          .footer { text-align: center; font-size: 12px; color: #666; margin-top: 30px; border-top: 1px solid #ddd; padding-top: 15px; }
-          @media print {
-            body { margin: 0; }
-            .no-print { display: none; }
-          }
-        </style>
-      </head>
-      <body>
-        <div class="invoice-header">
-          <h2>فاتورة مبيعات</h2>
-          <p>رقم الفاتورة: ${invoice.invoice_number}</p>
-          <p>${new Date(invoice.created_at).toLocaleDateString('ar-LY')}</p>
-        </div>
-        
-        <div class="invoice-content">
-          <div class="section">
-            <h3>بيانات العميل:</h3>
-            <p><strong>الاسم:</strong> ${invoice.customer_name}</p>
-            <p><strong>الهاتف:</strong> ${invoice.customer_phone}</p>
-            ${invoice.customer_address ? `<p><strong>العنوان:</strong> ${invoice.customer_address}</p>` : ''}
-            ${invoice.notes ? `<p><strong>ملاحظات:</strong> ${invoice.notes}</p>` : ''}
+  const reprintInvoice = async (invoice) => {
+    try {
+      // جلب إعدادات الفاتورة لعرض اسم المتجر وضبط المقاسات
+      let invSettings = {}
+      try {
+        const { data } = await api.get('/invoice-settings')
+        invSettings = data?.settings || {}
+      } catch (_) { invSettings = {} }
+
+      const paperMM = Number(invSettings?.paper_width) || 58
+      const fs = String(invSettings?.font_size || 'normal').toLowerCase()
+      const fontSize = fs === 'large' ? '12px' : fs === 'small' ? '10px' : '11px'
+      const titleSize = fs === 'large' ? '15px' : fs === 'small' ? '13px' : '14px'
+
+      const headerText = invSettings?.header_logo_text || 'فاتورة مبيعات'
+      const showStoreInfo = !!Number(invSettings?.show_store_info ?? 1)
+      const showFooter = !!Number(invSettings?.show_footer ?? 1)
+      const storeName = invSettings?.store_name || ''
+      const storeNameEn = invSettings?.store_name_english || ''
+      const storeAddr = invSettings?.store_address || ''
+      const storePhone = invSettings?.store_phone || ''
+      const storeEmail = invSettings?.store_email || ''
+      const storeWeb = invSettings?.store_website || ''
+      const footerMsg = invSettings?.footer_message || 'شكراً لتسوقكم معنا'
+
+      const fullNumber = String(invoice.invoice_number || '')
+      const dailyNo = fullNumber.includes('-') ? String(parseInt(fullNumber.split('-')[1], 10)) : fullNumber
+
+      // إنشاء نافذة جديدة لطباعة الفاتورة
+      const printWindow = window.open('', '_blank', 'width=800,height=600')
+      const invoiceHTML = `
+        <!DOCTYPE html>
+        <html lang="ar" dir="rtl">
+        <head>
+          <meta charset="UTF-8">
+          <meta name="viewport" content="width=device-width, initial-scale=1.0">
+          <title>فاتورة ${dailyNo}</title>
+          <style>
+            * { margin: 0; padding: 0; box-sizing: border-box; }
+            body { 
+              font-family: 'Noto Naskh Arabic', 'Droid Arabic Naskh', Tahoma, Arial, Helvetica, sans-serif; 
+              background: #fff; color: #000; direction: rtl; line-height: 1.3; font-size: ${fontSize};
+            }
+            @page { size: ${paperMM}mm auto; margin: 0; }
+            .receipt { width: ${paperMM}mm; margin: 0 auto; padding: 1mm 1.5mm; }
+            .store-name-ar { font-size: ${titleSize}; font-weight: bold; text-align: center; margin: 0.1mm 0 1px 0; }
+            .subtitle { font-size: calc(${fontSize} - 1px); text-align: center; margin-bottom: 0; }
+            .title { font-size: ${titleSize}; font-weight: bold; text-align: center; margin-bottom: 1px; }
+            .section-title { font-size: ${fontSize}; font-weight: bold; margin: 2px 0 1px 0; text-align: right; }
+            .separator { border-top: 1px dashed #999; margin: 1px 0; }
+            .info-row { display: flex; justify-content: space-between; margin: 1px 0; gap: 4px; }
+            .info-label { font-weight: bold; color: #000; flex-shrink: 0; }
+            .info-value { text-align: left; color: #000; word-break: break-word; }
+            .item-row { display: flex; justify-content: space-between; margin: 1px 0; padding: 1px 0; border-bottom: 1px dashed #ddd; gap: 4px; }
+            .item-name { text-align: right; word-break: break-word; flex: 1; }
+            .item-price { text-align: left; font-weight: bold; direction: ltr; flex-shrink: 0; min-width: 60px; }
+            .total-row { display: flex; justify-content: space-between; margin-top: 2px; padding-top: 2px; border-top: 2px solid #000; font-weight: bold; }
+            .footer { text-align: center; font-size: calc(${fontSize} - 2px); color: #555; margin-top: 2px; line-height: 1.2; }
+            @media print { body { margin: 0; padding: 0; } .no-print { display: none !important; } }
+          </style>
+        </head>
+        <body>
+          <div class="receipt">
+            ${showStoreInfo && storeName ? `<div class=\"store-name-ar\">${storeName}</div>` : ''}
+            ${showStoreInfo && storeNameEn ? `<div class=\"subtitle\">${storeNameEn}</div>` : ''}
+            <div class="title">${headerText}</div>
+            <div class="subtitle">رقم: ${dailyNo}</div>
+            <div class="subtitle">${new Date(invoice.created_at).toLocaleString('ar-LY')}</div>
+            <div class="separator"></div>
+            <div class="section-title">بيانات العميل</div>
+            <div class="info-row"><span class="info-label">الاسم:</span><span class="info-value">${invoice.customer_name}</span></div>
+            <div class="info-row"><span class="info-label">الهاتف:</span><span class="info-value">${invoice.customer_phone}</span></div>
+            ${invoice.customer_address ? `<div class=\"info-row\"><span class=\"info-label\">العنوان:</span><span class=\"info-value\">${invoice.customer_address}</span></div>` : ''}
+            ${invoice.notes ? `<div class=\"info-row\"><span class=\"info-label\">ملاحظات:</span><span class=\"info-value\">${invoice.notes}</span></div>` : ''}
+            <div class="separator"></div>
+            <div class="section-title">تفاصيل الطلب</div>
+            ${(() => { const items = Array.isArray(invoice.items) ? invoice.items : (()=>{ try { return JSON.parse(invoice.items) } catch { return [] } })(); return items.map(item => `
+              <div class=\"item-row\">
+                <span class=\"item-name\">${item.title}</span>
+                <span class=\"item-price\">${new Intl.NumberFormat('ar-LY', { style: 'currency', currency: 'LYD' }).format(item.price)}</span>
+              </div>`).join('') })()}
+            <div class="total-row">
+              <span>الإجمالي النهائي:</span>
+              <span>${new Intl.NumberFormat('ar-LY', { style: 'currency', currency: 'LYD' }).format((invoice.total || 0) - (invoice.discount || 0))}</span>
+            </div>
+            ${showStoreInfo && (storeAddr || storePhone || storeEmail || storeWeb) ? `
+              <div class=\"separator\"></div>
+              <div class=\"section-title\">معلومات المتجر</div>
+              ${storeAddr ? `<div class=\"info-row\"><span class=\"info-label\">العنوان:</span><span class=\"info-value\">${storeAddr}</span></div>` : ''}
+              ${storePhone ? `<div class=\"info-row\"><span class=\"info-label\">الهاتف:</span><span class=\"info-value\">${storePhone}</span></div>` : ''}
+              ${storeEmail ? `<div class=\"info-row\"><span class=\"info-label\">البريد:</span><span class=\"info-value\">${storeEmail}</span></div>` : ''}
+              ${storeWeb ? `<div class=\"info-row\"><span class=\"info-label\">الموقع:</span><span class=\"info-value\">${storeWeb}</span></div>` : ''}
+            ` : ''}
+            ${showFooter && footerMsg ? `<div class=\"footer\"><div>${footerMsg}</div></div>` : ''}
           </div>
-          
-          <div class="section">
-            <h3>تفاصيل الطلب:</h3>
-            ${JSON.parse(invoice.items).map(item => `
-              <div class="item">
-                <span>${item.title}</span>
-                <span>${new Intl.NumberFormat('ar-LY', { style: 'currency', currency: 'LYD' }).format(item.price)}</span>
-              </div>
-            `).join('')}
-          </div>
-          
-          <div class="total">
-            الإجمالي: ${new Intl.NumberFormat('ar-LY', { style: 'currency', currency: 'LYD' }).format(invoice.total)}
-          </div>
-          
-          <div class="footer">
-            <p>شكراً لتسوقكم معنا</p>
-            <p>للاستفسارات: +218xxxxxxxxx</p>
-            <p>تم إنشاء هذه الفاتورة بواسطة متجر النفار</p>
-          </div>
-        </div>
-        
-        <div class="no-print" style="text-align: center; margin-top: 30px;">
-          <button onclick="window.print()" style="background: #14b8a6; color: white; padding: 12px 24px; border: none; border-radius: 6px; font-size: 16px; cursor: pointer;">طباعة أو حفظ PDF</button>
-          <button onclick="window.close()" style="background: #6b7280; color: white; padding: 12px 24px; border: none; border-radius: 6px; font-size: 16px; cursor: pointer; margin-left: 10px;">إغلاق</button>
-        </div>
-      </body>
-      </html>
-    `
-    
-    printWindow.document.write(invoiceHTML)
-    printWindow.document.close()
-    
-    // فتح نافذة الطباعة تلقائياً بعد تحميل الصفحة
-    printWindow.onload = () => {
-      setTimeout(() => {
-        printWindow.print()
-      }, 500)
+        </body>
+        </html>
+      `
+
+      if (printWindow) {
+        printWindow.document.write(invoiceHTML)
+        printWindow.document.close()
+        printWindow.onload = () => {
+          setTimeout(() => { printWindow.print() }, 300)
+        }
+      }
+
+      // تحديث حالة الطباعة في السيرفر
+      try { await api.post(`/invoices/${encodeURIComponent(fullNumber)}/mark-printed`) } catch (_) {}
+    } catch (err) {
+      console.error('فشل في إعادة الطباعة:', err)
+      alert('فشل في إعادة الطباعة')
     }
   }
 

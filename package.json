@@ -6,8 +6,9 @@
   "scripts": {
     "dev": "nodemon backend/server.js",
     "build": "cd frontend && npm install && npm run build",
-    "start": "node start.js",
-    "start:render": "node start.js",
+    "postbuild": "rm -rf dist && cp -r frontend/dist dist",
+    "start": "node backend/server.js",
+    "start:render": "node backend/server.js",
     "postinstall": "echo postinstall"
   },
   "dependencies": {
