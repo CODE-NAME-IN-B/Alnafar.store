@@ -105,7 +105,7 @@ export default function Invoice({ cart, total, onClose, onSuccess }) {
           <style>
             * { margin: 0; padding: 0; box-sizing: border-box; }
             body { 
-              font-family: 'Noto Naskh Arabic', 'Droid Arabic Naskh', Tahoma, Arial, Helvetica, sans-serif; 
+              font-family: Tahoma, Arial, Helvetica, sans-serif; 
               background: #fff; 
               color: #000;
               font-size: ${fontSize};

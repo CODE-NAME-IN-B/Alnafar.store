@@ -150,7 +150,7 @@ export default function InvoicesTab() {
           <style>
             * { margin: 0; padding: 0; box-sizing: border-box; }
             body { 
-              font-family: 'Noto Naskh Arabic', 'Droid Arabic Naskh', Tahoma, Arial, Helvetica, sans-serif; 
+              font-family: Tahoma, Arial, Helvetica, sans-serif; 
               background: #fff; color: #000; direction: rtl; line-height: 1.3; font-size: ${fontSize};
             }
             @page { size: ${paperMM}mm auto; margin: 0; }
