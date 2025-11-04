@@ -1492,6 +1492,8 @@ app.post('/api/invoices', async (req, res) => {
       status = 'completed'
     } = req.body;
 
+    const createdAt = date || new Date().toISOString();
+
     if (!customerInfo || !items || !total) {
       return res.status(400).json({ message: 'بيانات الفاتورة غير مكتملة' });
     }
@@ -1522,7 +1524,7 @@ app.post('/api/invoices', async (req, res) => {
       discount,
       finalTotal || (total - discount),
       status,
-      date
+      createdAt
     ]);
 
     // تحديث إحصائيات اليوم

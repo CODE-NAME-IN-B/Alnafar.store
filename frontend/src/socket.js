@@ -1,13 +1,17 @@
 import { io } from 'socket.io-client';
 
 // إعداد الاتصال بـ Socket.IO
-const socket = io(import.meta.env.PROD ? window.location.origin : 'http://localhost:5000', {
-  autoConnect: true,
-  reconnection: true,
-  reconnectionDelay: 1000,
-  reconnectionAttempts: 5,
-  timeout: 20000,
-});
+const socket = io(
+  import.meta.env.PROD ? window.location.origin : 'http://localhost:5000',
+  {
+    transports: ['websocket'],
+    autoConnect: true,
+    reconnection: true,
+    reconnectionDelay: 1000,
+    reconnectionAttempts: 5,
+    timeout: 20000,
+  }
+);
 
 // أحداث الاتصال
 socket.on('connect', () => {

@@ -44,19 +44,26 @@ self.addEventListener('activate', (event) => {
 // Fetch event - serve from cache, fallback to network
 self.addEventListener('fetch', (event) => {
   // Skip cross-origin requests and development files
-  if (!event.request.url.startsWith(self.location.origin) || 
-      event.request.url.includes('/src/') ||
-      event.request.url.includes('/@vite/') ||
-      event.request.url.includes('/@react-refresh')) {
+  if (
+    !event.request.url.startsWith(self.location.origin) ||
+    event.request.url.includes('/src/') ||
+    event.request.url.includes('/@vite/') ||
+    event.request.url.includes('/@react-refresh')
+  ) {
+    return;
+  }
+
+  // Always fetch uploads directly from network to avoid stale cache
+  if (event.request.url.includes('/uploads/')) {
+    event.respondWith(fetch(event.request));
     return;
   }
 
   event.respondWith(
-    fetch(event.request)
-      .catch(() => {
-        // Fallback to cache only if network fails
-        return caches.match(event.request);
-      })
+    fetch(event.request).catch(() => {
+      // Fallback to cache only if network fails
+      return caches.match(event.request);
+    })
   );
 });
 
