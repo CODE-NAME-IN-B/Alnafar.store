@@ -120,28 +120,30 @@ class SunmiPrinter {
 
     let content = [];
     
-    // رأس الفاتورة مع تنسيق محسن للطباعة الحرارية
-    content.push(''); // سطر فارغ في البداية
-    content.push(''); // سطر فارغ إضافي
-    content.push(''); // سطر فارغ ثالث لضمان ظهور النص
+    // رأس الفاتورة مع تنسيق بسيط وواضح
+    content.push('');
+    content.push('');
+    content.push('');
+    content.push('');
+    content.push('');
     
-    // اسم المتجر العربي
+    // اسم المتجر العربي - بدون توسيط لتجنب مشاكل الطباعة
     const storeName = this.cleanText(settings.store_name);
-    content.push(this.centerText(storeName));
-    content.push(''); // سطر فارغ
+    content.push(storeName);
+    content.push('');
     
     // اسم المتجر الإنجليزي
     if (settings.store_name_english) {
       const englishName = this.cleanText(settings.store_name_english);
-      content.push(this.centerText(englishName));
-      content.push(''); // سطر فارغ
+      content.push(englishName);
+      content.push('');
     }
     
     // عنوان الفاتورة
     const headerText = this.cleanText(settings.header_logo_text);
-    content.push(this.centerText(headerText));
-    content.push(''); // سطر فارغ
-    content.push(''); // سطر فارغ إضافي
+    content.push(headerText);
+    content.push('');
+    content.push('');
     
     content.push(this.createSeparatorLine('='));
     content.push('');
@@ -248,13 +250,16 @@ class SunmiPrinter {
         type: 'print_text',
         data: {
           text: content, // المحتوى منظف مسبقاً
-          fontSize: 'normal',
+          fontSize: 'small', // استخدام خط صغير لضمان الطباعة
           alignment: 'left',
           charset: 'UTF-8',
           raw: false,
           // إعدادات إضافية لضمان الطباعة الآمنة
           escapeSpecialChars: true,
-          removeControlChars: true
+          removeControlChars: true,
+          // إعدادات إضافية للطابعات الحرارية
+          paperWidth: 58,
+          lineSpacing: 1
         }
       };
 

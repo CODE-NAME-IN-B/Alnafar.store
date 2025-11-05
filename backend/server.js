@@ -2436,7 +2436,7 @@ app.post('/api/invoice-settings', authMiddleware, (req, res) => {
         WHERE id = ?`, [
         store_name || 'الشارجه للإلكترونيات',
         store_name_english || 'Alnafar Store',
-        store_address || 'شارع الفضائيه، بالقرب من مطحنة الفضيل',
+        store_address || 'شارع القضائيه مقابل مطحنة الفضيل',
         store_phone || '0920595447',
         store_email || 'info@alnafar.store',
         store_website || '',
@@ -2457,7 +2457,7 @@ app.post('/api/invoice-settings', authMiddleware, (req, res) => {
       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`, [
         store_name || 'الشارجه للإلكترونيات',
         store_name_english || 'Alnafar Store',
-        store_address || 'شارع الفضائيه، بالقرب من مطحنة الفضيل',
+        store_address || 'شارع القضائيه مقابل مطحنة الفضيل',
         store_phone || '0920595447',
         store_email || 'info@alnafar.store',
         store_website || '',
