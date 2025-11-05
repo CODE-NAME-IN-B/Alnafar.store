@@ -119,15 +119,16 @@ class SunmiPrinter {
 
     let content = [];
     
-    // سطر تمهيدي رفيع لتجنب قص أعلى الصفحة
-    content.push(this.createSeparatorLine('-'));
+    // رأس الفاتورة - اطبع مباشرة كأول أسطر
     
-    // رأس الفاتورة - اطبع مباشرة بدون أسطر فارغة أولى
-    
-    // طباعة اسم المتجر مباشرة في بداية محتوى الفاتورة
-    const storeName = this.cleanText(settings.store_name || 'الشارده للإلكترونيات');
-    const englishName = this.cleanText(settings.store_name_english || 'Alnafar Store');
-    const headerText = this.cleanText(settings.header_logo_text || 'فاتورة مبيعات');
+    // طباعة اسم المتجر مباشرة في بداية محتوى الفاتورة (مع تحكّم قوي بالفارغ)
+    const storeNameClean = this.cleanText(settings.store_name || '');
+    const englishNameClean = this.cleanText(settings.store_name_english || '');
+    const headerTextClean = this.cleanText(settings.header_logo_text || '');
+
+    const storeName = storeNameClean && storeNameClean.length ? storeNameClean : 'الشارده للإلكترونيات';
+    const englishName = englishNameClean && englishNameClean.length ? englishNameClean : 'Alnafar Store';
+    const headerText = headerTextClean && headerTextClean.length ? headerTextClean : 'فاتورة مبيعات';
     
     // إضافة النصوص بشكل مباشر وبسيط
     content.push(storeName);
@@ -184,11 +185,11 @@ class SunmiPrinter {
     // معلومات المتجر (اختيارية)
     if (settings.show_store_info) {
       content.push('معلومات المتجر:');
-      if (settings.store_name) {
-        content.push(this.cleanText(settings.store_name));
+      if (settings.store_name || true) {
+        content.push(storeName);
       }
-      if (settings.store_name_english) {
-        content.push(this.cleanText(settings.store_name_english));
+      if (settings.store_name_english || true) {
+        content.push(englishName);
       }
       if (settings.store_address) {
         content.push(`العنوان: ${this.cleanText(settings.store_address)}`);
@@ -256,7 +257,7 @@ class SunmiPrinter {
           fontSize: 'normal', // استخدام خط عادي
           alignment: 'left',
           charset: 'UTF-8',
-          raw: true, // استخدام الوضع الخام لضمان طباعة كل شيء
+          raw: false, // طباعة نصية مباشرة (الوضع الخام قد يتجاهل بعض الأسطر)
           // إعدادات مبسطة للطباعة الموثوقة
           paperWidth: 58,
           lineSpacing: 2,
