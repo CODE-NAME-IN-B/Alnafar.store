@@ -47,19 +47,12 @@ class SunmiPrinter {
   // دالة لإنشاء فاتورة آمنة للطباعة الحرارية (بدون أي رموز خاصة)
   generateSafePrintContent(invoiceData, storeSettings = null) {
     const content = this.generateInvoiceContent(invoiceData, storeSettings);
-    
-    // تنظيف شامل للمحتوى مع الاحتفاظ بالتنسيق
-    return content
+    // ط normalizing LF to CRLF لزيادة توافق الطابعة
+    const normalized = content.replace(/\r\n/g, '\n');
+    const cleanedLines = normalized
       .split('\n')
-      .map(line => {
-        // إذا كان السطر فارغاً، احتفظ به كما هو
-        if (line.trim().length === 0) {
-          return '';
-        }
-        // وإلا نظف النص
-        return this.cleanText(line);
-      })
-      .join('\n');
+      .map(line => (line.trim().length === 0 ? '' : this.cleanText(line)));
+    return cleanedLines.join('\r\n');
   }
 
   // دالة لإنشاء خط فاصل
@@ -120,10 +113,7 @@ class SunmiPrinter {
 
     let content = [];
     
-    // رأس الفاتورة - حل جذري لمشكلة عدم الطباعة
-    content.push('');
-    content.push('');
-    content.push('');
+    // رأس الفاتورة - اطبع مباشرة بدون أسطر فارغة أولى
     
     // طباعة اسم المتجر مباشرة في بداية محتوى الفاتورة
     const storeName = this.cleanText(settings.store_name || 'الشارده للإلكترونيات');
@@ -212,7 +202,8 @@ class SunmiPrinter {
     content.push(''); // سطر إضافي
     content.push(''); // سطر إضافي لضمان قطع الورق بشكل صحيح
     
-    return content.join('\n');
+    // استخدم CRLF بدلاً من LF فقط لزيادة توافق الطابعة
+    return content.join('\r\n');
   }
 
   // طباعة الفاتورة على جهاز Sunmi V2
@@ -250,7 +241,7 @@ class SunmiPrinter {
           raw: true, // استخدام الوضع الخام لضمان طباعة كل شيء
           // إعدادات مبسطة للطباعة الموثوقة
           paperWidth: 58,
-          lineSpacing: 1,
+          lineSpacing: 2,
           // إزالة الإعدادات التي قد تسبب مشاكل
           bold: false,
           underline: false
