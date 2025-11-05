@@ -97,8 +97,8 @@ class SunmiPrinter {
       notes
     } = invoiceData;
 
-    // استخدام الإعدادات المخصصة أو الافتراضية
-    const settings = storeSettings || {
+    // استخدام الإعدادات المخصصة مع دمج افتراضيات قوية لكل حقل
+    const defaultSettings = {
       store_name: 'الشارده للإلكترونيات',
       store_name_english: 'Alnafar Store',
       store_address: 'شارع القضائيه مقابل مطحنة الفضيل',
@@ -110,8 +110,17 @@ class SunmiPrinter {
       show_store_info: true,
       show_footer: true
     };
+    const rawSettings = storeSettings || {};
+    const settings = { ...defaultSettings, ...rawSettings };
+    // تأكد من عدم وجود قيم فارغة
+    settings.store_name = settings.store_name && settings.store_name.trim().length ? settings.store_name : defaultSettings.store_name;
+    settings.store_name_english = settings.store_name_english && settings.store_name_english.trim().length ? settings.store_name_english : defaultSettings.store_name_english;
+    settings.header_logo_text = settings.header_logo_text && settings.header_logo_text.trim().length ? settings.header_logo_text : defaultSettings.header_logo_text;
 
     let content = [];
+    
+    // سطر تمهيدي رفيع لتجنب قص أعلى الصفحة
+    content.push(this.createSeparatorLine('-'));
     
     // رأس الفاتورة - اطبع مباشرة بدون أسطر فارغة أولى
     
@@ -124,6 +133,9 @@ class SunmiPrinter {
     content.push(storeName);
     content.push(englishName);
     content.push(headerText);
+    // تكرار احتياطي لظهور الأسماء حتى إن تم قص أول السطور
+    content.push(storeName);
+    content.push(englishName);
     content.push('');
     content.push(this.createSeparatorLine('='));
     content.push('');
@@ -172,6 +184,12 @@ class SunmiPrinter {
     // معلومات المتجر (اختيارية)
     if (settings.show_store_info) {
       content.push('معلومات المتجر:');
+      if (settings.store_name) {
+        content.push(this.cleanText(settings.store_name));
+      }
+      if (settings.store_name_english) {
+        content.push(this.cleanText(settings.store_name_english));
+      }
       if (settings.store_address) {
         content.push(`العنوان: ${this.cleanText(settings.store_address)}`);
       }
