@@ -127,8 +127,10 @@ export default function InvoicesTab() {
       const headerText = invSettings?.header_logo_text || 'فاتورة مبيعات'
       const showStoreInfo = !!Number(invSettings?.show_store_info ?? 1)
       const showFooter = !!Number(invSettings?.show_footer ?? 1)
-      const storeName = invSettings?.store_name || ''
-      const storeNameEn = invSettings?.store_name_english || ''
+      const defaultStoreName = 'الشارده للإلكترونيات'
+      const defaultStoreNameEn = 'Alnafar Store'
+      const storeName = (invSettings?.store_name || '').trim() || defaultStoreName
+      const storeNameEn = (invSettings?.store_name_english || '').trim() || defaultStoreNameEn
       const storeAddr = invSettings?.store_address || ''
       const storePhone = invSettings?.store_phone || ''
       const storeEmail = invSettings?.store_email || ''
@@ -155,6 +157,8 @@ export default function InvoicesTab() {
             }
             @page { size: ${paperMM}mm auto; margin: 0; }
             .receipt { width: ${paperMM}mm; margin: 0 auto; padding: 1mm 1.5mm; }
+            .logo { text-align: center; margin: 1mm 0 0.5mm 0; }
+            .logo img { display: block; margin: 0 auto; max-width: 90%; width: 40mm; height: auto; image-rendering: -webkit-optimize-contrast; }
             .store-name-ar { font-size: ${titleSize}; font-weight: bold; text-align: center; margin: 0.1mm 0 1px 0; }
             .subtitle { font-size: calc(${fontSize} - 1px); text-align: center; margin-bottom: 0; }
             .title { font-size: ${titleSize}; font-weight: bold; text-align: center; margin-bottom: 1px; }
@@ -173,8 +177,9 @@ export default function InvoicesTab() {
         </head>
         <body>
           <div class="receipt">
-            ${showStoreInfo && storeName ? `<div class=\"store-name-ar\">${storeName}</div>` : ''}
-            ${showStoreInfo && storeNameEn ? `<div class=\"subtitle\">${storeNameEn}</div>` : ''}
+            <div class="logo"><img src="/logo.png" alt="Logo" /></div>
+            <div class="store-name-ar">${storeName}</div>
+            <div class="subtitle">${storeNameEn}</div>
             <div class="title">${headerText}</div>
             <div class="subtitle">رقم: ${dailyNo}</div>
             <div class="subtitle">${new Date(invoice.created_at).toLocaleString('ar-LY')}</div>
