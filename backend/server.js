@@ -321,7 +321,7 @@ function initializeDatabase() {
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       store_name TEXT DEFAULT 'الشارده للإلكترونيات',
       store_name_english TEXT DEFAULT 'Alnafar Store',
-      store_address TEXT DEFAULT 'شارع الفضائيه، بالقرب من مطحنة الفضيل',
+      store_address TEXT DEFAULT 'شارع القضائيه مقابل مطحنة الفضيل',
       store_phone TEXT DEFAULT '0920595447',
       store_email TEXT DEFAULT 'info@alnafar.store',
       store_website TEXT DEFAULT '',
@@ -368,7 +368,7 @@ function initializeDatabase() {
     ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`, [
       'الشارجه للإلكترونيات',
       'Alnafar Store', 
-      'شارع القضائيه، مقابل مطحنة الفضيل',
+      'شارع القضائيه مقابل مطحنة الفضيل',
       '0920595447',
       'info@alnafar.store',
       '',
@@ -494,29 +494,111 @@ function broadcastUpdate(event, data) {
   io.emit(event, data);
 }
 
-// دالة للحصول على رقم الفاتورة اليومي التسلسلي
-function getDailyInvoiceNumber() {
+// دالة للتحقق من حالة قاعدة البيانات
+function checkDatabaseHealth() {
+  try {
+    const result = get('SELECT 1 as test');
+    return result && result.test === 1;
+  } catch (error) {
+    console.error('خطأ في التحقق من حالة قاعدة البيانات:', error);
+    return false;
+  }
+}
+
+// دالة للحصول على رقم الفاتورة اليومي التسلسلي (محسنة مع آلية إعادة المحاولة)
+function getDailyInvoiceNumber(retryCount = 0) {
+  const maxRetries = 3;
   const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
   
-  // البحث عن سجل اليوم
-  let dailyRecord = get('SELECT * FROM daily_invoices WHERE date = ?', [today]);
-  
-  if (!dailyRecord) {
-    // إنشاء سجل جديد لليوم
-    run(`INSERT INTO daily_invoices (date, last_invoice_number, total_invoices) VALUES (?, ?, ?)`, 
-      [today, 1, 0]);
-    return { dailyNumber: 1, fullNumber: `${today.replace(/-/g, '')}-001` };
+  try {
+    // البحث عن سجل اليوم مع آلية الأمان
+    let dailyRecord = get('SELECT * FROM daily_invoices WHERE date = ?', [today]);
+    
+    if (!dailyRecord) {
+      try {
+        // إنشاء سجل جديد لليوم مع التحقق من عدم وجود تضارب
+        run(`INSERT INTO daily_invoices (date, last_invoice_number, total_invoices) VALUES (?, ?, ?)`, 
+          [today, 1, 0]);
+        
+        // التحقق من نجاح الإدراج
+        dailyRecord = get('SELECT * FROM daily_invoices WHERE date = ?', [today]);
+        if (!dailyRecord) {
+          throw new Error('فشل في إنشاء سجل الفاتورة اليومي');
+        }
+        
+        return { dailyNumber: 1, fullNumber: `${today.replace(/-/g, '')}-001` };
+      } catch (insertError) {
+        // في حالة فشل الإدراج، قد يكون السجل موجود بالفعل (تضارب)
+        dailyRecord = get('SELECT * FROM daily_invoices WHERE date = ?', [today]);
+        if (!dailyRecord) {
+          throw insertError;
+        }
+      }
+    }
+    
+    // زيادة رقم الفاتورة مع آلية الأمان
+    const nextNumber = (dailyRecord.last_invoice_number || 0) + 1;
+    
+    // استخدام transaction للتأكد من سلامة العملية
+    try {
+      run('BEGIN TRANSACTION');
+      
+      // التحقق من عدم تغيير الرقم من قبل عملية أخرى
+      const currentRecord = get('SELECT last_invoice_number FROM daily_invoices WHERE date = ?', [today]);
+      if (currentRecord.last_invoice_number !== dailyRecord.last_invoice_number) {
+        // تم تحديث الرقم من قبل عملية أخرى، استخدم الرقم الجديد
+        const updatedNextNumber = (currentRecord.last_invoice_number || 0) + 1;
+        run('UPDATE daily_invoices SET last_invoice_number = ? WHERE date = ?', [updatedNextNumber, today]);
+        run('COMMIT');
+        
+        const formattedNumber = String(updatedNextNumber).padStart(3, '0');
+        const fullNumber = `${today.replace(/-/g, '')}-${formattedNumber}`;
+        return { dailyNumber: updatedNextNumber, fullNumber };
+      }
+      
+      // تحديث الرقم
+      run('UPDATE daily_invoices SET last_invoice_number = ? WHERE date = ?', [nextNumber, today]);
+      run('COMMIT');
+      
+      // تنسيق الرقم: YYYYMMDD-XXX
+      const formattedNumber = String(nextNumber).padStart(3, '0');
+      const fullNumber = `${today.replace(/-/g, '')}-${formattedNumber}`;
+      
+      // التحقق النهائي من صحة الرقم
+      const verifyRecord = get('SELECT last_invoice_number FROM daily_invoices WHERE date = ?', [today]);
+      if (verifyRecord.last_invoice_number !== nextNumber) {
+        throw new Error('تضارب في ترقيم الفواتير');
+      }
+      
+      return { dailyNumber: nextNumber, fullNumber };
+      
+    } catch (transactionError) {
+      run('ROLLBACK');
+      throw transactionError;
+    }
+    
+  } catch (error) {
+    console.error(`خطأ في ترقيم الفاتورة (المحاولة ${retryCount + 1}):`, error.message);
+    
+    // إعادة المحاولة في حالة الفشل
+    if (retryCount < maxRetries) {
+      console.log(`إعادة المحاولة ${retryCount + 1}/${maxRetries}...`);
+      // انتظار قصير قبل إعادة المحاولة
+      const delay = Math.pow(2, retryCount) * 100; // exponential backoff
+      setTimeout(() => {}, delay);
+      return getDailyInvoiceNumber(retryCount + 1);
+    }
+    
+    // في حالة فشل جميع المحاولات، استخدم رقم احتياطي
+    console.error('فشل في جميع محاولات ترقيم الفاتورة، استخدام رقم احتياطي');
+    const timestamp = Date.now();
+    const fallbackNumber = `${today.replace(/-/g, '')}-${String(timestamp).slice(-3)}`;
+    return { 
+      dailyNumber: timestamp, 
+      fullNumber: fallbackNumber,
+      isFallback: true 
+    };
   }
-  
-  // زيادة رقم الفاتورة
-  const nextNumber = (dailyRecord.last_invoice_number || 0) + 1;
-  run('UPDATE daily_invoices SET last_invoice_number = ? WHERE date = ?', [nextNumber, today]);
-  
-  // تنسيق الرقم: YYYYMMDD-XXX
-  const formattedNumber = String(nextNumber).padStart(3, '0');
-  const fullNumber = `${today.replace(/-/g, '')}-${formattedNumber}`;
-  
-  return { dailyNumber: nextNumber, fullNumber };
 }
 
 // دالة لتحديث إحصائيات اليوم
@@ -587,8 +669,95 @@ app.post('/api/uploads', (req, res) => {
   }
 })
 
-// health check
-app.get('/api/health', (req, res) => res.json({ ok: true }))
+// health check محسن
+app.get('/api/health', (req, res) => {
+  const dbHealth = checkDatabaseHealth();
+  const status = {
+    ok: dbHealth,
+    database: dbHealth ? 'connected' : 'disconnected',
+    timestamp: new Date().toISOString(),
+    uptime: process.uptime()
+  };
+  
+  if (dbHealth) {
+    res.json(status);
+  } else {
+    res.status(503).json(status);
+  }
+})
+
+// التحقق من حالة ترقيم الفواتير
+app.get('/api/invoice-numbering-status', authMiddleware, (req, res) => {
+  try {
+    const today = new Date().toISOString().split('T')[0];
+    const dailyRecord = get('SELECT * FROM daily_invoices WHERE date = ?', [today]);
+    const lastInvoice = get('SELECT invoice_number, created_at FROM invoices ORDER BY created_at DESC LIMIT 1');
+    
+    res.json({
+      success: true,
+      today,
+      dailyRecord: dailyRecord || null,
+      lastInvoice: lastInvoice || null,
+      nextNumber: dailyRecord ? (dailyRecord.last_invoice_number || 0) + 1 : 1,
+      databaseHealth: checkDatabaseHealth()
+    });
+  } catch (error) {
+    console.error('خطأ في فحص حالة ترقيم الفواتير:', error);
+    res.status(500).json({
+      success: false,
+      message: 'خطأ في فحص حالة ترقيم الفواتير',
+      error: error.message
+    });
+  }
+});
+
+// إعادة تعيين ترقيم الفواتير لليوم (للطوارئ)
+app.post('/api/reset-daily-numbering', authMiddleware, (req, res) => {
+  try {
+    const today = new Date().toISOString().split('T')[0];
+    
+    // إعادة احتساب آخر رقم فاتورة لليوم
+    const lastTodayInvoice = get(`
+      SELECT invoice_number FROM invoices 
+      WHERE DATE(created_at) = ? 
+      ORDER BY created_at DESC 
+      LIMIT 1
+    `, [today]);
+    
+    let lastNumber = 0;
+    if (lastTodayInvoice && lastTodayInvoice.invoice_number) {
+      const numberPart = lastTodayInvoice.invoice_number.split('-')[1];
+      lastNumber = parseInt(numberPart) || 0;
+    }
+    
+    // تحديث أو إنشاء سجل اليوم
+    const existingRecord = get('SELECT * FROM daily_invoices WHERE date = ?', [today]);
+    if (existingRecord) {
+      run('UPDATE daily_invoices SET last_invoice_number = ? WHERE date = ?', [lastNumber, today]);
+    } else {
+      run('INSERT INTO daily_invoices (date, last_invoice_number, total_invoices) VALUES (?, ?, ?)', [today, lastNumber, 0]);
+    }
+    
+    // إعادة احتساب الإحصائيات
+    recomputeDailyStats(today);
+    
+    res.json({
+      success: true,
+      message: 'تم إعادة تعيين ترقيم الفواتير بنجاح',
+      today,
+      lastNumber,
+      nextNumber: lastNumber + 1
+    });
+    
+  } catch (error) {
+    console.error('خطأ في إعادة تعيين ترقيم الفواتير:', error);
+    res.status(500).json({
+      success: false,
+      message: 'خطأ في إعادة تعيين ترقيم الفواتير',
+      error: error.message
+    });
+  }
+});
 
 // Arabic genre detection endpoints
 app.post('/api/analyze-game-genre', async (req, res) => {
@@ -1498,9 +1667,6 @@ app.post('/api/invoices', async (req, res) => {
       return res.status(400).json({ message: 'بيانات الفاتورة غير مكتملة' });
     }
 
-    // الحصول على رقم الفاتورة اليومي التسلسلي
-    const { dailyNumber, fullNumber } = getDailyInvoiceNumber();
-
     if (!customerInfo.name || !customerInfo.phone) {
       return res.status(400).json({ message: 'اسم العميل ورقم الهاتف مطلوبان' });
     }
@@ -1509,29 +1675,114 @@ app.post('/api/invoices', async (req, res) => {
       return res.status(400).json({ message: 'يجب أن تحتوي الفاتورة على عنصر واحد على الأقل' });
     }
 
-    // حفظ الفاتورة في قاعدة البيانات
-    run(`INSERT INTO invoices (
-      invoice_number, customer_name, customer_phone, customer_address, 
-      customer_notes, items, total, discount, final_total, status, created_at
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`, [
-      fullNumber,
-      customerInfo.name,
-      customerInfo.phone,
-      customerInfo.address || '',
-      customerInfo.notes || '',
-      JSON.stringify(items),
-      total,
-      discount,
-      finalTotal || (total - discount),
-      status,
-      createdAt
-    ]);
+    // الحصول على رقم الفاتورة اليومي التسلسلي مع معالجة الأخطاء
+    let invoiceNumberResult;
+    try {
+      invoiceNumberResult = getDailyInvoiceNumber();
+      if (!invoiceNumberResult || !invoiceNumberResult.fullNumber) {
+        throw new Error('فشل في الحصول على رقم الفاتورة');
+      }
+    } catch (numberError) {
+      console.error('خطأ في ترقيم الفاتورة:', numberError);
+      return res.status(500).json({ 
+        success: false, 
+        message: 'خطأ في ترقيم الفاتورة. يرجى المحاولة مرة أخرى.',
+        error: 'INVOICE_NUMBERING_ERROR'
+      });
+    }
+
+    let { dailyNumber, fullNumber, isFallback } = invoiceNumberResult;
+    
+    // تحذير في حالة استخدام رقم احتياطي
+    if (isFallback) {
+      console.warn('⚠️ تم استخدام رقم فاتورة احتياطي:', fullNumber);
+    }
+
+    // حفظ الفاتورة في قاعدة البيانات مع معالجة الأخطاء
+    try {
+      run(`INSERT INTO invoices (
+        invoice_number, customer_name, customer_phone, customer_address, 
+        customer_notes, items, total, discount, final_total, status, created_at
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`, [
+        fullNumber,
+        customerInfo.name,
+        customerInfo.phone,
+        customerInfo.address || '',
+        customerInfo.notes || '',
+        JSON.stringify(items),
+        total,
+        discount,
+        finalTotal || (total - discount),
+        status,
+        createdAt
+      ]);
+    } catch (dbError) {
+      console.error('خطأ في حفظ الفاتورة في قاعدة البيانات:', dbError);
+      
+      // في حالة تضارب رقم الفاتورة، حاول مرة أخرى برقم جديد
+      if (dbError.message && dbError.message.includes('UNIQUE constraint failed')) {
+        console.log('تضارب في رقم الفاتورة، محاولة الحصول على رقم جديد...');
+        try {
+          const newNumberResult = getDailyInvoiceNumber();
+          const newFullNumber = newNumberResult.fullNumber;
+          
+          run(`INSERT INTO invoices (
+            invoice_number, customer_name, customer_phone, customer_address, 
+            customer_notes, items, total, discount, final_total, status, created_at
+          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`, [
+            newFullNumber,
+            customerInfo.name,
+            customerInfo.phone,
+            customerInfo.address || '',
+            customerInfo.notes || '',
+            JSON.stringify(items),
+            total,
+            discount,
+            finalTotal || (total - discount),
+            status,
+            createdAt
+          ]);
+          
+          // تحديث رقم الفاتورة المستخدم
+          fullNumber = newFullNumber;
+          console.log('✅ تم حفظ الفاتورة برقم جديد:', newFullNumber);
+          
+        } catch (retryError) {
+          console.error('فشل في إعادة المحاولة:', retryError);
+          return res.status(500).json({ 
+            success: false, 
+            message: 'خطأ في حفظ الفاتورة. يرجى المحاولة مرة أخرى.',
+            error: 'DATABASE_ERROR'
+          });
+        }
+      } else {
+        return res.status(500).json({ 
+          success: false, 
+          message: 'خطأ في حفظ الفاتورة في قاعدة البيانات.',
+          error: 'DATABASE_ERROR'
+        });
+      }
+    }
 
     // تحديث إحصائيات اليوم
-    updateDailyStats({ total, discount });
+    try {
+      updateDailyStats({ total, discount });
+    } catch (statsError) {
+      console.warn('تحذير: فشل في تحديث الإحصائيات:', statsError.message);
+      // لا نوقف العملية بسبب خطأ في الإحصائيات
+    }
 
     // الحصول على الفاتورة المحفوظة
     const savedInvoice = get('SELECT * FROM invoices WHERE invoice_number = ?', [fullNumber]);
+    
+    if (!savedInvoice) {
+      console.error('خطأ: لم يتم العثور على الفاتورة المحفوظة');
+      return res.status(500).json({ 
+        success: false, 
+        message: 'خطأ في التحقق من حفظ الفاتورة.',
+        error: 'VERIFICATION_ERROR'
+      });
+    }
 
     // إرسال تحديث فوري للعملاء المتصلين
     broadcastUpdate('invoice_created', {
@@ -2127,7 +2378,7 @@ app.get('/api/invoice-settings', (req, res) => {
       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`, [
         'الشارده للإلكترونيات',
         'Alnafar Store', 
-        'شارع الفضائيه، بالقرب من مطحنة الفضيل',
+        'شارع القضائيه مقابل مطحنة الفضيل',
         '0920595447',
         'info@alnafar.store',
         '',

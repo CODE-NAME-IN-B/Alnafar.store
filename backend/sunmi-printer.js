@@ -48,11 +48,17 @@ class SunmiPrinter {
   generateSafePrintContent(invoiceData, storeSettings = null) {
     const content = this.generateInvoiceContent(invoiceData, storeSettings);
     
-    // تنظيف شامل للمحتوى من أي رموز قد تسبب مشاكل
+    // تنظيف شامل للمحتوى مع الاحتفاظ بالتنسيق
     return content
       .split('\n')
-      .map(line => this.cleanText(line))
-      .filter(line => line.trim().length > 0 || line === '') // الاحتفاظ بالأسطر الفارغة للتنسيق
+      .map(line => {
+        // إذا كان السطر فارغاً، احتفظ به كما هو
+        if (line.trim().length === 0) {
+          return '';
+        }
+        // وإلا نظف النص
+        return this.cleanText(line);
+      })
       .join('\n');
   }
 
@@ -69,10 +75,20 @@ class SunmiPrinter {
     return leftText + ' '.repeat(Math.max(1, spaces)) + rightText;
   }
 
-  // دالة لتنسيق النص في الوسط
+  // دالة لتنسيق النص في الوسط (محسنة للنصوص العربية)
   centerText(text, width = 32) {
-    const spaces = Math.max(0, Math.floor((width - text.length) / 2));
-    return ' '.repeat(spaces) + text;
+    if (!text) return '';
+    
+    // تنظيف النص أولاً
+    const cleanedText = String(text).trim();
+    if (cleanedText.length === 0) return '';
+    
+    // حساب المسافات مع مراعاة طول النص الفعلي
+    const textLength = cleanedText.length;
+    if (textLength >= width) return cleanedText; // إذا كان النص أطول من العرض المتاح
+    
+    const spaces = Math.max(0, Math.floor((width - textLength) / 2));
+    return ' '.repeat(spaces) + cleanedText;
   }
 
   // إنشاء محتوى الفاتورة للطباعة (نص خالص بدون أوامر ESC/POS)
@@ -90,10 +106,10 @@ class SunmiPrinter {
 
     // استخدام الإعدادات المخصصة أو الافتراضية
     const settings = storeSettings || {
-      store_name: 'متجر الألعاب',
+      store_name: 'الشارده للإلكترونيات',
       store_name_english: 'Alnafar Store',
-      store_address: 'طرابلس، ليبيا',
-      store_phone: '+218xxxxxxxxx',
+      store_address: 'شارع القضائيه مقابل مطحنة الفضيل',
+      store_phone: '0920595447',
       store_email: 'info@alnafar.store',
       store_website: 'www.alnafar.store',
       header_logo_text: 'فاتورة مبيعات',
@@ -104,12 +120,29 @@ class SunmiPrinter {
 
     let content = [];
     
-    // رأس الفاتورة (نص خالص بدون رموز خاصة)
-    content.push(this.centerText(this.cleanText(settings.store_name)));
+    // رأس الفاتورة مع تنسيق محسن للطباعة الحرارية
+    content.push(''); // سطر فارغ في البداية
+    content.push(''); // سطر فارغ إضافي
+    content.push(''); // سطر فارغ ثالث لضمان ظهور النص
+    
+    // اسم المتجر العربي
+    const storeName = this.cleanText(settings.store_name);
+    content.push(this.centerText(storeName));
+    content.push(''); // سطر فارغ
+    
+    // اسم المتجر الإنجليزي
     if (settings.store_name_english) {
-      content.push(this.centerText(this.cleanText(settings.store_name_english)));
+      const englishName = this.cleanText(settings.store_name_english);
+      content.push(this.centerText(englishName));
+      content.push(''); // سطر فارغ
     }
-    content.push(this.centerText(this.cleanText(settings.header_logo_text)));
+    
+    // عنوان الفاتورة
+    const headerText = this.cleanText(settings.header_logo_text);
+    content.push(this.centerText(headerText));
+    content.push(''); // سطر فارغ
+    content.push(''); // سطر فارغ إضافي
+    
     content.push(this.createSeparatorLine('='));
     content.push('');
     
@@ -183,6 +216,9 @@ class SunmiPrinter {
     content.push('');
     content.push('');
     content.push('');
+    content.push(''); // سطر إضافي
+    content.push(''); // سطر إضافي
+    content.push(''); // سطر إضافي لضمان قطع الورق بشكل صحيح
     
     return content.join('\n');
   }
