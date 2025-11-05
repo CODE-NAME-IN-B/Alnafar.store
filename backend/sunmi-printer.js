@@ -1,5 +1,16 @@
 const axios = require('axios');
 
+/**
+ * طابعة Sunmi محسنة - تم إصلاح مشكلة الرموز الغريبة في الطباعة
+ * 
+ * الإصلاحات المطبقة:
+ * 1. إزالة جميع أوامر ESC/POS التي تسبب رموز غريبة
+ * 2. تنظيف النص من رموز التحكم الخاصة
+ * 3. استخدام نص خالص فقط (Plain Text)
+ * 4. فلترة الأحرف غير المدعومة
+ * 
+ * تاريخ الإصلاح: نوفمبر 2025
+ */
 class SunmiPrinter {
   constructor() {
     // إعدادات افتراضية لجهاز Sunmi V2
@@ -19,10 +30,30 @@ class SunmiPrinter {
     this.isCloudEnvironment = process.env.NODE_ENV === 'production' && !process.env.SUNMI_DEVICE_IP;
   }
 
-  // دالة لتحويل النص العربي لتنسيق مناسب للطباعة
+  // دالة لتحويل النص العربي لتنسيق مناسب للطباعة (بدون رموز خاصة)
   formatArabicText(text) {
-    // تحويل الأرقام الإنجليزية للعربية إذا لزم الأمر
-    return text.replace(/\d/g, (d) => '٠١٢٣٤٥٦٧٨٩'[d]);
+    // إزالة أي رموز خاصة قد تسبب مشاكل في الطباعة
+    return String(text)
+      .replace(/[\x00-\x1F\x7F-\x9F]/g, '') // إزالة رموز التحكم
+      .replace(/[^\u0000-\u007F\u0600-\u06FF\u0750-\u077F\u08A0-\u08FF\uFB50-\uFDFF\uFE70-\uFEFF]/g, '') // الاحتفاظ بالعربية والإنجليزية فقط
+      .trim();
+  }
+
+  // دالة لتنظيف النص من أي رموز قد تسبب مشاكل
+  cleanText(text) {
+    return this.formatArabicText(text);
+  }
+
+  // دالة لإنشاء فاتورة آمنة للطباعة الحرارية (بدون أي رموز خاصة)
+  generateSafePrintContent(invoiceData, storeSettings = null) {
+    const content = this.generateInvoiceContent(invoiceData, storeSettings);
+    
+    // تنظيف شامل للمحتوى من أي رموز قد تسبب مشاكل
+    return content
+      .split('\n')
+      .map(line => this.cleanText(line))
+      .filter(line => line.trim().length > 0 || line === '') // الاحتفاظ بالأسطر الفارغة للتنسيق
+      .join('\n');
   }
 
   // دالة لإنشاء خط فاصل
@@ -44,7 +75,7 @@ class SunmiPrinter {
     return ' '.repeat(spaces) + text;
   }
 
-  // إنشاء محتوى الفاتورة للطباعة
+  // إنشاء محتوى الفاتورة للطباعة (نص خالص بدون أوامر ESC/POS)
   generateInvoiceContent(invoiceData, storeSettings = null) {
     const {
       invoiceNumber,
@@ -73,17 +104,17 @@ class SunmiPrinter {
 
     let content = [];
     
-    // رأس الفاتورة
-    content.push(this.centerText(settings.store_name));
+    // رأس الفاتورة (نص خالص بدون رموز خاصة)
+    content.push(this.centerText(this.cleanText(settings.store_name)));
     if (settings.store_name_english) {
-      content.push(this.centerText(settings.store_name_english));
+      content.push(this.centerText(this.cleanText(settings.store_name_english)));
     }
-    content.push(this.centerText(settings.header_logo_text));
+    content.push(this.centerText(this.cleanText(settings.header_logo_text)));
     content.push(this.createSeparatorLine('='));
     content.push('');
     
     // معلومات الفاتورة
-    content.push(`رقم الفاتورة: ${invoiceNumber}`);
+    content.push(`رقم الفاتورة: ${this.cleanText(invoiceNumber)}`);
     content.push(`التاريخ: ${new Date(date).toLocaleDateString('ar-LY')}`);
     content.push(`الوقت: ${new Date(date).toLocaleTimeString('ar-LY')}`);
     content.push(this.createSeparatorLine());
@@ -91,10 +122,10 @@ class SunmiPrinter {
     
     // معلومات العميل
     content.push('بيانات العميل:');
-    content.push(`الاسم: ${customerName}`);
-    content.push(`الهاتف: ${customerPhone}`);
+    content.push(`الاسم: ${this.cleanText(customerName)}`);
+    content.push(`الهاتف: ${this.cleanText(customerPhone)}`);
     if (customerAddress) {
-      content.push(`العنوان: ${customerAddress}`);
+      content.push(`العنوان: ${this.cleanText(customerAddress)}`);
     }
     content.push(this.createSeparatorLine());
     content.push('');
@@ -104,7 +135,7 @@ class SunmiPrinter {
     content.push(this.createSeparatorLine('-'));
     
     items.forEach((item, index) => {
-      content.push(`${index + 1}. ${item.title}`);
+      content.push(`${index + 1}. ${this.cleanText(item.title)}`);
       content.push(this.formatTwoColumns('', `${item.price.toFixed(3)} د.ل`));
       content.push('');
     });
@@ -119,7 +150,7 @@ class SunmiPrinter {
     // ملاحظات
     if (notes) {
       content.push('ملاحظات:');
-      content.push(notes);
+      content.push(this.cleanText(notes));
       content.push('');
     }
     
@@ -127,16 +158,16 @@ class SunmiPrinter {
     if (settings.show_store_info) {
       content.push('معلومات المتجر:');
       if (settings.store_address) {
-        content.push(`العنوان: ${settings.store_address}`);
+        content.push(`العنوان: ${this.cleanText(settings.store_address)}`);
       }
       if (settings.store_phone) {
-        content.push(`الهاتف: ${settings.store_phone}`);
+        content.push(`الهاتف: ${this.cleanText(settings.store_phone)}`);
       }
       if (settings.store_email) {
-        content.push(`البريد: ${settings.store_email}`);
+        content.push(`البريد: ${this.cleanText(settings.store_email)}`);
       }
       if (settings.store_website) {
-        content.push(`الموقع: ${settings.store_website}`);
+        content.push(`الموقع: ${this.cleanText(settings.store_website)}`);
       }
       content.push(this.createSeparatorLine());
       content.push('');
@@ -144,11 +175,11 @@ class SunmiPrinter {
     
     // تذييل الفاتورة
     if (settings.show_footer && settings.footer_message) {
-      content.push(this.centerText(settings.footer_message));
+      content.push(this.centerText(this.cleanText(settings.footer_message)));
       content.push('');
     }
     
-    content.push(this.centerText('تم الإنشاء بواسطة ' + settings.store_name));
+    content.push(this.centerText('تم الإنشاء بواسطة ' + this.cleanText(settings.store_name)));
     content.push('');
     content.push('');
     content.push('');
@@ -159,7 +190,7 @@ class SunmiPrinter {
   // طباعة الفاتورة على جهاز Sunmi V2
   async printInvoice(invoiceData, storeSettings = null) {
     try {
-      const content = this.generateInvoiceContent(invoiceData, storeSettings);
+      const content = this.generateSafePrintContent(invoiceData, storeSettings);
       
       // تحقق من البيئة السحابية
       if (this.isCloudEnvironment) {
@@ -176,14 +207,18 @@ class SunmiPrinter {
         };
       }
       
-      // إعداد أمر الطباعة لجهاز Sunmi V2
+      // إعداد أمر الطباعة لجهاز Sunmi V2 (نص خالص بدون أوامر خاصة)
       const printCommand = {
         type: 'print_text',
         data: {
-          text: content,
-          fontSize: this.printSettings.fontSize,
-          alignment: 'right', // للنصوص العربية
-          charset: this.printSettings.charset
+          text: content, // المحتوى منظف مسبقاً
+          fontSize: 'normal',
+          alignment: 'left',
+          charset: 'UTF-8',
+          raw: false,
+          // إعدادات إضافية لضمان الطباعة الآمنة
+          escapeSpecialChars: true,
+          removeControlChars: true
         }
       };
 
