@@ -516,9 +516,11 @@ function getDailyInvoiceNumber(retryCount = 0) {
     
     if (!dailyRecord) {
       try {
-        // إنشاء سجل جديد لليوم مع التحقق من عدم وجود تضارب
+        // إنشاء سجل جديد لليوم - البدء من 0 لأن أول فاتورة ستكون 001
         run(`INSERT INTO daily_invoices (date, last_invoice_number, total_invoices) VALUES (?, ?, ?)`, 
-          [today, 1, 0]);
+          [today, 0, 0]);
+        
+        console.log(`✅ تم إنشاء سجل جديد لليوم: ${today}`);
         
         // التحقق من نجاح الإدراج
         dailyRecord = get('SELECT * FROM daily_invoices WHERE date = ?', [today]);
@@ -526,8 +528,13 @@ function getDailyInvoiceNumber(retryCount = 0) {
           throw new Error('فشل في إنشاء سجل الفاتورة اليومي');
         }
         
-        return { dailyNumber: 1, fullNumber: `${today.replace(/-/g, '')}-001` };
+        // أول فاتورة في اليوم ستكون 001
+        const nextNumber = 1;
+        run('UPDATE daily_invoices SET last_invoice_number = ? WHERE date = ?', [nextNumber, today]);
+        
+        return { dailyNumber: nextNumber, fullNumber: `${today.replace(/-/g, '')}-001` };
       } catch (insertError) {
+        console.error('خطأ في إنشاء سجل اليوم:', insertError.message);
         // في حالة فشل الإدراج، قد يكون السجل موجود بالفعل (تضارب)
         dailyRecord = get('SELECT * FROM daily_invoices WHERE date = ?', [today]);
         if (!dailyRecord) {
@@ -539,6 +546,8 @@ function getDailyInvoiceNumber(retryCount = 0) {
     // زيادة رقم الفاتورة مع آلية الأمان
     const nextNumber = (dailyRecord.last_invoice_number || 0) + 1;
     
+    console.log(`📋 ترقيم الفاتورة - اليوم: ${today}, آخر رقم: ${dailyRecord.last_invoice_number}, الرقم التالي: ${nextNumber}`);
+    
     // استخدام transaction للتأكد من سلامة العملية
     try {
       run('BEGIN TRANSACTION');
@@ -548,11 +557,13 @@ function getDailyInvoiceNumber(retryCount = 0) {
       if (currentRecord.last_invoice_number !== dailyRecord.last_invoice_number) {
         // تم تحديث الرقم من قبل عملية أخرى، استخدم الرقم الجديد
         const updatedNextNumber = (currentRecord.last_invoice_number || 0) + 1;
+        console.log(`⚠️ تضارب في الترقيم! استخدام الرقم المحدث: ${updatedNextNumber}`);
         run('UPDATE daily_invoices SET last_invoice_number = ? WHERE date = ?', [updatedNextNumber, today]);
         run('COMMIT');
         
         const formattedNumber = String(updatedNextNumber).padStart(3, '0');
         const fullNumber = `${today.replace(/-/g, '')}-${formattedNumber}`;
+        console.log(`✅ رقم الفاتورة النهائي: ${fullNumber}`);
         return { dailyNumber: updatedNextNumber, fullNumber };
       }
       
@@ -567,9 +578,11 @@ function getDailyInvoiceNumber(retryCount = 0) {
       // التحقق النهائي من صحة الرقم
       const verifyRecord = get('SELECT last_invoice_number FROM daily_invoices WHERE date = ?', [today]);
       if (verifyRecord.last_invoice_number !== nextNumber) {
+        console.error(`❌ فشل التحقق! المتوقع: ${nextNumber}, الفعلي: ${verifyRecord.last_invoice_number}`);
         throw new Error('تضارب في ترقيم الفواتير');
       }
       
+      console.log(`✅ رقم الفاتورة النهائي: ${fullNumber}`);
       return { dailyNumber: nextNumber, fullNumber };
       
     } catch (transactionError) {

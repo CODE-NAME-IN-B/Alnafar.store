@@ -120,31 +120,21 @@ class SunmiPrinter {
 
     let content = [];
     
-    // رأس الفاتورة مع تنسيق بسيط وواضح
-    content.push('');
-    content.push('');
+    // رأس الفاتورة - حل جذري لمشكلة عدم الطباعة
     content.push('');
     content.push('');
     content.push('');
     
-    // اسم المتجر العربي - بدون توسيط لتجنب مشاكل الطباعة
-    const storeName = this.cleanText(settings.store_name);
+    // طباعة اسم المتجر مباشرة في بداية محتوى الفاتورة
+    const storeName = this.cleanText(settings.store_name || 'الشارده للإلكترونيات');
+    const englishName = this.cleanText(settings.store_name_english || 'Alnafar Store');
+    const headerText = this.cleanText(settings.header_logo_text || 'فاتورة مبيعات');
+    
+    // إضافة النصوص بشكل مباشر وبسيط
     content.push(storeName);
-    content.push('');
-    
-    // اسم المتجر الإنجليزي
-    if (settings.store_name_english) {
-      const englishName = this.cleanText(settings.store_name_english);
-      content.push(englishName);
-      content.push('');
-    }
-    
-    // عنوان الفاتورة
-    const headerText = this.cleanText(settings.header_logo_text);
+    content.push(englishName);
     content.push(headerText);
     content.push('');
-    content.push('');
-    
     content.push(this.createSeparatorLine('='));
     content.push('');
     
@@ -231,10 +221,8 @@ class SunmiPrinter {
       const content = this.generateSafePrintContent(invoiceData, storeSettings);
       
       // تحقق من البيئة السحابية
-      if (this.isCloudEnvironment) {
+      if (process.env.NODE_ENV === 'production' && !process.env.SUNMI_DEVICE_IP) {
         console.log('⚠️ الطباعة غير متاحة في البيئة السحابية');
-        console.log('📄 محتوى الفاتورة:');
-        console.log(content);
         
         return {
           success: true,
@@ -245,21 +233,27 @@ class SunmiPrinter {
         };
       }
       
-      // إعداد أمر الطباعة لجهاز Sunmi V2 (نص خالص بدون أوامر خاصة)
+      // طباعة تجريبية لاختبار النصوص
+      console.log('📄 محتوى الفاتورة للطباعة:');
+      console.log('='.repeat(40));
+      console.log(content);
+      console.log('='.repeat(40));
+      
+      // إعداد أمر الطباعة لجهاز Sunmi V2 - محسن للطابعات الحرارية
       const printCommand = {
         type: 'print_text',
         data: {
           text: content, // المحتوى منظف مسبقاً
-          fontSize: 'small', // استخدام خط صغير لضمان الطباعة
+          fontSize: 'normal', // استخدام خط عادي
           alignment: 'left',
           charset: 'UTF-8',
-          raw: false,
-          // إعدادات إضافية لضمان الطباعة الآمنة
-          escapeSpecialChars: true,
-          removeControlChars: true,
-          // إعدادات إضافية للطابعات الحرارية
+          raw: true, // استخدام الوضع الخام لضمان طباعة كل شيء
+          // إعدادات مبسطة للطباعة الموثوقة
           paperWidth: 58,
-          lineSpacing: 1
+          lineSpacing: 1,
+          // إزالة الإعدادات التي قد تسبب مشاكل
+          bold: false,
+          underline: false
         }
       };
 
