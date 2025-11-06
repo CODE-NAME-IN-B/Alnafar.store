@@ -158,7 +158,8 @@ export default function InvoicesTab() {
             @page { size: ${paperMM}mm auto; margin: 0; }
             .receipt { width: ${paperMM}mm; margin: 0 auto; padding: 1mm 1.5mm; }
             .logo { text-align: center; margin: 1mm 0 0.5mm 0; }
-            .logo img { display: block; margin: 0 auto; max-width: 90%; width: 40mm; height: auto; image-rendering: -webkit-optimize-contrast; }
+            .logo img { display: block; margin: 0 auto; max-width: 90%; width: 30mm; height: auto; image-rendering: -webkit-optimize-contrast; }
+            .logo-fallback { font-size: ${titleSize}; font-weight: bold; text-align: center; color: #333; margin: 1mm 0; }
             .store-name-ar { font-size: ${titleSize}; font-weight: bold; text-align: center; margin: 0.1mm 0 1px 0; }
             .subtitle { font-size: calc(${fontSize} - 1px); text-align: center; margin-bottom: 0; }
             .title { font-size: ${titleSize}; font-weight: bold; text-align: center; margin-bottom: 1px; }
@@ -177,7 +178,10 @@ export default function InvoicesTab() {
         </head>
         <body>
           <div class="receipt">
-            <div class="logo"><img src="/logo.png" alt="Logo" /></div>
+            <div class="logo">
+              <img src="/logo.png?v=${Date.now()}" alt="شعار المتجر" onerror="this.src='/assets/logo.png'; this.onerror=function(){this.style.display='none'; this.nextElementSibling.style.display='block';};" />
+              <div class="logo-fallback" style="display: none;">🏪 ${storeName}</div>
+            </div>
             <div class="store-name-ar">${storeName}</div>
             <div class="subtitle">${storeNameEn}</div>
             <div class="title">${headerText}</div>

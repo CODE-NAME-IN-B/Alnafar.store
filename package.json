@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "nodemon backend/server.js",
     "build": "cd frontend && npm install && npm run build",
-    "postbuild": "rm -rf dist && cp -r frontend/dist dist && (cp frontend/assites/logo.png dist/logo.png || true)",
+    "postbuild": "rm -rf dist && cp -r frontend/dist dist && (cp frontend/assites/logo.png dist/logo.png || cp frontend/assites/logo.png dist/assets/logo.png || true)",
     "start": "node backend/server.js",
     "start:render": "node backend/server.js",
     "postinstall": "echo postinstall"
