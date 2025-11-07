@@ -13,6 +13,7 @@ export default function Invoice({ cart, total, onClose, onSuccess }) {
     notes: ''
   })
   const [discount, setDiscount] = useState(0)
+  const [isPaid, setIsPaid] = useState(true)
   const [isProcessing, setIsProcessing] = useState(false)
   
   // إنشاء رقم فاتورة مؤقت للعرض
@@ -54,7 +55,7 @@ export default function Invoice({ cart, total, onClose, onSuccess }) {
         discount,
         finalTotal: total - discount,
         date: new Date().toISOString(),
-        status: 'pending'
+        status: isPaid ? 'paid' : 'pending'
       }
 
       // حفظ أولاً للحصول على رقم الفاتورة الصحيح (اليومي)
@@ -82,8 +83,10 @@ export default function Invoice({ cart, total, onClose, onSuccess }) {
       const headerText = invSettings?.header_logo_text || 'فاتورة مبيعات'
       const showStoreInfo = !!Number(invSettings?.show_store_info ?? 1)
       const showFooter = !!Number(invSettings?.show_footer ?? 1)
-      const storeName = invSettings?.store_name || ''
-      const storeNameEn = invSettings?.store_name_english || ''
+      const defaultStoreName = 'الشارده للإلكترونيات'
+      const defaultStoreNameEn = 'Alnafar Store'
+      const storeName = (invSettings?.store_name || '').trim() || defaultStoreName
+      const storeNameEn = (invSettings?.store_name_english || '').trim() || defaultStoreNameEn
       const storeAddr = invSettings?.store_address || ''
       const storePhone = invSettings?.store_phone || ''
       const storeEmail = invSettings?.store_email || ''
@@ -116,9 +119,12 @@ export default function Invoice({ cart, total, onClose, onSuccess }) {
             .receipt { 
               width: ${paperMM}mm; 
               margin: 0 auto; 
-              padding: 1mm 1.5mm;
+              padding: 2mm 1.5mm;
               background: #fff;
             }
+            .logo { text-align: center; margin: 1mm 0 0.5mm 0; }
+            .logo img { display: block; margin: 0 auto; max-width: 90%; width: 30mm; height: auto; image-rendering: -webkit-optimize-contrast; }
+            .logo-fallback { font-size: ${titleSize}; font-weight: bold; text-align: center; color: #333; margin: 1mm 0; }
             .store-name-ar { 
               font-size: ${titleSize}; 
               font-weight: bold; 
@@ -219,11 +225,16 @@ export default function Invoice({ cart, total, onClose, onSuccess }) {
         </head>
         <body>
           <div class="receipt">
-            ${showStoreInfo && storeName ? `<div class="store-name-ar">${storeName}</div>` : ''}
-            ${showStoreInfo && storeNameEn ? `<div class="subtitle">${storeNameEn}</div>` : ''}
+            <div class="logo">
+              <img src="/logo.png?v=${Date.now()}" alt="شعار المتجر" onerror="this.src='/assets/logo.png'; this.onerror=function(){this.style.display='none'; this.nextElementSibling.style.display='block';};" />
+              <div class="logo-fallback" style="display: none;">🏪 ${storeName}</div>
+            </div>
+            <div class="store-name-ar">${storeName}</div>
+            <div class="subtitle">${storeNameEn}</div>
             <div class="title">${headerText}</div>
             <div class="subtitle">رقم: ${dailyNo}</div>
             <div class="subtitle">${new Date().toLocaleString('ar-LY')}</div>
+            <div class="subtitle">الحالة: ${isPaid ? 'مدفوع' : 'قيد الإنجاز'}</div>
             
             <div class="separator"></div>
             
@@ -236,11 +247,6 @@ export default function Invoice({ cart, total, onClose, onSuccess }) {
               <span class="info-label">الهاتف:</span>
               <span class="info-value">${customerInfo.phone}</span>
             </div>
-            ${customerInfo.address ? `
-            <div class="info-row">
-              <span class="info-label">العنوان:</span>
-              <span class="info-value">${customerInfo.address}</span>
-            </div>` : ''}
             ${customerInfo.notes ? `
             <div class="info-row">
               <span class="info-label">ملاحظات:</span>
@@ -385,18 +391,7 @@ export default function Invoice({ cart, total, onClose, onSuccess }) {
               </div>
             </div>
             
-            <div>
-              <label className="block text-sm font-medium text-gray-300 mb-2">
-                العنوان (اختياري)
-              </label>
-              <input
-                type="text"
-                value={customerInfo.address}
-                onChange={(e) => handleInputChange('address', e.target.value)}
-                className="w-full bg-gray-800 border border-gray-600 rounded-lg px-3 py-2.5 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent text-base"
-                placeholder="أدخل العنوان"
-              />
-            </div>
+            
             
             <div>
               <label className="block text-sm font-medium text-gray-300 mb-2">
@@ -456,6 +451,15 @@ export default function Invoice({ cart, total, onClose, onSuccess }) {
                 <div className="flex justify-between items-center">
                   <span className="text-lg font-bold text-white">الإجمالي النهائي:</span>
                   <span className="text-xl font-bold text-primary">{currency(total - discount)}</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <label className="text-sm font-medium text-gray-300">تم الدفع؟</label>
+                  <input
+                    type="checkbox"
+                    checked={isPaid}
+                    onChange={(e) => setIsPaid(e.target.checked)}
+                    className="w-5 h-5"
+                  />
                 </div>
               </div>
             </div>

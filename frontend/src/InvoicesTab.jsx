@@ -148,6 +148,7 @@ export default function InvoicesTab() {
         <head>
           <meta charset="UTF-8">
           <meta name="viewport" content="width=device-width, initial-scale=1.0">
+          <link rel="preload" href="/logo.png?v=${Date.now()}" as="image" />
           <title>فاتورة ${dailyNo}</title>
           <style>
             * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -156,7 +157,7 @@ export default function InvoicesTab() {
               background: #fff; color: #000; direction: rtl; line-height: 1.3; font-size: ${fontSize};
             }
             @page { size: ${paperMM}mm auto; margin: 0; }
-            .receipt { width: ${paperMM}mm; margin: 0 auto; padding: 1mm 1.5mm; }
+            .receipt { width: ${paperMM}mm; margin: 0 auto; padding: 2mm 1.5mm; }
             .logo { text-align: center; margin: 1mm 0 0.5mm 0; }
             .logo img { display: block; margin: 0 auto; max-width: 90%; width: 30mm; height: auto; image-rendering: -webkit-optimize-contrast; }
             .logo-fallback { font-size: ${titleSize}; font-weight: bold; text-align: center; color: #333; margin: 1mm 0; }
@@ -187,11 +188,11 @@ export default function InvoicesTab() {
             <div class="title">${headerText}</div>
             <div class="subtitle">رقم: ${dailyNo}</div>
             <div class="subtitle">${new Date(invoice.created_at).toLocaleString('ar-LY')}</div>
+            <div class="subtitle">الحالة: ${(invoice.status||'') === 'paid' ? 'مدفوع' : 'قيد الإنجاز'}</div>
             <div class="separator"></div>
             <div class="section-title">بيانات العميل</div>
             <div class="info-row"><span class="info-label">الاسم:</span><span class="info-value">${invoice.customer_name}</span></div>
             <div class="info-row"><span class="info-label">الهاتف:</span><span class="info-value">${invoice.customer_phone}</span></div>
-            ${invoice.customer_address ? `<div class=\"info-row\"><span class=\"info-label\">العنوان:</span><span class=\"info-value\">${invoice.customer_address}</span></div>` : ''}
             ${invoice.notes ? `<div class=\"info-row\"><span class=\"info-label\">ملاحظات:</span><span class=\"info-value\">${invoice.notes}</span></div>` : ''}
             <div class="separator"></div>
             <div class="section-title">تفاصيل الطلب</div>
