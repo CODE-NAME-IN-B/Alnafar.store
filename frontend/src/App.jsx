@@ -480,7 +480,7 @@ export default function App() {
           {/* Navigation - Horizontal scroll on mobile */}
           <div className="pb-2 overflow-x-auto scrollbar-hide">
             <nav className="flex items-center gap-3 sm:gap-6 text-gray-200 min-w-max">
-              {categories.map((c, i) => (
+              {(categories || []).map((c, i) => (
                 <button 
                   key={c.id} 
                   onClick={() => setActiveCategory(c.id)} 
@@ -614,7 +614,7 @@ export default function App() {
               </div>
             )}
             {displayedGames.map(game => {
-              const categoryName = categories.find(c => c.id === game.category_id)?.name || 'PS4'
+              const categoryName = (categories || []).find(c => c.id === game.category_id)?.name || 'PS4'
               return (
                 <div key={game.id} className="game-card group" data-game-id={game.id}>
                     <div className="game-card-image-wrapper">

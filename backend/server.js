@@ -8,7 +8,8 @@ const express = require('express');
 const cors = require('cors');
 const { createServer } = require('http');
 const { Server } = require('socket.io');
-const initSqlJs = require('sql.js');
+const dbAdapter = require('./db-adapter');
+const cloudinaryStorage = require('./cloudinary-storage');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const axios = require('axios');
@@ -50,7 +51,6 @@ function findAvailablePort(startPort) {
   });
 }
 const DATA_DIR = path.join(__dirname, 'data');
-const DB_PATH = path.join(DATA_DIR, 'database.sqlite');
 const UPLOADS_DIR = path.join(DATA_DIR, 'uploads');
 
 const MAPPING_PATH = path.join(DATA_DIR, 'mapping.json');
@@ -214,52 +214,42 @@ if (!fs.existsSync(UPLOADS_DIR)) {
   fs.mkdirSync(UPLOADS_DIR, { recursive: true });
 }
 
-let SQL = null;
-let db = null;
+// Database functions - now using db-adapter
+let all, get, run, exec;
 
 async function initDb() {
-  if (!SQL) {
-    SQL = await initSqlJs();
-  }
-  const fileBuffer = fs.existsSync(DB_PATH) ? fs.readFileSync(DB_PATH) : null;
-  db = fileBuffer ? new SQL.Database(fileBuffer) : new SQL.Database();
+  const { all: _all, get: _get, run: _run, exec: _exec } = await dbAdapter.initDatabase();
+  all = _all;
+  get = _get;
+  run = _run;
+  exec = _exec;
+  console.log(`✅ Database initialized (${dbAdapter.getDbType()})`);
 }
 
-function persistDb() {
-  const data = db.export();
-  const buffer = Buffer.from(data);
-  fs.writeFileSync(DB_PATH, buffer);
-}
-
-function initializeDatabase() {
-  db.exec(`CREATE TABLE IF NOT EXISTS users (
+async function initializeDatabase() {
+  await exec(`CREATE TABLE IF NOT EXISTS users (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       username TEXT UNIQUE NOT NULL,
       password TEXT NOT NULL
     );`);
-  try { run("ALTER TABLE users ADD COLUMN role TEXT DEFAULT 'admin'"); } catch (e) {}
-  try { run("ALTER TABLE users ADD COLUMN created_at DATETIME DEFAULT CURRENT_TIMESTAMP"); } catch (e) {}
+  try { await run("ALTER TABLE users ADD COLUMN role TEXT DEFAULT 'admin'"); } catch (e) {}
+  try { await run("ALTER TABLE users ADD COLUMN created_at DATETIME DEFAULT CURRENT_TIMESTAMP"); } catch (e) {}
 
-  db.exec(`CREATE TABLE IF NOT EXISTS categories (
+  await exec(`CREATE TABLE IF NOT EXISTS categories (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       name TEXT NOT NULL
     );`);
 
   // Seed default categories if empty
-  const catCount = get('SELECT COUNT(*) as count FROM categories').count;
+  const catCount = (await get('SELECT COUNT(*) as count FROM categories')).count;
   if (catCount === 0) {
     const defaults = ['PS4','PS5','PS3','PC'];
-    const stmt = db.prepare('INSERT INTO categories (name) VALUES (?)');
-    try {
-      for (const n of defaults) {
-        run('INSERT INTO categories (name) VALUES (?)', [n]);
-      }
-    } finally {
-      try { stmt.free && stmt.free() } catch(e){}
+    for (const n of defaults) {
+      await run('INSERT INTO categories (name) VALUES (?)', [n]);
     }
   }
 
-  db.exec(`CREATE TABLE IF NOT EXISTS games (
+  await exec(`CREATE TABLE IF NOT EXISTS games (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       title TEXT NOT NULL,
       image TEXT NOT NULL,
@@ -273,11 +263,11 @@ function initializeDatabase() {
     );`);
 
   // Migrate existing DBs to include new columns if missing
-  try { run('ALTER TABLE games ADD COLUMN genre TEXT'); } catch(e) {}
-  try { run('ALTER TABLE games ADD COLUMN series TEXT'); } catch(e) {}
-  try { run('ALTER TABLE games ADD COLUMN features TEXT'); } catch(e) {}
+  try { await run('ALTER TABLE games ADD COLUMN genre TEXT'); } catch(e) {}
+  try { await run('ALTER TABLE games ADD COLUMN series TEXT'); } catch(e) {}
+  try { await run('ALTER TABLE games ADD COLUMN features TEXT'); } catch(e) {}
 
-  db.exec(`CREATE TABLE IF NOT EXISTS orders (
+  await exec(`CREATE TABLE IF NOT EXISTS orders (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       games TEXT NOT NULL,
       customer_name TEXT,
@@ -285,7 +275,7 @@ function initializeDatabase() {
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP
     );`);
 
-  db.exec(`CREATE TABLE IF NOT EXISTS settings (
+  await exec(`CREATE TABLE IF NOT EXISTS settings (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       whatsapp_number TEXT,
       default_message TEXT,
@@ -296,7 +286,7 @@ function initializeDatabase() {
       communication_method TEXT DEFAULT 'telegram'
     );`);
 
-  db.exec(`CREATE TABLE IF NOT EXISTS invoices (
+  await exec(`CREATE TABLE IF NOT EXISTS invoices (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       invoice_number TEXT UNIQUE NOT NULL,
       customer_name TEXT NOT NULL,
@@ -314,10 +304,10 @@ function initializeDatabase() {
     );`);
 
   // Migrate existing DBs to include discount/final_total if missing
-  try { run('ALTER TABLE invoices ADD COLUMN discount REAL DEFAULT 0'); } catch (e) {}
-  try { run('ALTER TABLE invoices ADD COLUMN final_total REAL'); } catch (e) {}
+  try { await run('ALTER TABLE invoices ADD COLUMN discount REAL DEFAULT 0'); } catch (e) {}
+  try { await run('ALTER TABLE invoices ADD COLUMN final_total REAL'); } catch (e) {}
 
-  db.exec(`CREATE TABLE IF NOT EXISTS invoice_settings (
+  await exec(`CREATE TABLE IF NOT EXISTS invoice_settings (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       store_name TEXT DEFAULT 'الشارده للإلكترونيات',
       store_name_english TEXT DEFAULT 'Alnafar Store',
@@ -336,7 +326,7 @@ function initializeDatabase() {
     );`);
 
   // جدول الفواتير اليومية لتتبع الترقيم اليومي
-  db.exec(`CREATE TABLE IF NOT EXISTS daily_invoices (
+  await exec(`CREATE TABLE IF NOT EXISTS daily_invoices (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       date TEXT NOT NULL UNIQUE, -- YYYY-MM-DD format
       last_invoice_number INTEGER DEFAULT 0,
@@ -350,18 +340,18 @@ function initializeDatabase() {
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
       updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
     );`);
-  try { run('ALTER TABLE daily_invoices ADD COLUMN notes TEXT'); } catch (e) {}
+  try { await run('ALTER TABLE daily_invoices ADD COLUMN notes TEXT'); } catch (e) {}
 
   // Seed default settings if empty
-  const settingsCount = get('SELECT COUNT(*) as count FROM settings').count;
+  const settingsCount = (await get('SELECT COUNT(*) as count FROM settings')).count;
   if (settingsCount === 0) {
-  run('INSERT INTO settings (whatsapp_number, default_message, telegram_bot_token, telegram_chat_id, telegram_username, telegram_enabled, communication_method) VALUES (?, ?, ?, ?, ?, ?, ?)', 
+  await run('INSERT INTO settings (whatsapp_number, default_message, telegram_bot_token, telegram_chat_id, telegram_username, telegram_enabled, communication_method) VALUES (?, ?, ?, ?, ?, ?, ?)', 
     ['', 'مرحباً، أريد طلب الألعاب التالية:', '', '', '', 1, 'telegram']);
 
   // Seed default invoice settings if empty
-  const invoiceSettingsCount = get('SELECT COUNT(*) as count FROM invoice_settings').count;
+  const invoiceSettingsCount = (await get('SELECT COUNT(*) as count FROM invoice_settings')).count;
   if (invoiceSettingsCount === 0) {
-    run(`INSERT INTO invoice_settings (
+    await run(`INSERT INTO invoice_settings (
       store_name, store_name_english, store_address, store_phone, 
       store_email, store_website, footer_message, header_logo_text,
       show_store_info, show_footer, paper_width, font_size
@@ -382,12 +372,12 @@ function initializeDatabase() {
     try {
       const existing = get('SELECT * FROM settings ORDER BY id DESC LIMIT 1');
       if (existing && !existing.telegram_bot_token) {
-        run('ALTER TABLE settings ADD COLUMN telegram_bot_token TEXT');
-        run('ALTER TABLE settings ADD COLUMN telegram_chat_id TEXT');
-        run('ALTER TABLE settings ADD COLUMN telegram_username TEXT');
-        run('ALTER TABLE settings ADD COLUMN telegram_enabled INTEGER DEFAULT 0');
-        run('ALTER TABLE settings ADD COLUMN communication_method TEXT DEFAULT "telegram"');
-        run('UPDATE settings SET telegram_enabled = 1, communication_method = "telegram" WHERE id = ?', [existing.id]);
+        await run('ALTER TABLE settings ADD COLUMN telegram_bot_token TEXT');
+        await run('ALTER TABLE settings ADD COLUMN telegram_chat_id TEXT');
+        await run('ALTER TABLE settings ADD COLUMN telegram_username TEXT');
+        await run('ALTER TABLE settings ADD COLUMN telegram_enabled INTEGER DEFAULT 0');
+        await run('ALTER TABLE settings ADD COLUMN communication_method TEXT DEFAULT "telegram"');
+        await run('UPDATE settings SET telegram_enabled = 1, communication_method = "telegram" WHERE id = ?', [existing.id]);
       }
     } catch (e) {
       // Columns might already exist, ignore error
@@ -395,12 +385,12 @@ function initializeDatabase() {
   }
 
   // Seed admin user if none
-  const userCount = get('SELECT COUNT(*) as count FROM users').count;
+  const userCount = (await get('SELECT COUNT(*) as count FROM users')).count;
   if (userCount === 0) {
     const username = process.env.ADMIN_USERNAME || 'admin';
     const password = process.env.ADMIN_PASSWORD || 'admin123';
     const hashed = bcrypt.hashSync(password, 10);
-    run('INSERT INTO users (username, password, role) VALUES (?, ?, ?)', [username, hashed, 'admin']);
+    await run('INSERT INTO users (username, password, role) VALUES (?, ?, ?)', [username, hashed, 'admin']);
     console.log('Seeded admin user:', username);
   }
 }
@@ -589,22 +579,20 @@ app.use('/uploads', express.static(UPLOADS_DIR));
 // axios is already required above; use it to fetch descriptions
 
 // Accept base64 uploads: { filename, data }
-app.post('/api/uploads', (req, res) => {
+app.post('/api/uploads', async (req, res) => {
   const { filename, data } = req.body || {}
   if (!filename || !data) return res.status(400).json({ message: 'Missing file data' })
   try {
     // sanitize filename
     const safeName = filename.replace(/[^a-zA-Z0-9._-]/g, '_')
-    const unique = `${Date.now()}_${safeName}`
-    const filePath = path.join(UPLOADS_DIR, unique)
-    const buffer = Buffer.from(data, 'base64')
-    fs.writeFileSync(filePath, buffer)
-    // return public url
-    const url = `/uploads/${unique}`
-    res.json({ url })
+    
+    // رفع إلى Cloudinary أو التخزين المحلي
+    const result = await cloudinaryStorage.uploadBase64Image(data, safeName, 'games');
+    
+    res.json({ url: result.url })
   } catch (e) {
     console.error('upload error', e)
-    res.status(500).json({ message: 'Upload failed' })
+    res.status(500).json({ message: 'Upload failed', error: e.message })
   }
 })
 
@@ -1077,9 +1065,14 @@ app.delete('/api/users/:id', authMiddleware, requireAdmin, (req, res) => {
 });
 
 // Categories
-app.get('/api/categories', (req, res) => {
-  const rows = all('SELECT * FROM categories');
-  res.json(rows);
+app.get('/api/categories', async (req, res) => {
+  try {
+    const rows = await all('SELECT * FROM categories');
+    res.json(rows);
+  } catch (error) {
+    console.error('Error fetching categories:', error);
+    res.status(500).json({ error: 'Failed to fetch categories' });
+  }
 });
 
 // Seed games from an uploads subfolder (authenticated)
@@ -1333,17 +1326,22 @@ app.delete('/api/categories/:id', authMiddleware, (req, res) => {
 });
 
 // Games
-app.get('/api/games', (req, res) => {
-  const { q, category, minPrice, maxPrice } = req.query;
-  const clauses = [];
-  const params = [];
-  if (q) { clauses.push('title LIKE ?'); params.push(`%${q}%`); }
-  if (category) { clauses.push('category_id = ?'); params.push(category); }
-  if (minPrice) { clauses.push('price >= ?'); params.push(minPrice); }
-  if (maxPrice) { clauses.push('price <= ?'); params.push(maxPrice); }
-  const where = clauses.length ? `WHERE ${clauses.join(' AND ')}` : '';
-  const rows = all(`SELECT * FROM games ${where} ORDER BY id DESC`, params);
-  res.json(rows);
+app.get('/api/games', async (req, res) => {
+  try {
+    const { q, category, minPrice, maxPrice } = req.query;
+    const clauses = [];
+    const params = [];
+    if (q) { clauses.push('title LIKE ?'); params.push(`%${q}%`); }
+    if (category) { clauses.push('category_id = ?'); params.push(category); }
+    if (minPrice) { clauses.push('price >= ?'); params.push(minPrice); }
+    if (maxPrice) { clauses.push('price <= ?'); params.push(maxPrice); }
+    const where = clauses.length ? `WHERE ${clauses.join(' AND ')}` : '';
+    const rows = await all(`SELECT * FROM games ${where} ORDER BY id DESC`, params);
+    res.json(rows);
+  } catch (error) {
+    console.error('Error fetching games:', error);
+    res.status(500).json({ error: 'Failed to fetch games' });
+  }
 });
 
 app.get('/api/games/:id', (req, res) => {
@@ -1558,30 +1556,35 @@ app.post('/api/send-telegram', async (req, res) => {
 });
 
 // Stats - Updated to use invoices table
-app.get('/api/stats', (req, res) => {
-  const totals = get('SELECT COUNT(*) as totalOrders FROM invoices');
-  const invoices = all('SELECT items FROM invoices');
-  const counts = new Map();
-  
-  for (const invoice of invoices) {
-    try {
-      const items = JSON.parse(invoice.items);
-      for (const item of items) {
-        const id = item.id;
-        counts.set(id, (counts.get(id) || 0) + 1);
-      }
-    } catch (e) {
-      console.error('Error parsing invoice items:', e);
-    }
-  }
-  
-  const top = Array.from(counts.entries())
-    .map(([gameId, count]) => ({ gameId: parseInt(gameId), count }))
-    .sort((a, b) => b.count - a.count)
-    .slice(0, 10);
+app.get('/api/stats', async (req, res) => {
+  try {
+    const totals = await get('SELECT COUNT(*) as totalOrders FROM invoices');
+    const invoices = await all('SELECT items FROM invoices');
+    const counts = new Map();
     
-  console.log('📊 Stats generated:', { totalOrders: totals.totalOrders || 0, topGames: top });
-  res.json({ totalOrders: totals.totalOrders || 0, topGames: top });
+    for (const invoice of invoices || []) {
+      try {
+        const items = JSON.parse(invoice.items);
+        for (const item of items) {
+          const id = item.id;
+          counts.set(id, (counts.get(id) || 0) + 1);
+        }
+      } catch (e) {
+        console.error('Error parsing invoice items:', e);
+      }
+    }
+    
+    const top = Array.from(counts.entries())
+      .map(([gameId, count]) => ({ gameId: parseInt(gameId), count }))
+      .sort((a, b) => b.count - a.count)
+      .slice(0, 10);
+      
+    console.log('📊 Stats generated:', { totalOrders: totals?.totalOrders || 0, topGames: top });
+    res.json({ totalOrders: totals?.totalOrders || 0, topGames: top });
+  } catch (error) {
+    console.error('Error fetching stats:', error);
+    res.status(500).json({ error: 'Failed to fetch stats' });
+  }
 });
 
 // إنشاء طابعة Sunmi
@@ -2432,24 +2435,7 @@ app.post('/api/invoice-settings', authMiddleware, (req, res) => {
   }
 });
 
-function all(sql, params = []) {
-  const stmt = db.prepare(sql);
-  stmt.bind(params);
-  const rows = [];
-  while (stmt.step()) rows.push(stmt.getAsObject());
-  stmt.free();
-  return rows;
-}
-
-function get(sql, params = []) {
-  const rows = all(sql, params);
-  return rows[0] || {};
-}
-
-function run(sql, params = []) {
-  db.run(sql, params);
-  persistDb();
-}
+// Database helper functions are now imported from db-adapter at the top
 
 async function autoSeedFromUploads() {
   console.log('[Auto-Seed] Clearing existing games table for a fresh start...');
@@ -2858,49 +2844,18 @@ app.put('/api/settings', authMiddleware, (req, res) => {
 
 
 
-function all(sql, params = []) {
-
-  const stmt = db.prepare(sql);
-
-  stmt.bind(params);
-
-  const rows = [];
-
-  while (stmt.step()) rows.push(stmt.getAsObject());
-
-  stmt.free();
-
-  return rows;
-
-}
-
-
-
-function get(sql, params = []) {
-
-  const rows = all(sql, params);
-
-  return rows[0] || {};
-
-}
-
-
-
-function run(sql, params = []) {
-
-  db.run(sql, params);
-
-  persistDb();
-
-}
+// Database helper functions moved to db-adapter
 
 // Duplicate autoSeedFromUploads removed - using the one above
 
 async function start() {
 
   await initDb();
+  
+  // Initialize storage (Cloudinary or local)
+  cloudinaryStorage.initStorage();
 
-  initializeDatabase();
+  await initializeDatabase();
 
   // Optional: enable automatic seeding only if explicitly requested
   if (String(process.env.AUTO_SEED_ON_START || '').toLowerCase() === 'true') {
