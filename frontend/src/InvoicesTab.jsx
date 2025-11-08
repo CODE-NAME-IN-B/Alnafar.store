@@ -148,7 +148,6 @@ export default function InvoicesTab() {
         <head>
           <meta charset="UTF-8">
           <meta name="viewport" content="width=device-width, initial-scale=1.0">
-          <link rel="preload" href="/logo.png?v=${Date.now()}" as="image" />
           <title>فاتورة ${dailyNo}</title>
           <style>
             * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -180,15 +179,14 @@ export default function InvoicesTab() {
         <body>
           <div class="receipt">
             <div class="logo">
-              <img src="/logo.png?v=${Date.now()}" alt="شعار المتجر" onerror="this.src='/assets/logo.png'; this.onerror=function(){this.style.display='none'; this.nextElementSibling.style.display='block';};" />
+              <img src="/invoice-header.png?v=${Date.now()}" alt="شعار المتجر" onerror="this.onerror=null; this.src='/logo.png';" />
               <div class="logo-fallback" style="display: none;">🏪 ${storeName}</div>
             </div>
             <div class="store-name-ar">${storeName}</div>
             <div class="subtitle">${storeNameEn}</div>
-            <div class="title">${headerText}</div>
             <div class="subtitle">رقم: ${dailyNo}</div>
             <div class="subtitle">${new Date(invoice.created_at).toLocaleString('ar-LY')}</div>
-            <div class="subtitle">الحالة: ${(invoice.status||'') === 'paid' ? 'مدفوع' : 'قيد الإنجاز'}</div>
+            <div class="subtitle">الحالة: ${(invoice.status||'') === 'paid' ? 'تم الدفع' : 'غير خالص'}</div>
             <div class="separator"></div>
             <div class="section-title">بيانات العميل</div>
             <div class="info-row"><span class="info-label">الاسم:</span><span class="info-value">${invoice.customer_name}</span></div>

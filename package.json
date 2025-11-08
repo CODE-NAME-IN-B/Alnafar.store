@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "nodemon backend/server.js",
     "build": "cd frontend && npm install && npm run build",
-    "postbuild": "rm -rf dist && cp -r frontend/dist dist && (cp frontend/assites/logo.png dist/logo.png || cp frontend/assites/logo.png dist/assets/logo.png || true)",
+    "postbuild": "rm -rf dist && cp -r frontend/dist dist && (cp frontend/assites/logo.png dist/logo.png || cp frontend/assites/logo.png dist/assets/logo.png || true) && (cp frontend/public/invoice-header.png dist/invoice-header.png || cp frontend/assites/invoice-header.png dist/invoice-header.png || true)",
     "start": "node backend/server.js",
     "start:render": "node backend/server.js",
     "postinstall": "echo postinstall"
@@ -28,7 +28,10 @@
     "socket.io": "^4.7.5",
     "socket.io-client": "^4.7.5",
     "sql.js": "^1.13.0",
-    "sqlite3": "^5.1.7"
+    "sqlite3": "^5.1.7",
+    "@libsql/client": "^0.14.0",
+    "cloudinary": "^2.5.1",
+    "multer": "^1.4.5-lts.1"
   },
   "devDependencies": {
     "@types/jsonwebtoken": "^9.0.6",

@@ -226,15 +226,14 @@ export default function Invoice({ cart, total, onClose, onSuccess }) {
         <body>
           <div class="receipt">
             <div class="logo">
-              <img src="/logo.png?v=${Date.now()}" alt="شعار المتجر" onerror="this.src='/assets/logo.png'; this.onerror=function(){this.style.display='none'; this.nextElementSibling.style.display='block';};" />
+              <img src="/invoice-header.png?v=${Date.now()}" alt="شعار المتجر" onerror="this.onerror=null; this.src='/logo.png';" />
               <div class="logo-fallback" style="display: none;">🏪 ${storeName}</div>
             </div>
             <div class="store-name-ar">${storeName}</div>
             <div class="subtitle">${storeNameEn}</div>
-            <div class="title">${headerText}</div>
             <div class="subtitle">رقم: ${dailyNo}</div>
             <div class="subtitle">${new Date().toLocaleString('ar-LY')}</div>
-            <div class="subtitle">الحالة: ${isPaid ? 'مدفوع' : 'قيد الإنجاز'}</div>
+            <div class="subtitle">الحالة: ${isPaid ? 'تم الدفع' : 'غير خالص'}</div>
             
             <div class="separator"></div>
             

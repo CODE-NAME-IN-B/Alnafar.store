@@ -104,7 +104,6 @@ export default function Admin() {
                   { id: 'daily-report', label: 'الجرد اليومي', icon: '📈' },
                   { id: 'invoice-settings', label: 'إعدادات الفاتورة', icon: '🖨️' },
                   { id: 'orders', label: 'الطلبات', icon: '📋' },
-                  { id: 'settings', label: 'الإعدادات', icon: '⚙️' },
                   { id: 'stats', label: 'الإحصائيات', icon: '📊' },
                   ...(currentUser?.role === 'admin' ? [{ id: 'users', label: 'الإدمن', icon: '🛡️' }] : [])
                 ].map(({ id, label, icon }) => (
@@ -133,7 +132,6 @@ export default function Admin() {
               {tab === 'daily-report' && <DailyReportTab />}
               {tab === 'invoice-settings' && <InvoiceSettings />}
               {tab === 'orders' && <OrdersTab />}
-              {tab === 'settings' && <SettingsTab />}
               {tab === 'stats' && <StatsTab />}
               {tab === 'users' && currentUser?.role === 'admin' && <UsersTab />}
             </div>

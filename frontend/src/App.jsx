@@ -90,15 +90,12 @@ export default function App() {
   const [splitOnly, setSplitOnly] = useState(false) // kept for logic compatibility, UI removed below
   const [letterFilter, setLetterFilter] = useState('')
   const [customerPhone, setCustomerPhone] = useState('')
-  const [settings, setSettings] = useState({ whatsapp_number: '', default_message: '' })
   const [showLogin, setShowLogin] = useState(false)
   const [loginForm, setLoginForm] = useState({ username: '', password: '' })
   const [loginLoading, setLoginLoading] = useState(false)
   const [showInvoice, setShowInvoice] = useState(false)
   const [showMobileCart, setShowMobileCart] = useState(false)
 
-  // whether telegram is actually ready to be used (enabled and tokens present)
-  const telegramConfigured = (settings && settings.communication_method === 'telegram' && settings.telegram_enabled && settings.telegram_bot_token && settings.telegram_chat_id)
 
   useEffect(() => {
     const onHash = () => setRoute(window.location.hash || '#/')
@@ -127,7 +124,6 @@ export default function App() {
 
   useEffect(() => {
     api.get('/categories').then(r => { setCategories(r.data); if (!activeCategory && r.data?.length) setActiveCategory(String(r.data[0].id)) })
-    api.get('/settings').then(r => setSettings(r.data || { whatsapp_number: '', default_message: '' }))
   }, [])
 
   useEffect(() => {
@@ -502,7 +498,7 @@ export default function App() {
           <div className="grid md:grid-cols-2 gap-4 sm:gap-6 items-center">
             <div className="order-2 md:order-1">
               <h1 className="text-2xl sm:text-3xl md:text-4xl font-extrabold mb-2 sm:mb-3 text-center md:text-right">اختر الألعاب التي تريدها</h1>
-              <p className="text-gray-300 mb-4 text-sm sm:text-base text-center md:text-right leading-relaxed">تصفح أفضل الألعاب لأجهزة PS و PC وأضفها إلى سلتك ثم أرسل الطلب عبر واتساب.</p>
+              <p className="text-gray-300 mb-4 text-sm sm:text-base text-center md:text-right leading-relaxed">تصفح أفضل الألعاب لأجهزة PS و PC وأضفها إلى سلتك ثم اصدر الفاتورة مباشرة.</p>
               
               {/* Desktop Search */}
               <div className="hidden md:block mb-4">
