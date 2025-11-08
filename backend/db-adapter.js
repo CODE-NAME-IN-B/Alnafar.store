@@ -113,13 +113,19 @@ async function exec(sql) {
     }
 
     // Fallback: تقسيم الاستعلامات وتنفيذها واحداً تلو الآخر مع تتبع الأخطاء
-    const statements = sql.split(';').filter(s => s.trim());
-    for (const stmt of statements) {
-      const trimmed = stmt.trim();
-      if (!trimmed) continue;
+    const statements = sql
+      .split(';')
+      .map(stmt => stmt.replace(/--.*$/gm, '').replace(/\/\*[\s\S]*?\*\//g, '').trim())
+      .filter(Boolean);
+    for (const trimmed of statements) {
       try {
         await dbClient.execute(trimmed);
       } catch (error) {
+        const message = (error?.message || '').toLowerCase();
+        if (message.includes('duplicate column name') || message.includes('already exists')) {
+          console.warn('[DB] Turso statement skipped (already applied):', trimmed);
+          continue;
+        }
         console.error('[DB] Turso statement failed:', trimmed);
         console.error('[DB] Error:', error?.message || error);
         throw error;
