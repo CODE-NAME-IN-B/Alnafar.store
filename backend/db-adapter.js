@@ -98,11 +98,27 @@ async function run(sql, params = []) {
 // تنفيذ استعلامات متعددة (للإنشاء الأولي للجداول)
 async function exec(sql) {
   if (dbType === 'turso') {
-    // تقسيم الاستعلامات وتنفيذها واحداً تلو الآخر
+    try {
+      if (typeof dbClient.executeMultiple === 'function') {
+        await dbClient.executeMultiple(sql);
+        return;
+      }
+    } catch (error) {
+      console.error('[DB] Turso executeMultiple failed:', error?.message || error);
+      throw error;
+    }
+
+    // Fallback: تقسيم الاستعلامات وتنفيذها واحداً تلو الآخر مع تتبع الأخطاء
     const statements = sql.split(';').filter(s => s.trim());
     for (const stmt of statements) {
-      if (stmt.trim()) {
-        await dbClient.execute(stmt.trim());
+      const trimmed = stmt.trim();
+      if (!trimmed) continue;
+      try {
+        await dbClient.execute(trimmed);
+      } catch (error) {
+        console.error('[DB] Turso statement failed:', trimmed);
+        console.error('[DB] Error:', error?.message || error);
+        throw error;
       }
     }
   } else {
