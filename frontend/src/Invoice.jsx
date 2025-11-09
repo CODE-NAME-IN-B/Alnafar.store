@@ -279,14 +279,6 @@ export default function Invoice({ cart, total, onClose, onSuccess }) {
               <span class="total-value">${currency(total - discount)}</span>
             </div>
             
-            ${showStoreInfo && (storeAddr || storePhone || storeEmail || storeWeb) ? `
-            <div class="separator"></div>
-            <div class="section-title">معلومات المتجر</div>
-            ${storeAddr ? `<div class="info-row"><span class="info-label">العنوان:</span><span class="info-value">${storeAddr}</span></div>` : ''}
-            ${storePhone ? `<div class="info-row"><span class="info-label">الهاتف:</span><span class="info-value">${storePhone}</span></div>` : ''}
-            ${storeEmail ? `<div class="info-row"><span class="info-label">البريد:</span><span class="info-value">${storeEmail}</span></div>` : ''}
-            ${storeWeb ? `<div class="info-row"><span class="info-label">الموقع:</span><span class="info-value">${storeWeb}</span></div>` : ''}
-            ` : ''}
             
             ${showFooter && footerMsg ? `
             <div class="footer">
