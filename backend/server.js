@@ -496,30 +496,31 @@ function checkDatabaseHealth() {
 }
 
 // دالة للحصول على رقم الفاتورة اليومي التسلسلي (ذرية بدون معاملات يدوية)
-function getDailyInvoiceNumber() {
+async function getDailyInvoiceNumber() {
   const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
-
   const todayNoDash = today.replace(/-/g, '');
 
   // تأكد من وجود سجل اليوم
-  const exists = get('SELECT last_invoice_number FROM daily_invoices WHERE date = ?', [today]);
-  if (!exists || exists.last_invoice_number === undefined) {
-    run('INSERT OR IGNORE INTO daily_invoices (date, last_invoice_number, total_invoices) VALUES (?, 0, 0)', [today]);
-  }
+  await run('INSERT OR IGNORE INTO daily_invoices (date, last_invoice_number, total_invoices) VALUES (?, 0, 0)', [today]);
 
-  // احصل على آخر رقم مسجل فعلياً في جدول الفواتير لليوم
-  const lastRow = get(
+  // احصل على آخر رقم فعلي في فواتير اليوم (لأغراض السجل فقط)
+  const lastRow = await get(
     `SELECT MAX(CAST(substr(invoice_number, instr(invoice_number, '-') + 1) AS INTEGER)) AS last
      FROM invoices WHERE invoice_number LIKE ?`,
     [`${todayNoDash}-%`]
   );
-  const lastFromInvoices = lastRow && lastRow.last ? parseInt(lastRow.last) : 0;
+  const lastFromInvoices = lastRow && lastRow.last ? parseInt(lastRow.last, 10) : 0;
 
-  // الرقم الحالي في daily_invoices
-  // نعتمد فقط على آخر رقم فعلي في فواتير اليوم لتفادي أي عدم تزامن
-  const base = lastFromInvoices;
-  const nextNumber = base + 1;
-  run('UPDATE daily_invoices SET last_invoice_number = ?, updated_at = CURRENT_TIMESTAMP WHERE date = ?', [nextNumber, today]);
+  // زيادة ذرّية للعداد وإرجاع الرقم الجديد (آمن للتزامن)
+  let ret;
+  try {
+    ret = await get('UPDATE daily_invoices SET last_invoice_number = last_invoice_number + 1, updated_at = CURRENT_TIMESTAMP WHERE date = ? RETURNING last_invoice_number', [today]);
+  } catch (_) {
+    // في حال عدم دعم RETURNING (بيئة SQLite قديمة)، استخدم تحديث ثم استعلام
+    await run('UPDATE daily_invoices SET last_invoice_number = last_invoice_number + 1, updated_at = CURRENT_TIMESTAMP WHERE date = ?', [today]);
+    ret = await get('SELECT last_invoice_number FROM daily_invoices WHERE date = ?', [today]);
+  }
+  const nextNumber = ret && ret.last_invoice_number ? parseInt(ret.last_invoice_number, 10) : (lastFromInvoices + 1);
 
   const formattedNumber = String(nextNumber).padStart(3, '0');
   const fullNumber = `${todayNoDash}-${formattedNumber}`;
@@ -1617,7 +1618,7 @@ app.post('/api/invoices', async (req, res) => {
     // الحصول على رقم الفاتورة اليومي التسلسلي مع معالجة الأخطاء
     let invoiceNumberResult;
     try {
-      invoiceNumberResult = getDailyInvoiceNumber();
+      invoiceNumberResult = await getDailyInvoiceNumber();
       if (!invoiceNumberResult || !invoiceNumberResult.fullNumber) {
         throw new Error('فشل في الحصول على رقم الفاتورة');
       }
@@ -1639,7 +1640,7 @@ app.post('/api/invoices', async (req, res) => {
 
     // حفظ الفاتورة في قاعدة البيانات مع معالجة الأخطاء
     try {
-      run(`INSERT INTO invoices (
+      await run(`INSERT INTO invoices (
         invoice_number, customer_name, customer_phone, customer_address, 
         customer_notes, items, total, discount, final_total, status, created_at
       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`, [
@@ -1662,10 +1663,10 @@ app.post('/api/invoices', async (req, res) => {
       if (dbError.message && dbError.message.includes('UNIQUE constraint failed')) {
         console.log('تضارب في رقم الفاتورة، محاولة الحصول على رقم جديد...');
         try {
-          const newNumberResult = getDailyInvoiceNumber();
+          const newNumberResult = await getDailyInvoiceNumber();
           const newFullNumber = newNumberResult.fullNumber;
           
-          run(`INSERT INTO invoices (
+          await run(`INSERT INTO invoices (
             invoice_number, customer_name, customer_phone, customer_address, 
             customer_notes, items, total, discount, final_total, status, created_at
           ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`, [
