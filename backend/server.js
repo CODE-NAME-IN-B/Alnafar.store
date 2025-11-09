@@ -516,17 +516,14 @@ function getDailyInvoiceNumber() {
   const lastFromInvoices = lastRow && lastRow.last ? parseInt(lastRow.last) : 0;
 
   // الرقم الحالي في daily_invoices
-  const current = get('SELECT last_invoice_number FROM daily_invoices WHERE date = ?', [today]);
-  const currentCounter = current && current.last_invoice_number ? current.last_invoice_number : 0;
-
-  // اختر الأعلى لمنع القفزات، ثم زد بمقدار 1
-  const base = Math.max(lastFromInvoices, currentCounter);
+  // نعتمد فقط على آخر رقم فعلي في فواتير اليوم لتفادي أي عدم تزامن
+  const base = lastFromInvoices;
   const nextNumber = base + 1;
   run('UPDATE daily_invoices SET last_invoice_number = ?, updated_at = CURRENT_TIMESTAMP WHERE date = ?', [nextNumber, today]);
 
   const formattedNumber = String(nextNumber).padStart(3, '0');
   const fullNumber = `${todayNoDash}-${formattedNumber}`;
-  console.log(`✅ ترقيم اليوم ${today}: invoices=${lastFromInvoices}, counter=${currentCounter} => النهائي ${fullNumber}`);
+  console.log(`✅ ترقيم اليوم ${today}: invoices=${lastFromInvoices} => النهائي ${fullNumber}`);
   return { dailyNumber: nextNumber, fullNumber };
 }
 
