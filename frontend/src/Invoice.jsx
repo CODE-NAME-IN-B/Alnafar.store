@@ -85,10 +85,12 @@ export default function Invoice({ cart, total, onClose, onSuccess }) {
       const showFooter = !!Number(invSettings?.show_footer ?? 1)
       const defaultStoreName = 'الشارده للإلكترونيات'
       const defaultStoreNameEn = 'Alnafar Store'
+      const defaultStoreAddr = 'شارع القضائيه مقابل مطحنة الفضيل'
+      const defaultStorePhone = '0920595447'
       const storeName = (invSettings?.store_name || '').trim() || defaultStoreName
       const storeNameEn = (invSettings?.store_name_english || '').trim() || defaultStoreNameEn
-      const storeAddr = invSettings?.store_address || ''
-      const storePhone = invSettings?.store_phone || ''
+      const storeAddr = (invSettings?.store_address || '').trim() || defaultStoreAddr
+      const storePhone = (invSettings?.store_phone || '').trim() || defaultStorePhone
       const storeEmail = invSettings?.store_email || ''
       const storeWeb = invSettings?.store_website || ''
       const footerMsg = invSettings?.footer_message || 'شكراً لتسوقكم معنا'
