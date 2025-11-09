@@ -231,6 +231,7 @@ export default function Invoice({ cart, total, onClose, onSuccess }) {
             </div>
             <div class="store-name-ar">${storeName}</div>
             <div class="subtitle">${storeNameEn}</div>
+            ${storeAddr ? `<div class="subtitle">${storeAddr}</div>` : ''}
             <div class="subtitle">رقم: ${dailyNo}</div>
             <div class="subtitle">${new Date().toLocaleString('ar-LY')}</div>
             <div class="subtitle">الحالة: ${isPaid ? 'تم الدفع' : 'غير خالص'}</div>
