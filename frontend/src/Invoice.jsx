@@ -94,7 +94,7 @@ export default function Invoice({ cart, total, onClose, onSuccess }) {
       const footerMsg = invSettings?.footer_message || 'شكراً لتسوقكم معنا'
 
       const dailyNo = fullNumber && fullNumber.includes('-')
-        ? String(parseInt(fullNumber.split('-')[1], 10))
+        ? String((fullNumber.split('-')[1] || '')).padStart(3, '0')
         : fullNumber
 
       const invoiceHTML = `
@@ -231,7 +231,8 @@ export default function Invoice({ cart, total, onClose, onSuccess }) {
             </div>
             <div class="store-name-ar">${storeName}</div>
             <div class="subtitle">${storeNameEn}</div>
-            ${storeAddr ? `<div class="subtitle">${storeAddr}</div>` : ''}
+            ${storeAddr ? `<div class="subtitle">📍 ${storeAddr}</div>` : ''}
+            ${storePhone ? `<div class="subtitle">📞 ${storePhone}</div>` : ''}
             <div class="subtitle">رقم: ${dailyNo}</div>
             <div class="subtitle">${new Date().toLocaleString('ar-LY')}</div>
             <div class="subtitle">الحالة: ${isPaid ? 'تم الدفع' : 'غير خالص'}</div>
