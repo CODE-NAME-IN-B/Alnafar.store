@@ -149,8 +149,8 @@ export default function Invoice({ cart, total, onClose, onSuccess }) {
               margin-bottom: 0px;
             }
             .subtitle.store-contact { 
-              font-size: ${fontSize}; 
-              font-weight: 600;
+              font-size: calc(${fontSize} + 2px); 
+              font-weight: 700;
               margin: 0.5px 0;
             }
             .section-title { 

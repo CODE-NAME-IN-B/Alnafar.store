@@ -511,16 +511,11 @@ async function getDailyInvoiceNumber() {
   );
   const lastFromInvoices = lastRow && lastRow.last ? parseInt(lastRow.last, 10) : 0;
 
-  // زيادة ذرّية للعداد وإرجاع الرقم الجديد (آمن للتزامن)
-  let ret;
+  // نعتمد فقط على آخر فاتورة فعلية لليوم لضمان البدء من 1 بعد الحذف حتى لو كان عداد daily_invoices قديماً
+  const nextNumber = (lastFromInvoices || 0) + 1;
   try {
-    ret = await get('UPDATE daily_invoices SET last_invoice_number = last_invoice_number + 1, updated_at = CURRENT_TIMESTAMP WHERE date = ? RETURNING last_invoice_number', [today]);
-  } catch (_) {
-    // في حال عدم دعم RETURNING (بيئة SQLite قديمة)، استخدم تحديث ثم استعلام
-    await run('UPDATE daily_invoices SET last_invoice_number = last_invoice_number + 1, updated_at = CURRENT_TIMESTAMP WHERE date = ?', [today]);
-    ret = await get('SELECT last_invoice_number FROM daily_invoices WHERE date = ?', [today]);
-  }
-  const nextNumber = ret && ret.last_invoice_number ? parseInt(ret.last_invoice_number, 10) : (lastFromInvoices + 1);
+    await run('UPDATE daily_invoices SET last_invoice_number = ?, updated_at = CURRENT_TIMESTAMP WHERE date = ?', [nextNumber, today]);
+  } catch (_) { /* ignore */ }
 
   const formattedNumber = String(nextNumber).padStart(3, '0');
   const fullNumber = `${todayNoDash}-${formattedNumber}`;
@@ -1952,16 +1947,19 @@ app.delete('/api/invoices/:id', authMiddleware, (req, res) => {
 });
 
 // حذف فواتير اليوم فقط
-app.delete('/api/invoices/today', authMiddleware, (req, res) => {
+app.delete('/api/invoices/today', authMiddleware, async (req, res) => {
   try {
     const today = new Date().toISOString().split('T')[0];
-    const count = get('SELECT COUNT(*) as count FROM invoices WHERE DATE(created_at) = ?', [today]).count;
-    run('DELETE FROM invoices WHERE DATE(created_at) = ?', [today]);
+    const result = await get('SELECT COUNT(*) as count FROM invoices WHERE DATE(created_at) = ?', [today]);
+    const count = result?.count || 0;
+    await run('DELETE FROM invoices WHERE DATE(created_at) = ?', [today]);
+    // إعادة ضبط عداد اليوم أيضاً لضمان بدء الترقيم من 001
+    await run('DELETE FROM daily_invoices WHERE date = ?', [today]);
     // إعادة احتساب الجرد لليوم
     recomputeDailyStats(today);
     res.json({
       success: true,
-      message: `تم حذف ${count} من فواتير اليوم (${today}) بنجاح`,
+      message: `تم حذف ${count} من فواتير اليوم (${today}) بنجاح` ,
       deletedCount: count,
       date: today
     });
