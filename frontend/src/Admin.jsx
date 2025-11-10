@@ -309,190 +309,6 @@ function OrdersTab() {
   )
 }
 
-function SettingsTab() {
-  const [form, setForm] = useState({ 
-    whatsapp_number: '', 
-    default_message: '',
-    telegram_bot_token: '',
-    telegram_chat_id: '',
-    telegram_username: '',
-    telegram_enabled: false,
-    communication_method: 'telegram'
-  })
-  
-  async function load() { 
-    const { data } = await api.get('/settings'); 
-    setForm(data || { 
-      whatsapp_number: '', 
-      default_message: '',
-      telegram_bot_token: '',
-      telegram_chat_id: '',
-      telegram_username: '',
-      telegram_enabled: false,
-      communication_method: 'telegram'
-    }) 
-  }
-  
-  useEffect(() => { load() }, [])
-  
-  async function save() { 
-    await api.put('/settings', form); 
-    alert('تم حفظ الإعدادات بنجاح!') 
-  }
-  
-  return (
-    <div className="p-8">
-      <div className="mb-8">
-        <h2 className="text-3xl font-bold text-white mb-2">إعدادات النظام</h2>
-        <p className="text-gray-400">تكوين إعدادات الواتساب والتيليجرام</p>
-      </div>
-      
-      {/* Communication Method Selection */}
-      <div className="bg-gradient-to-br from-gray-800 to-gray-900 p-8 rounded-2xl border border-gray-700 shadow-2xl mb-8">
-        <div className="flex items-center mb-6">
-          <div className="w-12 h-12 bg-gradient-to-r from-purple-500 to-purple-600 rounded-xl flex items-center justify-center mr-4">
-            <span className="text-2xl">⚙️</span>
-          </div>
-          <h3 className="text-2xl font-bold text-white">طريقة التواصل</h3>
-        </div>
-        
-        <div className="space-y-4">
-          <div className="flex items-center space-x-4 space-x-reverse">
-            <input 
-              type="radio" 
-              id="telegram_method"
-              name="communication_method"
-              value="telegram"
-              className="w-5 h-5 text-blue-600 bg-gray-700 border-gray-600 focus:ring-blue-500"
-              checked={form.communication_method === 'telegram'}
-              onChange={e => setForm({ ...form, communication_method: e.target.value })}
-            />
-            <label htmlFor="telegram_method" className="text-lg font-semibold text-gray-300 flex items-center">
-              <span className="mr-2">✈️</span>
-              التيليجرام (افتراضي)
-            </label>
-          </div>
-          
-          <div className="flex items-center space-x-4 space-x-reverse">
-            <input 
-              type="radio" 
-              id="whatsapp_method"
-              name="communication_method"
-              value="whatsapp"
-              className="w-5 h-5 text-green-600 bg-gray-700 border-gray-600 focus:ring-green-500"
-              checked={form.communication_method === 'whatsapp'}
-              onChange={e => setForm({ ...form, communication_method: e.target.value })}
-            />
-            <label htmlFor="whatsapp_method" className="text-lg font-semibold text-gray-300 flex items-center">
-              <span className="mr-2">📱</span>
-              الواتساب
-            </label>
-          </div>
-        </div>
-      </div>
-      
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-        {/* WhatsApp Settings */}
-        <div className="bg-gradient-to-br from-gray-800 to-gray-900 p-8 rounded-2xl border border-gray-700 shadow-2xl">
-          <div className="flex items-center mb-6">
-            <div className="w-12 h-12 bg-gradient-to-r from-green-500 to-green-600 rounded-xl flex items-center justify-center mr-4">
-              <span className="text-2xl">📱</span>
-            </div>
-            <h3 className="text-2xl font-bold text-white">إعدادات الواتساب</h3>
-          </div>
-          
-          <div className="space-y-6">
-            <div>
-              <label className="block text-sm font-semibold text-gray-300 mb-2">رقم الواتساب</label>
-              <input 
-                className="w-full bg-gray-700 border border-gray-600 rounded-xl px-4 py-3 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all duration-300" 
-                placeholder="+218xxxxxxxxx" 
-                value={form.whatsapp_number || ''} 
-                onChange={e => setForm({ ...form, whatsapp_number: e.target.value })} 
-              />
-            </div>
-            
-            <div>
-              <label className="block text-sm font-semibold text-gray-300 mb-2">نص الرسالة الافتراضي</label>
-              <textarea 
-                className="w-full bg-gray-700 border border-gray-600 rounded-xl px-4 py-3 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all duration-300 h-24 resize-none" 
-                placeholder="مرحباً! أريد طلب هذه الألعاب..." 
-                value={form.default_message || ''} 
-                onChange={e => setForm({ ...form, default_message: e.target.value })} 
-              />
-            </div>
-          </div>
-        </div>
-
-        {/* Telegram Settings */}
-        <div className="bg-gradient-to-br from-gray-800 to-gray-900 p-8 rounded-2xl border border-gray-700 shadow-2xl">
-          <div className="flex items-center mb-6">
-            <div className="w-12 h-12 bg-gradient-to-r from-blue-500 to-blue-600 rounded-xl flex items-center justify-center mr-4">
-              <span className="text-2xl">✈️</span>
-            </div>
-            <h3 className="text-2xl font-bold text-white">إعدادات التيليجرام</h3>
-          </div>
-          
-          <div className="space-y-6">
-            <div className="flex items-center">
-              <input 
-                type="checkbox" 
-                id="telegram_enabled"
-                className="w-5 h-5 text-blue-600 bg-gray-700 border-gray-600 rounded focus:ring-blue-500"
-                checked={form.telegram_enabled || false}
-                onChange={e => setForm({ ...form, telegram_enabled: e.target.checked })}
-              />
-              <label htmlFor="telegram_enabled" className="ml-3 text-sm font-semibold text-gray-300">
-                تفعيل التيليجرام
-              </label>
-            </div>
-            
-            <div>
-              <label className="block text-sm font-semibold text-gray-300 mb-2">Bot Token</label>
-              <input 
-                className="w-full bg-gray-700 border border-gray-600 rounded-xl px-4 py-3 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-300" 
-                placeholder="123456789:ABCdefGHIjklMNOpqrsTUVwxyz" 
-                value={form.telegram_bot_token || ''} 
-                onChange={e => setForm({ ...form, telegram_bot_token: e.target.value })} 
-              />
-            </div>
-            
-            <div>
-              <label className="block text-sm font-semibold text-gray-300 mb-2">Chat ID</label>
-              <input 
-                className="w-full bg-gray-700 border border-gray-600 rounded-xl px-4 py-3 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-300" 
-                placeholder="-1001234567890" 
-                value={form.telegram_chat_id || ''} 
-                onChange={e => setForm({ ...form, telegram_chat_id: e.target.value })} 
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-semibold text-gray-300 mb-2">Telegram Username (optional)</label>
-              <input 
-                className="w-full bg-gray-700 border border-gray-600 rounded-xl px-4 py-3 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-300" 
-                placeholder="@username (مثال: @myuser)" 
-                value={form.telegram_username || ''} 
-                onChange={e => setForm({ ...form, telegram_username: e.target.value })} 
-              />
-              <p className="text-gray-400 text-xs mt-2">يمكن استخدام اسم المستخدم لفتح محادثة تيليجرام في جهاز العميل (يفتح t.me/username) — لا يضمن الإرسال الآلي إلا بوجود توكن البوت و chat_id.</p>
-            </div>
-          </div>
-        </div>
-      </div>
-      
-      <div className="mt-8 flex justify-center">
-        <button 
-          onClick={save} 
-          className="px-8 py-4 bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white font-semibold rounded-xl transition-all duration-300 transform hover:scale-105 shadow-lg"
-        >
-          💾 حفظ الإعدادات
-        </button>
-      </div>
-    </div>
-  )
-}
-
 function StatsTab() {
   const [stats, setStats] = useState({ totalOrders: 0, topGames: [] })
   

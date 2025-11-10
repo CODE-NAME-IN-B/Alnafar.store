@@ -22,16 +22,24 @@ function TopList({ onAdd }) {
         const topGames = r.data?.topGames||[]
         setTop(topGames)
         if (!topGames.length) { setDetails([]); return }
-        // fetch game details for each top game
-        const promises = topGames.map(async t => {
-          try {
-            const res = await api.get(`/games/${t.gameId}`)
-            return { ...res.data, count: t.count }
-          } catch (e) {
-            return { id: t.gameId, title: `لعبة #${t.gameId}`, image: '', price: 0, count: t.count }
+        // fetch game details in one request (batch) preserving order
+        const ids = topGames.map(t => t.gameId).join(',')
+        let rows = []
+        try {
+          const res = await api.get('/games/batch', { params: { ids } })
+          rows = Array.isArray(res.data) ? res.data : []
+        } catch (_) { rows = [] }
+        const map = new Map(rows.map(g => [Number(g.id), g]))
+        const resolved = topGames.map(t => {
+          const g = map.get(Number(t.gameId)) || {}
+          return {
+            id: g.id || t.gameId,
+            title: g.title || `لعبة #${t.gameId}`,
+            image: g.image || '',
+            price: typeof g.price === 'number' ? g.price : 0,
+            count: t.count
           }
         })
-        const resolved = await Promise.all(promises)
         if (!cancelled) setDetails(resolved)
       } catch (e) {
         console.error('Failed to load top list', e)
@@ -757,7 +765,7 @@ export default function App() {
           </div>
 
           {/* Top Games Section - Hidden on mobile, shown on larger screens */}
-          <div className="hidden lg:block bg-card rounded-xl shadow-sm border border-white/10 p-4 sm:p-5 max-h-[60vh] overflow-auto toplist-scroll">
+          <div className="hidden lg:block bg-card rounded-xl shadow-sm border border-white/10 p-4 sm:p-5 h-[60vh] overflow-auto toplist-scroll">
             <h2 className="text-lg sm:text-xl font-bold mb-3 sm:mb-4">الأكثر طلباً</h2>
             <TopList onAdd={addToCart} />
           </div>

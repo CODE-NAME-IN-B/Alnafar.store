@@ -981,83 +981,83 @@ app.post('/api/auth/login', async (req, res) => {
   }
 });
 
-app.get('/api/auth/me', authMiddleware, (req, res) => {
+app.get('/api/auth/me', authMiddleware, async (req, res) => {
   try {
-    const user = get('SELECT id, username, role, created_at FROM users WHERE id = ?', [req.user.id]);
+    const user = await get('SELECT id, username, role, created_at FROM users WHERE id = ?', [req.user.id]);
     if (!user || !user.id) return res.status(404).json({ message: 'User not found' });
     res.json({ user });
   } catch (e) {
-    res.status(500).json({ message: 'Failed to fetch profile', error: e.message });
+    res.status(500).json({ message: 'Failed to get user info', error: e.message });
   }
 });
 
 // Users management (admin only)
-app.get('/api/users', authMiddleware, requireAdmin, (req, res) => {
+app.get('/api/users', authMiddleware, requireAdmin, async (req, res) => {
   try {
-    const rows = all('SELECT id, username, role, created_at FROM users ORDER BY id DESC');
+    const rows = await all('SELECT id, username, role, created_at FROM users ORDER BY id DESC');
     res.json({ users: rows });
   } catch (e) {
     res.status(500).json({ message: 'Failed to fetch users', error: e.message });
   }
 });
 
-app.post('/api/users', authMiddleware, requireAdmin, (req, res) => {
+app.post('/api/users', authMiddleware, requireAdmin, async (req, res) => {
   try {
     const { username, password, role = 'staff' } = req.body || {};
     if (!username || !password) return res.status(400).json({ message: 'username and password are required' });
-    const exists = get('SELECT id FROM users WHERE username = ?', [username]);
+    const exists = await get('SELECT id FROM users WHERE username = ?', [username]);
     if (exists && exists.id) return res.status(409).json({ message: 'Username already exists' });
     const hashed = bcrypt.hashSync(password, 10);
-    run('INSERT INTO users (username, password, role) VALUES (?, ?, ?)', [username, hashed, role]);
-    const created = get('SELECT id, username, role, created_at FROM users WHERE username = ?', [username]);
+    await run('INSERT INTO users (username, password, role) VALUES (?, ?, ?)', [username, hashed, role]);
+    const created = await get('SELECT id, username, role, created_at FROM users WHERE username = ?', [username]);
     res.status(201).json({ success: true, user: created });
   } catch (e) {
     res.status(500).json({ message: 'Failed to create user', error: e.message });
   }
 });
 
-app.put('/api/users/:id', authMiddleware, requireAdmin, (req, res) => {
+app.put('/api/users/:id', authMiddleware, requireAdmin, async (req, res) => {
   try {
     const { id } = req.params;
     const { username, role } = req.body || {};
-    const user = get('SELECT * FROM users WHERE id = ?', [id]);
+    const user = await get('SELECT * FROM users WHERE id = ?', [id]);
     if (!user || !user.id) return res.status(404).json({ message: 'User not found' });
     if (username && username !== user.username) {
-      const dupe = get('SELECT id FROM users WHERE username = ? AND id != ?', [username, id]);
+      const dupe = await get('SELECT id FROM users WHERE username = ? AND id != ?', [username, id]);
       if (dupe && dupe.id) return res.status(409).json({ message: 'Username already exists' });
     }
-    run('UPDATE users SET username = COALESCE(?, username), role = COALESCE(?, role) WHERE id = ?', [username || null, role || null, id]);
-    const updated = get('SELECT id, username, role, created_at FROM users WHERE id = ?', [id]);
+    await run('UPDATE users SET username = COALESCE(?, username), role = COALESCE(?, role) WHERE id = ?', [username || null, role || null, id]);
+    const updated = await get('SELECT id, username, role, created_at FROM users WHERE id = ?', [id]);
     res.json({ success: true, user: updated });
   } catch (e) {
     res.status(500).json({ message: 'Failed to update user', error: e.message });
   }
 });
 
-app.put('/api/users/:id/password', authMiddleware, requireAdmin, (req, res) => {
+app.put('/api/users/:id/password', authMiddleware, requireAdmin, async (req, res) => {
   try {
     const { id } = req.params;
     const { password } = req.body || {};
     if (!password || String(password).length < 6) return res.status(400).json({ message: 'Password must be at least 6 characters' });
-    const user = get('SELECT * FROM users WHERE id = ?', [id]);
+    const user = await get('SELECT * FROM users WHERE id = ?', [id]);
     if (!user || !user.id) return res.status(404).json({ message: 'User not found' });
     const hashed = bcrypt.hashSync(password, 10);
-    run('UPDATE users SET password = ? WHERE id = ?', [hashed, id]);
+    await run('UPDATE users SET password = ? WHERE id = ?', [hashed, id]);
     res.json({ success: true });
   } catch (e) {
     res.status(500).json({ message: 'Failed to update password', error: e.message });
   }
 });
 
-app.delete('/api/users/:id', authMiddleware, requireAdmin, (req, res) => {
+app.delete('/api/users/:id', authMiddleware, requireAdmin, async (req, res) => {
   try {
     const { id } = req.params;
     if (String(req.user.id) === String(id)) {
       return res.status(400).json({ message: 'Cannot delete your own account' });
     }
-    const user = get('SELECT * FROM users WHERE id = ?', [id]);
+    const user = await get('SELECT * FROM users WHERE id = ?', [id]);
     if (!user || !user.id) return res.status(404).json({ message: 'User not found' });
-    run('DELETE FROM users WHERE id = ?', [id]);
+    await run('DELETE FROM users WHERE id = ?', [id]);
     res.json({ success: true });
   } catch (e) {
     res.status(500).json({ message: 'Failed to delete user', error: e.message });
@@ -1344,11 +1344,35 @@ app.get('/api/games', async (req, res) => {
   }
 });
 
-app.get('/api/games/:id', (req, res) => {
-  const row = get('SELECT * FROM games WHERE id = ?', [req.params.id]);
-  if (!row) return res.status(404).json({ message: 'Not found' });
-  res.json(row);
+// Batch fetch games by IDs (for TopList efficiency)
+app.get('/api/games/batch', async (req, res) => {
+  try {
+    const idsParam = (req.query.ids || '').toString();
+    const ids = idsParam
+      .split(',')
+      .map(s => parseInt(s, 10))
+      .filter(n => Number.isFinite(n));
+    if (ids.length === 0) return res.json([]);
+    const placeholders = ids.map(() => '?').join(',');
+    const rows = await all(`SELECT id, title, image, price FROM games WHERE id IN (${placeholders})`, ids);
+    res.json(rows);
+  } catch (e) {
+    res.status(500).json({ error: 'Failed to fetch games batch', message: e.message });
+  }
 });
+
+app.get('/api/games/:id', async (req, res) => {
+  try {
+    const row = await get('SELECT * FROM games WHERE id = ?', [req.params.id]);
+    if (!row || !row.id) return res.status(404).json({ message: 'Not found' });
+    res.json(row);
+  } catch (e) {
+    res.status(500).json({ error: 'Failed to fetch game', message: e.message });
+  }
+});
+
+// Batch fetch games by IDs (for TopList efficiency)
+ 
 
 app.post('/api/games', authMiddleware, (req, res) => {
   const { title, image, description, price, category_id, genre, series, features } = req.body;
@@ -1808,19 +1832,20 @@ app.post('/api/print-invoice', async (req, res) => {
 });
 
 // الحصول على جميع الفواتير (للمدير)
-app.get('/api/invoices', authMiddleware, (req, res) => {
+app.get('/api/invoices', authMiddleware, async (req, res) => {
   try {
     const page = parseInt(req.query.page) || 1;
     const limit = parseInt(req.query.limit) || 50;
     const offset = (page - 1) * limit;
 
-    const invoices = all(`
+    const invoices = await all(`
       SELECT * FROM invoices 
       ORDER BY created_at DESC 
       LIMIT ? OFFSET ?
     `, [limit, offset]);
 
-    const total = get('SELECT COUNT(*) as count FROM invoices').count;
+    const totalResult = await get('SELECT COUNT(*) as count FROM invoices');
+    const total = totalResult.count || 0;
 
     res.json({
       invoices: invoices.map(invoice => ({
@@ -1842,12 +1867,12 @@ app.get('/api/invoices', authMiddleware, (req, res) => {
 });
 
 // الحصول على فاتورة محددة
-app.get('/api/invoices/:invoiceNumber', (req, res) => {
+app.get('/api/invoices/:invoiceNumber', async (req, res) => {
   try {
     const { invoiceNumber } = req.params;
-    const invoice = get('SELECT * FROM invoices WHERE invoice_number = ?', [invoiceNumber]);
+    const invoice = await get('SELECT * FROM invoices WHERE invoice_number = ?', [invoiceNumber]);
 
-    if (!invoice) {
+    if (!invoice || !invoice.id) {
       return res.status(404).json({ message: 'الفاتورة غير موجودة' });
     }
 
@@ -1863,7 +1888,7 @@ app.get('/api/invoices/:invoiceNumber', (req, res) => {
 });
 
 // تعديل فاتورة
-app.put('/api/invoices/:id', authMiddleware, (req, res) => {
+app.put('/api/invoices/:id', authMiddleware, async (req, res) => {
   try {
     const { id } = req.params;
     const {
@@ -1876,12 +1901,12 @@ app.put('/api/invoices/:id', authMiddleware, (req, res) => {
       status
     } = req.body;
 
-    const invoice = get('SELECT * FROM invoices WHERE id = ?', [id]);
+    const invoice = await get('SELECT * FROM invoices WHERE id = ?', [id]);
     if (!invoice || !invoice.id) {
       return res.status(404).json({ success: false, message: 'الفاتورة غير موجودة' });
     }
 
-    run(`UPDATE invoices SET 
+    await run(`UPDATE invoices SET 
       customer_name = ?, 
       customer_phone = ?, 
       customer_address = ?, 
@@ -1900,7 +1925,7 @@ app.put('/api/invoices/:id', authMiddleware, (req, res) => {
       id
     ]);
 
-    const updated = get('SELECT * FROM invoices WHERE id = ?', [id]);
+    const updated = await get('SELECT * FROM invoices WHERE id = ?', [id]);
     res.json({
       success: true,
       message: 'تم تحديث الفاتورة بنجاح',
@@ -1918,16 +1943,16 @@ app.put('/api/invoices/:id', authMiddleware, (req, res) => {
 });
 
 // حذف فاتورة
-app.delete('/api/invoices/:id', authMiddleware, (req, res) => {
+app.delete('/api/invoices/:id', authMiddleware, async (req, res) => {
   try {
     const { id } = req.params;
     
-    const invoice = get('SELECT * FROM invoices WHERE id = ?', [id]);
+    const invoice = await get('SELECT * FROM invoices WHERE id = ?', [id]);
     if (!invoice || !invoice.id) {
       return res.status(404).json({ success: false, message: 'الفاتورة غير موجودة' });
     }
 
-    run('DELETE FROM invoices WHERE id = ?', [id]);
+    await run('DELETE FROM invoices WHERE id = ?', [id]);
     // إعادة احتساب الجرد لليوم الموافق لتاريخ هذه الفاتورة
     try {
       const dateStr = (invoice.created_at || '').slice(0,10) || new Date().toISOString().split('T')[0];
@@ -2005,12 +2030,12 @@ app.delete('/api/invoices', authMiddleware, async (req, res) => {
 });
 
 // الحصول على الجرد اليومي
-app.get('/api/daily-report/:date?', authMiddleware, (req, res) => {
+app.get('/api/daily-report/:date?', authMiddleware, async (req, res) => {
   try {
     const date = req.params.date || new Date().toISOString().split('T')[0];
     
     // الحصول على بيانات اليوم
-    const dailyRecord = get('SELECT * FROM daily_invoices WHERE date = ?', [date]);
+    const dailyRecord = await get('SELECT * FROM daily_invoices WHERE date = ?', [date]);
     
     if (!dailyRecord) {
       return res.json({
@@ -2029,7 +2054,7 @@ app.get('/api/daily-report/:date?', authMiddleware, (req, res) => {
     }
     
     // الحصول على فواتير اليوم
-    const invoices = all(`
+    const invoices = await all(`
       SELECT * FROM invoices 
       WHERE DATE(created_at) = ? 
       ORDER BY created_at ASC
@@ -2312,13 +2337,13 @@ app.post('/api/restore-database', authMiddleware, async (req, res) => {
 });
 
 // جلب إعدادات الفاتورة
-app.get('/api/invoice-settings', (req, res) => {
+app.get('/api/invoice-settings', async (req, res) => {
   try {
-    let settings = get('SELECT * FROM invoice_settings ORDER BY id DESC LIMIT 1');
+    let settings = await get('SELECT * FROM invoice_settings ORDER BY id DESC LIMIT 1');
     
     // إذا لم توجد إعدادات، إنشاء إعدادات افتراضية
     if (!settings || Object.keys(settings).length === 0) {
-      run(`INSERT INTO invoice_settings (
+      await run(`INSERT INTO invoice_settings (
         store_name, store_name_english, store_address, store_phone, 
         store_email, store_website, footer_message, header_logo_text,
         show_store_info, show_footer, paper_width, font_size
@@ -2334,7 +2359,7 @@ app.get('/api/invoice-settings', (req, res) => {
         1, 1, 58, 'large'
       ]);
       
-      settings = get('SELECT * FROM invoice_settings ORDER BY id DESC LIMIT 1');
+      settings = await get('SELECT * FROM invoice_settings ORDER BY id DESC LIMIT 1');
     }
 
     res.json({
@@ -2353,7 +2378,7 @@ app.get('/api/invoice-settings', (req, res) => {
 });
 
 // تحديث إعدادات الفاتورة
-app.post('/api/invoice-settings', authMiddleware, (req, res) => {
+app.post('/api/invoice-settings', authMiddleware, async (req, res) => {
   try {
     const {
       store_name,
@@ -2371,11 +2396,11 @@ app.post('/api/invoice-settings', authMiddleware, (req, res) => {
     } = req.body;
 
     // التحقق من وجود إعدادات حالية
-    const existing = get('SELECT * FROM invoice_settings ORDER BY id DESC LIMIT 1');
+    const existing = await get('SELECT * FROM invoice_settings ORDER BY id DESC LIMIT 1');
     
     if (existing && existing.id) {
       // تحديث الإعدادات الموجودة
-      run(`UPDATE invoice_settings SET 
+      await run(`UPDATE invoice_settings SET 
         store_name = ?, store_name_english = ?, store_address = ?, store_phone = ?,
         store_email = ?, store_website = ?, footer_message = ?, header_logo_text = ?,
         show_store_info = ?, show_footer = ?, paper_width = ?, font_size = ?,
@@ -2397,7 +2422,7 @@ app.post('/api/invoice-settings', authMiddleware, (req, res) => {
       ]);
     } else {
       // إنشاء إعدادات جديدة
-      run(`INSERT INTO invoice_settings (
+      await run(`INSERT INTO invoice_settings (
         store_name, store_name_english, store_address, store_phone, 
         store_email, store_website, footer_message, header_logo_text,
         show_store_info, show_footer, paper_width, font_size
