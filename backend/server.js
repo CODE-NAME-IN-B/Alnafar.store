@@ -1976,15 +1976,16 @@ app.delete('/api/invoices/today', authMiddleware, (req, res) => {
 });
 
 // حذف جميع الفواتير
-app.delete('/api/invoices', authMiddleware, (req, res) => {
+app.delete('/api/invoices', authMiddleware, async (req, res) => {
   try {
-    const count = get('SELECT COUNT(*) as count FROM invoices').count;
+    const countResult = await get('SELECT COUNT(*) as count FROM invoices');
+    const count = countResult?.count || 0;
     
-    run('DELETE FROM invoices');
-    run("DELETE FROM sqlite_sequence WHERE name='invoices'");
+    await run('DELETE FROM invoices');
+    await run("DELETE FROM sqlite_sequence WHERE name='invoices'");
     // Clear daily reports as well since invoices are wiped
-    run('DELETE FROM daily_invoices');
-    run("DELETE FROM sqlite_sequence WHERE name='daily_invoices'");
+    await run('DELETE FROM daily_invoices');
+    await run("DELETE FROM sqlite_sequence WHERE name='daily_invoices'");
     
     res.json({
       success: true,

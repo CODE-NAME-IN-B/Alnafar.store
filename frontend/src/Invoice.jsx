@@ -148,6 +148,11 @@ export default function Invoice({ cart, total, onClose, onSuccess }) {
               text-align: center; 
               margin-bottom: 0px;
             }
+            .subtitle.store-contact { 
+              font-size: ${fontSize}; 
+              font-weight: 600;
+              margin: 0.5px 0;
+            }
             .section-title { 
               font-size: ${fontSize}; 
               font-weight: bold; 
@@ -233,8 +238,8 @@ export default function Invoice({ cart, total, onClose, onSuccess }) {
             </div>
             <div class="store-name-ar">${storeName}</div>
             <div class="subtitle">${storeNameEn}</div>
-            ${storeAddr ? `<div class="subtitle">📍 ${storeAddr}</div>` : ''}
-            ${storePhone ? `<div class="subtitle">📞 ${storePhone}</div>` : ''}
+            ${storeAddr ? `<div class="subtitle store-contact">📍 ${storeAddr}</div>` : ''}
+            ${storePhone ? `<div class="subtitle store-contact">📞 ${storePhone}</div>` : ''}
             <div class="subtitle">رقم: ${dailyNo}</div>
             <div class="subtitle">${new Date().toLocaleString('ar-LY')}</div>
             <div class="subtitle">الحالة: ${isPaid ? 'تم الدفع' : 'غير خالص'}</div>
