@@ -968,15 +968,20 @@ function requireAdmin(req, res, next) {
 }
 
 // Auth
-app.post('/api/auth/login', (req, res) => {
-  const { username, password } = req.body;
-  if (!username || !password) return res.status(400).json({ message: 'Missing credentials' });
-  const user = get('SELECT * FROM users WHERE username = ?', [username]);
-  if (!user) return res.status(401).json({ message: 'Invalid credentials' });
-  const ok = bcrypt.compareSync(password, user.password);
-  if (!ok) return res.status(401).json({ message: 'Invalid credentials' });
-  const token = jwt.sign({ id: user.id, username: user.username, role: user.role || 'admin' }, JWT_SECRET, { expiresIn: '7d' });
-  res.json({ token });
+app.post('/api/auth/login', async (req, res) => {
+  try {
+    const { username, password } = req.body;
+    if (!username || !password) return res.status(400).json({ message: 'Missing credentials' });
+    const user = await get('SELECT * FROM users WHERE username = ?', [username]);
+    if (!user || !user.id || !user.password) return res.status(401).json({ message: 'Invalid credentials' });
+    const ok = bcrypt.compareSync(password, user.password);
+    if (!ok) return res.status(401).json({ message: 'Invalid credentials' });
+    const token = jwt.sign({ id: user.id, username: user.username, role: user.role || 'admin' }, JWT_SECRET, { expiresIn: '7d' });
+    res.json({ token });
+  } catch (error) {
+    console.error('Login error:', error);
+    res.status(500).json({ message: 'Login failed', error: error.message });
+  }
 });
 
 app.get('/api/auth/me', authMiddleware, (req, res) => {
