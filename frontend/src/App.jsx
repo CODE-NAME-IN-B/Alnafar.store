@@ -55,9 +55,11 @@ function TopList({ onAdd }) {
       {details.map(g => (
         <li key={g.id} className="flex items-center gap-2 sm:gap-3 p-2 sm:p-3 bg-white/5 rounded-lg hover:bg-white/10 transition-colors">
           <img 
-            src={g.image || '/assites/cover.png'} 
+            src={g.image || cover} 
             alt={g.title} 
             className="w-12 h-12 sm:w-14 sm:h-14 object-cover rounded-lg flex-shrink-0" 
+            referrerPolicy="no-referrer"
+            onError={(e) => { e.currentTarget.onerror = null; e.currentTarget.src = cover; }}
           />
           <div className="flex-1 min-w-0">
             <div className="font-semibold truncate text-sm sm:text-base" title={g.title}>{g.title}</div>
@@ -618,6 +620,7 @@ export default function App() {
                           src={game.image.startsWith('http') ? game.image : game.image} 
                           alt={game.title} 
                           className="game-card-image"
+                          referrerPolicy="no-referrer"
                           onError={(e) => {
                             e.target.onerror = null;
                             e.target.src = cover;

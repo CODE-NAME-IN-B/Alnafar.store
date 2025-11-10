@@ -95,9 +95,11 @@ export default function Invoice({ cart, total, onClose, onSuccess }) {
       const storeWeb = invSettings?.store_website || ''
       const footerMsg = invSettings?.footer_message || 'شكراً لتسوقكم معنا'
 
-      const dailyNo = fullNumber && fullNumber.includes('-')
-        ? String((fullNumber.split('-')[1] || '')).padStart(3, '0')
-        : fullNumber
+      const dailyNo = (response?.data?.dailyNumber !== undefined && response?.data?.dailyNumber !== null)
+        ? String(response.data.dailyNumber).padStart(3, '0')
+        : (fullNumber && fullNumber.includes('-')
+          ? String((fullNumber.split('-')[1] || '')).padStart(3, '0')
+          : fullNumber)
 
       const invoiceHTML = `
         <!DOCTYPE html>

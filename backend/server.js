@@ -506,8 +506,8 @@ async function getDailyInvoiceNumber() {
   // احصل على آخر رقم فعلي في فواتير اليوم (لأغراض السجل فقط)
   const lastRow = await get(
     `SELECT MAX(CAST(substr(invoice_number, instr(invoice_number, '-') + 1) AS INTEGER)) AS last
-     FROM invoices WHERE invoice_number LIKE ?`,
-    [`${todayNoDash}-%`]
+     FROM invoices WHERE DATE(created_at) = ?`,
+    [today]
   );
   const lastFromInvoices = lastRow && lastRow.last ? parseInt(lastRow.last, 10) : 0;
 
@@ -702,16 +702,18 @@ app.post('/api/analyze-game-genre', async (req, res) => {
 });
 
 // وسم فاتورة بأنها مطبوعة (بدون طباعة فعلية) - يفيد في الجرد
-app.post('/api/invoices/:invoiceNumber/mark-printed', (req, res) => {
+app.post('/api/invoices/:invoiceNumber/mark-printed', async (req, res) => {
   try {
     const { invoiceNumber } = req.params;
-    const exists = get('SELECT id FROM invoices WHERE invoice_number = ?', [invoiceNumber]);
-    if (!exists) {
+    const exists = await get('SELECT id FROM invoices WHERE invoice_number = ?', [invoiceNumber]);
+    if (!exists || !exists.id) {
       return res.status(404).json({ success: false, message: 'الفاتورة غير موجودة' });
     }
-    run(`UPDATE invoices SET printed_at = CURRENT_TIMESTAMP, print_count = COALESCE(print_count, 0) + 1 WHERE invoice_number = ?`, [invoiceNumber]);
-    const updated = get('SELECT * FROM invoices WHERE invoice_number = ?', [invoiceNumber]);
-    res.json({ success: true, invoice: { ...updated, items: JSON.parse(updated.items) } });
+    await run(`UPDATE invoices SET printed_at = CURRENT_TIMESTAMP, print_count = COALESCE(print_count, 0) + 1 WHERE invoice_number = ?`, [invoiceNumber]);
+    const updated = await get('SELECT * FROM invoices WHERE invoice_number = ?', [invoiceNumber]);
+    let itemsParsed = [];
+    try { itemsParsed = updated && updated.items ? JSON.parse(updated.items) : []; } catch (_) { itemsParsed = []; }
+    res.json({ success: true, invoice: { ...updated, items: itemsParsed } });
   } catch (error) {
     console.error('mark-printed error:', error);
     res.status(500).json({ success: false, message: 'تعذر تحديث حالة الطباعة', error: error.message });
@@ -1713,9 +1715,9 @@ app.post('/api/invoices', async (req, res) => {
     }
 
     // الحصول على الفاتورة المحفوظة
-    const savedInvoice = get('SELECT * FROM invoices WHERE invoice_number = ?', [fullNumber]);
+    const savedInvoice = await get('SELECT * FROM invoices WHERE invoice_number = ?', [fullNumber]);
     
-    if (!savedInvoice) {
+    if (!savedInvoice || !savedInvoice.id) {
       console.error('خطأ: لم يتم العثور على الفاتورة المحفوظة');
       return res.status(500).json({ 
         success: false, 
@@ -1733,7 +1735,8 @@ app.post('/api/invoices', async (req, res) => {
     res.status(201).json({
       success: true,
       message: 'تم إنشاء الفاتورة بنجاح',
-      invoice: savedInvoice
+      invoice: savedInvoice,
+      dailyNumber
     });
 
   } catch (error) {
