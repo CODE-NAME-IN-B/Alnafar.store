@@ -240,15 +240,12 @@ export default function Invoice({ cart, total, onClose, onSuccess }) {
         <body>
           <div class="receipt">
             <div class="logo">
-              <img src="/invoice-header.png?v=${Date.now()}" alt="شعار المتجر" 
-                   onerror="this.style.display='none'; this.nextElementSibling.style.display='block';" 
-                   onload="this.nextElementSibling.style.display='none';" />
-              <div class="logo-fallback" style="display: block; font-size: ${titleSize}; font-weight: bold; text-align: center; color: #333; margin: 2mm 0;">
-                🏪 ${storeName}
+              <div class="text-logo" style="font-size: calc(${titleSize} + 2px); font-weight: 900; text-align: center; color: #000; margin: 2mm 0; border: 2px solid #000; padding: 3mm 2mm; background: #fff;">
+                <div style="font-size: calc(${titleSize} + 4px); margin-bottom: 1mm;">⚡ A ⚡</div>
+                <div style="font-size: ${titleSize}; font-weight: bold;">${storeName}</div>
+                <div style="font-size: calc(${fontSize} + 1px); margin-top: 1mm;">${storeNameEn}</div>
               </div>
             </div>
-            <div class="store-name-ar">${storeName}</div>
-            <div class="subtitle">${storeNameEn}</div>
             ${storeAddr ? `<div class="subtitle store-contact">📍 ${storeAddr}</div>` : ''}
             ${storePhone ? `<div class="subtitle store-contact">📞 ${storePhone}</div>` : ''}
             <div class="subtitle">رقم: ${dailyNo}</div>
