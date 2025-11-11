@@ -235,7 +235,7 @@ export default function Invoice({ cart, total, onClose, onSuccess }) {
         <body>
           <div class="receipt">
             <div class="logo">
-              <img src="/invoice-header.png?v=${Date.now()}" alt="شعار المتجر" onerror="this.onerror=null; this.src='/logo.png';" />
+              <img src="/invoice-header.png?v=${Date.now()}" alt="شعار المتجر" onerror="this.onerror=null; this.src='/Invoice_Logo.png';" />
               <div class="logo-fallback" style="display: none;">🏪 ${storeName}</div>
             </div>
             <div class="store-name-ar">${storeName}</div>
