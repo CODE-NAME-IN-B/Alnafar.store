@@ -127,7 +127,7 @@ export default function Invoice({ cart, total, onClose, onSuccess }) {
               background: #fff;
             }
             .logo { text-align: center; margin: 1mm 0 0.5mm 0; }
-            .logo img { display: block; margin: 0 auto; max-width: 90%; width: 30mm; height: auto; image-rendering: -webkit-optimize-contrast; }
+            .logo img { display: block; margin: 0 auto; max-width: 80%; width: 25mm; max-height: 15mm; height: auto; object-fit: contain; image-rendering: -webkit-optimize-contrast; }
             .logo-fallback { font-size: ${titleSize}; font-weight: bold; text-align: center; color: #333; margin: 1mm 0; }
             .store-name-ar { 
               font-size: ${titleSize}; 
