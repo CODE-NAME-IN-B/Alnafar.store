@@ -1942,6 +1942,33 @@ app.put('/api/invoices/:id', authMiddleware, async (req, res) => {
   }
 });
 
+// حذف فواتير اليوم فقط (يجب أن يأتي قبل /api/invoices/:id)
+app.delete('/api/invoices/today', authMiddleware, async (req, res) => {
+  try {
+    const today = new Date().toISOString().split('T')[0];
+    const result = await get('SELECT COUNT(*) as count FROM invoices WHERE DATE(created_at) = ?', [today]);
+    const count = result?.count || 0;
+    await run('DELETE FROM invoices WHERE DATE(created_at) = ?', [today]);
+    // إعادة ضبط عداد اليوم أيضاً لضمان بدء الترقيم من 001
+    await run('DELETE FROM daily_invoices WHERE date = ?', [today]);
+    // إعادة احتساب الجرد لليوم
+    recomputeDailyStats(today);
+    res.json({
+      success: true,
+      message: `تم حذف ${count} من فواتير اليوم (${today}) بنجاح` ,
+      deletedCount: count,
+      date: today
+    });
+  } catch (error) {
+    console.error('خطأ في حذف فواتير اليوم:', error);
+    res.status(500).json({ 
+      success: false, 
+      message: 'حدث خطأ في حذف فواتير اليوم',
+      error: error.message 
+    });
+  }
+});
+
 // حذف فاتورة
 app.delete('/api/invoices/:id', authMiddleware, async (req, res) => {
   try {
@@ -1974,32 +2001,6 @@ app.delete('/api/invoices/:id', authMiddleware, async (req, res) => {
   }
 });
 
-// حذف فواتير اليوم فقط
-app.delete('/api/invoices/today', authMiddleware, async (req, res) => {
-  try {
-    const today = new Date().toISOString().split('T')[0];
-    const result = await get('SELECT COUNT(*) as count FROM invoices WHERE DATE(created_at) = ?', [today]);
-    const count = result?.count || 0;
-    await run('DELETE FROM invoices WHERE DATE(created_at) = ?', [today]);
-    // إعادة ضبط عداد اليوم أيضاً لضمان بدء الترقيم من 001
-    await run('DELETE FROM daily_invoices WHERE date = ?', [today]);
-    // إعادة احتساب الجرد لليوم
-    recomputeDailyStats(today);
-    res.json({
-      success: true,
-      message: `تم حذف ${count} من فواتير اليوم (${today}) بنجاح` ,
-      deletedCount: count,
-      date: today
-    });
-  } catch (error) {
-    console.error('خطأ في حذف فواتير اليوم:', error);
-    res.status(500).json({ 
-      success: false, 
-      message: 'حدث خطأ في حذف فواتير اليوم',
-      error: error.message 
-    });
-  }
-});
 
 // حذف جميع الفواتير
 app.delete('/api/invoices', authMiddleware, async (req, res) => {
