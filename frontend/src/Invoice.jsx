@@ -229,14 +229,23 @@ export default function Invoice({ cart, total, onClose, onSuccess }) {
             @media print {
               body { margin: 0; padding: 0; }
               .no-print { display: none !important; }
+              .logo img { 
+                -webkit-print-color-adjust: exact !important;
+                color-adjust: exact !important;
+                print-color-adjust: exact !important;
+              }
             }
           </style>
         </head>
         <body>
           <div class="receipt">
             <div class="logo">
-              <img src="/invoice-header.png?v=${Date.now()}" alt="شعار المتجر" onerror="this.onerror=null; this.src='/Invoice_Logo.png';" />
-              <div class="logo-fallback" style="display: none;">🏪 ${storeName}</div>
+              <img src="/invoice-header.png?v=${Date.now()}" alt="شعار المتجر" 
+                   onerror="this.style.display='none'; this.nextElementSibling.style.display='block';" 
+                   onload="this.nextElementSibling.style.display='none';" />
+              <div class="logo-fallback" style="display: block; font-size: ${titleSize}; font-weight: bold; text-align: center; color: #333; margin: 2mm 0;">
+                🏪 ${storeName}
+              </div>
             </div>
             <div class="store-name-ar">${storeName}</div>
             <div class="subtitle">${storeNameEn}</div>
