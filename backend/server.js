@@ -407,12 +407,12 @@ const io = new Server(httpServer, {
 });
 
 // تقارير بنطاق تاريخ
-app.get('/api/daily-report-range', authMiddleware, (req, res) => {
+app.get('/api/daily-report-range', authMiddleware, async (req, res) => {
   try {
     const start = (req.query.start || '').slice(0, 10);
     const end = ((req.query.end || start) || '').slice(0, 10);
     if (!start) return res.status(400).json({ success: false, message: 'start مطلوب' });
-    const rows = all(`
+    const rows = await all(`
       SELECT date, total_invoices, total_revenue, total_discount, net_revenue, is_closed, closed_at, COALESCE(notes,'') AS notes
       FROM daily_invoices
       WHERE date BETWEEN ? AND ?
