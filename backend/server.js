@@ -1837,14 +1837,27 @@ app.get('/api/invoices', authMiddleware, async (req, res) => {
     const page = parseInt(req.query.page) || 1;
     const limit = parseInt(req.query.limit) || 50;
     const offset = (page - 1) * limit;
+    const date = req.query.date; // فلترة حسب التاريخ (اختيارية)
+
+    let whereClause = '';
+    let params = [limit, offset];
+    let countParams = [];
+
+    if (date) {
+      whereClause = 'WHERE DATE(created_at) = ?';
+      params = [date, limit, offset];
+      countParams = [date];
+    }
 
     const invoices = await all(`
       SELECT * FROM invoices 
+      ${whereClause}
       ORDER BY created_at DESC 
       LIMIT ? OFFSET ?
-    `, [limit, offset]);
+    `, params);
 
-    const totalResult = await get('SELECT COUNT(*) as count FROM invoices');
+    const totalQuery = `SELECT COUNT(*) as count FROM invoices ${whereClause}`;
+    const totalResult = await get(totalQuery, countParams);
     const total = totalResult.count || 0;
 
     res.json({

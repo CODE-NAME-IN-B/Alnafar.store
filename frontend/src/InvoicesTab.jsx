@@ -57,9 +57,16 @@ export default function InvoicesTab() {
   const loadInvoices = async (page = 1) => {
     try {
       setLoading(true)
-      const { data } = await api.get('/invoices', { params: { page, limit: pageLimit } })
+      const today = new Date().toISOString().split('T')[0] // فواتير اليوم فقط
+      const { data } = await api.get('/invoices', { 
+        params: { 
+          page, 
+          limit: pageLimit,
+          date: today 
+        } 
+      })
       setInvoices(data.invoices || [])
-      if (data.pagination) setPagination(data.pagination)
+      setPagination(data.pagination || { page: 1, pages: 1, total: 0 })
     } catch (error) {
       console.error('خطأ في تحميل الفواتير:', error)
     } finally {
@@ -245,7 +252,10 @@ export default function InvoicesTab() {
   return (
     <div className="p-8">
       <div className="flex items-center justify-between mb-8">
-        <h2 className="text-3xl font-bold text-white">إدارة الفواتير</h2>
+        <div>
+          <h2 className="text-3xl font-bold text-white">فواتير اليوم</h2>
+          <p className="text-gray-400 mt-1">عرض فواتير {new Date().toLocaleDateString('ar-LY')} فقط</p>
+        </div>
         <div className="flex gap-2">
           <button
             onClick={deleteAllInvoices}
@@ -311,8 +321,8 @@ export default function InvoicesTab() {
                 <th className="text-right py-3 px-4">المجموع</th>
                 <th className="text-right py-3 px-4">الخصم</th>
                 <th className="text-right py-3 px-4">الإجمالي</th>
-                <th className="text-right py-3 px-4">التاريخ</th>
-                <th className="text-right py-3 px-4">الطباعة</th>
+                <th className="text-right py-3 px-4">وقت الإنشاء</th>
+                <th className="text-right py-3 px-4">عدد الطباعات</th>
                 <th className="text-center py-3 px-4">الإجراءات</th>
               </tr>
             </thead>
@@ -324,11 +334,19 @@ export default function InvoicesTab() {
                   <td className="py-3 px-4 text-gray-300">{currency(invoice.total)}</td>
                   <td className="py-3 px-4 text-red-400">{invoice.discount > 0 ? `-${currency(invoice.discount)}` : '—'}</td>
                   <td className="py-3 px-4 font-bold text-green-400">{currency((invoice.total || 0) - (invoice.discount || 0))}</td>
-                  <td className="py-3 px-4 text-gray-300">
-                    {new Date(invoice.created_at).toLocaleString('ar-LY')}
+                  <td className="py-3 px-4 text-gray-300 text-sm">
+                    {new Date(invoice.created_at).toLocaleString('ar-LY', {
+                      year: 'numeric',
+                      month: '2-digit', 
+                      day: '2-digit',
+                      hour: '2-digit',
+                      minute: '2-digit'
+                    })}
                   </td>
-                  <td className="py-3 px-4 text-gray-300">
-                    {invoice.print_count || 0} {invoice.printed_at ? `— آخر طباعة: ${new Date(invoice.printed_at).toLocaleString('ar-LY')}` : ''}
+                  <td className="py-3 px-4 text-gray-300 text-center">
+                    <span className="bg-gray-700 px-2 py-1 rounded text-xs">
+                      {invoice.print_count || 0}
+                    </span>
                   </td>
                   <td className="py-3 px-4 text-center">
                     <div className="flex gap-2 justify-center">
