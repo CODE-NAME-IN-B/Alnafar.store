@@ -751,28 +751,17 @@ app.post('/api/batch-analyze-genres', authMiddleware, async (req, res) => {
 
 // Get available Arabic genres
 app.get('/api/arabic-genres', (req, res) => {
-  // ARABIC_GENRES was removed, return empty array or default genres
-  const defaultGenres = ['أكشن', 'مغامرة', 'رعب', 'رياضة', 'سباقات', 'ألغاز', 'منصات', 'عالم مفتوح', 'تخفي', 'قتال', 'استراتيجية', 'تصويب', 'RPG', 'أطفال'];
-  res.json({ genres: defaultGenres });
+  const genres = Object.keys(ARABIC_GENRES);
+  res.json({ genres });
 });
 
 // Genre management endpoints
 app.get('/api/genres', async (req, res) => {
   try {
-    if (!all) {
-      console.error('[Genres] Database functions not initialized');
-      return res.status(500).json({ error: 'Database not initialized' });
-    }
-    console.log('[Genres] Fetching genres from database...');
-    const genres = await all('SELECT DISTINCT genre FROM games WHERE genre IS NOT NULL AND genre != "" ORDER BY genre');
-    console.log('[Genres] Raw results:', genres);
-    const genreList = genres && Array.isArray(genres) ? genres.map(g => g.genre || g.GENRE).filter(Boolean) : [];
-    console.log('[Genres] Processed list:', genreList);
-    res.json(genreList);
+    const genres = await all('SELECT DISTINCT genre FROM games WHERE genre IS NOT NULL ORDER BY genre');
+    res.json(genres.map(g => g.genre));
   } catch (e) {
-    console.error('[Genres] Error fetching genres:', e);
-    console.error('[Genres] Error stack:', e.stack);
-    res.status(500).json({ error: 'Failed to fetch genres', message: e.message, stack: process.env.NODE_ENV === 'development' ? e.stack : undefined });
+    res.status(500).json({ error: 'Failed to fetch genres', message: e.message });
   }
 });
 
@@ -815,20 +804,10 @@ app.delete('/api/genres/:genre', authMiddleware, async (req, res) => {
 // Series management endpoints
 app.get('/api/series', async (req, res) => {
   try {
-    if (!all) {
-      console.error('[Series] Database functions not initialized');
-      return res.status(500).json({ error: 'Database not initialized' });
-    }
-    console.log('[Series] Fetching series from database...');
-    const series = await all('SELECT DISTINCT series FROM games WHERE series IS NOT NULL AND series != "" ORDER BY series');
-    console.log('[Series] Raw results:', series);
-    const seriesList = series && Array.isArray(series) ? series.map(s => s.series || s.SERIES).filter(Boolean) : [];
-    console.log('[Series] Processed list:', seriesList);
-    res.json(seriesList);
+    const series = await all('SELECT DISTINCT series FROM games WHERE series IS NOT NULL ORDER BY series');
+    res.json(series.map(s => s.series));
   } catch (e) {
-    console.error('[Series] Error fetching series:', e);
-    console.error('[Series] Error stack:', e.stack);
-    res.status(500).json({ error: 'Failed to fetch series', message: e.message, stack: process.env.NODE_ENV === 'development' ? e.stack : undefined });
+    res.status(500).json({ error: 'Failed to fetch series', message: e.message });
   }
 });
 
