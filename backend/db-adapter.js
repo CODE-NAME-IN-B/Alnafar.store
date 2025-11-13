@@ -59,14 +59,27 @@ async function initDatabase() {
 // تنفيذ استعلام SELECT (يُرجع صفوف متعددة)
 async function all(sql, params = []) {
   if (dbType === 'turso') {
-    const result = await dbClient.execute({ sql, args: params });
-    return result.rows.map(row => {
-      const obj = {};
-      result.columns.forEach((col, i) => {
-        obj[col] = row[i];
+    try {
+      const result = await dbClient.execute({ sql, args: params });
+      return result.rows.map(row => {
+        const obj = {};
+        result.columns.forEach((col, i) => {
+          // استخدام الاسم الأصلي وأيضاً نسخة بأحرف صغيرة للتوافق
+          const colName = col;
+          obj[colName] = row[i];
+          // إضافة نسخة بأحرف صغيرة إذا كانت مختلفة
+          if (colName !== colName.toLowerCase()) {
+            obj[colName.toLowerCase()] = row[i];
+          }
+        });
+        return obj;
       });
-      return obj;
-    });
+    } catch (error) {
+      console.error('[DB] Turso query error:', error);
+      console.error('[DB] SQL:', sql);
+      console.error('[DB] Params:', params);
+      throw error;
+    }
   } else {
     // SQLite المحلي
     const stmt = dbClient.db.prepare(sql);

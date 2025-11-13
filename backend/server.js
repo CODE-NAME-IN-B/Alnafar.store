@@ -433,12 +433,12 @@ app.get('/api/daily-report-range', authMiddleware, async (req, res) => {
 });
 
 // تصدير CSV لنطاق تاريخ
-app.get('/api/daily-report/export.csv', authMiddleware, (req, res) => {
+app.get('/api/daily-report/export.csv', authMiddleware, async (req, res) => {
   try {
     const start = (req.query.start || '').slice(0, 10);
     const end = ((req.query.end || start) || '').slice(0, 10);
     if (!start) return res.status(400).json({ message: 'start مطلوب' });
-    const rows = all(`
+    const rows = await all(`
       SELECT date, total_invoices, total_revenue, total_discount, net_revenue, is_closed, closed_at, COALESCE(notes,'') AS notes
       FROM daily_invoices
       WHERE date BETWEEN ? AND ?
@@ -607,11 +607,11 @@ app.get('/api/health', (req, res) => {
 })
 
 // التحقق من حالة ترقيم الفواتير
-app.get('/api/invoice-numbering-status', authMiddleware, (req, res) => {
+app.get('/api/invoice-numbering-status', authMiddleware, async (req, res) => {
   try {
     const today = new Date().toISOString().split('T')[0];
-    const dailyRecord = get('SELECT * FROM daily_invoices WHERE date = ?', [today]);
-    const lastInvoice = get('SELECT invoice_number, created_at FROM invoices ORDER BY created_at DESC LIMIT 1');
+    const dailyRecord = await get('SELECT * FROM daily_invoices WHERE date = ?', [today]);
+    const lastInvoice = await get('SELECT invoice_number, created_at FROM invoices ORDER BY created_at DESC LIMIT 1');
     
     res.json({
       success: true,
@@ -632,12 +632,12 @@ app.get('/api/invoice-numbering-status', authMiddleware, (req, res) => {
 });
 
 // إعادة تعيين ترقيم الفواتير لليوم (للطوارئ)
-app.post('/api/reset-daily-numbering', authMiddleware, (req, res) => {
+app.post('/api/reset-daily-numbering', authMiddleware, async (req, res) => {
   try {
     const today = new Date().toISOString().split('T')[0];
     
     // إعادة احتساب آخر رقم فاتورة لليوم
-    const lastTodayInvoice = get(`
+    const lastTodayInvoice = await get(`
       SELECT invoice_number FROM invoices 
       WHERE DATE(created_at) = ? 
       ORDER BY created_at DESC 
@@ -651,15 +651,15 @@ app.post('/api/reset-daily-numbering', authMiddleware, (req, res) => {
     }
     
     // تحديث أو إنشاء سجل اليوم
-    const existingRecord = get('SELECT * FROM daily_invoices WHERE date = ?', [today]);
+    const existingRecord = await get('SELECT * FROM daily_invoices WHERE date = ?', [today]);
     if (existingRecord) {
-      run('UPDATE daily_invoices SET last_invoice_number = ? WHERE date = ?', [lastNumber, today]);
+      await run('UPDATE daily_invoices SET last_invoice_number = ? WHERE date = ?', [lastNumber, today]);
     } else {
-      run('INSERT INTO daily_invoices (date, last_invoice_number, total_invoices) VALUES (?, ?, ?)', [today, lastNumber, 0]);
+      await run('INSERT INTO daily_invoices (date, last_invoice_number, total_invoices) VALUES (?, ?, ?)', [today, lastNumber, 0]);
     }
     
     // إعادة احتساب الإحصائيات
-    recomputeDailyStats(today);
+    await recomputeDailyStats(today);
     
     res.json({
       success: true,
@@ -751,21 +751,32 @@ app.post('/api/batch-analyze-genres', authMiddleware, async (req, res) => {
 
 // Get available Arabic genres
 app.get('/api/arabic-genres', (req, res) => {
-  const genres = Object.keys(ARABIC_GENRES);
-  res.json({ genres });
+  // ARABIC_GENRES was removed, return empty array or default genres
+  const defaultGenres = ['أكشن', 'مغامرة', 'رعب', 'رياضة', 'سباقات', 'ألغاز', 'منصات', 'عالم مفتوح', 'تخفي', 'قتال', 'استراتيجية', 'تصويب', 'RPG', 'أطفال'];
+  res.json({ genres: defaultGenres });
 });
 
 // Genre management endpoints
-app.get('/api/genres', (req, res) => {
+app.get('/api/genres', async (req, res) => {
   try {
-    const genres = all('SELECT DISTINCT genre FROM games WHERE genre IS NOT NULL ORDER BY genre');
-    res.json(genres.map(g => g.genre));
+    if (!all) {
+      console.error('[Genres] Database functions not initialized');
+      return res.status(500).json({ error: 'Database not initialized' });
+    }
+    console.log('[Genres] Fetching genres from database...');
+    const genres = await all('SELECT DISTINCT genre FROM games WHERE genre IS NOT NULL AND genre != "" ORDER BY genre');
+    console.log('[Genres] Raw results:', genres);
+    const genreList = genres && Array.isArray(genres) ? genres.map(g => g.genre || g.GENRE).filter(Boolean) : [];
+    console.log('[Genres] Processed list:', genreList);
+    res.json(genreList);
   } catch (e) {
-    res.status(500).json({ error: 'Failed to fetch genres', message: e.message });
+    console.error('[Genres] Error fetching genres:', e);
+    console.error('[Genres] Error stack:', e.stack);
+    res.status(500).json({ error: 'Failed to fetch genres', message: e.message, stack: process.env.NODE_ENV === 'development' ? e.stack : undefined });
   }
 });
 
-app.post('/api/genres', authMiddleware, (req, res) => {
+app.post('/api/genres', authMiddleware, async (req, res) => {
   try {
     const { oldGenre, newGenre } = req.body;
     if (!newGenre || newGenre.trim() === '') {
@@ -774,9 +785,11 @@ app.post('/api/genres', authMiddleware, (req, res) => {
     
     if (oldGenre) {
       // Update existing genre
-      run('UPDATE games SET genre = ? WHERE genre = ?', [newGenre.trim(), oldGenre]);
-      const changes = get('SELECT changes() as changes');
-      res.json({ updated: changes.changes, message: `Updated ${changes.changes} games` });
+      await run('UPDATE games SET genre = ? WHERE genre = ?', [newGenre.trim(), oldGenre]);
+      // Get count of updated rows
+      const updated = await all('SELECT COUNT(*) as count FROM games WHERE genre = ?', [newGenre.trim()]);
+      const count = updated[0]?.count || 0;
+      res.json({ updated: count, message: `Updated ${count} games` });
     } else {
       // This endpoint is mainly for updating, new genres are added automatically when games are classified
       res.json({ message: 'Genres are added automatically when classifying games' });
@@ -786,28 +799,40 @@ app.post('/api/genres', authMiddleware, (req, res) => {
   }
 });
 
-app.delete('/api/genres/:genre', authMiddleware, (req, res) => {
+app.delete('/api/genres/:genre', authMiddleware, async (req, res) => {
   try {
     const genre = decodeURIComponent(req.params.genre);
-    run('UPDATE games SET genre = NULL WHERE genre = ?', [genre]);
-    const changes = get('SELECT changes() as changes');
-    res.json({ deleted: changes.changes, message: `Removed genre from ${changes.changes} games` });
+    // Get count before deletion
+    const before = await all('SELECT COUNT(*) as count FROM games WHERE genre = ?', [genre]);
+    const count = before[0]?.count || 0;
+    await run('UPDATE games SET genre = NULL WHERE genre = ?', [genre]);
+    res.json({ deleted: count, message: `Removed genre from ${count} games` });
   } catch (e) {
     res.status(500).json({ error: 'Failed to delete genre', message: e.message });
   }
 });
 
 // Series management endpoints
-app.get('/api/series', (req, res) => {
+app.get('/api/series', async (req, res) => {
   try {
-    const series = all('SELECT DISTINCT series FROM games WHERE series IS NOT NULL ORDER BY series');
-    res.json(series.map(s => s.series));
+    if (!all) {
+      console.error('[Series] Database functions not initialized');
+      return res.status(500).json({ error: 'Database not initialized' });
+    }
+    console.log('[Series] Fetching series from database...');
+    const series = await all('SELECT DISTINCT series FROM games WHERE series IS NOT NULL AND series != "" ORDER BY series');
+    console.log('[Series] Raw results:', series);
+    const seriesList = series && Array.isArray(series) ? series.map(s => s.series || s.SERIES).filter(Boolean) : [];
+    console.log('[Series] Processed list:', seriesList);
+    res.json(seriesList);
   } catch (e) {
-    res.status(500).json({ error: 'Failed to fetch series', message: e.message });
+    console.error('[Series] Error fetching series:', e);
+    console.error('[Series] Error stack:', e.stack);
+    res.status(500).json({ error: 'Failed to fetch series', message: e.message, stack: process.env.NODE_ENV === 'development' ? e.stack : undefined });
   }
 });
 
-app.post('/api/series', authMiddleware, (req, res) => {
+app.post('/api/series', authMiddleware, async (req, res) => {
   try {
     const { oldSeries, newSeries } = req.body;
     if (!newSeries || newSeries.trim() === '') {
@@ -816,9 +841,11 @@ app.post('/api/series', authMiddleware, (req, res) => {
     
     if (oldSeries) {
       // Update existing series
-      run('UPDATE games SET series = ? WHERE series = ?', [newSeries.trim(), oldSeries]);
-      const changes = get('SELECT changes() as changes');
-      res.json({ updated: changes.changes, message: `Updated ${changes.changes} games` });
+      await run('UPDATE games SET series = ? WHERE series = ?', [newSeries.trim(), oldSeries]);
+      // Get count of updated rows
+      const updated = await all('SELECT COUNT(*) as count FROM games WHERE series = ?', [newSeries.trim()]);
+      const count = updated[0]?.count || 0;
+      res.json({ updated: count, message: `Updated ${count} games` });
     } else {
       // Add new series (this would typically be done when editing individual games)
       res.json({ message: 'Series are added automatically when editing games' });
@@ -828,23 +855,27 @@ app.post('/api/series', authMiddleware, (req, res) => {
   }
 });
 
-app.delete('/api/series/:series', authMiddleware, (req, res) => {
+app.delete('/api/series/:series', authMiddleware, async (req, res) => {
   try {
     const series = decodeURIComponent(req.params.series);
-    run('UPDATE games SET series = NULL WHERE series = ?', [series]);
-    const changes = get('SELECT changes() as changes');
-    res.json({ deleted: changes.changes, message: `Removed series from ${changes.changes} games` });
+    // Get count before deletion
+    const before = await all('SELECT COUNT(*) as count FROM games WHERE series = ?', [series]);
+    const count = before[0]?.count || 0;
+    await run('UPDATE games SET series = NULL WHERE series = ?', [series]);
+    res.json({ deleted: count, message: `Removed series from ${count} games` });
   } catch (e) {
     res.status(500).json({ error: 'Failed to delete series', message: e.message });
   }
 });
 
 // Clear all genre/series/features from all games (admin only)
-app.post('/api/clear-classifications', authMiddleware, (req, res) => {
+app.post('/api/clear-classifications', authMiddleware, async (req, res) => {
   try {
-    run('UPDATE games SET genre = NULL, series = NULL, features = NULL');
-    const ch = get('SELECT changes() as changes');
-    res.json({ cleared: ch.changes });
+    // Get count before clearing
+    const before = await all('SELECT COUNT(*) as count FROM games WHERE genre IS NOT NULL OR series IS NOT NULL OR features IS NOT NULL');
+    const count = before[0]?.count || 0;
+    await run('UPDATE games SET genre = NULL, series = NULL, features = NULL');
+    res.json({ cleared: count });
   } catch (e) {
     res.status(500).json({ error: 'clear_failed', message: e.message });
   }
