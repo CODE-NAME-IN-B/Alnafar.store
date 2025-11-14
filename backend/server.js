@@ -249,6 +249,27 @@ async function initializeDatabase() {
     }
   }
 
+  // Create available_genres table to store all available genres
+  await exec(`CREATE TABLE IF NOT EXISTS available_genres (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      name TEXT UNIQUE NOT NULL,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    );`);
+
+  // Migrate existing genres from games to available_genres
+  try {
+    const existingGenres = await all('SELECT DISTINCT genre FROM games WHERE genre IS NOT NULL');
+    for (const row of existingGenres) {
+      try {
+        await run('INSERT OR IGNORE INTO available_genres (name) VALUES (?)', [row.genre]);
+      } catch (e) {
+        // Ignore duplicates
+      }
+    }
+  } catch (e) {
+    console.warn('Error migrating genres:', e.message);
+  }
+
   await exec(`CREATE TABLE IF NOT EXISTS games (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       title TEXT NOT NULL,
@@ -758,8 +779,9 @@ app.get('/api/arabic-genres', (req, res) => {
 // Genre management endpoints
 app.get('/api/genres', async (req, res) => {
   try {
-    const genres = await all('SELECT DISTINCT genre FROM games WHERE genre IS NOT NULL ORDER BY genre');
-    res.json(genres.map(g => g.genre));
+    // Get genres from available_genres table (includes all genres, even if not used yet)
+    const genres = await all('SELECT name FROM available_genres ORDER BY name');
+    res.json(genres.map(g => g.name));
   } catch (e) {
     res.status(500).json({ error: 'Failed to fetch genres', message: e.message });
   }
@@ -772,18 +794,40 @@ app.post('/api/genres', authMiddleware, async (req, res) => {
       return res.status(400).json({ error: 'New genre name is required' });
     }
     
+    const trimmedNewGenre = newGenre.trim();
+    
     if (oldGenre) {
       // Update existing genre
-      await run('UPDATE games SET genre = ? WHERE genre = ?', [newGenre.trim(), oldGenre]);
+      // First update in games table
+      await run('UPDATE games SET genre = ? WHERE genre = ?', [trimmedNewGenre, oldGenre]);
+      
+      // Update in available_genres table
+      await run('UPDATE available_genres SET name = ? WHERE name = ?', [trimmedNewGenre, oldGenre]);
+      
       // Get count of updated rows
-      const updated = await all('SELECT COUNT(*) as count FROM games WHERE genre = ?', [newGenre.trim()]);
+      const updated = await all('SELECT COUNT(*) as count FROM games WHERE genre = ?', [trimmedNewGenre]);
       const count = updated[0]?.count || 0;
+      
+      console.log(`[POST /api/genres] ✅ Genre updated: "${oldGenre}" → "${trimmedNewGenre}" (${count} games)`);
       res.json({ updated: count, message: `Updated ${count} games` });
     } else {
-      // This endpoint is mainly for updating, new genres are added automatically when games are classified
-      res.json({ message: 'Genres are added automatically when classifying games' });
+      // Add new genre to available_genres table
+      try {
+        await run('INSERT INTO available_genres (name) VALUES (?)', [trimmedNewGenre]);
+        console.log(`[POST /api/genres] ✅ New genre added: "${trimmedNewGenre}"`);
+        res.json({ message: 'Genre added successfully', genre: trimmedNewGenre });
+      } catch (e) {
+        // If genre already exists, just return success
+        if (e.message && e.message.includes('UNIQUE constraint')) {
+          console.log(`[POST /api/genres] ℹ️ Genre already exists: "${trimmedNewGenre}"`);
+          res.json({ message: 'Genre already exists', genre: trimmedNewGenre });
+        } else {
+          throw e;
+        }
+      }
     }
   } catch (e) {
+    console.error('[POST /api/genres] ❌ Error:', e);
     res.status(500).json({ error: 'Failed to manage genre', message: e.message });
   }
 });
@@ -791,12 +835,19 @@ app.post('/api/genres', authMiddleware, async (req, res) => {
 app.delete('/api/genres/:genre', authMiddleware, async (req, res) => {
   try {
     const genre = decodeURIComponent(req.params.genre);
-    // Get count before deletion
+    
+    // Remove genre from games
     const before = await all('SELECT COUNT(*) as count FROM games WHERE genre = ?', [genre]);
     const count = before[0]?.count || 0;
     await run('UPDATE games SET genre = NULL WHERE genre = ?', [genre]);
+    
+    // Remove from available_genres table
+    await run('DELETE FROM available_genres WHERE name = ?', [genre]);
+    
+    console.log(`[DELETE /api/genres/:genre] ✅ Genre deleted: "${genre}" (removed from ${count} games)`);
     res.json({ deleted: count, message: `Removed genre from ${count} games` });
   } catch (e) {
+    console.error('[DELETE /api/genres/:genre] ❌ Error:', e);
     res.status(500).json({ error: 'Failed to delete genre', message: e.message });
   }
 });
@@ -1394,6 +1445,15 @@ app.post('/api/games', authMiddleware, async (req, res) => {
     await run('INSERT INTO games (title, image, description, price, category_id, genre, series, features) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
       [title, image, description || '', price, category_id || null, genre || null, series || null, features || null]);
     
+    // Add genre to available_genres if it's new
+    if (genre && genre.trim()) {
+      try {
+        await run('INSERT OR IGNORE INTO available_genres (name) VALUES (?)', [genre.trim()]);
+      } catch (e) {
+        // Ignore errors (genre might already exist)
+      }
+    }
+    
     const row = await get('SELECT last_insert_rowid() as id');
     
     const newGame = { 
@@ -1429,6 +1489,15 @@ app.put('/api/games/:id', authMiddleware, async (req, res) => {
     
     await run('UPDATE games SET title = ?, image = ?, description = ?, price = ?, category_id = ?, genre = ?, series = ?, features = ? WHERE id = ?',
       [title, image, description || '', price, category_id || null, genre || null, series || null, features || null, id]);
+    
+    // Add genre to available_genres if it's new
+    if (genre && genre.trim()) {
+      try {
+        await run('INSERT OR IGNORE INTO available_genres (name) VALUES (?)', [genre.trim()]);
+      } catch (e) {
+        // Ignore errors (genre might already exist)
+      }
+    }
     
     const ch = await get('SELECT changes() as changes');
     
