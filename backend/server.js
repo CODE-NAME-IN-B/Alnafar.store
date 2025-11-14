@@ -275,6 +275,32 @@ async function initializeDatabase() {
     console.warn('Error migrating genres:', e.message);
   }
 
+  // Create available_series table to store all available series
+  await exec(`CREATE TABLE IF NOT EXISTS available_series (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      name TEXT UNIQUE NOT NULL,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    );`);
+
+  // Migrate existing series from games to available_series
+  try {
+    const existingSeries = await all('SELECT DISTINCT series FROM games WHERE series IS NOT NULL');
+    for (const row of existingSeries) {
+      try {
+        // Check if series already exists
+        const existing = await get('SELECT id FROM available_series WHERE name = ?', [row.series]);
+        if (!existing || !existing.id) {
+          await run('INSERT INTO available_series (name) VALUES (?)', [row.series]);
+        }
+      } catch (e) {
+        // Ignore duplicates and other errors
+        console.warn('Error migrating series:', row.series, e.message);
+      }
+    }
+  } catch (e) {
+    console.warn('Error migrating series:', e.message);
+  }
+
   await exec(`CREATE TABLE IF NOT EXISTS games (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       title TEXT NOT NULL,
@@ -866,8 +892,9 @@ app.delete('/api/genres/:genre', authMiddleware, async (req, res) => {
 // Series management endpoints
 app.get('/api/series', async (req, res) => {
   try {
-    const series = await all('SELECT DISTINCT series FROM games WHERE series IS NOT NULL ORDER BY series');
-    res.json(series.map(s => s.series));
+    // Get series from available_series table (includes all series, even if not used yet)
+    const series = await all('SELECT name FROM available_series ORDER BY name');
+    res.json(series.map(s => s.name));
   } catch (e) {
     res.status(500).json({ error: 'Failed to fetch series', message: e.message });
   }
@@ -880,16 +907,39 @@ app.post('/api/series', authMiddleware, async (req, res) => {
       return res.status(400).json({ error: 'New series name is required' });
     }
     
+    const trimmedNewSeries = newSeries.trim();
+    
     if (oldSeries) {
       // Update existing series
-      await run('UPDATE games SET series = ? WHERE series = ?', [newSeries.trim(), oldSeries]);
+      // First update in games table
+      await run('UPDATE games SET series = ? WHERE series = ?', [trimmedNewSeries, oldSeries]);
+      
+      // Update in available_series table
+      await run('UPDATE available_series SET name = ? WHERE name = ?', [trimmedNewSeries, oldSeries]);
+      
       // Get count of updated rows
-      const updated = await all('SELECT COUNT(*) as count FROM games WHERE series = ?', [newSeries.trim()]);
+      const updated = await all('SELECT COUNT(*) as count FROM games WHERE series = ?', [trimmedNewSeries]);
       const count = updated[0]?.count || 0;
+      
+      console.log(`[POST /api/series] ✅ Series updated: "${oldSeries}" → "${trimmedNewSeries}" (${count} games)`);
       res.json({ updated: count, message: `Updated ${count} games` });
     } else {
-      // Add new series (this would typically be done when editing individual games)
-      res.json({ message: 'Series are added automatically when editing games' });
+      // Add new series to available_series table
+      try {
+        // Check if series already exists
+        const existing = await get('SELECT id FROM available_series WHERE name = ?', [trimmedNewSeries]);
+        if (existing && existing.id) {
+          console.log(`[POST /api/series] ℹ️ Series already exists: "${trimmedNewSeries}"`);
+          res.json({ message: 'Series already exists', series: trimmedNewSeries });
+        } else {
+          await run('INSERT INTO available_series (name) VALUES (?)', [trimmedNewSeries]);
+          console.log(`[POST /api/series] ✅ New series added: "${trimmedNewSeries}"`);
+          res.json({ message: 'Series added successfully', series: trimmedNewSeries });
+        }
+      } catch (e) {
+        console.error('[POST /api/series] ❌ Error adding series:', e);
+        throw e;
+      }
     }
   } catch (e) {
     res.status(500).json({ error: 'Failed to manage series', message: e.message });
@@ -899,12 +949,19 @@ app.post('/api/series', authMiddleware, async (req, res) => {
 app.delete('/api/series/:series', authMiddleware, async (req, res) => {
   try {
     const series = decodeURIComponent(req.params.series);
-    // Get count before deletion
+    
+    // Remove series from games
     const before = await all('SELECT COUNT(*) as count FROM games WHERE series = ?', [series]);
     const count = before[0]?.count || 0;
     await run('UPDATE games SET series = NULL WHERE series = ?', [series]);
+    
+    // Remove from available_series table
+    await run('DELETE FROM available_series WHERE name = ?', [series]);
+    
+    console.log(`[DELETE /api/series/:series] ✅ Series deleted: "${series}" (removed from ${count} games)`);
     res.json({ deleted: count, message: `Removed series from ${count} games` });
   } catch (e) {
+    console.error('[DELETE /api/series/:series] ❌ Error:', e);
     res.status(500).json({ error: 'Failed to delete series', message: e.message });
   }
 });
@@ -1470,6 +1527,20 @@ app.post('/api/games', authMiddleware, async (req, res) => {
       }
     }
     
+    // Add series to available_series if it's new
+    if (series && series.trim()) {
+      try {
+        const trimmedSeries = series.trim();
+        const existing = await get('SELECT id FROM available_series WHERE name = ?', [trimmedSeries]);
+        if (!existing || !existing.id) {
+          await run('INSERT INTO available_series (name) VALUES (?)', [trimmedSeries]);
+        }
+      } catch (e) {
+        // Ignore errors (series might already exist)
+        console.warn('Error adding series to available_series:', e.message);
+      }
+    }
+    
     const row = await get('SELECT last_insert_rowid() as id');
     
     const newGame = { 
@@ -1517,6 +1588,20 @@ app.put('/api/games/:id', authMiddleware, async (req, res) => {
       } catch (e) {
         // Ignore errors (genre might already exist)
         console.warn('Error adding genre to available_genres:', e.message);
+      }
+    }
+    
+    // Add series to available_series if it's new
+    if (series && series.trim()) {
+      try {
+        const trimmedSeries = series.trim();
+        const existing = await get('SELECT id FROM available_series WHERE name = ?', [trimmedSeries]);
+        if (!existing || !existing.id) {
+          await run('INSERT INTO available_series (name) VALUES (?)', [trimmedSeries]);
+        }
+      } catch (e) {
+        // Ignore errors (series might already exist)
+        console.warn('Error adding series to available_series:', e.message);
       }
     }
     

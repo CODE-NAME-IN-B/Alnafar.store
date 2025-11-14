@@ -20,6 +20,7 @@ export default function GamesTab() {
   const empty = { title: '', image: '', description: '', price: '', category_id: '', genre: '', series: '', features: '' }
   const [items, setItems] = useState([])
   const [categories, setCategories] = useState([])
+  const [series, setSeries] = useState([])
   const [form, setForm] = useState(empty)
   const [editing, setEditing] = useState(null)
   const [searchTerm, setSearchTerm] = useState('')
@@ -27,9 +28,14 @@ export default function GamesTab() {
   const [showModal, setShowModal] = useState(false)
 
   async function load() {
-    const [g, c] = await Promise.all([api.get('/games'), api.get('/categories')])
+    const [g, c, s] = await Promise.all([
+      api.get('/games'), 
+      api.get('/categories'),
+      api.get('/series')
+    ])
     setItems(g.data)
     setCategories(c.data)
+    setSeries(s.data || [])
   }
   useEffect(() => { 
     load().catch(error => {
