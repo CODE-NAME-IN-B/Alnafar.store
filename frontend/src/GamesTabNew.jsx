@@ -21,6 +21,7 @@ export default function GamesTab() {
   const [items, setItems] = useState([])
   const [categories, setCategories] = useState([])
   const [series, setSeries] = useState([])
+  const [genres, setGenres] = useState([])
   const [form, setForm] = useState(empty)
   const [editing, setEditing] = useState(null)
   const [searchTerm, setSearchTerm] = useState('')
@@ -28,14 +29,16 @@ export default function GamesTab() {
   const [showModal, setShowModal] = useState(false)
 
   async function load() {
-    const [g, c, s] = await Promise.all([
+    const [g, c, s, genresRes] = await Promise.all([
       api.get('/games'), 
       api.get('/categories'),
-      api.get('/series')
+      api.get('/series'),
+      api.get('/genres')
     ])
     setItems(g.data)
     setCategories(c.data)
     setSeries(s.data || [])
+    setGenres(genresRes.data || [])
   }
   useEffect(() => { 
     load().catch(error => {
@@ -410,23 +413,9 @@ export default function GamesTab() {
                     }}
                   >
                     <option value="">اختر النوع</option>
-                    <option value="رعب">رعب</option>
-                    <option value="أكشن">أكشن</option>
-                    <option value="مغامرة">مغامرة</option>
-                    <option value="رياضة">رياضة</option>
-                    <option value="سباقات">سباقات</option>
-                    <option value="تصويب">تصويب</option>
-                    <option value="قتال">قتال</option>
-                    <option value="ألعاب أدوار">ألعاب أدوار</option>
-                    <option value="عالم مفتوح">عالم مفتوح</option>
-                    <option value="تخفي">تخفي</option>
-                    <option value="منصات">منصات</option>
-                    <option value="ألغاز">ألغاز</option>
-                    <option value="استراتيجية">استراتيجية</option>
-                    <option value="أطفال">أطفال</option>
-                    <option value="محاكاة">محاكاة</option>
-                    <option value="تعاوني">تعاوني</option>
-                    <option value="قصه">قصه</option>
+                    {genres.map(g => (
+                      <option key={g} value={g}>{g}</option>
+                    ))}
                   </select>
                 </div>
 
