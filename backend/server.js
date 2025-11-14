@@ -261,9 +261,14 @@ async function initializeDatabase() {
     const existingGenres = await all('SELECT DISTINCT genre FROM games WHERE genre IS NOT NULL');
     for (const row of existingGenres) {
       try {
-        await run('INSERT OR IGNORE INTO available_genres (name) VALUES (?)', [row.genre]);
+        // Check if genre already exists
+        const existing = await get('SELECT id FROM available_genres WHERE name = ?', [row.genre]);
+        if (!existing || !existing.id) {
+          await run('INSERT INTO available_genres (name) VALUES (?)', [row.genre]);
+        }
       } catch (e) {
-        // Ignore duplicates
+        // Ignore duplicates and other errors
+        console.warn('Error migrating genre:', row.genre, e.message);
       }
     }
   } catch (e) {
@@ -522,7 +527,11 @@ async function getDailyInvoiceNumber() {
   const todayNoDash = today.replace(/-/g, '');
 
   // تأكد من وجود سجل اليوم
-  await run('INSERT OR IGNORE INTO daily_invoices (date, last_invoice_number, total_invoices) VALUES (?, 0, 0)', [today]);
+  // Check if daily_invoices entry exists for today
+  const existingDaily = await get('SELECT id FROM daily_invoices WHERE date = ?', [today]);
+  if (!existingDaily || !existingDaily.id) {
+    await run('INSERT INTO daily_invoices (date, last_invoice_number, total_invoices) VALUES (?, 0, 0)', [today]);
+  }
 
   // احصل على آخر رقم فعلي في فواتير اليوم (لأغراض السجل فقط)
   const lastRow = await get(
@@ -813,17 +822,19 @@ app.post('/api/genres', authMiddleware, async (req, res) => {
     } else {
       // Add new genre to available_genres table
       try {
-        await run('INSERT INTO available_genres (name) VALUES (?)', [trimmedNewGenre]);
-        console.log(`[POST /api/genres] ✅ New genre added: "${trimmedNewGenre}"`);
-        res.json({ message: 'Genre added successfully', genre: trimmedNewGenre });
-      } catch (e) {
-        // If genre already exists, just return success
-        if (e.message && e.message.includes('UNIQUE constraint')) {
+        // Check if genre already exists
+        const existing = await get('SELECT id FROM available_genres WHERE name = ?', [trimmedNewGenre]);
+        if (existing && existing.id) {
           console.log(`[POST /api/genres] ℹ️ Genre already exists: "${trimmedNewGenre}"`);
           res.json({ message: 'Genre already exists', genre: trimmedNewGenre });
         } else {
-          throw e;
+          await run('INSERT INTO available_genres (name) VALUES (?)', [trimmedNewGenre]);
+          console.log(`[POST /api/genres] ✅ New genre added: "${trimmedNewGenre}"`);
+          res.json({ message: 'Genre added successfully', genre: trimmedNewGenre });
         }
+      } catch (e) {
+        console.error('[POST /api/genres] ❌ Error adding genre:', e);
+        throw e;
       }
     }
   } catch (e) {
@@ -1448,9 +1459,14 @@ app.post('/api/games', authMiddleware, async (req, res) => {
     // Add genre to available_genres if it's new
     if (genre && genre.trim()) {
       try {
-        await run('INSERT OR IGNORE INTO available_genres (name) VALUES (?)', [genre.trim()]);
+        const trimmedGenre = genre.trim();
+        const existing = await get('SELECT id FROM available_genres WHERE name = ?', [trimmedGenre]);
+        if (!existing || !existing.id) {
+          await run('INSERT INTO available_genres (name) VALUES (?)', [trimmedGenre]);
+        }
       } catch (e) {
         // Ignore errors (genre might already exist)
+        console.warn('Error adding genre to available_genres:', e.message);
       }
     }
     
@@ -1493,9 +1509,14 @@ app.put('/api/games/:id', authMiddleware, async (req, res) => {
     // Add genre to available_genres if it's new
     if (genre && genre.trim()) {
       try {
-        await run('INSERT OR IGNORE INTO available_genres (name) VALUES (?)', [genre.trim()]);
+        const trimmedGenre = genre.trim();
+        const existing = await get('SELECT id FROM available_genres WHERE name = ?', [trimmedGenre]);
+        if (!existing || !existing.id) {
+          await run('INSERT INTO available_genres (name) VALUES (?)', [trimmedGenre]);
+        }
       } catch (e) {
         // Ignore errors (genre might already exist)
+        console.warn('Error adding genre to available_genres:', e.message);
       }
     }
     
