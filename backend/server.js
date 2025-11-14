@@ -1384,51 +1384,86 @@ app.get('/api/games/:id', async (req, res) => {
 // Batch fetch games by IDs (for TopList efficiency)
  
 
-app.post('/api/games', authMiddleware, (req, res) => {
-  const { title, image, description, price, category_id, genre, series, features } = req.body;
-  if (!title || !image || typeof price !== 'number') {
-    return res.status(400).json({ message: 'Missing fields' });
-  }
-  run('INSERT INTO games (title, image, description, price, category_id, genre, series, features) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
-    [title, image, description || '', price, category_id || null, genre || null, series || null, features || null]);
-  const row = get('SELECT last_insert_rowid() as id');
-  
-  const newGame = { id: row.id, title, image, description: description || '', price, category_id: category_id || null, genre: genre || null, series: series || null, features: features || null };
-  
-  // إرسال تحديث فوري
-  broadcastUpdate('game_added', {
-    game: newGame,
-    message: 'تم إضافة لعبة جديدة'
-  });
-  
-  res.status(201).json(newGame);
-});
-
-app.put('/api/games/:id', authMiddleware, (req, res) => {
-  const { id } = req.params;
-  const { title, image, description, price, category_id, genre, series, features } = req.body;
-  run('UPDATE games SET title = ?, image = ?, description = ?, price = ?, category_id = ?, genre = ?, series = ?, features = ? WHERE id = ?',
-    [title, image, description || '', price, category_id || null, genre || null, series || null, features || null, id]);
-  const ch = get('SELECT changes() as changes');
+app.post('/api/games', authMiddleware, async (req, res) => {
   try {
-    // Persist into mapping.json so reseeds keep manual edits
-    const row = get('SELECT image FROM games WHERE id = ?', [id]);
-    if (row && row.image) {
-      const file = path.basename(row.image);
-      const m = loadMapping();
-      m[file] = { title, genre: genre || null, series: series || null };
-      saveMapping(m);
+    const { title, image, description, price, category_id, genre, series, features } = req.body;
+    if (!title || !image || typeof price !== 'number') {
+      return res.status(400).json({ message: 'Missing fields' });
     }
-  } catch (e) {
-    // ignore mapping persist errors
+    
+    await run('INSERT INTO games (title, image, description, price, category_id, genre, series, features) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
+      [title, image, description || '', price, category_id || null, genre || null, series || null, features || null]);
+    
+    const row = await get('SELECT last_insert_rowid() as id');
+    
+    const newGame = { 
+      id: row.id, 
+      title, 
+      image, 
+      description: description || '', 
+      price, 
+      category_id: category_id || null, 
+      genre: genre || null, 
+      series: series || null, 
+      features: features || null 
+    };
+    
+    // إرسال تحديث فوري
+    broadcastUpdate('game_added', {
+      game: newGame,
+      message: 'تم إضافة لعبة جديدة'
+    });
+    
+    console.log('[POST /api/games] ✅ Game added:', { id: newGame.id, title, genre, series, features });
+    res.status(201).json(newGame);
+  } catch (error) {
+    console.error('[POST /api/games] ❌ Error:', error);
+    res.status(500).json({ error: 'Failed to add game', message: error.message });
   }
-  res.json({ updated: ch.changes });
 });
 
-app.delete('/api/games/:id', authMiddleware, (req, res) => {
-  run('DELETE FROM games WHERE id = ?', [req.params.id]);
-  const ch = get('SELECT changes() as changes');
-  res.json({ deleted: ch.changes });
+app.put('/api/games/:id', authMiddleware, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { title, image, description, price, category_id, genre, series, features } = req.body;
+    
+    await run('UPDATE games SET title = ?, image = ?, description = ?, price = ?, category_id = ?, genre = ?, series = ?, features = ? WHERE id = ?',
+      [title, image, description || '', price, category_id || null, genre || null, series || null, features || null, id]);
+    
+    const ch = await get('SELECT changes() as changes');
+    
+    try {
+      // Persist into mapping.json so reseeds keep manual edits
+      const row = await get('SELECT image FROM games WHERE id = ?', [id]);
+      if (row && row.image) {
+        const file = path.basename(row.image);
+        const m = loadMapping();
+        m[file] = { title, genre: genre || null, series: series || null };
+        saveMapping(m);
+      }
+    } catch (e) {
+      // ignore mapping persist errors
+      console.warn('[PUT /api/games] Mapping persist warning:', e.message);
+    }
+    
+    console.log('[PUT /api/games/:id] ✅ Game updated:', { id, title, genre, series, features, changes: ch.changes });
+    res.json({ updated: ch.changes });
+  } catch (error) {
+    console.error('[PUT /api/games/:id] ❌ Error:', error);
+    res.status(500).json({ error: 'Failed to update game', message: error.message });
+  }
+});
+
+app.delete('/api/games/:id', authMiddleware, async (req, res) => {
+  try {
+    await run('DELETE FROM games WHERE id = ?', [req.params.id]);
+    const ch = await get('SELECT changes() as changes');
+    console.log('[DELETE /api/games/:id] ✅ Game deleted:', { id: req.params.id, changes: ch.changes });
+    res.json({ deleted: ch.changes });
+  } catch (error) {
+    console.error('[DELETE /api/games/:id] ❌ Error:', error);
+    res.status(500).json({ error: 'Failed to delete game', message: error.message });
+  }
 });
 
 // Orders
@@ -2716,95 +2751,7 @@ app.delete('/api/categories/:id', authMiddleware, (req, res) => {
 
 
 
-// Games
-
-app.get('/api/games', (req, res) => {
-
-  const { q, category, minPrice, maxPrice } = req.query;
-
-  const clauses = [];
-
-  const params = [];
-
-  if (q) { clauses.push('title LIKE ?'); params.push(`%${q}%`); }
-
-  if (category) { clauses.push('category_id = ?'); params.push(category); }
-
-  if (minPrice) { clauses.push('price >= ?'); params.push(minPrice); }
-
-  if (maxPrice) { clauses.push('price <= ?'); params.push(maxPrice); }
-
-  const where = clauses.length ? `WHERE ${clauses.join(' AND ')}` : '';
-
-  const rows = all(`SELECT * FROM games ${where} ORDER BY id DESC`, params);
-
-  res.json(rows);
-
-});
-
-
-
-app.get('/api/games/:id', (req, res) => {
-
-  const row = get('SELECT * FROM games WHERE id = ?', [req.params.id]);
-
-  if (!row) return res.status(404).json({ message: 'Not found' });
-
-  res.json(row);
-
-});
-
-
-
-app.post('/api/games', authMiddleware, (req, res) => {
-
-  const { title, image, description, price, category_id } = req.body;
-
-  if (!title || !image || typeof price !== 'number') {
-
-    return res.status(400).json({ message: 'Missing fields' });
-
-  }
-
-  run('INSERT INTO games (title, image, description, price, category_id) VALUES (?, ?, ?, ?, ?)',
-
-    [title, image, description || '', price, category_id || null]);
-
-  const row = get('SELECT last_insert_rowid() as id');
-
-  res.status(201).json({ id: row.id, title, image, description: description || '', price, category_id: category_id || null });
-
-});
-
-
-
-app.put('/api/games/:id', authMiddleware, (req, res) => {
-
-  const { id } = req.params;
-
-  const { title, image, description, price, category_id } = req.body;
-
-  run('UPDATE games SET title = ?, image = ?, description = ?, price = ?, category_id = ? WHERE id = ?',
-
-    [title, image, description || '', price, category_id || null, id]);
-
-  const ch = get('SELECT changes() as changes');
-
-  res.json({ updated: ch.changes });
-
-});
-
-
-
-app.delete('/api/games/:id', authMiddleware, (req, res) => {
-
-  run('DELETE FROM games WHERE id = ?', [req.params.id]);
-
-  const ch = get('SELECT changes() as changes');
-
-  res.json({ deleted: ch.changes });
-
-});
+// Games endpoints are defined above (lines 1339-1467) - these duplicate endpoints have been removed
 
 
 

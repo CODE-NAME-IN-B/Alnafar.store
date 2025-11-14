@@ -397,7 +397,10 @@ export default function GamesTab() {
                   <select 
                     className="w-full bg-gray-700 border border-gray-600 rounded-xl px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-blue-500" 
                     value={form.genre || ''} 
-                    onChange={e => setForm({ ...form, genre: e.target.value || null })}
+                    onChange={e => {
+                      const value = e.target.value;
+                      setForm({ ...form, genre: value === '' ? null : value });
+                    }}
                   >
                     <option value="">اختر النوع</option>
                     <option value="رعب">رعب</option>
@@ -416,6 +419,7 @@ export default function GamesTab() {
                     <option value="أطفال">أطفال</option>
                     <option value="محاكاة">محاكاة</option>
                     <option value="تعاوني">تعاوني</option>
+                    <option value="قصه">قصه</option>
                   </select>
                 </div>
 
