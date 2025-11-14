@@ -435,68 +435,15 @@ export default function GamesTab() {
                   <select 
                     className="w-full bg-gray-700 border border-gray-600 rounded-xl px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-blue-500" 
                     value={form.series || ''} 
-                    onChange={e => setForm({ ...form, series: e.target.value || null })}
+                    onChange={e => {
+                      const value = e.target.value;
+                      setForm({ ...form, series: value === '' ? null : value });
+                    }}
                   >
                     <option value="">اختر السلسلة</option>
-                    <option value="Call of Duty">Call of Duty</option>
-                    <option value="Assassin's Creed">Assassin's Creed</option>
-                    <option value="God of War">God of War</option>
-                    <option value="The Last of Us">The Last of Us</option>
-                    <option value="Uncharted">Uncharted</option>
-                    <option value="Grand Theft Auto">Grand Theft Auto (GTA)</option>
-                    <option value="FIFA">FIFA</option>
-                    <option value="NBA 2K">NBA 2K</option>
-                    <option value="Mortal Kombat">Mortal Kombat</option>
-                    <option value="Resident Evil">Resident Evil</option>
-                    <option value="Far Cry">Far Cry</option>
-                    <option value="Battlefield">Battlefield</option>
-                    <option value="The Witcher">The Witcher</option>
-                    <option value="Dark Souls">Dark Souls</option>
-                    <option value="Bloodborne">Bloodborne</option>
-                    <option value="Spider-Man">Spider-Man</option>
-                    <option value="Batman">Batman</option>
-                    <option value="Tomb Raider">Tomb Raider</option>
-                    <option value="Metal Gear">Metal Gear</option>
-                    <option value="Final Fantasy">Final Fantasy</option>
-                    <option value="Tekken">Tekken</option>
-                    <option value="Street Fighter">Street Fighter</option>
-                    <option value="Crash Bandicoot">Crash Bandicoot</option>
-                    <option value="Ratchet & Clank">Ratchet & Clank</option>
-                    <option value="Horizon">Horizon</option>
-                    <option value="Days Gone">Days Gone</option>
-                    <option value="Ghost of Tsushima">Ghost of Tsushima</option>
-                    <option value="Death Stranding">Death Stranding</option>
-                    <option value="Red Dead">Red Dead</option>
-                    <option value="Watch Dogs">Watch Dogs</option>
-                    <option value="Mafia">Mafia</option>
-                    <option value="Saints Row">Saints Row</option>
-                    <option value="Just Cause">Just Cause</option>
-                    <option value="Hitman">Hitman</option>
-                    <option value="Sniper Elite">Sniper Elite</option>
-                    <option value="Borderlands">Borderlands</option>
-                    <option value="Fallout">Fallout</option>
-                    <option value="The Elder Scrolls">The Elder Scrolls</option>
-                    <option value="Dishonored">Dishonored</option>
-                    <option value="BioShock">BioShock</option>
-                    <option value="Metro">Metro</option>
-                    <option value="Dying Light">Dying Light</option>
-                    <option value="Dead Island">Dead Island</option>
-                    <option value="Rainbow Six">Rainbow Six</option>
-                    <option value="Ghost Recon">Ghost Recon</option>
-                    <option value="LEGO">LEGO</option>
-                    <option value="Need for Speed">Need for Speed</option>
-                    <option value="Gran Turismo">Gran Turismo</option>
-                    <option value="Forza">Forza</option>
-                    <option value="WWE 2K">WWE 2K</option>
-                    <option value="UFC">UFC</option>
-                    <option value="PES">PES</option>
-                    <option value="Minecraft">Minecraft</option>
-                    <option value="Persona">Persona</option>
-                    <option value="Yakuza">Yakuza</option>
-                    <option value="Nioh">Nioh</option>
-                    <option value="Sekiro">Sekiro</option>
-                    <option value="Elden Ring">Elden Ring</option>
-                    <option value="Souls">Souls</option>
+                    {series.map(s => (
+                      <option key={s} value={s}>{s}</option>
+                    ))}
                   </select>
                 </div>
               </div>
