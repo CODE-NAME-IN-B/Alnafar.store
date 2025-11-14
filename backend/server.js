@@ -1490,7 +1490,7 @@ app.post('/api/games', authMiddleware, async (req, res) => {
       message: 'تم إضافة لعبة جديدة'
     });
     
-    console.log('[POST /api/games] ✅ Game added:', { id: newGame.id, title, genre, series, features });
+    console.log('[POST /api/games] ✅ Game added:', { id: newGame.id, title, category_id: newGame.category_id, genre, series, features });
     res.status(201).json(newGame);
   } catch (error) {
     console.error('[POST /api/games] ❌ Error:', error);

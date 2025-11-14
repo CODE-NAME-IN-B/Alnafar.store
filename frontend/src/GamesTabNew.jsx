@@ -54,6 +54,7 @@ export default function GamesTab() {
       const payload = { 
         ...form, 
         price: Number(form.price),
+        category_id: form.category_id ? Number(form.category_id) : null,
         genre: form.genre || null,
         series: form.series || null,
         features: form.features || null
