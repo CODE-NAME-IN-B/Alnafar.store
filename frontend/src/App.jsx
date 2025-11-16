@@ -237,13 +237,14 @@ export default function App() {
         split = String(g.features).toLowerCase().includes('split')
       }
     }
-    const storedGenre = (g.genre || '').toLowerCase() || ''
-    const storedSeries = (g.series || '').toLowerCase() || ''
-    // derive from title/description
+    // Prioritize database values over heuristic classification
+    const storedGenre = (g.genre || '').trim().toLowerCase() || ''
+    const storedSeries = (g.series || '').trim().toLowerCase() || ''
+    // derive from title/description only if database values are missing
     const derived = classifyGame(g)
-    // prefer derived when it clearly detects something
-    const genre = derived.genre || storedGenre
-    const series = derived.series || storedSeries
+    // Use database values first, fallback to derived only if database is empty
+    const genre = storedGenre || derived.genre || ''
+    const series = storedSeries || derived.series || ''
     const finalSplit = split || derived.split
     if (genre || series || finalSplit) return { genre, series, split: finalSplit }
     return null
@@ -269,12 +270,24 @@ export default function App() {
 
   const displayedGames = useMemo(() => {
     // filter
+    // Normalize filter values for case-insensitive comparison
+    const normalizedGenreFilter = genreFilter ? genreFilter.toLowerCase().trim() : ''
+    const normalizedSeriesFilter = seriesFilter ? seriesFilter.toLowerCase().trim() : ''
+    
     let out = classifiedGames.filter(g => {
-      if (genreFilter === '__others__') {
-        if (g._cls.genre) return false
-      } else if (genreFilter && g._cls.genre !== genreFilter) return false
-      if (seriesFilter && g._cls.series !== seriesFilter) return false
-      if (splitOnly && !g._cls.split) return false
+      // Genre filter
+      if (normalizedGenreFilter === '__others__') {
+        if (g._cls && g._cls.genre) return false
+      } else if (normalizedGenreFilter && (!g._cls || !g._cls.genre || g._cls.genre !== normalizedGenreFilter)) {
+        return false
+      }
+      // Series filter
+      if (normalizedSeriesFilter && (!g._cls || !g._cls.series || g._cls.series !== normalizedSeriesFilter)) {
+        return false
+      }
+      // Split screen filter
+      if (splitOnly && (!g._cls || !g._cls.split)) return false
+      // Letter filter
       if (letterFilter) {
         const first = (g.title || '').trim().charAt(0).toUpperCase()
         if (letterFilter === '#') {
