@@ -237,21 +237,19 @@ export default function App() {
         split = String(g.features).toLowerCase().includes('split')
       }
     }
-    // Prioritize database values over heuristic classification
-    const storedGenre = (g.genre || '').trim().toLowerCase() || ''
-    const storedSeries = (g.series || '').trim().toLowerCase() || ''
-    // derive from title/description only if database values are missing
+    // Normalize database values (preferred source of truth)
+    const storedGenre = (g.genre || '').trim().toLowerCase()
+    const storedSeries = (g.series || '').trim().toLowerCase()
+    // derive genre/split (but never auto-infer series)
     const derived = classifyGame(g)
-    // Use database values first, fallback to derived only if database is empty
     const genre = storedGenre || derived.genre || ''
-    const series = storedSeries || derived.series || ''
+    const series = storedSeries || ''
     const finalSplit = split || derived.split
-    if (genre || series || finalSplit) return { genre, series, split: finalSplit }
-    return null
+    return { genre, series, split: finalSplit }
   }
   const classifiedGames = useMemo(() => games.map(g => {
     const stored = fromStored(g)
-    return { ...g, _cls: stored || classifyGame(g) }
+    return { ...g, _cls: stored }
   }), [games])
   const availableSeries = useMemo(() => {
     const s = new Set()
