@@ -448,7 +448,7 @@ export default function App() {
     <div className="min-h-screen bg-base text-white">
       {/* Header */}
       <header className="bg-gradient-to-r from-gray-900 to-black border-b border-white/10 sticky top-0 z-50">
-        <div className="max-w-6xl mx-auto px-3 sm:px-4">
+        <div className="w-full px-3 sm:px-4 lg:px-6 xl:px-8">
           {/* Top row - Logo, Cart Icon (mobile), and Login */}
           <div className="h-14 sm:h-16 flex items-center justify-between">
             <div className="flex items-center gap-3">
@@ -517,7 +517,7 @@ export default function App() {
 
       {/* Hero */}
       <section className="bg-gradient-to-r from-base to-black">
-        <div className="max-w-6xl mx-auto px-3 sm:px-4 py-6 sm:py-10">
+        <div className="w-full px-3 sm:px-4 lg:px-6 xl:px-8 py-6 sm:py-10">
           <div className="grid md:grid-cols-2 gap-4 sm:gap-6 items-center">
             <div className="order-2 md:order-1">
               <h1 className="text-2xl sm:text-3xl md:text-4xl font-extrabold mb-2 sm:mb-3 text-center md:text-right">اختر الألعاب التي تريدها</h1>
@@ -596,9 +596,9 @@ export default function App() {
       </section>
 
       {/* Content */}
-      <main className="max-w-6xl mx-auto px-3 sm:px-4 py-6 sm:py-8">
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 lg:gap-8">
-          <section className="lg:col-span-2">
+      <main className="w-full px-3 sm:px-4 lg:px-6 xl:px-8 py-6 sm:py-8">
+        <div className="grid grid-cols-1 lg:grid-cols-[1fr_300px] xl:grid-cols-[1fr_350px] 2xl:grid-cols-[1fr_400px] gap-6 lg:gap-8">
+          <section className="w-full">
             {/* A–Z index - Mobile optimized */}
             <div className="mb-4 sm:mb-6">
               <div className="flex flex-wrap gap-1.5 sm:gap-2 text-xs sm:text-sm">
