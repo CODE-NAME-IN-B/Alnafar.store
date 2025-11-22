@@ -496,13 +496,15 @@ export default function App() {
           
           {/* Navigation - Horizontal scroll on mobile */}
           <div className="pb-2 overflow-x-auto scrollbar-hide">
-            <nav className="flex items-center gap-3 sm:gap-6 text-gray-200 min-w-max">
+            <nav className="flex items-center gap-3 sm:gap-6 min-w-max">
               {(categories || []).map((c, i) => (
                 <button 
                   key={c.id} 
                   onClick={() => setActiveCategory(c.id)} 
-                  className={`pb-2 border-b-2 -mb-px whitespace-nowrap px-1 text-sm sm:text-base font-medium transition-colors ${
-                    activeCategory===String(c.id) ? 'border-primary text-primary' : 'border-transparent hover:border-primary hover:text-primary'
+                  className={`pb-2 border-b-2 -mb-px whitespace-nowrap px-1 text-sm sm:text-base font-bold transition-colors ${
+                    activeCategory===String(c.id) 
+                      ? 'border-primary text-white' 
+                      : 'border-transparent text-gray-300 hover:border-primary hover:text-white'
                   }`}
                 >
                   {c.name}

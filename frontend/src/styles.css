@@ -84,37 +84,35 @@ select optgroup { background-color: var(--card); color: #fff; }
 /* ============================================ */
 
 /* Dynamic Grid Layout - Mobile First */
+/* Mobile: 2 columns fixed */
 .games-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+    grid-template-columns: repeat(2, 1fr);
     gap: 0.75rem;
     grid-auto-flow: dense;
 }
 
-@media (min-width: 480px) {
+/* Small tablets: 3 columns */
+@media (min-width: 768px) {
     .games-grid {
-        grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
-        gap: 1rem;
-    }
-}
-
-@media (min-width: 640px) {
-    .games-grid {
-        grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+        grid-template-columns: repeat(3, 1fr);
         gap: 1.25rem;
     }
 }
 
-@media (min-width: 768px) {
+/* Laptops: 4 columns */
+@media (min-width: 1024px) {
     .games-grid {
-        grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+        grid-template-columns: repeat(4, 1fr);
         gap: 1.5rem;
     }
 }
 
-@media (min-width: 1280px) {
+/* Large screens: 5 columns */
+@media (min-width: 1536px) {
     .games-grid {
-        grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+        grid-template-columns: repeat(5, 1fr);
+        gap: 1.5rem;
     }
 }
 
@@ -471,9 +469,9 @@ select optgroup { background-color: var(--card); color: #fff; }
 
 /* Mobile-specific improvements */
 @media (max-width: 640px) {
-    /* Optimize grid for very small screens */
+    /* Keep 2 columns on mobile */
     .games-grid {
-        grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+        grid-template-columns: repeat(2, 1fr);
         gap: 0.5rem;
     }
     
