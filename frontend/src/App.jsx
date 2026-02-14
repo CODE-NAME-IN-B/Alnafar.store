@@ -635,12 +635,12 @@ export default function App() {
             {displayedGames.map(game => {
               const categoryName = (categories || []).find(c => c.id === game.category_id)?.name || 'PS4'
               return (
-                <div key={game.id} className="game-card group" data-game-id={game.id}>
-                    <div className="game-card-image-wrapper">
+                <div key={game.id} className="game-card game-card-store group rounded-xl overflow-hidden border border-white/10 bg-card hover:border-primary/40 transition-all" data-game-id={game.id}>
+                    <div className="aspect-square relative overflow-hidden bg-gray-800/80">
                         <img 
                           src={game.image.startsWith('http') ? game.image : game.image} 
                           alt={game.title} 
-                          className="game-card-image"
+                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                           referrerPolicy="no-referrer"
                           onError={(e) => {
                             e.target.onerror = null;
@@ -648,52 +648,44 @@ export default function App() {
                           }}
                         />
                     </div>
-                    
-                    <div className="game-card-content">
-                        {/* Title */}
-                        <h3 className="game-card-title">{game.title}</h3>
-                        
-                        {/* Genre Badge */}
+                    <div className="p-3 sm:p-4 flex flex-col flex-grow">
+                        <h3 className="game-card-title text-white font-semibold mb-2 line-clamp-2 min-h-[2.5rem]">{game.title}</h3>
+                        <div className="flex items-center justify-between mb-2 gap-2">
+                          <span className="px-2 py-1 bg-primary/20 text-primary rounded-lg text-xs font-bold">
+                            {categoryName}
+                          </span>
+                          <span className="text-primary font-bold text-base sm:text-lg tabular-nums">
+                            {game.price.toFixed(3)} د.ل
+                          </span>
+                        </div>
                         {game.genre && (
-                          <div className="mb-2">
-                            <span className={`inline-block px-3 py-1 rounded-full text-xs font-bold ${
-                              game.genre === 'رعب' ? 'bg-red-900/30 text-red-300' :
-                              game.genre === 'أكشن' ? 'bg-orange-900/30 text-orange-300' :
-                              game.genre === 'مغامرة' ? 'bg-amber-900/30 text-amber-300' :
-                              game.genre === 'رياضة' ? 'bg-green-900/30 text-green-300' :
-                              game.genre === 'سباقات' ? 'bg-cyan-900/30 text-cyan-300' :
-                              game.genre === 'ألغاز' ? 'bg-fuchsia-900/30 text-fuchsia-300' :
-                              game.genre === 'منصات' ? 'bg-pink-900/30 text-pink-300' :
-                              game.genre === 'عالم مفتوح' ? 'bg-teal-900/30 text-teal-300' :
-                              game.genre === 'تخفي' ? 'bg-slate-900/30 text-slate-300' :
-                              game.genre === 'قتال' ? 'bg-purple-900/30 text-purple-300' :
-                              game.genre === 'استراتيجية' ? 'bg-blue-900/30 text-blue-300' :
-                              game.genre === 'تصويب' ? 'bg-indigo-900/30 text-indigo-300' :
-                              game.genre === 'RPG' ? 'bg-yellow-900/30 text-yellow-300' :
-                              game.genre === 'أطفال' ? 'bg-emerald-900/30 text-emerald-300' :
-                              'bg-gray-900/30 text-gray-300'
+                          <div className="mb-3">
+                            <span className={`inline-block px-2 py-1 rounded-lg text-xs font-semibold ${
+                              game.genre === 'رعب' ? 'bg-red-900/40 text-red-300' :
+                              game.genre === 'أكشن' ? 'bg-orange-900/40 text-orange-300' :
+                              game.genre === 'مغامرة' ? 'bg-amber-900/40 text-amber-300' :
+                              game.genre === 'رياضة' ? 'bg-green-900/40 text-green-300' :
+                              game.genre === 'سباقات' ? 'bg-cyan-900/40 text-cyan-300' :
+                              game.genre === 'ألغاز' ? 'bg-fuchsia-900/40 text-fuchsia-300' :
+                              game.genre === 'منصات' ? 'bg-pink-900/40 text-pink-300' :
+                              game.genre === 'عالم مفتوح' ? 'bg-teal-900/40 text-teal-300' :
+                              game.genre === 'تخفي' ? 'bg-slate-700/50 text-slate-300' :
+                              game.genre === 'قتال' ? 'bg-purple-900/40 text-purple-300' :
+                              game.genre === 'استراتيجية' ? 'bg-blue-900/40 text-blue-300' :
+                              game.genre === 'تصويب' ? 'bg-indigo-900/40 text-indigo-300' :
+                              game.genre === 'RPG' ? 'bg-yellow-900/40 text-yellow-300' :
+                              game.genre === 'أطفال' ? 'bg-emerald-900/40 text-emerald-300' :
+                              'bg-gray-700/50 text-gray-300'
                             }`}>
                               {game.genre}
                             </span>
                           </div>
                         )}
-                        
-                        {/* Price and Category Badge */}
-                        <div className="flex items-center justify-between mb-3">
-                          <span className="text-primary font-bold text-lg">
-                            {game.price.toFixed(3)} د.ل
-                          </span>
-                          <span className="px-2 py-1 bg-blue-600/20 text-blue-300 rounded text-xs font-semibold">
-                            {categoryName}
-                          </span>
-                        </div>
-                        
-                        {/* Add to Cart Button */}
                         <button 
                           onClick={() => addToCart(game)} 
-                          className="w-full bg-gradient-to-r from-primary to-emerald-500 hover:from-primary-dark hover:to-emerald-600 text-white font-bold py-3 px-4 rounded-lg transition-all transform hover:scale-105 shadow-lg flex items-center justify-center gap-2"
+                          className="mt-auto w-full bg-gradient-to-r from-primary to-emerald-500 hover:from-primary-dark hover:to-emerald-600 text-white font-bold py-2.5 sm:py-3 px-4 rounded-lg transition-all hover:scale-[1.02] active:scale-[0.98] shadow-lg flex items-center justify-center gap-2 text-sm sm:text-base"
                         >
-                          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <svg className="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
                           </svg>
                           أضف للسلة

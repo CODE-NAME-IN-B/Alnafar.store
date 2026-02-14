@@ -63,9 +63,9 @@ export default function Admin() {
       <nav className="bg-gradient-to-r from-gray-800 to-gray-900 shadow-2xl border-b border-gray-700">
         <div className="max-w-7xl mx-auto px-6 py-6">
           <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-4">
-              <img src={logo} alt="Logo" className="w-10 h-10 rounded-lg object-contain bg-white" />
-              <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent">
+            <div className="flex items-center gap-4">
+              <img src={logo} alt="شعار المتجر" className="w-10 h-10 flex-shrink-0 rounded-lg object-contain bg-white" />
+              <h1 className="text-2xl sm:text-3xl font-bold bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent">
                 لوحة تحكم المدير
               </h1>
             </div>
@@ -84,14 +84,14 @@ export default function Admin() {
         <div className="grid grid-cols-12 gap-6">
           <aside className="col-span-12 md:col-span-3">
             <div className="bg-gray-800/60 backdrop-blur-sm rounded-2xl border border-gray-700 p-4">
-              <div className="flex items-center mb-4">
-                <div className="w-10 h-10 bg-white rounded-lg overflow-hidden mr-3">
-                  <img src={logo} alt="Logo" className="w-full h-full object-contain" />
+              <div className="flex items-center gap-3 mb-4">
+                <div className="w-10 h-10 flex-shrink-0 bg-white rounded-lg overflow-hidden">
+                  <img src={logo} alt="شعار المتجر" className="w-full h-full object-contain" />
                 </div>
-                <div>
-                  <div className="font-bold">لوحة التحكم</div>
+                <div className="min-w-0 flex-1">
+                  <div className="font-bold text-white">لوحة التحكم</div>
                   {currentUser && (
-                    <div className="text-xs text-gray-300">{currentUser.username} — {currentUser.role}</div>
+                    <div className="text-xs text-gray-400">{currentUser.username} — {currentUser.role}</div>
                   )}
                 </div>
               </div>

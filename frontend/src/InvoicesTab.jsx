@@ -164,8 +164,8 @@ export default function InvoicesTab() {
             }
             @page { size: ${paperMM}mm auto; margin: 0; }
             .receipt { width: ${paperMM}mm; margin: 0 auto; padding: 2mm 1.5mm; }
-            .logo { text-align: center; margin: 1mm 0 0.5mm 0; }
-            .logo img { display: block; margin: 0 auto; max-width: 90%; width: 30mm; height: auto; image-rendering: -webkit-optimize-contrast; }
+            .logo { text-align: center; margin: 1mm 0 0.5mm 0; -webkit-print-color-adjust: exact; print-color-adjust: exact; min-height: 12mm; }
+            .logo img { display: block; margin: 0 auto; max-width: 48mm; width: 48mm; max-height: 14mm; height: auto; object-fit: contain; image-rendering: -webkit-optimize-contrast; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
             .logo-fallback { font-size: ${titleSize}; font-weight: bold; text-align: center; color: #333; margin: 1mm 0; }
             .store-name-ar { font-size: ${titleSize}; font-weight: bold; text-align: center; margin: 0.1mm 0 1px 0; }
             .subtitle { font-size: calc(${fontSize} - 1px); text-align: center; margin-bottom: 0; }
@@ -186,7 +186,7 @@ export default function InvoicesTab() {
         <body>
           <div class="receipt">
             <div class="logo">
-              <img src="/invoice-header.png?v=${Date.now()}" alt="شعار المتجر" onerror="this.onerror=null; this.src='/logo.png';" />
+              <img src="/invoice-header.png?v=${Date.now()}" alt="شعار المتجر" onerror="this.onerror=null; this.src='/logo.png'; this.style.maxWidth='48mm'; this.style.maxHeight='14mm';" />
               <div class="logo-fallback" style="display: none;">🏪 ${storeName}</div>
             </div>
             <div class="store-name-ar">${storeName}</div>
