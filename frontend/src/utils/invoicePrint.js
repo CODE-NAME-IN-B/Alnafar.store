@@ -21,8 +21,8 @@ export async function fetchFullInvoice(invoiceNumber) {
 export function openInvoicePrintWindow(invoice, invSettings = {}) {
   const paperMM = Number(invSettings?.paper_width) || 58
   const fs = String(invSettings?.font_size || 'normal').toLowerCase()
-  const fontSize = fs === 'large' ? '12px' : fs === 'small' ? '10px' : '11px'
-  const titleSize = fs === 'large' ? '15px' : fs === 'small' ? '13px' : '14px'
+  const fontSize = paperMM <= 58 ? '9px' : (fs === 'large' ? '12px' : fs === 'small' ? '10px' : '11px')
+  const titleSize = paperMM <= 58 ? '11px' : (fs === 'large' ? '15px' : fs === 'small' ? '13px' : '14px')
   const storeName = (invSettings?.store_name || '').trim() || 'الشارده للإلكترونيات'
   const storeNameEn = (invSettings?.store_name_english || '').trim() || 'Alnafar Store'
   const storeAddr = invSettings?.store_address || ''
@@ -33,6 +33,10 @@ export function openInvoicePrintWindow(invoice, invSettings = {}) {
   const showStoreInfo = !!Number(invSettings?.show_store_info ?? 1)
   const showFooter = !!Number(invSettings?.show_footer ?? 1)
 
+  const origin = typeof window !== 'undefined' ? window.location.origin : ''
+  const logoUrl = `${origin}/invoice-header.png?v=${Date.now()}`
+  const logoFallback = `${origin}/logo.png`
+
   const fullNumber = String(invoice.invoice_number || '')
   const dailyNo = fullNumber.includes('-') ? String(parseInt(fullNumber.split('-')[1], 10)) : fullNumber
   const notes = invoice.notes ?? invoice.customer_notes ?? ''
@@ -41,39 +45,42 @@ export function openInvoicePrintWindow(invoice, invSettings = {}) {
     try { return JSON.parse(invoice.items || '[]') } catch { return [] }
   })()
 
+  const logoW = paperMM <= 58 ? '42mm' : '48mm'
+  const logoH = paperMM <= 58 ? '12mm' : '14mm'
+
   const invoiceHTML = `
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=${paperMM}mm">
   <title>فاتورة ${dailyNo}</title>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
-    body { font-family: Tahoma, Arial, sans-serif; background: #fff; color: #000; direction: rtl; line-height: 1.3; font-size: ${fontSize}; }
-    @page { size: ${paperMM}mm auto; margin: 0; }
-    .receipt { width: ${paperMM}mm; margin: 0 auto; padding: 2mm 1.5mm; }
-    .logo { text-align: center; margin: 1mm 0 0.5mm 0; -webkit-print-color-adjust: exact; print-color-adjust: exact; min-height: 12mm; }
-    .logo img { display: block; margin: 0 auto; max-width: 48mm; width: 48mm; max-height: 14mm; height: auto; object-fit: contain; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-    .store-name-ar { font-size: ${titleSize}; font-weight: bold; text-align: center; margin: 0.1mm 0 1px 0; }
-    .subtitle { font-size: calc(${fontSize} - 1px); text-align: center; margin-bottom: 0; }
-    .section-title { font-size: ${fontSize}; font-weight: bold; margin: 2px 0 1px 0; text-align: right; }
+    html, body { width: ${paperMM}mm; max-width: ${paperMM}mm; overflow-x: hidden; font-family: Tahoma, Arial, sans-serif; background: #fff; color: #000; direction: rtl; line-height: 1.25; font-size: ${fontSize}; }
+    @page { size: ${paperMM}mm auto; margin: 2mm; }
+    .receipt { width: 100%; max-width: ${paperMM}mm; margin: 0 auto; padding: 1mm 1mm; }
+    .logo { text-align: center; margin: 0 0 1mm 0; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    .logo img { display: block; margin: 0 auto; max-width: ${logoW}; width: auto; height: auto; max-height: ${logoH}; object-fit: contain; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    .store-name-ar { font-size: ${titleSize}; font-weight: bold; text-align: center; margin: 0; }
+    .subtitle { font-size: ${fontSize}; text-align: center; margin-bottom: 0; }
+    .section-title { font-size: ${fontSize}; font-weight: bold; margin: 1px 0; text-align: right; }
     .separator { border-top: 1px dashed #999; margin: 1px 0; }
-    .info-row { display: flex; justify-content: space-between; margin: 1px 0; gap: 4px; }
-    .info-label { font-weight: bold; flex-shrink: 0; }
-    .info-value { text-align: left; word-break: break-word; }
-    .item-row { display: flex; justify-content: space-between; margin: 1px 0; padding: 1px 0; border-bottom: 1px dashed #ddd; gap: 4px; }
-    .item-name { text-align: right; word-break: break-word; flex: 1; }
-    .item-price { text-align: left; font-weight: bold; direction: ltr; flex-shrink: 0; min-width: 60px; }
-    .total-row { display: flex; justify-content: space-between; margin-top: 2px; padding-top: 2px; border-top: 2px solid #000; font-weight: bold; }
-    .footer { text-align: center; font-size: calc(${fontSize} - 2px); color: #555; margin-top: 2px; line-height: 1.2; }
-    @media print { body { margin: 0; padding: 0; } .no-print { display: none !important; } }
+    .info-row { display: flex; justify-content: space-between; margin: 0; gap: 2px; font-size: ${fontSize}; }
+    .info-label { flex-shrink: 0; }
+    .info-value { text-align: left; word-break: break-all; max-width: 60%; }
+    .item-row { display: flex; justify-content: space-between; margin: 0; padding: 0; border-bottom: 1px dashed #ddd; gap: 2px; font-size: ${fontSize}; }
+    .item-name { text-align: right; word-break: break-all; flex: 1; min-width: 0; }
+    .item-price { text-align: left; font-weight: bold; direction: ltr; flex-shrink: 0; }
+    .total-row { display: flex; justify-content: space-between; margin-top: 1px; padding-top: 1px; border-top: 2px solid #000; font-weight: bold; font-size: ${fontSize}; }
+    .footer { text-align: center; font-size: 8px; color: #555; margin-top: 1px; line-height: 1.2; }
+    @media print { html, body { width: ${paperMM}mm; max-width: ${paperMM}mm; margin: 0; padding: 0; } .no-print { display: none !important; } }
   </style>
 </head>
 <body>
   <div class="receipt">
     <div class="logo">
-      <img src="/invoice-header.png?v=${Date.now()}" alt="شعار المتجر" onerror="this.onerror=null; this.src='/logo.png'; this.style.maxWidth='48mm'; this.style.maxHeight='14mm';" />
+      <img src="${logoUrl}" alt="شعار المتجر" onerror="this.onerror=null; this.src='${logoFallback}'; this.style.maxWidth='${logoW}'; this.style.maxHeight='${logoH}';" />
     </div>
     <div class="store-name-ar">${storeName}</div>
     <div class="subtitle">${storeNameEn}</div>
@@ -106,14 +113,23 @@ export function openInvoicePrintWindow(invoice, invSettings = {}) {
     ` : ''}
     ${showFooter && footerMsg ? `<div class="footer"><div>${footerMsg}</div></div>` : ''}
   </div>
+  <script>
+    (function(){
+      var img = document.querySelector('.logo img');
+      function doPrint(){ try { window.print(); } catch(e) {} }
+      if (img) {
+        if (img.complete) setTimeout(doPrint, 150);
+        else { img.onload = function(){ setTimeout(doPrint, 150); }; setTimeout(doPrint, 2000); }
+      } else setTimeout(doPrint, 300);
+    })();
+  </script>
 </body>
 </html>`
 
-  const printWindow = window.open('', '_blank', 'width=800,height=600')
+  const printWindow = window.open('', '_blank', 'width=400,height=700')
   if (printWindow) {
     printWindow.document.write(invoiceHTML)
     printWindow.document.close()
-    printWindow.onload = () => setTimeout(() => printWindow.print(), 300)
   }
 }
 

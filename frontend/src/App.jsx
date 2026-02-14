@@ -647,7 +647,6 @@ export default function App() {
             {services.length > 0 && (
               <div className="mb-6 p-4 rounded-xl bg-card border border-white/10">
                 <h3 className="text-lg font-bold text-white mb-3">الخدمات</h3>
-                <p className="text-gray-400 text-sm mb-3">مثل فورمات، صيانة، إلخ. يمكن إضافتها مع الألعاب وتظهر في الفاتورة.</p>
                 <div className="flex flex-wrap gap-3">
                   {services.map((s) => (
                     <div key={s.id} className="flex items-center gap-2 px-4 py-2 rounded-lg bg-white/5 border border-white/10 hover:border-primary/40 transition-colors">

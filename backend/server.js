@@ -2129,13 +2129,19 @@ app.get('/api/invoices', authMiddleware, async (req, res) => {
     const page = parseInt(req.query.page) || 1;
     const limit = parseInt(req.query.limit) || 50;
     const offset = (page - 1) * limit;
-    const date = req.query.date; // فلترة حسب التاريخ (اختيارية)
+    const date = req.query.date;
+    const dateFrom = req.query.dateFrom;
+    const dateTo = req.query.dateTo;
 
     let whereClause = '';
     let params = [limit, offset];
     let countParams = [];
 
-    if (date) {
+    if (dateFrom && dateTo) {
+      whereClause = 'WHERE DATE(created_at) >= ? AND DATE(created_at) <= ?';
+      params = [dateFrom, dateTo, limit, offset];
+      countParams = [dateFrom, dateTo];
+    } else if (date) {
       whereClause = 'WHERE DATE(created_at) = ?';
       params = [date, limit, offset];
       countParams = [date];

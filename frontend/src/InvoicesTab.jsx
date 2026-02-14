@@ -15,6 +15,12 @@ export default function InvoicesTab() {
   const [editingInvoice, setEditingInvoice] = useState(null)
   const [search, setSearch] = useState('')
   const [pageLimit, setPageLimit] = useState(50)
+  const [dateFrom, setDateFrom] = useState(() => {
+    const d = new Date()
+    d.setDate(1)
+    return d.toISOString().split('T')[0]
+  })
+  const [dateTo, setDateTo] = useState(() => new Date().toISOString().split('T')[0])
 
   useEffect(() => {
     loadInvoices()
@@ -58,14 +64,14 @@ export default function InvoicesTab() {
   const loadInvoices = async (page = 1) => {
     try {
       setLoading(true)
-      const today = new Date().toISOString().split('T')[0] // فواتير اليوم فقط
-      const { data } = await api.get('/invoices', { 
-        params: { 
-          page, 
-          limit: pageLimit,
-          date: today 
-        } 
-      })
+      const params = { page, limit: pageLimit }
+      if (dateFrom && dateTo) {
+        params.dateFrom = dateFrom
+        params.dateTo = dateTo
+      } else {
+        params.date = dateTo || new Date().toISOString().split('T')[0]
+      }
+      const { data } = await api.get('/invoices', { params })
       setInvoices(data.invoices || [])
       setPagination(data.pagination || { page: 1, pages: 1, total: 0 })
     } catch (error) {
@@ -75,7 +81,7 @@ export default function InvoicesTab() {
     }
   }
 
-  useEffect(() => { loadInvoices(1) }, [pageLimit])
+  useEffect(() => { loadInvoices(1) }, [pageLimit, dateFrom, dateTo])
 
   const loadSummary = async () => {
     try {
@@ -138,10 +144,10 @@ export default function InvoicesTab() {
 
   return (
     <div className="p-8">
-      <div className="flex items-center justify-between mb-8">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
         <div>
-          <h2 className="text-3xl font-bold text-white">فواتير اليوم</h2>
-          <p className="text-gray-400 mt-1">عرض فواتير {new Date().toLocaleDateString('ar-LY')} فقط</p>
+          <h2 className="text-2xl font-bold text-white">الفواتير</h2>
+          <p className="text-gray-400 mt-1">اختر نطاق التاريخ لحساب الأرباح (مثلاً من أول الشهر لليوم)</p>
         </div>
         <div className="flex gap-2">
           <button
@@ -151,6 +157,29 @@ export default function InvoicesTab() {
             🗑️ حذف فواتير اليوم
           </button>
         </div>
+      </div>
+
+      <div className="flex flex-wrap items-center gap-3 mb-4">
+        <label className="text-gray-400 text-sm">من تاريخ:</label>
+        <input
+          type="date"
+          value={dateFrom}
+          onChange={(e) => setDateFrom(e.target.value)}
+          className="bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-white"
+        />
+        <label className="text-gray-400 text-sm">إلى تاريخ:</label>
+        <input
+          type="date"
+          value={dateTo}
+          onChange={(e) => setDateTo(e.target.value)}
+          className="bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-white"
+        />
+        <button
+          onClick={() => loadInvoices(1)}
+          className="px-4 py-2 bg-primary hover:bg-primary-dark text-white rounded-lg font-medium"
+        >
+          عرض
+        </button>
       </div>
 
       <div className="flex flex-wrap items-center gap-2 mb-4">

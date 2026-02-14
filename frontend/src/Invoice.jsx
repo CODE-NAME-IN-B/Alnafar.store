@@ -77,8 +77,13 @@ export default function Invoice({ cart, total, onClose, onSuccess }) {
 
       const paperMM = Number(invSettings?.paper_width) || 58
       const fs = String(invSettings?.font_size || 'normal').toLowerCase()
-      const fontSize = fs === 'large' ? '12px' : fs === 'small' ? '10px' : '11px'
-      const titleSize = fs === 'large' ? '15px' : fs === 'small' ? '13px' : '14px'
+      const fontSize = paperMM <= 58 ? '9px' : (fs === 'large' ? '12px' : fs === 'small' ? '10px' : '11px')
+      const titleSize = paperMM <= 58 ? '11px' : (fs === 'large' ? '15px' : fs === 'small' ? '13px' : '14px')
+      const origin = typeof window !== 'undefined' ? window.location.origin : ''
+      const logoUrl = `${origin}/invoice-header.png?v=${Date.now()}`
+      const logoFallback = `${origin}/logo.png`
+      const logoW = paperMM <= 58 ? '42mm' : '48mm'
+      const logoH = paperMM <= 58 ? '12mm' : '14mm'
 
       const headerText = invSettings?.header_logo_text || 'فاتورة مبيعات'
       const showStoreInfo = !!Number(invSettings?.show_store_info ?? 1)
@@ -111,24 +116,11 @@ export default function Invoice({ cart, total, onClose, onSuccess }) {
           <title>فاتورة ${dailyNo}</title>
           <style>
             * { margin: 0; padding: 0; box-sizing: border-box; }
-            body { 
-              font-family: Tahoma, Arial, Helvetica, sans-serif; 
-              background: #fff; 
-              color: #000;
-              font-size: ${fontSize};
-              line-height: 1.3;
-              direction: rtl;
-            }
-            @page { size: ${paperMM}mm auto; margin: 0; }
-            .receipt { 
-              width: ${paperMM}mm; 
-              margin: 0 auto; 
-              padding: 2mm 1.5mm;
-              background: #fff;
-            }
-            .logo { text-align: center; margin: 1mm 0 0.5mm 0; }
-            .logo img { display: block; margin: 0 auto; max-width: 80%; width: 25mm; max-height: 15mm; height: auto; object-fit: contain; image-rendering: -webkit-optimize-contrast; }
-            .logo-fallback { font-size: ${titleSize}; font-weight: bold; text-align: center; color: #333; margin: 1mm 0; }
+            html, body { width: ${paperMM}mm; max-width: ${paperMM}mm; overflow-x: hidden; font-family: Tahoma, Arial, sans-serif; background: #fff; color: #000; font-size: ${fontSize}; line-height: 1.25; direction: rtl; }
+            @page { size: ${paperMM}mm auto; margin: 2mm; }
+            .receipt { width: 100%; max-width: ${paperMM}mm; margin: 0 auto; padding: 1mm; background: #fff; }
+            .logo { text-align: center; margin: 0 0 1mm 0; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+            .logo img { display: block; margin: 0 auto; max-width: ${logoW}; max-height: ${logoH}; width: auto; height: auto; object-fit: contain; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
             .store-name-ar { 
               font-size: ${titleSize}; 
               font-weight: bold; 
@@ -198,13 +190,8 @@ export default function Invoice({ cart, total, onClose, onSuccess }) {
               word-break: break-word;
               flex: 1;
             }
-            .item-price { 
-              text-align: left; 
-              font-weight: bold;
-              direction: ltr;
-              flex-shrink: 0;
-              min-width: 80px;
-            }
+            .item-price { text-align: left; font-weight: bold; direction: ltr; flex-shrink: 0; }
+            .item-name { min-width: 0; word-break: break-all; }
             .total-row { 
               display: flex; 
               justify-content: space-between; 
@@ -240,11 +227,7 @@ export default function Invoice({ cart, total, onClose, onSuccess }) {
         <body>
           <div class="receipt">
             <div class="logo">
-              <div class="text-logo" style="font-size: calc(${titleSize} + 2px); font-weight: 900; text-align: center; color: #000; margin: 2mm 0; border: 2px solid #000; padding: 3mm 2mm; background: #fff;">
-                <div style="font-size: calc(${titleSize} + 4px); margin-bottom: 1mm;">⚡ A ⚡</div>
-                <div style="font-size: ${titleSize}; font-weight: bold;">${storeName}</div>
-                <div style="font-size: calc(${fontSize} + 1px); margin-top: 1mm;">${storeNameEn}</div>
-              </div>
+              <img src="${logoUrl}" alt="شعار المتجر" onerror="this.onerror=null; this.src='${logoFallback}'; this.style.maxWidth='${logoW}'; this.style.maxHeight='${logoH}';" />
             </div>
             ${storeAddr ? `<div class="subtitle store-contact">📍 ${storeAddr}</div>` : ''}
             ${storePhone ? `<div class="subtitle store-contact">📞 ${storePhone}</div>` : ''}
@@ -314,7 +297,8 @@ export default function Invoice({ cart, total, onClose, onSuccess }) {
             const waitImgs = imgs.length
               ? Promise.all(imgs.map(img => img.complete ? Promise.resolve() : new Promise(res => { img.onload = img.onerror = res })))
               : Promise.resolve()
-            waitImgs.then(() => { printWindow.focus(); printWindow.print() })
+            const timeout = new Promise(r => setTimeout(r, 2000))
+            Promise.race([waitImgs, timeout]).then(() => { printWindow.focus(); printWindow.print() })
           } catch (_) {
             printWindow.focus(); printWindow.print()
           }
