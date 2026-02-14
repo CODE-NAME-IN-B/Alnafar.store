@@ -2475,9 +2475,9 @@ app.get('/api/daily-reports', authMiddleware, (req, res) => {
 });
 
 // حساب إجمالي الفواتير
-app.get('/api/invoices-summary', authMiddleware, (req, res) => {
+app.get('/api/invoices-summary', authMiddleware, async (req, res) => {
   try {
-    const summary = get(`
+    const summary = await get(`
       SELECT 
         COUNT(*) as totalInvoices,
         COALESCE(SUM(CASE WHEN final_total > 0 THEN final_total ELSE (total - COALESCE(discount, 0)) END), 0) as totalRevenue,
@@ -2490,7 +2490,7 @@ app.get('/api/invoices-summary', authMiddleware, (req, res) => {
     const todayStart = new Date();
     todayStart.setHours(0, 0, 0, 0);
     
-    const todaySummary = get(`
+    const todaySummary = await get(`
       SELECT 
         COUNT(*) as todayInvoices,
         COALESCE(SUM(CASE WHEN final_total > 0 THEN final_total ELSE (total - COALESCE(discount, 0)) END), 0) as todayRevenue

@@ -58,20 +58,20 @@ export default function Admin() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 text-white">
-      {/* Header */}
-      <nav className="bg-gradient-to-r from-gray-800 to-gray-900 shadow-2xl border-b border-gray-700">
-        <div className="max-w-7xl mx-auto px-6 py-6">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-4">
-              <img src={logo} alt="شعار المتجر" className="w-10 h-10 flex-shrink-0 rounded-lg object-contain bg-white" />
-              <h1 className="text-2xl sm:text-3xl font-bold bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent">
+    <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 text-white safe-area-bottom">
+      {/* Header - محسّن للموبايل */}
+      <nav className="bg-gradient-to-r from-gray-800 to-gray-900 shadow-2xl border-b border-gray-700 safe-area-inset">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 py-4 sm:py-6">
+          <div className="flex items-center justify-between gap-3">
+            <div className="flex items-center gap-3 min-w-0">
+              <img src={logo} alt="شعار المتجر" className="w-9 h-9 sm:w-10 sm:h-10 flex-shrink-0 rounded-lg object-contain bg-white" />
+              <h1 className="text-lg sm:text-2xl md:text-3xl font-bold bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent truncate">
                 لوحة تحكم المدير
               </h1>
             </div>
             <button 
               onClick={logout} 
-              className="px-6 py-3 rounded-xl bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white font-semibold transition-all duration-300 transform hover:scale-105 shadow-lg"
+              className="px-4 py-2.5 sm:px-6 sm:py-3 rounded-xl bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white font-semibold text-sm sm:text-base transition-all duration-300 shadow-lg flex-shrink-0 min-h-[44px]"
             >
               تسجيل الخروج
             </button>
@@ -79,11 +79,11 @@ export default function Admin() {
         </div>
       </nav>
 
-      {/* Main Content */}
-      <div className="max-w-7xl mx-auto px-6 py-8">
-        <div className="grid grid-cols-12 gap-6">
+      {/* Main Content - شبكة متجاوبة مع شريط جانبي قابل للتمرير على الموبايل */}
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 py-4 sm:py-8">
+        <div className="grid grid-cols-12 gap-4 sm:gap-6">
           <aside className="col-span-12 md:col-span-3">
-            <div className="bg-gray-800/60 backdrop-blur-sm rounded-2xl border border-gray-700 p-4">
+            <div className="bg-gray-800/60 backdrop-blur-sm rounded-2xl border border-gray-700 p-3 sm:p-4 overflow-x-auto">
               <div className="flex items-center gap-3 mb-4">
                 <div className="w-10 h-10 flex-shrink-0 bg-white rounded-lg overflow-hidden">
                   <img src={logo} alt="شعار المتجر" className="w-full h-full object-contain" />
@@ -110,7 +110,7 @@ export default function Admin() {
                   <button
                     key={id}
                     onClick={() => setTab(id)}
-                    className={`w-full text-right px-4 py-3 rounded-xl font-semibold transition-all duration-200 ${
+                    className={`w-full text-right px-4 py-3 rounded-xl font-semibold transition-all duration-200 min-h-[48px] flex items-center justify-end ${
                       tab === id
                         ? 'bg-gradient-to-r from-blue-500 to-purple-600 text-white shadow-lg'
                         : 'bg-gray-700/50 text-gray-300 hover:bg-gray-600/50 hover:text-white'

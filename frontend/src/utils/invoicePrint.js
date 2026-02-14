@@ -94,11 +94,19 @@ export function openInvoicePrintWindow(invoice, invSettings = {}) {
     ${notes ? `<div class="info-row"><span class="info-label">ملاحظات:</span><span class="info-value">${notes}</span></div>` : ''}
     <div class="separator"></div>
     <div class="section-title">تفاصيل الطلب</div>
-    ${items.map(item => `
+    ${(() => { const games = items.filter(i => i.type !== 'service'); return (games.length ? games : items); })().map(item => `
     <div class="item-row">
       <span class="item-name">${item.title || ''}</span>
       <span class="item-price">${currency(item.price || 0)}</span>
     </div>`).join('')}
+    ${(() => { const svc = items.filter(i => i.type === 'service'); return svc; })().length ? `
+    <div class="separator"></div>
+    <div class="section-title">الخدمات</div>
+    ${items.filter(i => i.type === 'service').map(s => `
+    <div class="item-row">
+      <span class="item-name">${s.title || ''}</span>
+      <span class="item-price">${currency(s.price || 0)}</span>
+    </div>`).join('')}` : ''}
     <div class="total-row">
       <span>الإجمالي النهائي:</span>
       <span>${currency((invoice.total || 0) - (invoice.discount || 0))}</span>

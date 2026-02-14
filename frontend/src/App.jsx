@@ -385,7 +385,10 @@ export default function App() {
     [cart, servicesCart]
   )
   const combinedCartForInvoice = useMemo(() => 
-    [...cart.map(g => ({ title: g.title, price: Number(g.price) || 0 })), ...servicesCart.map(s => ({ title: s.title, price: Number(s.price) || 0 }))], 
+    [
+      ...cart.map(g => ({ title: g.title, price: Number(g.price) || 0, type: 'game' })),
+      ...servicesCart.map(s => ({ title: s.title, price: Number(s.price) || 0, type: 'service' }))
+    ],
     [cart, servicesCart]
   )
 
@@ -462,7 +465,7 @@ export default function App() {
   const genreSelectValue = splitOnly ? '__split__' : (genreFilter || '')
 
   return (
-    <div className="min-h-screen bg-base text-white">
+    <div className="min-h-screen bg-base text-white safe-area-inset">
       {/* Header */}
       <header className="bg-gradient-to-r from-gray-900 to-black border-b border-white/10 sticky top-0 z-50">
         <div className="w-full px-3 sm:px-4 lg:px-6 xl:px-8">

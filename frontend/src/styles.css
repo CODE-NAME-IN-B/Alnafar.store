@@ -22,6 +22,12 @@ body {
 	-webkit-font-smoothing: antialiased;
 	-moz-osx-font-smoothing: grayscale;
 	color: #e2e8f0;
+	/* PWA safe area for notches and home indicator */
+	padding-left: env(safe-area-inset-left);
+	padding-right: env(safe-area-inset-right);
+	padding-bottom: env(safe-area-inset-bottom);
+	min-height: 100vh;
+	min-height: -webkit-fill-available;
 }
 
 /* وضوح أفضل للنصوص على الجوال والكمبيوتر */
@@ -563,7 +569,7 @@ select optgroup { background-color: var(--card); color: #fff; }
     }
 }
 
-/* Safe area support for devices with notches */
+/* Safe area support for PWA and devices with notches */
 @supports (padding: max(0px)) {
     .safe-area-inset {
         padding-left: max(1rem, env(safe-area-inset-left));
@@ -572,5 +578,17 @@ select optgroup { background-color: var(--card); color: #fff; }
     
     header {
         padding-top: max(0.5rem, env(safe-area-inset-top));
+        padding-left: max(0.5rem, env(safe-area-inset-left));
+        padding-right: max(0.5rem, env(safe-area-inset-right));
     }
+    
+    /* Bottom nav / fixed buttons avoid home indicator */
+    .safe-area-bottom {
+        padding-bottom: max(1rem, env(safe-area-inset-bottom));
+    }
+}
+
+/* PWA standalone: improve app-like feel on mobile */
+@media (display-mode: standalone), (display-mode: fullscreen) {
+    body { padding-top: env(safe-area-inset-top); }
 }

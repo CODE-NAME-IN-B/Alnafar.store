@@ -34,7 +34,7 @@ export default function Invoice({ cart, total, onClose, onSuccess }) {
 
   const handleSubmit = async (e) => {
     e.preventDefault()
-    
+    if (isProcessing) return
     if (!customerInfo.name.trim() || !customerInfo.phone.trim()) {
       alert('يرجى إدخال الاسم ورقم الهاتف')
       return
@@ -50,7 +50,7 @@ export default function Invoice({ cart, total, onClose, onSuccess }) {
     try {
       const invoiceData = {
         customerInfo,
-        items: cart,
+        items: cart.map(({ title, price, type }) => ({ title, price, ...(type && { type }) })),
         total,
         discount,
         finalTotal: total - discount,
@@ -80,10 +80,34 @@ export default function Invoice({ cart, total, onClose, onSuccess }) {
       const fontSize = paperMM <= 58 ? '9px' : (fs === 'large' ? '12px' : fs === 'small' ? '10px' : '11px')
       const titleSize = paperMM <= 58 ? '11px' : (fs === 'large' ? '15px' : fs === 'small' ? '13px' : '14px')
       const origin = typeof window !== 'undefined' ? window.location.origin : ''
-      const logoUrl = `${origin}/invoice-header.png?v=${Date.now()}`
-      const logoFallback = `${origin}/logo.png`
       const logoW = paperMM <= 58 ? '42mm' : '48mm'
       const logoH = paperMM <= 58 ? '12mm' : '14mm'
+      // تضمين الشعار كـ data URL لضمان ظهوره عند الطباعة (لا يعتمد على مسار الخادم)
+      let logoDataUrl = ''
+      try {
+        const res = await fetch(`${origin}/invoice-header.png?v=${Date.now()}`, { mode: 'cors' })
+        if (res.ok) {
+          const blob = await res.blob()
+          logoDataUrl = await new Promise((resolve, reject) => {
+            const r = new FileReader()
+            r.onload = () => resolve(r.result)
+            r.onerror = reject
+            r.readAsDataURL(blob)
+          })
+        }
+        if (!logoDataUrl) {
+          const res2 = await fetch(`${origin}/logo.png?v=${Date.now()}`, { mode: 'cors' })
+          if (res2.ok) {
+            const blob2 = await res2.blob()
+            logoDataUrl = await new Promise((resolve, reject) => {
+              const r = new FileReader()
+              r.onload = () => resolve(r.result)
+              r.onerror = reject
+              r.readAsDataURL(blob2)
+            })
+          }
+        }
+      } catch (_) { /* نترك logoDataUrl فارغاً فيظهر نص البديل */ }
 
       const headerText = invSettings?.header_logo_text || 'فاتورة مبيعات'
       const showStoreInfo = !!Number(invSettings?.show_store_info ?? 1)
@@ -227,7 +251,7 @@ export default function Invoice({ cart, total, onClose, onSuccess }) {
         <body>
           <div class="receipt">
             <div class="logo">
-              <img src="${logoUrl}" alt="شعار المتجر" onerror="this.onerror=null; this.src='${logoFallback}'; this.style.maxWidth='${logoW}'; this.style.maxHeight='${logoH}';" />
+              ${logoDataUrl ? `<img src="${logoDataUrl}" alt="شعار المتجر" style="max-width:${logoW};max-height:${logoH};" />` : `<div class="store-name-ar">${storeName}</div><div class="subtitle">${storeNameEn}</div>`}
             </div>
             ${storeAddr ? `<div class="subtitle store-contact">📍 ${storeAddr}</div>` : ''}
             ${storePhone ? `<div class="subtitle store-contact">📞 ${storePhone}</div>` : ''}
@@ -255,11 +279,19 @@ export default function Invoice({ cart, total, onClose, onSuccess }) {
             <div class="separator"></div>
             
             <div class="section-title">تفاصيل الطلب</div>
-            ${cart.map(item => `
+            ${cart.filter(i => i.type !== 'service').map(item => `
             <div class="item-row">
               <span class="item-name">${item.title}</span>
               <span class="item-price">${currency(item.price)}</span>
             </div>`).join('')}
+            ${cart.filter(i => i.type === 'service').length ? `
+            <div class="separator"></div>
+            <div class="section-title">الخدمات</div>
+            ${cart.filter(i => i.type === 'service').map(s => `
+            <div class="item-row">
+              <span class="item-name">${s.title}</span>
+              <span class="item-price">${currency(s.price)}</span>
+            </div>`).join('')}` : ''}
             
             ${discount > 0 ? `
             <div class="info-row">
@@ -287,9 +319,15 @@ export default function Invoice({ cart, total, onClose, onSuccess }) {
 
       const printWindow = window.open('', '_blank', 'width=800,height=600')
       if (printWindow) {
+        let printCalled = false
+        const doPrintOnce = () => {
+          if (printCalled) return
+          printCalled = true
+          printWindow.focus()
+          printWindow.print()
+        }
         printWindow.document.write(invoiceHTML)
         printWindow.document.close()
-        
         printWindow.onload = () => {
           try {
             const doc = printWindow.document
@@ -298,9 +336,9 @@ export default function Invoice({ cart, total, onClose, onSuccess }) {
               ? Promise.all(imgs.map(img => img.complete ? Promise.resolve() : new Promise(res => { img.onload = img.onerror = res })))
               : Promise.resolve()
             const timeout = new Promise(r => setTimeout(r, 2000))
-            Promise.race([waitImgs, timeout]).then(() => { printWindow.focus(); printWindow.print() })
+            Promise.race([waitImgs, timeout]).then(doPrintOnce)
           } catch (_) {
-            printWindow.focus(); printWindow.print()
+            doPrintOnce()
           }
         }
       }
@@ -409,16 +447,32 @@ export default function Invoice({ cart, total, onClose, onSuccess }) {
             </h3>
             
             <div className="bg-gray-800/50 rounded-lg p-4 space-y-3">
-              {cart.map((item, index) => (
-                <div key={index} className="flex justify-between items-center py-2 border-b border-gray-700 last:border-b-0">
-                  <div className="flex-1">
-                    <p className="text-white font-medium text-sm">{item.title}</p>
-                  </div>
-                  <div className="text-primary font-semibold">
-                    {currency(item.price)}
-                  </div>
-                </div>
-              ))}
+              {cart.filter(i => i.type !== 'service').length > 0 && (
+                <>
+                  <p className="text-gray-400 text-xs font-medium">تفاصيل الطلب</p>
+                  {cart.filter(i => i.type !== 'service').map((item, index) => (
+                    <div key={index} className="flex justify-between items-center py-2 border-b border-gray-700 last:border-b-0">
+                      <div className="flex-1">
+                        <p className="text-white font-medium text-sm">{item.title}</p>
+                      </div>
+                      <div className="text-primary font-semibold">{currency(item.price)}</div>
+                    </div>
+                  ))}
+                </>
+              )}
+              {cart.filter(i => i.type === 'service').length > 0 && (
+                <>
+                  <p className="text-gray-400 text-xs font-medium mt-2">الخدمات</p>
+                  {cart.filter(i => i.type === 'service').map((s, index) => (
+                    <div key={`s-${index}`} className="flex justify-between items-center py-2 border-b border-gray-700 last:border-b-0">
+                      <div className="flex-1">
+                        <p className="text-white font-medium text-sm">{s.title}</p>
+                      </div>
+                      <div className="text-primary font-semibold">{currency(s.price)}</div>
+                    </div>
+                  ))}
+                </>
+              )}
               
               <div className="pt-3 border-t border-gray-600 space-y-3">
                 <div className="flex justify-between items-center">

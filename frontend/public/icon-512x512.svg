@@ -1,11 +1,10 @@
 <svg width="512" height="512" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
-  <rect width="512" height="512" fill="#14b8a6" rx="51.2"/>
-  <text x="50%" y="50%" dominant-baseline="middle" text-anchor="middle" 
-        font-family="Arial, sans-serif" font-size="153.6" font-weight="bold" fill="white">
-    🎮
-  </text>
-  <text x="50%" y="75%" dominant-baseline="middle" text-anchor="middle" 
-        font-family="Arial, sans-serif" font-size="61.44" fill="white">
-    Alnafar
-  </text>
+  <!-- خلفية ملونة مع حواف دائرية - تظهر بشكل جيد عند القص الدائري في PWA -->
+  <rect width="512" height="512" fill="#0f1724" rx="256"/>
+  <rect x="51" y="51" width="410" height="410" rx="205" fill="#14b8a6"/>
+  <!-- المحتوى في منطقة آمنة 80% لتفادي القص -->
+  <g transform="translate(256,256)">
+    <text y="-55" dominant-baseline="middle" text-anchor="middle" font-family="Arial, sans-serif" font-size="128" font-weight="bold" fill="white">🎮</text>
+    <text y="65" dominant-baseline="middle" text-anchor="middle" font-family="Arial, sans-serif" font-size="58" fill="white">Alnafar</text>
+  </g>
 </svg>

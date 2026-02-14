@@ -4,7 +4,9 @@ import socket from './socket'
 import { reprintInvoice as reprintInvoiceUtil } from './utils/invoicePrint'
 
 function currency(num) {
-  return new Intl.NumberFormat('ar-LY', { style: 'currency', currency: 'LYD' }).format(num)
+  const n = Number(num)
+  if (Number.isNaN(n)) return new Intl.NumberFormat('ar-LY', { style: 'currency', currency: 'LYD' }).format(0)
+  return new Intl.NumberFormat('ar-LY', { style: 'currency', currency: 'LYD' }).format(n)
 }
 
 export default function InvoicesTab() {
@@ -209,7 +211,7 @@ export default function InvoicesTab() {
           </div>
           <div className="bg-gradient-to-br from-green-600 to-green-700 p-6 rounded-xl text-white">
             <div className="text-sm opacity-90 mb-1">إجمالي الإيرادات</div>
-            <div className="text-2xl font-bold">{currency(summary.totalRevenue)}</div>
+            <div className="text-2xl font-bold">{currency(Number(summary.totalRevenue) || 0)}</div>
           </div>
           <div className="bg-gradient-to-br from-purple-600 to-purple-700 p-6 rounded-xl text-white">
             <div className="text-sm opacity-90 mb-1">فواتير اليوم</div>
@@ -217,7 +219,7 @@ export default function InvoicesTab() {
           </div>
           <div className="bg-gradient-to-br from-orange-600 to-orange-700 p-6 rounded-xl text-white">
             <div className="text-sm opacity-90 mb-1">إيرادات اليوم</div>
-            <div className="text-2xl font-bold">{currency(summary.todayRevenue)}</div>
+            <div className="text-2xl font-bold">{currency(Number(summary.todayRevenue) || 0)}</div>
           </div>
         </div>
       )}
