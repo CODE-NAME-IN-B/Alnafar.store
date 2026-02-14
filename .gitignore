@@ -1,8 +1,13 @@
 node_modules/
 dist/
 .env
+.env.local
+.env.*.local
 .DS_Store
+*.log
 
-# Keep database and uploads for Railway deployment
-# backend/data/database.sqlite
-# backend/data/uploads/
+# لا نرفع قاعدة البيانات أو مجلد الرفع إلى GitHub (استخدم Turso و Cloudinary في الإنتاج)
+backend/data/database.sqlite
+backend/data/*.sqlite
+backend/data/uploads/
+!backend/data/uploads/.gitkeep
