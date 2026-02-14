@@ -21,8 +21,8 @@ export async function fetchFullInvoice(invoiceNumber) {
 export function openInvoicePrintWindow(invoice, invSettings = {}) {
   const paperMM = Number(invSettings?.paper_width) || 58
   const fs = String(invSettings?.font_size || 'normal').toLowerCase()
-  const fontSize = paperMM <= 58 ? '9px' : (fs === 'large' ? '12px' : fs === 'small' ? '10px' : '11px')
-  const titleSize = paperMM <= 58 ? '11px' : (fs === 'large' ? '15px' : fs === 'small' ? '13px' : '14px')
+  const fontSize = paperMM <= 58 ? '11px' : (fs === 'large' ? '12px' : fs === 'small' ? '10px' : '11px')
+  const titleSize = paperMM <= 58 ? '13px' : (fs === 'large' ? '15px' : fs === 'small' ? '13px' : '14px')
   const storeName = (invSettings?.store_name || '').trim() || 'الشارده للإلكترونيات'
   const storeNameEn = (invSettings?.store_name_english || '').trim() || 'Alnafar Store'
   const storeAddr = invSettings?.store_address || ''
@@ -73,7 +73,7 @@ export function openInvoicePrintWindow(invoice, invSettings = {}) {
     .item-name { text-align: right; word-break: break-all; flex: 1; min-width: 0; }
     .item-price { text-align: left; font-weight: bold; direction: ltr; flex-shrink: 0; }
     .total-row { display: flex; justify-content: space-between; margin-top: 1px; padding-top: 1px; border-top: 2px solid #000; font-weight: bold; font-size: ${fontSize}; }
-    .footer { text-align: center; font-size: 8px; color: #555; margin-top: 1px; line-height: 1.2; }
+    .footer { text-align: center; font-size: ${paperMM <= 58 ? '10px' : '8px'}; color: #555; margin-top: 1px; line-height: 1.2; }
     @media print { html, body { width: ${paperMM}mm; max-width: ${paperMM}mm; margin: 0; padding: 0; } .no-print { display: none !important; } }
   </style>
 </head>

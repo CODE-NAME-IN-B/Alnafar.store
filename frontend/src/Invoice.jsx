@@ -77,8 +77,8 @@ export default function Invoice({ cart, total, onClose, onSuccess }) {
 
       const paperMM = Number(invSettings?.paper_width) || 58
       const fs = String(invSettings?.font_size || 'normal').toLowerCase()
-      const fontSize = paperMM <= 58 ? '9px' : (fs === 'large' ? '12px' : fs === 'small' ? '10px' : '11px')
-      const titleSize = paperMM <= 58 ? '11px' : (fs === 'large' ? '15px' : fs === 'small' ? '13px' : '14px')
+      const fontSize = paperMM <= 58 ? '11px' : (fs === 'large' ? '12px' : fs === 'small' ? '10px' : '11px')
+      const titleSize = paperMM <= 58 ? '13px' : (fs === 'large' ? '15px' : fs === 'small' ? '13px' : '14px')
       const origin = typeof window !== 'undefined' ? window.location.origin : ''
       const logoW = paperMM <= 58 ? '42mm' : '48mm'
       const logoH = paperMM <= 58 ? '12mm' : '14mm'
@@ -151,6 +151,7 @@ export default function Invoice({ cart, total, onClose, onSuccess }) {
               text-align: center; 
               margin: 0.1mm 0 1px 0;
             }
+            .store-name-en { font-size: ${fontSize}; font-weight: bold; text-align: center; margin: 0 0 1px 0; }
             .text-center { text-align: center; }
             .text-right { text-align: right; }
             .font-bold { font-weight: 700; }
@@ -251,8 +252,10 @@ export default function Invoice({ cart, total, onClose, onSuccess }) {
         <body>
           <div class="receipt">
             <div class="logo">
-              ${logoDataUrl ? `<img src="${logoDataUrl}" alt="شعار المتجر" style="max-width:${logoW};max-height:${logoH};" />` : `<div class="store-name-ar">${storeName}</div><div class="subtitle">${storeNameEn}</div>`}
+              ${logoDataUrl ? `<img src="${logoDataUrl}" alt="شعار المتجر" style="max-width:${logoW};max-height:${logoH};" />` : ''}
             </div>
+            <div class="store-name-ar">${storeName}</div>
+            <div class="subtitle store-name-en">${storeNameEn}</div>
             ${storeAddr ? `<div class="subtitle store-contact">📍 ${storeAddr}</div>` : ''}
             ${storePhone ? `<div class="subtitle store-contact">📞 ${storePhone}</div>` : ''}
             <div class="subtitle">رقم: ${dailyNo}</div>
