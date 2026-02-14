@@ -394,6 +394,15 @@ async function initializeDatabase() {
     );`);
   try { await run('ALTER TABLE daily_invoices ADD COLUMN notes TEXT'); } catch (e) {}
 
+  await exec(`CREATE TABLE IF NOT EXISTS services (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      title TEXT NOT NULL,
+      price REAL NOT NULL DEFAULT 0,
+      is_active INTEGER DEFAULT 1,
+      sort_order INTEGER DEFAULT 0,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    );`);
+
   // Seed default settings if empty
   const settingsCount = (await get('SELECT COUNT(*) as count FROM settings')).count;
   if (settingsCount === 0) {
@@ -1201,6 +1210,69 @@ app.get('/api/categories', async (req, res) => {
   } catch (error) {
     console.error('Error fetching categories:', error);
     res.status(500).json({ error: 'Failed to fetch categories' });
+  }
+});
+
+// الخدمات (للجميع: قائمة نشطة فقط — للمدير: كامل)
+app.get('/api/services', async (req, res) => {
+  try {
+    const activeOnly = req.query.active !== 'false';
+    const sql = activeOnly
+      ? 'SELECT * FROM services WHERE is_active = 1 ORDER BY sort_order ASC, id ASC'
+      : 'SELECT * FROM services ORDER BY sort_order ASC, id ASC';
+    const rows = await all(sql);
+    res.json(rows);
+  } catch (error) {
+    console.error('Error fetching services:', error);
+    res.status(500).json({ error: 'Failed to fetch services' });
+  }
+});
+app.post('/api/services', authMiddleware, async (req, res) => {
+  try {
+    const { title, price, is_active, sort_order } = req.body || {};
+    if (!title || price == null) return res.status(400).json({ message: 'title and price required' });
+    await run(
+      'INSERT INTO services (title, price, is_active, sort_order) VALUES (?, ?, ?, ?)',
+      [String(title), Number(price) || 0, is_active !== 0 ? 1 : 0, Number(sort_order) || 0]
+    );
+    const row = await get('SELECT * FROM services ORDER BY id DESC LIMIT 1');
+    res.json(row);
+  } catch (error) {
+    console.error('Error creating service:', error);
+    res.status(500).json({ error: 'Failed to create service' });
+  }
+});
+app.put('/api/services/:id', authMiddleware, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { title, price, is_active, sort_order } = req.body || {};
+    const existing = await get('SELECT * FROM services WHERE id = ?', [id]);
+    if (!existing) return res.status(404).json({ message: 'Service not found' });
+    await run(
+      'UPDATE services SET title = ?, price = ?, is_active = ?, sort_order = ? WHERE id = ?',
+      [
+        title !== undefined ? String(title) : existing.title,
+        price !== undefined ? Number(price) : existing.price,
+        is_active !== undefined ? (is_active !== 0 ? 1 : 0) : existing.is_active,
+        sort_order !== undefined ? Number(sort_order) : existing.sort_order,
+        id
+      ]
+    );
+    const row = await get('SELECT * FROM services WHERE id = ?', [id]);
+    res.json(row);
+  } catch (error) {
+    console.error('Error updating service:', error);
+    res.status(500).json({ error: 'Failed to update service' });
+  }
+});
+app.delete('/api/services/:id', authMiddleware, async (req, res) => {
+  try {
+    const { id } = req.params;
+    await run('DELETE FROM services WHERE id = ?', [id]);
+    res.json({ success: true });
+  } catch (error) {
+    console.error('Error deleting service:', error);
+    res.status(500).json({ error: 'Failed to delete service' });
   }
 });
 

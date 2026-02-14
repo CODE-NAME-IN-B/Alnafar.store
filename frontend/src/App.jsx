@@ -94,6 +94,8 @@ export default function App() {
   const [minPrice, setMinPrice] = useState('')
   const [maxPrice, setMaxPrice] = useState('')
   const [cart, setCart] = useState([])
+  const [servicesCart, setServicesCart] = useState([])
+  const [services, setServices] = useState([])
   // UI filters
   const [genreFilter, setGenreFilter] = useState('')
   const [seriesFilter, setSeriesFilter] = useState('')
@@ -106,6 +108,10 @@ export default function App() {
   const [showInvoice, setShowInvoice] = useState(false)
   const [showMobileCart, setShowMobileCart] = useState(false)
 
+
+  useEffect(() => {
+    api.get('/services').then(({ data }) => setServices(Array.isArray(data) ? data : [])).catch(() => {})
+  }, [])
 
   useEffect(() => {
     const onHash = () => setRoute(window.location.hash || '#/')
@@ -373,7 +379,15 @@ export default function App() {
     'fighting': 'قتال',
   }
 
-  const total = useMemo(() => cart.reduce((sum, g) => sum + g.price, 0), [cart])
+  const total = useMemo(() => 
+    cart.reduce((sum, g) => sum + (Number(g.price) || 0), 0) + 
+    servicesCart.reduce((sum, s) => sum + (Number(s.price) || 0), 0), 
+    [cart, servicesCart]
+  )
+  const combinedCartForInvoice = useMemo(() => 
+    [...cart.map(g => ({ title: g.title, price: Number(g.price) || 0 })), ...servicesCart.map(s => ({ title: s.title, price: Number(s.price) || 0 }))], 
+    [cart, servicesCart]
+  )
 
   function playAddFeedback() {
     try {
@@ -399,17 +413,20 @@ export default function App() {
     playAddFeedback()
   }
   function removeFromCart(index) { setCart(prev => prev.filter((_, i) => i !== index)) }
+  function addToServicesCart(service) {
+    setServicesCart(prev => [...prev, { id: service.id, title: service.title, price: service.price }])
+    playAddFeedback()
+  }
+  function removeFromServicesCart(index) { setServicesCart(prev => prev.filter((_, i) => i !== index)) }
 
   async function sendOrder() {
-    if (cart.length === 0) return alert('السلة فارغة')
-    
-    // فتح مودال الفاتورة بدلاً من إرسال رابط
+    if (cart.length === 0 && servicesCart.length === 0) return alert('السلة فارغة')
     setShowInvoice(true)
   }
 
   const handleInvoiceSuccess = (invoice) => {
-    // مسح السلة بعد نجاح إنشاء الفاتورة
     setCart([])
+    setServicesCart([])
     setShowInvoice(false)
     
     // رسالة مختلفة حسب البيئة
@@ -468,9 +485,9 @@ export default function App() {
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
                 </svg>
-                {cart.length > 0 && (
+                {(cart.length > 0 || servicesCart.length > 0) && (
                   <span className="absolute -top-1 -right-1 bg-primary text-black text-xs font-bold rounded-full h-5 w-5 flex items-center justify-center">
-                    {cart.length}
+                    {cart.length + servicesCart.length}
                   </span>
                 )}
               </button>
@@ -497,14 +514,14 @@ export default function App() {
           {/* Navigation - Horizontal scroll on mobile */}
           <div className="pb-2 overflow-x-auto scrollbar-hide">
             <nav className="flex items-center gap-3 sm:gap-6 min-w-max">
-              {(categories || []).map((c, i) => (
+              {(categories || []).map((c) => (
                 <button 
                   key={c.id} 
                   onClick={() => setActiveCategory(c.id)} 
-                  className={`pb-2 border-b-2 -mb-px whitespace-nowrap px-1 text-sm sm:text-base font-bold transition-colors ${
-                    activeCategory===String(c.id) 
-                      ? 'border-primary text-white' 
-                      : 'border-transparent text-gray-300 hover:border-primary hover:text-white'
+                  className={`pb-2 border-b-2 -mb-px whitespace-nowrap px-2 text-sm sm:text-base font-bold transition-colors ${
+                    activeCategory === String(c.id) 
+                      ? 'border-primary bg-primary/20 text-white' 
+                      : 'border-transparent text-slate-200 hover:text-white hover:border-white/30'
                   }`}
                 >
                   {c.name}
@@ -626,7 +643,29 @@ export default function App() {
               )}
             </div>
 
-          <div className="games-grid">
+            {/* قسم الخدمات */}
+            {services.length > 0 && (
+              <div className="mb-6 p-4 rounded-xl bg-card border border-white/10">
+                <h3 className="text-lg font-bold text-white mb-3">الخدمات</h3>
+                <p className="text-gray-400 text-sm mb-3">مثل فورمات، صيانة، إلخ. يمكن إضافتها مع الألعاب وتظهر في الفاتورة.</p>
+                <div className="flex flex-wrap gap-3">
+                  {services.map((s) => (
+                    <div key={s.id} className="flex items-center gap-2 px-4 py-2 rounded-lg bg-white/5 border border-white/10 hover:border-primary/40 transition-colors">
+                      <span className="text-white font-medium">{s.title}</span>
+                      <span className="text-primary font-bold tabular-nums">{Number(s.price).toFixed(3)} د.ل</span>
+                      <button
+                        onClick={() => addToServicesCart(s)}
+                        className="px-3 py-1 bg-primary hover:bg-primary-dark text-black rounded-lg text-sm font-semibold"
+                      >
+                        إضافة
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+            
+            <div className="games-grid">
             {displayedGames.length === 0 && (
               <div className="col-span-full text-gray-300 bg-white/5 border border-white/10 rounded-xl p-6 text-center">
                 لا توجد نتائج مطابقة للفلاتر الحالية.
@@ -709,7 +748,7 @@ export default function App() {
               )}
             </div>
             
-            {cart.length === 0 ? (
+            {cart.length === 0 && servicesCart.length === 0 ? (
               <div className="text-center py-6 sm:py-8 text-gray-400">
                 <svg className="w-12 h-12 mx-auto mb-3 opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
@@ -720,24 +759,21 @@ export default function App() {
               <>
                 <ul className="space-y-2 sm:space-y-3 max-h-48 sm:max-h-64 overflow-y-auto">
                   {cart.map((g, i) => (
-                    <li key={i} className="flex items-center gap-3 p-2 sm:p-3 bg-white/5 rounded-lg">
+                    <li key={`g-${i}`} className="flex items-center gap-3 p-2 sm:p-3 bg-white/5 rounded-lg">
                       <div className="flex-1 min-w-0">
-                        <p className="text-sm sm:text-base font-medium truncate" title={g.title}>
-                          {g.title}
-                        </p>
-                        <p className="text-xs sm:text-sm text-gray-300">
-                          {currency(g.price)}
-                        </p>
+                        <p className="text-sm sm:text-base font-medium truncate" title={g.title}>{g.title}</p>
+                        <p className="text-xs sm:text-sm text-gray-300">{currency(g.price)}</p>
                       </div>
-                      <button 
-                        onClick={() => removeFromCart(i)} 
-                        className="text-red-400 hover:text-red-300 p-1 rounded-full hover:bg-red-900/20 transition-colors"
-                        aria-label="حذف من السلة"
-                      >
-                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                        </svg>
-                      </button>
+                      <button onClick={() => removeFromCart(i)} className="text-red-400 hover:text-red-300 p-1 rounded-full hover:bg-red-900/20" aria-label="حذف"><svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg></button>
+                    </li>
+                  ))}
+                  {servicesCart.map((s, i) => (
+                    <li key={`s-${i}`} className="flex items-center gap-3 p-2 sm:p-3 bg-primary/10 rounded-lg border border-primary/20">
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm sm:text-base font-medium truncate" title={s.title}>{s.title}</p>
+                        <p className="text-xs sm:text-sm text-primary">{currency(s.price)}</p>
+                      </div>
+                      <button onClick={() => removeFromServicesCart(i)} className="text-red-400 hover:text-red-300 p-1 rounded-full hover:bg-red-900/20" aria-label="حذف"><svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg></button>
                     </li>
                   ))}
                 </ul>
@@ -750,7 +786,7 @@ export default function App() {
                   
                   <div className="space-y-3">
                     <button 
-                      disabled={cart.length === 0} 
+                      disabled={cart.length === 0 && servicesCart.length === 0} 
                       onClick={sendOrder} 
                       className="w-full bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 disabled:opacity-50 disabled:cursor-not-allowed text-white font-bold py-3 px-4 rounded-lg transition-all duration-300 text-sm sm:text-base flex items-center justify-center gap-2"
                     >
@@ -927,7 +963,7 @@ export default function App() {
       {/* Invoice Modal */}
       {showInvoice && (
         <Invoice
-          cart={cart}
+          cart={combinedCartForInvoice}
           total={total}
           onClose={handleInvoiceClose}
           onSuccess={handleInvoiceSuccess}

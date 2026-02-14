@@ -103,7 +103,7 @@ export default function Admin() {
                   { id: 'invoices', label: 'الفواتير', icon: '🧾' },
                   { id: 'daily-report', label: 'الجرد اليومي', icon: '📈' },
                   { id: 'invoice-settings', label: 'إعدادات الفاتورة', icon: '🖨️' },
-                  { id: 'orders', label: 'الطلبات', icon: '📋' },
+                  { id: 'services', label: 'الخدمات', icon: '🔧' },
                   { id: 'stats', label: 'الإحصائيات', icon: '📊' },
                   ...(currentUser?.role === 'admin' ? [{ id: 'users', label: 'الإدمن', icon: '🛡️' }] : [])
                 ].map(({ id, label, icon }) => (
@@ -131,7 +131,7 @@ export default function Admin() {
               {tab === 'invoices' && <InvoicesTab />}
               {tab === 'daily-report' && <DailyReportTab />}
               {tab === 'invoice-settings' && <InvoiceSettings />}
-              {tab === 'orders' && <OrdersTab />}
+              {tab === 'services' && <ServicesTab />}
               {tab === 'stats' && <StatsTab />}
               {tab === 'users' && currentUser?.role === 'admin' && <UsersTab />}
             </div>
@@ -260,50 +260,118 @@ function CategoriesTab() {
   )
 }
 
-function OrdersTab() {
+function ServicesTab() {
   const [items, setItems] = useState([])
-  
-  async function load() { 
-    const { data } = await api.get('/orders'); 
-    setItems(data) 
+  const [loading, setLoading] = useState(true)
+  const [form, setForm] = useState({ title: '', price: '', is_active: 1 })
+  const [editingId, setEditingId] = useState(null)
+
+  const load = async () => {
+    try {
+      const { data } = await api.get('/services?active=false')
+      setItems(Array.isArray(data) ? data : [])
+    } catch (e) {
+      console.error(e)
+    } finally {
+      setLoading(false)
+    }
   }
-  
   useEffect(() => { load() }, [])
-  
+
+  const save = async (e) => {
+    e.preventDefault()
+    if (!form.title.trim()) return
+    try {
+      if (editingId) {
+        await api.put(`/services/${editingId}`, {
+          title: form.title.trim(),
+          price: Number(form.price) || 0,
+          is_active: form.is_active ? 1 : 0
+        })
+        setEditingId(null)
+      } else {
+        await api.post('/services', {
+          title: form.title.trim(),
+          price: Number(form.price) || 0,
+          is_active: form.is_active ? 1 : 0
+        })
+      }
+      setForm({ title: '', price: '', is_active: 1 })
+      load()
+    } catch (err) {
+      alert(err?.response?.data?.message || 'فشل الحفظ')
+    }
+  }
+
+  const remove = async (id) => {
+    if (!confirm('حذف هذه الخدمة؟')) return
+    try {
+      await api.delete(`/services/${id}`)
+      load()
+    } catch (err) {
+      alert('فشل الحذف')
+    }
+  }
+
+  if (loading) {
+    return <div className="p-8 text-center text-gray-400">جاري التحميل...</div>
+  }
+
   return (
     <div className="p-8">
-      <div className="mb-8">
-        <h2 className="text-3xl font-bold text-white mb-2">إدارة الطلبات</h2>
-        <p className="text-gray-400">عرض وإدارة طلبات العملاء</p>
+      <div className="mb-6">
+        <h2 className="text-2xl font-bold text-white">الخدمات</h2>
+        <p className="text-gray-400 mt-1">مثل: فورمات PS4، صيانة، إلخ. تظهر في الواجهة الرئيسية ويضيفها الزبون مع الألعاب.</p>
       </div>
-      
-      <div className="bg-gradient-to-br from-gray-800 to-gray-900 p-8 rounded-2xl border border-gray-700 shadow-2xl">
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b border-gray-600">
-                <th className="text-right py-3 px-4 text-gray-300">المعرف</th>
-                <th className="text-right py-3 px-4 text-gray-300">العناصر</th>
-                <th className="text-right py-3 px-4 text-gray-300">التاريخ</th>
-              </tr>
-            </thead>
-        <tbody>
-          {items.map(o => (
-                <tr key={o.id} className="border-b border-gray-700 hover:bg-gray-700/30 transition-colors">
-                  <td className="py-3 px-4 text-gray-200">{o.id}</td>
-                  <td className="py-3 px-4 text-gray-200">
-                    <ul className="list-disc list-inside space-y-1">
-                      {JSON.parse(o.games).map((g, i) => (
-                        <li key={i} className="text-sm">{g.title} - {currency(g.price)}</li>
-                      ))}
-                </ul>
-              </td>
-                  <td className="py-3 px-4 text-gray-200">{new Date(o.created_at).toLocaleString('ar-LY')}</td>
+      <form onSubmit={save} className="bg-gray-800 p-4 rounded-xl border border-gray-700 mb-6 flex flex-wrap items-end gap-3">
+        <input
+          placeholder="اسم الخدمة (مثال: فورمات PS4)"
+          value={form.title}
+          onChange={e => setForm({ ...form, title: e.target.value })}
+          className="bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-white min-w-[200px]"
+        />
+        <input
+          type="number"
+          step="0.001"
+          placeholder="السعر (د.ل)"
+          value={form.price}
+          onChange={e => setForm({ ...form, price: e.target.value })}
+          className="bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-white w-28"
+        />
+        <label className="flex items-center gap-2 text-gray-300">
+          <input type="checkbox" checked={!!form.is_active} onChange={e => setForm({ ...form, is_active: e.target.checked ? 1 : 0 })} />
+          نشط
+        </label>
+        <button type="submit" className="px-4 py-2 bg-primary hover:bg-primary-dark text-white rounded-lg font-medium">
+          {editingId ? 'حفظ التعديل' : 'إضافة خدمة'}
+        </button>
+        {editingId && <button type="button" onClick={() => { setEditingId(null); setForm({ title: '', price: '', is_active: 1 }) }} className="px-3 py-2 bg-gray-600 text-white rounded-lg">إلغاء</button>}
+      </form>
+      <div className="bg-gray-800 rounded-xl border border-gray-700 overflow-x-auto">
+        <table className="w-full text-white">
+          <thead>
+            <tr className="border-b border-gray-600">
+              <th className="text-right py-3 px-4">الخدمة</th>
+              <th className="text-right py-3 px-4">السعر (د.ل)</th>
+              <th className="text-right py-3 px-4">الحالة</th>
+              <th className="text-center py-3 px-4">إجراءات</th>
             </tr>
-          ))}
-        </tbody>
-      </table>
-        </div>
+          </thead>
+          <tbody>
+            {items.map(s => (
+              <tr key={s.id} className="border-b border-gray-700 hover:bg-gray-700/30">
+                <td className="py-3 px-4">{s.title}</td>
+                <td className="py-3 px-4 font-mono">{Number(s.price).toFixed(3)}</td>
+                <td className="py-3 px-4">{s.is_active ? 'نشط' : 'معطل'}</td>
+                <td className="py-3 px-4 text-center">
+                  <button onClick={() => { setForm({ title: s.title, price: s.price, is_active: s.is_active }); setEditingId(s.id) }} className="px-2 py-1 bg-blue-600 hover:bg-blue-700 text-white rounded text-sm mx-1">تعديل</button>
+                  <button onClick={() => remove(s.id)} className="px-2 py-1 bg-red-600 hover:bg-red-700 text-white rounded text-sm mx-1">حذف</button>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+        {items.length === 0 && <div className="p-6 text-center text-gray-400">لا توجد خدمات. أضف خدمة من النموذج أعلاه.</div>}
       </div>
     </div>
   )
