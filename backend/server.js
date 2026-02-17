@@ -2474,9 +2474,12 @@ app.get('/api/daily-reports', authMiddleware, (req, res) => {
   }
 });
 
-// حساب إجمالي الفواتير
+// حساب إجمالي الفواتير (يدعم نطاق التاريخ: dateFrom, dateTo)
 app.get('/api/invoices-summary', authMiddleware, async (req, res) => {
   try {
+    const dateFrom = (req.query.dateFrom || '').toString().trim().slice(0, 10);
+    const dateTo = (req.query.dateTo || '').toString().trim().slice(0, 10);
+
     const summary = await get(`
       SELECT 
         COUNT(*) as totalInvoices,
@@ -2498,11 +2501,23 @@ app.get('/api/invoices-summary', authMiddleware, async (req, res) => {
       WHERE created_at >= ?
     `, [todayStart.toISOString()]);
 
+    let rangeSummary = null;
+    if (dateFrom && dateTo) {
+      rangeSummary = await get(`
+        SELECT 
+          COUNT(*) as rangeInvoices,
+          COALESCE(SUM(CASE WHEN final_total > 0 THEN final_total ELSE (total - COALESCE(discount, 0)) END), 0) as rangeRevenue
+        FROM invoices
+        WHERE DATE(created_at) >= ? AND DATE(created_at) <= ?
+      `, [dateFrom, dateTo]);
+    }
+
     res.json({
       success: true,
       summary: {
         ...summary,
-        ...todaySummary
+        ...todaySummary,
+        ...(rangeSummary || {})
       }
     });
 

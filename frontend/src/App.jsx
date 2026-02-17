@@ -70,8 +70,8 @@ function TopList({ onAdd }) {
             onError={(e) => { e.currentTarget.onerror = null; e.currentTarget.src = cover; }}
           />
           <div className="flex-1 min-w-0">
-            <div className="font-semibold truncate text-sm sm:text-base" title={g.title}>{g.title}</div>
-            <div className="text-gray-300 text-xs sm:text-sm">{typeof g.price === 'number' ? currency(g.price) : ''}</div>
+            <div className="font-semibold truncate text-sm sm:text-base text-white" title={g.title}>{g.title}</div>
+            <div className="text-primary font-medium text-xs sm:text-sm">{typeof g.price === 'number' ? currency(g.price) : ''}</div>
           </div>
           <button 
             onClick={() => onAdd && onAdd(g)} 
@@ -524,7 +524,7 @@ export default function App() {
                   className={`pb-2 border-b-2 -mb-px whitespace-nowrap px-2 text-sm sm:text-base font-bold transition-colors ${
                     activeCategory === String(c.id) 
                       ? 'border-primary bg-primary/20 text-white' 
-                      : 'border-transparent text-slate-200 hover:text-white hover:border-white/30'
+                      : 'border-transparent text-white bg-white/10 hover:bg-white/20 hover:border-white/30'
                   }`}
                 >
                   {c.name}
@@ -902,7 +902,7 @@ export default function App() {
             
             {/* Cart Content */}
             <div className="p-4 overflow-y-auto max-h-[60vh]">
-              {cart.length === 0 ? (
+              {cart.length === 0 && servicesCart.length === 0 ? (
                 <div className="text-center py-8 text-gray-400">
                   <svg className="w-16 h-16 mx-auto mb-4 opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
@@ -913,23 +913,24 @@ export default function App() {
                 <>
                   <ul className="space-y-3 mb-6">
                     {cart.map((g, i) => (
-                      <li key={i} className="flex items-center gap-3 p-3 bg-white/5 rounded-lg">
+                      <li key={`g-${i}`} className="flex items-center gap-3 p-3 bg-white/5 rounded-lg">
                         <div className="flex-1 min-w-0">
-                          <p className="font-medium truncate" title={g.title}>
-                            {g.title}
-                          </p>
-                          <p className="text-primary font-bold">
-                            {currency(g.price)}
-                          </p>
+                          <p className="font-medium truncate text-white" title={g.title}>{g.title}</p>
+                          <p className="text-primary font-bold">{currency(g.price)}</p>
                         </div>
-                        <button 
-                          onClick={() => removeFromCart(i)} 
-                          className="text-red-400 hover:text-red-300 p-2 rounded-full hover:bg-red-900/20 transition-colors"
-                          aria-label="حذف من السلة"
-                        >
-                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                          </svg>
+                        <button onClick={() => removeFromCart(i)} className="text-red-400 hover:text-red-300 p-2 rounded-full hover:bg-red-900/20 transition-colors" aria-label="حذف من السلة">
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+                        </button>
+                      </li>
+                    ))}
+                    {servicesCart.map((s, i) => (
+                      <li key={`s-${i}`} className="flex items-center gap-3 p-3 bg-primary/10 rounded-lg border border-primary/20">
+                        <div className="flex-1 min-w-0">
+                          <p className="font-medium truncate text-white" title={s.title}>{s.title}</p>
+                          <p className="text-primary font-bold">{currency(s.price)}</p>
+                        </div>
+                        <button onClick={() => removeFromServicesCart(i)} className="text-red-400 hover:text-red-300 p-2 rounded-full hover:bg-red-900/20 transition-colors" aria-label="حذف من السلة">
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
                         </button>
                       </li>
                     ))}
@@ -942,7 +943,7 @@ export default function App() {
                     </div>
                     
                     <button 
-                      disabled={cart.length === 0} 
+                      disabled={cart.length === 0 && servicesCart.length === 0} 
                       onClick={() => {
                         setShowMobileCart(false)
                         sendOrder()

@@ -83,11 +83,16 @@ export default function InvoicesTab() {
     }
   }
 
-  useEffect(() => { loadInvoices(1) }, [pageLimit, dateFrom, dateTo])
+  useEffect(() => { loadInvoices(1); loadSummary() }, [pageLimit, dateFrom, dateTo])
 
   const loadSummary = async () => {
     try {
-      const { data } = await api.get('/invoices-summary')
+      const params = {}
+      if (dateFrom && dateTo) {
+        params.dateFrom = dateFrom
+        params.dateTo = dateTo
+      }
+      const { data } = await api.get('/invoices-summary', { params })
       if (data.success) setSummary(data.summary)
     } catch (error) {
       console.error('خطأ في تحميل الإحصائيات:', error)
@@ -202,24 +207,40 @@ export default function InvoicesTab() {
         </select>
       </div>
 
-      {/* إحصائيات الفواتير */}
+      {/* إحصائيات الفواتير - عند اختيار نطاق تاريخ تظهر إحصائيات الفترة */}
       {summary && (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-          <div className="bg-gradient-to-br from-blue-600 to-blue-700 p-6 rounded-xl text-white">
-            <div className="text-sm opacity-90 mb-1">إجمالي الفواتير</div>
-            <div className="text-3xl font-bold">{summary.totalInvoices}</div>
-          </div>
-          <div className="bg-gradient-to-br from-green-600 to-green-700 p-6 rounded-xl text-white">
-            <div className="text-sm opacity-90 mb-1">إجمالي الإيرادات</div>
-            <div className="text-2xl font-bold">{currency(Number(summary.totalRevenue) || 0)}</div>
-          </div>
-          <div className="bg-gradient-to-br from-purple-600 to-purple-700 p-6 rounded-xl text-white">
-            <div className="text-sm opacity-90 mb-1">فواتير اليوم</div>
-            <div className="text-3xl font-bold">{summary.todayInvoices}</div>
-          </div>
-          <div className="bg-gradient-to-br from-orange-600 to-orange-700 p-6 rounded-xl text-white">
-            <div className="text-sm opacity-90 mb-1">إيرادات اليوم</div>
-            <div className="text-2xl font-bold">{currency(Number(summary.todayRevenue) || 0)}</div>
+        <div className="space-y-4 mb-8">
+          {dateFrom && dateTo && (summary.rangeInvoices !== undefined || summary.rangeRevenue !== undefined) && (
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="bg-gradient-to-br from-teal-600 to-teal-700 p-6 rounded-xl text-white border-2 border-teal-400">
+                <div className="text-sm opacity-90 mb-1">فواتير الفترة المحددة</div>
+                <div className="text-3xl font-bold">{Number(summary.rangeInvoices) ?? 0}</div>
+                <div className="text-xs opacity-80 mt-1">من {dateFrom} إلى {dateTo}</div>
+              </div>
+              <div className="bg-gradient-to-br from-emerald-600 to-emerald-700 p-6 rounded-xl text-white border-2 border-emerald-400">
+                <div className="text-sm opacity-90 mb-1">إيرادات الفترة المحددة</div>
+                <div className="text-2xl font-bold">{currency(Number(summary.rangeRevenue) || 0)}</div>
+                <div className="text-xs opacity-80 mt-1">من {dateFrom} إلى {dateTo}</div>
+              </div>
+            </div>
+          )}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div className="bg-gradient-to-br from-blue-600 to-blue-700 p-6 rounded-xl text-white">
+              <div className="text-sm opacity-90 mb-1">إجمالي الفواتير</div>
+              <div className="text-3xl font-bold">{summary.totalInvoices}</div>
+            </div>
+            <div className="bg-gradient-to-br from-green-600 to-green-700 p-6 rounded-xl text-white">
+              <div className="text-sm opacity-90 mb-1">إجمالي الإيرادات</div>
+              <div className="text-2xl font-bold">{currency(Number(summary.totalRevenue) || 0)}</div>
+            </div>
+            <div className="bg-gradient-to-br from-purple-600 to-purple-700 p-6 rounded-xl text-white">
+              <div className="text-sm opacity-90 mb-1">فواتير اليوم</div>
+              <div className="text-3xl font-bold">{summary.todayInvoices}</div>
+            </div>
+            <div className="bg-gradient-to-br from-orange-600 to-orange-700 p-6 rounded-xl text-white">
+              <div className="text-sm opacity-90 mb-1">إيرادات اليوم</div>
+              <div className="text-2xl font-bold">{currency(Number(summary.todayRevenue) || 0)}</div>
+            </div>
           </div>
         </div>
       )}
