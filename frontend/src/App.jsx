@@ -71,7 +71,7 @@ function TopList({ onAdd }) {
           />
           <div className="flex-1 min-w-0">
             <div className="font-semibold truncate text-sm sm:text-base text-white" title={g.title}>{g.title}</div>
-            <div className="text-primary font-medium text-xs sm:text-sm">{typeof g.price === 'number' ? currency(g.price) : ''}</div>
+            <div className="text-cyan-300 font-semibold text-xs sm:text-sm md:text-cyan-200">{typeof g.price === 'number' ? currency(g.price) : ''}</div>
           </div>
           <button 
             onClick={() => onAdd && onAdd(g)} 
@@ -467,22 +467,22 @@ export default function App() {
   return (
     <div className="min-h-screen bg-base text-white safe-area-inset">
       {/* Header */}
-      <header className="bg-gradient-to-r from-gray-900 to-black border-b border-white/10 sticky top-0 z-50">
-        <div className="w-full px-3 sm:px-4 lg:px-6 xl:px-8">
-          {/* Top row - Logo, Cart Icon (mobile), and Login */}
-          <div className="h-14 sm:h-16 flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <img src={logo} alt="Logo" className="h-8 w-8 sm:h-10 sm:w-10" />
-              <h1 className="text-lg sm:text-xl font-bold bg-gradient-to-r from-primary to-emerald-400 bg-clip-text text-transparent">
+      <header className="bg-gradient-to-r from-gray-900 to-black border-b border-white/10 sticky top-0 z-50 safe-area-inset">
+        <div className="w-full px-3 min-[400px]:px-4 sm:px-4 md:px-5 lg:px-6 xl:px-8 max-w-[100vw]">
+          {/* Top row - Logo, Cart (mobile), Login */}
+          <div className="h-12 min-[400px]:h-14 sm:h-16 flex items-center justify-between gap-2">
+            <div className="flex items-center gap-2 min-[400px]:gap-3 min-w-0">
+              <img src={logo} alt="Logo" className="h-7 w-7 min-[400px]:h-8 min-[400px]:w-8 sm:h-10 sm:w-10 flex-shrink-0" />
+              <h1 className="text-base min-[400px]:text-lg sm:text-xl font-bold bg-gradient-to-r from-primary to-emerald-400 bg-clip-text text-transparent truncate">
                 متجر النفار
               </h1>
             </div>
             
-            <div className="flex items-center gap-2 sm:gap-3">
+            <div className="flex items-center gap-1.5 sm:gap-3 flex-shrink-0">
               {/* Mobile Cart Icon */}
               <button 
                 onClick={() => setShowMobileCart(true)}
-                className="lg:hidden relative p-2 bg-white/10 hover:bg-white/20 rounded-lg transition-colors"
+                className="lg:hidden relative p-2.5 min-w-[44px] min-h-[44px] flex items-center justify-center bg-white/10 hover:bg-white/20 rounded-lg transition-colors touch-target"
                 aria-label="السلة"
               >
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -497,7 +497,7 @@ export default function App() {
               
               <button 
                 onClick={() => setShowLogin(true)}
-                className="text-xs sm:text-sm bg-white/10 hover:bg-white/20 px-3 py-2 rounded-lg transition-colors"
+                className="text-xs sm:text-sm bg-white/10 hover:bg-white/20 px-3 py-2.5 min-h-[44px] rounded-lg transition-colors touch-target"
               >
                 تسجيل دخول
               </button>
@@ -514,17 +514,17 @@ export default function App() {
             />
           </div>
           
-          {/* Navigation - Horizontal scroll on mobile */}
-          <div className="pb-2 overflow-x-auto scrollbar-hide">
-            <nav className="flex items-center gap-3 sm:gap-6 min-w-max">
+          {/* Navigation - تمرير أفقي على الهاتف */}
+          <div className="pb-2 -mx-3 px-3 sm:mx-0 sm:px-0 overflow-x-auto scrollbar-hide nav-scroll">
+            <nav className="flex items-center gap-2 sm:gap-4 md:gap-6 min-w-max py-0.5">
               {(categories || []).map((c) => (
                 <button 
                   key={c.id} 
                   onClick={() => setActiveCategory(c.id)} 
-                  className={`pb-2 border-b-2 -mb-px whitespace-nowrap px-2 text-sm sm:text-base font-bold transition-colors ${
+                  className={`pb-2 border-b-2 -mb-px whitespace-nowrap px-3 py-1 text-sm sm:text-base font-bold transition-colors ${
                     activeCategory === String(c.id) 
                       ? 'border-primary bg-primary/20 text-white' 
-                      : 'border-transparent text-white bg-white/10 hover:bg-white/20 hover:border-white/30'
+                      : 'border-transparent text-white bg-gray-600/80 hover:bg-gray-500/80 hover:border-white/30 md:bg-gray-600 md:hover:bg-gray-500'
                   }`}
                 >
                   {c.name}
@@ -537,11 +537,11 @@ export default function App() {
 
       {/* Hero */}
       <section className="bg-gradient-to-r from-base to-black">
-        <div className="w-full px-3 sm:px-4 lg:px-6 xl:px-8 py-6 sm:py-10">
+        <div className="w-full px-3 min-[400px]:px-4 sm:px-4 md:px-5 lg:px-6 xl:px-8 py-4 min-[400px]:py-5 sm:py-6 md:py-8 lg:py-10">
           <div className="grid md:grid-cols-2 gap-4 sm:gap-6 items-center">
             <div className="order-2 md:order-1">
-              <h1 className="text-2xl sm:text-3xl md:text-4xl font-extrabold mb-2 sm:mb-3 text-center md:text-right">اختر الألعاب التي تريدها</h1>
-              <p className="text-gray-300 mb-4 text-sm sm:text-base text-center md:text-right leading-relaxed">تصفح أفضل الألعاب لأجهزة PS و PC وأضفها إلى سلتك ثم اصدر الفاتورة مباشرة.</p>
+              <h1 className="text-xl min-[400px]:text-2xl sm:text-3xl md:text-4xl font-extrabold mb-2 sm:mb-3 text-center md:text-right">اختر الألعاب التي تريدها</h1>
+              <p className="text-gray-200 mb-4 text-sm sm:text-base text-center md:text-right leading-relaxed md:text-gray-100">تصفح أفضل الألعاب لأجهزة PS و PC وأضفها إلى سلتك ثم اصدر الفاتورة مباشرة.</p>
               
               {/* Desktop Search */}
               <div className="hidden md:block mb-4">
@@ -616,12 +616,12 @@ export default function App() {
       </section>
 
       {/* Content */}
-      <main className="w-full px-3 sm:px-4 lg:px-6 xl:px-8 py-6 sm:py-8">
-        <div className="grid grid-cols-1 lg:grid-cols-[1fr_300px] xl:grid-cols-[1fr_350px] 2xl:grid-cols-[1fr_400px] gap-6 lg:gap-8">
+      <main className="w-full px-3 min-[400px]:px-4 sm:px-4 md:px-5 lg:px-6 xl:px-8 py-4 min-[400px]:py-5 sm:py-6 md:py-8">
+        <div className="grid grid-cols-1 lg:grid-cols-[1fr_280px] xl:grid-cols-[1fr_320px] 2xl:grid-cols-[1fr_380px] gap-4 sm:gap-6 lg:gap-8">
           <section className="w-full">
-            {/* A–Z index - Mobile optimized */}
-            <div className="mb-4 sm:mb-6">
-              <div className="flex flex-wrap gap-1.5 sm:gap-2 text-xs sm:text-sm">
+            {/* فهرس A–Z - متجاوب مع أحجام الشاشات */}
+            <div className="mb-3 min-[400px]:mb-4 sm:mb-6 -mx-1 px-1 sm:mx-0 sm:px-0 overflow-x-auto sm:overflow-visible nav-scroll">
+              <div className="flex flex-wrap gap-1 sm:gap-2 text-[10px] min-[360px]:text-xs sm:text-sm min-w-0">
                 {['#','A','B','C','D','E','F','G','H','I','J','K','L','M','N','O','P','Q','R','S','T','U','V','W','X','Y','Z'].map(ch => (
                   <button 
                     key={ch} 
@@ -646,18 +646,18 @@ export default function App() {
               )}
             </div>
 
-            {/* قسم الخدمات */}
+            {/* قسم الخدمات - متجاوب */}
             {services.length > 0 && (
-              <div className="mb-6 p-4 rounded-xl bg-card border border-white/10">
-                <h3 className="text-lg font-bold text-white mb-3">الخدمات</h3>
-                <div className="flex flex-wrap gap-3">
+              <div className="mb-4 sm:mb-6 p-3 min-[400px]:p-4 rounded-xl bg-card border border-white/10">
+                <h3 className="text-base sm:text-lg font-bold text-white mb-2 sm:mb-3">الخدمات</h3>
+                <div className="flex flex-wrap gap-2 sm:gap-3">
                   {services.map((s) => (
-                    <div key={s.id} className="flex items-center gap-2 px-4 py-2 rounded-lg bg-white/5 border border-white/10 hover:border-primary/40 transition-colors">
-                      <span className="text-white font-medium">{s.title}</span>
-                      <span className="text-primary font-bold tabular-nums">{Number(s.price).toFixed(3)} د.ل</span>
+                    <div key={s.id} className="flex flex-wrap items-center gap-2 px-3 py-2 min-[400px]:px-4 rounded-lg bg-white/5 border border-white/10 hover:border-primary/40 transition-colors">
+                      <span className="text-white font-medium text-sm sm:text-base">{s.title}</span>
+                      <span className="text-primary font-bold tabular-nums text-sm sm:text-base">{Number(s.price).toFixed(3)} د.ل</span>
                       <button
                         onClick={() => addToServicesCart(s)}
-                        className="px-3 py-1 bg-primary hover:bg-primary-dark text-black rounded-lg text-sm font-semibold"
+                        className="px-3 py-2 min-h-[40px] bg-primary hover:bg-primary-dark text-black rounded-lg text-sm font-semibold touch-target"
                       >
                         إضافة
                       </button>
@@ -739,8 +739,8 @@ export default function App() {
         </section>
 
         <aside className="space-y-4 sm:space-y-6 lg:h-fit lg:sticky lg:top-24">
-          {/* Cart Section */}
-          <div className="bg-card rounded-xl shadow-sm border border-white/10 p-4 sm:p-5">
+          {/* السلة - متجاوبة مع الهاتف والتابلت */}
+          <div className="bg-card rounded-xl shadow-sm border border-white/10 p-3 min-[400px]:p-4 sm:p-5">
             <div className="flex items-center justify-between mb-3 sm:mb-4">
               <h2 className="text-lg sm:text-xl font-bold">السلة</h2>
               {cart.length > 0 && (
@@ -807,9 +807,9 @@ export default function App() {
             )}
           </div>
 
-          {/* Top Games Section - Hidden on mobile, shown on larger screens */}
-          <div className="hidden lg:block bg-card rounded-xl shadow-sm border border-white/10 p-4 sm:p-5 h-[60vh] overflow-auto toplist-scroll">
-            <h2 className="text-lg sm:text-xl font-bold mb-3 sm:mb-4">الأكثر طلباً</h2>
+          {/* الأكثر طلباً - يظهر من شاشة lg فما فوق */}
+          <div className="hidden lg:block bg-card rounded-xl shadow-sm border border-white/10 p-4 xl:p-5 h-[60vh] min-h-[280px] overflow-auto toplist-scroll">
+            <h2 className="text-lg xl:text-xl font-bold mb-3 xl:mb-4">الأكثر طلباً</h2>
             <TopList onAdd={addToCart} />
           </div>
         </aside>
@@ -883,10 +883,10 @@ export default function App() {
         </div>
       )}
 
-      {/* Mobile Cart Modal */}
+      {/* نافذة السلة على الموبايل - متوافقة مع الشاشات الصغيرة والكبيرة */}
       {showMobileCart && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 lg:hidden">
-          <div className="absolute bottom-0 left-0 right-0 bg-card rounded-t-2xl max-h-[80vh] overflow-hidden">
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 lg:hidden safe-area-inset">
+          <div className="absolute bottom-0 left-0 right-0 bg-card rounded-t-2xl max-h-[85vh] min-h-[40vh] overflow-hidden flex flex-col pb-[env(safe-area-inset-bottom)]">
             {/* Header */}
             <div className="flex items-center justify-between p-4 border-b border-white/10">
               <h2 className="text-xl font-bold">السلة</h2>

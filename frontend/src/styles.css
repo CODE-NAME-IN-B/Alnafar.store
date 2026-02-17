@@ -97,16 +97,37 @@ select optgroup { background-color: var(--card); color: #fff; }
 /* Enhanced Game Card Styles */
 /* ============================================ */
 
-/* Dynamic Grid Layout - Mobile First */
-/* Mobile: 2 columns fixed */
+/* Dynamic Grid Layout - Mobile First (شاشات متعددة) */
+/* هاتف صغير جداً (320px - 360px) */
 .games-grid {
     display: grid;
     grid-template-columns: repeat(2, 1fr);
-    gap: 0.75rem;
+    gap: 0.5rem;
     grid-auto-flow: dense;
 }
 
-/* Small tablets: 3 columns */
+/* هاتف صغير (360px+) */
+@media (min-width: 360px) {
+    .games-grid {
+        gap: 0.625rem;
+    }
+}
+
+/* هاتف متوسط (400px+) */
+@media (min-width: 400px) {
+    .games-grid {
+        gap: 0.75rem;
+    }
+}
+
+/* هاتف كبير / تابلت صغير (640px+) */
+@media (min-width: 640px) {
+    .games-grid {
+        gap: 1rem;
+    }
+}
+
+/* تابلت: 3 أعمدة */
 @media (min-width: 768px) {
     .games-grid {
         grid-template-columns: repeat(3, 1fr);
@@ -114,7 +135,7 @@ select optgroup { background-color: var(--card); color: #fff; }
     }
 }
 
-/* Laptops: 4 columns */
+/* لابتوب: 4 أعمدة */
 @media (min-width: 1024px) {
     .games-grid {
         grid-template-columns: repeat(4, 1fr);
@@ -122,7 +143,7 @@ select optgroup { background-color: var(--card); color: #fff; }
     }
 }
 
-/* Large screens: 5 columns */
+/* شاشة كبيرة: 5 أعمدة */
 @media (min-width: 1536px) {
     .games-grid {
         grid-template-columns: repeat(5, 1fr);
@@ -482,37 +503,42 @@ select optgroup { background-color: var(--card); color: #fff; }
     }
 }
 
-/* Mobile-specific improvements */
-@media (max-width: 640px) {
-    /* Keep 2 columns on mobile */
-    .games-grid {
-        grid-template-columns: repeat(2, 1fr);
-        gap: 0.5rem;
+/* هاتف صغير جداً (< 360px) */
+@media (max-width: 359px) {
+    .game-card-content {
+        padding: 0.375rem;
+        gap: 0.25rem;
     }
-    
-    /* Compact card content */
+    .game-card-title {
+        font-size: 0.7rem;
+        min-height: 2.2em;
+        -webkit-line-clamp: 2;
+        line-clamp: 2;
+    }
+    .game-card-button {
+        padding: 0.375rem 0.5rem;
+        font-size: 0.7rem;
+    }
+}
+
+/* هاتف صغير / متوسط (< 640px) */
+@media (max-width: 639px) {
     .game-card-content {
         padding: 0.5rem;
         gap: 0.375rem;
     }
-    
-    /* Smaller title font */
     .game-card-title {
         font-size: 0.75rem;
         min-height: 1.75rem;
         -webkit-line-clamp: 2;
         line-clamp: 2;
     }
-    
-    /* Compact button */
     .game-card-button {
-        @apply py-1.5 px-2;
+        @apply py-2 px-2;
         font-size: 0.75rem;
     }
-    
-    /* Smaller badges */
     .game-tag {
-        @apply px-1.5 py-0.5 text-xs;
+        @apply px-1.5 py-0.5 text-[10px];
     }
 }
 
@@ -591,4 +617,48 @@ select optgroup { background-color: var(--card); color: #fff; }
 /* PWA standalone: improve app-like feel on mobile */
 @media (display-mode: standalone), (display-mode: fullscreen) {
     body { padding-top: env(safe-area-inset-top); }
+}
+
+/* ========== توافق أحجام الشاشات (هاتف → تابلت → PC) ========== */
+/* حاويات متجاوبة */
+.page-padding {
+    padding-left: 0.75rem;
+    padding-right: 0.75rem;
+}
+@media (min-width: 384px) {
+    .page-padding { padding-left: 1rem; padding-right: 1rem; }
+}
+@media (min-width: 640px) {
+    .page-padding { padding-left: 1.25rem; padding-right: 1.25rem; }
+}
+@media (min-width: 768px) {
+    .page-padding { padding-left: 1.5rem; padding-right: 1.5rem; }
+}
+@media (min-width: 1024px) {
+    .page-padding { padding-left: 2rem; padding-right: 2rem; }
+}
+@media (min-width: 1280px) {
+    .page-padding { padding-left: 2.5rem; padding-right: 2.5rem; }
+}
+
+/* أزرار وعناصر تفاعلية: مساحة لمس مناسبة على الهاتف */
+@media (max-width: 767px) {
+    button:not(.no-touch-resize),
+    a[role="button"],
+    .touch-target {
+        min-height: 44px;
+        min-width: 44px;
+    }
+    /* عدم تكبير كل الأزرار الصغيرة (أيقونة حذف مثلاً) */
+    button.p-1, button.p-2 { min-width: 44px; min-height: 44px; }
+}
+
+/* تحسين التمرير الأفقي للتنقل (الفئات والأحرف) */
+.nav-scroll {
+    -webkit-overflow-scrolling: touch;
+    scroll-behavior: smooth;
+    scrollbar-width: none;
+}
+.nav-scroll::-webkit-scrollbar {
+    display: none;
 }
