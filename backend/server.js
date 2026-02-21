@@ -1,4 +1,4 @@
- 
+
 // تحميل .env أولاً قبل أي شيء!
 require('dotenv').config();
 
@@ -14,8 +14,17 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const axios = require('axios');
 const { GoogleGenerativeAI } = require('@google/generative-ai');
-// const { analyzeGameGenre, batchAnalyzeGames, ARABIC_GENRES } = require('../arabic-genre-detector'); // تم إزالة الملف
 const SunmiPrinter = require('./sunmi-printer');
+const webpush = require('web-push');
+
+// Web Push setup
+const VAPID_PUBLIC_KEY = process.env.VAPID_PUBLIC_KEY || 'BCFpwkNzw5p9Pr-q4GyZo5NEa8CBtK_gvAmt443xnQXFfW2YuQwOTiDgdtb25eK2jvR6yqtO2os2TOAjWzLovYg';
+const VAPID_PRIVATE_KEY = process.env.VAPID_PRIVATE_KEY || 'Zw53FEh01HIFVgJQpIdo4ILTOHfCEpPv5vjljOcfjPA';
+webpush.setVapidDetails(
+  'mailto:info@alnafar.store',
+  VAPID_PUBLIC_KEY,
+  VAPID_PRIVATE_KEY
+);
 
 // Initialize Gemini AI (بعد تحميل .env)
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY || '';
@@ -35,12 +44,12 @@ function findAvailablePort(startPort) {
   return new Promise((resolve, reject) => {
     const net = require('net');
     const server = net.createServer();
-    
+
     server.listen(startPort, () => {
       const port = server.address().port;
       server.close(() => resolve(port));
     });
-    
+
     server.on('error', (err) => {
       if (err.code === 'EADDRINUSE') {
         findAvailablePort(startPort + 1).then(resolve).catch(reject);
@@ -84,9 +93,9 @@ async function wikiFindSummaryGlobal(queryStr) {
               _wikiCache.set(key, out);
               return out;
             }
-          } catch {}
+          } catch { }
         }
-      } catch {}
+      } catch { }
     }
     return null;
   } catch { return null; }
@@ -121,10 +130,10 @@ async function recognizeGameFromImage(imageBuffer) {
 
   try {
     console.log('[Gemini] 🔍 Starting recognition... Image size:', imageBuffer.length, 'bytes');
-    
+
     // استخدام gemini-2.5-flash (أحدث موديل يدعم الصور)
     const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
-    
+
     const imagePart = {
       inlineData: {
         data: imageBuffer.toString('base64'),
@@ -149,9 +158,9 @@ Game title:`;
     const result = await model.generateContent([prompt, imagePart]);
     const response = await result.response;
     const text = response.text().trim();
-    
+
     console.log('[Gemini] 📥 Gemini response:', text);
-    
+
     if (text && text !== 'Unknown' && text.length > 0 && text.length < 200) {
       // Verify the game title using Wikipedia
       const verified = await verifyGameTitle(text);
@@ -170,7 +179,7 @@ Game title:`;
         };
       }
     }
-    
+
     console.log('[Gemini] ⚠️ Could not identify game (response was:', text, ')');
     return null;
   } catch (error) {
@@ -232,8 +241,8 @@ async function initializeDatabase() {
       username TEXT UNIQUE NOT NULL,
       password TEXT NOT NULL
     );`);
-  try { await run("ALTER TABLE users ADD COLUMN role TEXT DEFAULT 'admin'"); } catch (e) {}
-  try { await run("ALTER TABLE users ADD COLUMN created_at DATETIME DEFAULT CURRENT_TIMESTAMP"); } catch (e) {}
+  try { await run("ALTER TABLE users ADD COLUMN role TEXT DEFAULT 'admin'"); } catch (e) { }
+  try { await run("ALTER TABLE users ADD COLUMN created_at DATETIME DEFAULT CURRENT_TIMESTAMP"); } catch (e) { }
 
   await exec(`CREATE TABLE IF NOT EXISTS categories (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -243,7 +252,7 @@ async function initializeDatabase() {
   // Seed default categories if empty
   const catCount = (await get('SELECT COUNT(*) as count FROM categories')).count;
   if (catCount === 0) {
-    const defaults = ['PS4','PS5','PS3','PC'];
+    const defaults = ['PS4', 'PS5', 'PS3', 'PC'];
     for (const n of defaults) {
       await run('INSERT INTO categories (name) VALUES (?)', [n]);
     }
@@ -307,6 +316,7 @@ async function initializeDatabase() {
       image TEXT NOT NULL,
       description TEXT,
       price REAL NOT NULL,
+      size_gb REAL DEFAULT 0,
       category_id INTEGER,
       genre TEXT,
       series TEXT,
@@ -315,9 +325,10 @@ async function initializeDatabase() {
     );`);
 
   // Migrate existing DBs to include new columns if missing
-  try { await run('ALTER TABLE games ADD COLUMN genre TEXT'); } catch(e) {}
-  try { await run('ALTER TABLE games ADD COLUMN series TEXT'); } catch(e) {}
-  try { await run('ALTER TABLE games ADD COLUMN features TEXT'); } catch(e) {}
+  try { await run('ALTER TABLE games ADD COLUMN genre TEXT'); } catch (e) { }
+  try { await run('ALTER TABLE games ADD COLUMN series TEXT'); } catch (e) { }
+  try { await run('ALTER TABLE games ADD COLUMN features TEXT'); } catch (e) { }
+  try { await run('ALTER TABLE games ADD COLUMN size_gb REAL DEFAULT 0'); } catch (e) { }
 
   await exec(`CREATE TABLE IF NOT EXISTS orders (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -347,6 +358,8 @@ async function initializeDatabase() {
       customer_notes TEXT,
       items TEXT NOT NULL,
       total REAL NOT NULL,
+      total_size_gb REAL DEFAULT 0,
+      estimated_minutes INTEGER DEFAULT 0,
       discount REAL DEFAULT 0,
       final_total REAL,
       status TEXT DEFAULT 'completed',
@@ -356,8 +369,10 @@ async function initializeDatabase() {
     );`);
 
   // Migrate existing DBs to include discount/final_total if missing
-  try { await run('ALTER TABLE invoices ADD COLUMN discount REAL DEFAULT 0'); } catch (e) {}
-  try { await run('ALTER TABLE invoices ADD COLUMN final_total REAL'); } catch (e) {}
+  try { await run('ALTER TABLE invoices ADD COLUMN discount REAL DEFAULT 0'); } catch (e) { }
+  try { await run('ALTER TABLE invoices ADD COLUMN final_total REAL'); } catch (e) { }
+  try { await run('ALTER TABLE invoices ADD COLUMN total_size_gb REAL DEFAULT 0'); } catch (e) { }
+  try { await run('ALTER TABLE invoices ADD COLUMN estimated_minutes INTEGER DEFAULT 0'); } catch (e) { }
 
   await exec(`CREATE TABLE IF NOT EXISTS invoice_settings (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -392,7 +407,7 @@ async function initializeDatabase() {
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
       updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
     );`);
-  try { await run('ALTER TABLE daily_invoices ADD COLUMN notes TEXT'); } catch (e) {}
+  try { await run('ALTER TABLE daily_invoices ADD COLUMN notes TEXT'); } catch (e) { }
 
   await exec(`CREATE TABLE IF NOT EXISTS services (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -406,28 +421,28 @@ async function initializeDatabase() {
   // Seed default settings if empty
   const settingsCount = (await get('SELECT COUNT(*) as count FROM settings')).count;
   if (settingsCount === 0) {
-  await run('INSERT INTO settings (whatsapp_number, default_message, telegram_bot_token, telegram_chat_id, telegram_username, telegram_enabled, communication_method) VALUES (?, ?, ?, ?, ?, ?, ?)', 
-    ['', 'مرحباً، أريد طلب الألعاب التالية:', '', '', '', 1, 'telegram']);
+    await run('INSERT INTO settings (whatsapp_number, default_message, telegram_bot_token, telegram_chat_id, telegram_username, telegram_enabled, communication_method) VALUES (?, ?, ?, ?, ?, ?, ?)',
+      ['', 'مرحباً، أريد طلب الألعاب التالية:', '', '', '', 1, 'telegram']);
 
-  // Seed default invoice settings if empty
-  const invoiceSettingsCount = (await get('SELECT COUNT(*) as count FROM invoice_settings')).count;
-  if (invoiceSettingsCount === 0) {
-    await run(`INSERT INTO invoice_settings (
+    // Seed default invoice settings if empty
+    const invoiceSettingsCount = (await get('SELECT COUNT(*) as count FROM invoice_settings')).count;
+    if (invoiceSettingsCount === 0) {
+      await run(`INSERT INTO invoice_settings (
       store_name, store_name_english, store_address, store_phone, 
       store_email, store_website, footer_message, header_logo_text,
       show_store_info, show_footer, paper_width, font_size
     ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`, [
-      'الشارجه للإلكترونيات',
-      'Alnafar Store', 
-      'شارع القضائيه مقابل مطحنة الفضيل',
-      '0920595447',
-      'info@alnafar.store',
-      '',
-      'شكراً لتسوقكم معنا - للاستفسارات اتصل بنا',
-      'فاتورة مبيعات',
-      1, 1, 58, 'large'
-    ]);
-  }
+        'الشارجه للإلكترونيات',
+        'Alnafar Store',
+        'شارع القضائيه مقابل مطحنة الفضيل',
+        '0920595447',
+        'info@alnafar.store',
+        '',
+        'شكراً لتسوقكم معنا - للاستفسارات اتصل بنا',
+        'فاتورة مبيعات',
+        1, 1, 58, 'large'
+      ]);
+    }
   } else {
     // Update existing settings to add new columns if they don't exist
     try {
@@ -444,6 +459,14 @@ async function initializeDatabase() {
       // Columns might already exist, ignore error
     }
   }
+
+  // جدول لاشتراكات التنبيهات (Web Push)
+  await exec(`CREATE TABLE IF NOT EXISTS push_subscriptions (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      order_id TEXT NOT NULL,
+      subscription_data TEXT NOT NULL,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    );`);
 
   // Seed admin user if none
   const userCount = (await get('SELECT COUNT(*) as count FROM users')).count;
@@ -509,7 +532,7 @@ app.get('/api/daily-report/export.csv', authMiddleware, async (req, res) => {
       const s = String(val == null ? '' : val).replace(/"/g, '""');
       return '"' + s + '"';
     }
-    const header = ['date','total_invoices','total_revenue','total_discount','net_revenue','is_closed','closed_at','notes'];
+    const header = ['date', 'total_invoices', 'total_revenue', 'total_discount', 'net_revenue', 'is_closed', 'closed_at', 'notes'];
     const lines = [header.join(',')].concat(rows.map(r => [
       r.date,
       r.total_invoices,
@@ -521,7 +544,7 @@ app.get('/api/daily-report/export.csv', authMiddleware, async (req, res) => {
       r.notes || ''
     ].map(csvEscape).join(',')));
     const csv = '\uFEFF' + lines.join('\n');
-    const fname = `daily-report-${start}${start!==end?('_'+end):''}.csv`;
+    const fname = `daily-report-${start}${start !== end ? ('_' + end) : ''}.csv`;
     res.setHeader('Content-Type', 'text/csv; charset=utf-8');
     res.setHeader('Content-Disposition', `attachment; filename="${fname}"`);
     res.send(csv);
@@ -534,7 +557,7 @@ app.get('/api/daily-report/export.csv', authMiddleware, async (req, res) => {
 // Socket.IO للتحديثات الفورية
 io.on('connection', (socket) => {
   console.log('🔌 عميل متصل:', socket.id);
-  
+
   socket.on('disconnect', () => {
     console.log('🔌 عميل منقطع:', socket.id);
   });
@@ -593,7 +616,7 @@ function updateDailyStats(invoiceData) {
   const today = new Date().toISOString().split('T')[0];
   const { total, discount = 0 } = invoiceData;
   const netRevenue = total - discount;
-  
+
   run(`UPDATE daily_invoices SET 
     total_invoices = total_invoices + 1,
     total_revenue = total_revenue + ?,
@@ -643,10 +666,10 @@ app.post('/api/uploads', async (req, res) => {
   try {
     // sanitize filename
     const safeName = filename.replace(/[^a-zA-Z0-9._-]/g, '_')
-    
+
     // رفع إلى Cloudinary أو التخزين المحلي
     const result = await cloudinaryStorage.uploadBase64Image(data, safeName, 'games');
-    
+
     res.json({ url: result.url })
   } catch (e) {
     console.error('upload error', e)
@@ -663,7 +686,7 @@ app.get('/api/health', (req, res) => {
     timestamp: new Date().toISOString(),
     uptime: process.uptime()
   };
-  
+
   if (dbHealth) {
     res.json(status);
   } else {
@@ -677,7 +700,7 @@ app.get('/api/invoice-numbering-status', authMiddleware, async (req, res) => {
     const today = new Date().toISOString().split('T')[0];
     const dailyRecord = await get('SELECT * FROM daily_invoices WHERE date = ?', [today]);
     const lastInvoice = await get('SELECT invoice_number, created_at FROM invoices ORDER BY created_at DESC LIMIT 1');
-    
+
     res.json({
       success: true,
       today,
@@ -700,7 +723,7 @@ app.get('/api/invoice-numbering-status', authMiddleware, async (req, res) => {
 app.post('/api/reset-daily-numbering', authMiddleware, async (req, res) => {
   try {
     const today = new Date().toISOString().split('T')[0];
-    
+
     // إعادة احتساب آخر رقم فاتورة لليوم
     const lastTodayInvoice = await get(`
       SELECT invoice_number FROM invoices 
@@ -708,13 +731,13 @@ app.post('/api/reset-daily-numbering', authMiddleware, async (req, res) => {
       ORDER BY created_at DESC 
       LIMIT 1
     `, [today]);
-    
+
     let lastNumber = 0;
     if (lastTodayInvoice && lastTodayInvoice.invoice_number) {
       const numberPart = lastTodayInvoice.invoice_number.split('-')[1];
       lastNumber = parseInt(numberPart) || 0;
     }
-    
+
     // تحديث أو إنشاء سجل اليوم
     const existingRecord = await get('SELECT * FROM daily_invoices WHERE date = ?', [today]);
     if (existingRecord) {
@@ -722,10 +745,10 @@ app.post('/api/reset-daily-numbering', authMiddleware, async (req, res) => {
     } else {
       await run('INSERT INTO daily_invoices (date, last_invoice_number, total_invoices) VALUES (?, ?, ?)', [today, lastNumber, 0]);
     }
-    
+
     // إعادة احتساب الإحصائيات
     await recomputeDailyStats(today);
-    
+
     res.json({
       success: true,
       message: 'تم إعادة تعيين ترقيم الفواتير بنجاح',
@@ -733,7 +756,7 @@ app.post('/api/reset-daily-numbering', authMiddleware, async (req, res) => {
       lastNumber,
       nextNumber: lastNumber + 1
     });
-    
+
   } catch (error) {
     console.error('خطأ في إعادة تعيين ترقيم الفواتير:', error);
     res.status(500).json({
@@ -751,7 +774,7 @@ app.post('/api/analyze-game-genre', async (req, res) => {
     if (!title || String(title).trim().length < 2) {
       return res.status(400).json({ error: 'title required' });
     }
-    
+
     const result = await analyzeGameGenre(String(title));
     res.json({
       success: true,
@@ -792,21 +815,21 @@ app.post('/api/batch-analyze-genres', authMiddleware, async (req, res) => {
     if (games.length === 0) {
       return res.json({ success: true, updated: 0, message: 'No games to analyze' });
     }
-    
+
     let updated = 0;
     const results = await batchAnalyzeGames(games, (current, total, title) => {
       console.log(`[Batch Genre Analysis] ${current}/${total}: ${title}`);
     });
-    
+
     for (const result of results) {
       if (result.arabicGenre) {
         const features = result.features.length > 0 ? JSON.stringify(result.features) : null;
-        run('UPDATE games SET genre = ?, features = ? WHERE id = ?', 
+        run('UPDATE games SET genre = ?, features = ? WHERE id = ?',
           [result.arabicGenre, features, result.id]);
         updated++;
       }
     }
-    
+
     res.json({ success: true, updated, total: games.length, results });
   } catch (e) {
     console.error('Batch genre analysis error:', e?.message || e);
@@ -837,21 +860,21 @@ app.post('/api/genres', authMiddleware, async (req, res) => {
     if (!newGenre || newGenre.trim() === '') {
       return res.status(400).json({ error: 'New genre name is required' });
     }
-    
+
     const trimmedNewGenre = newGenre.trim();
-    
+
     if (oldGenre) {
       // Update existing genre
       // First update in games table
       await run('UPDATE games SET genre = ? WHERE genre = ?', [trimmedNewGenre, oldGenre]);
-      
+
       // Update in available_genres table
       await run('UPDATE available_genres SET name = ? WHERE name = ?', [trimmedNewGenre, oldGenre]);
-      
+
       // Get count of updated rows
       const updated = await all('SELECT COUNT(*) as count FROM games WHERE genre = ?', [trimmedNewGenre]);
       const count = updated[0]?.count || 0;
-      
+
       console.log(`[POST /api/genres] ✅ Genre updated: "${oldGenre}" → "${trimmedNewGenre}" (${count} games)`);
       res.json({ updated: count, message: `Updated ${count} games` });
     } else {
@@ -881,15 +904,15 @@ app.post('/api/genres', authMiddleware, async (req, res) => {
 app.delete('/api/genres/:genre', authMiddleware, async (req, res) => {
   try {
     const genre = decodeURIComponent(req.params.genre);
-    
+
     // Remove genre from games
     const before = await all('SELECT COUNT(*) as count FROM games WHERE genre = ?', [genre]);
     const count = before[0]?.count || 0;
     await run('UPDATE games SET genre = NULL WHERE genre = ?', [genre]);
-    
+
     // Remove from available_genres table
     await run('DELETE FROM available_genres WHERE name = ?', [genre]);
-    
+
     console.log(`[DELETE /api/genres/:genre] ✅ Genre deleted: "${genre}" (removed from ${count} games)`);
     res.json({ deleted: count, message: `Removed genre from ${count} games` });
   } catch (e) {
@@ -915,21 +938,21 @@ app.post('/api/series', authMiddleware, async (req, res) => {
     if (!newSeries || newSeries.trim() === '') {
       return res.status(400).json({ error: 'New series name is required' });
     }
-    
+
     const trimmedNewSeries = newSeries.trim();
-    
+
     if (oldSeries) {
       // Update existing series
       // First update in games table
       await run('UPDATE games SET series = ? WHERE series = ?', [trimmedNewSeries, oldSeries]);
-      
+
       // Update in available_series table
       await run('UPDATE available_series SET name = ? WHERE name = ?', [trimmedNewSeries, oldSeries]);
-      
+
       // Get count of updated rows
       const updated = await all('SELECT COUNT(*) as count FROM games WHERE series = ?', [trimmedNewSeries]);
       const count = updated[0]?.count || 0;
-      
+
       console.log(`[POST /api/series] ✅ Series updated: "${oldSeries}" → "${trimmedNewSeries}" (${count} games)`);
       res.json({ updated: count, message: `Updated ${count} games` });
     } else {
@@ -958,15 +981,15 @@ app.post('/api/series', authMiddleware, async (req, res) => {
 app.delete('/api/series/:series', authMiddleware, async (req, res) => {
   try {
     const series = decodeURIComponent(req.params.series);
-    
+
     // Remove series from games
     const before = await all('SELECT COUNT(*) as count FROM games WHERE series = ?', [series]);
     const count = before[0]?.count || 0;
     await run('UPDATE games SET series = NULL WHERE series = ?', [series]);
-    
+
     // Remove from available_series table
     await run('DELETE FROM available_series WHERE name = ?', [series]);
-    
+
     console.log(`[DELETE /api/series/:series] ✅ Series deleted: "${series}" (removed from ${count} games)`);
     res.json({ deleted: count, message: `Removed series from ${count} games` });
   } catch (e) {
@@ -1313,9 +1336,9 @@ app.post('/api/seed-folder', authMiddleware, async (req, res) => {
           try {
             const sum = await axios.get(site.summary + encodeURIComponent(title), { timeout: 5000 })
             if (sum?.data?.extract) return { match: title, extract: sum.data.extract }
-          } catch (e) {}
+          } catch (e) { }
         }
-      } catch (e) {}
+      } catch (e) { }
     }
     return null
   }
@@ -1447,14 +1470,14 @@ app.post('/api/seed-ps4-force', async (req, res) => {
       let title = cleanTitle(rawName);
       let finalGenre = null;
       let finalSeries = null;
-      
+
       // try OCR detection first
-        try {
-          const detected = await detectTitleFromImage(path.join(folderPath, file));
-          if (detected) {
-            title = detected;
-            mapping[file] = { title: detected, genre: null, series: null };
-            saveMapping(mapping);
+      try {
+        const detected = await detectTitleFromImage(path.join(folderPath, file));
+        if (detected) {
+          title = detected;
+          mapping[file] = { title: detected, genre: null, series: null };
+          saveMapping(mapping);
         } else if (mapping[file]) {
           // fallback to mapping if OCR failed
           const me = normalizeMapEntry(mapping[file]);
@@ -1573,18 +1596,18 @@ app.get('/api/games/:id', async (req, res) => {
 });
 
 // Batch fetch games by IDs (for TopList efficiency)
- 
+
 
 app.post('/api/games', authMiddleware, async (req, res) => {
   try {
-    const { title, image, description, price, category_id, genre, series, features } = req.body;
+    const { title, image, description, price, size_gb, category_id, genre, series, features } = req.body;
     if (!title || !image || typeof price !== 'number') {
       return res.status(400).json({ message: 'Missing fields' });
     }
-    
-    await run('INSERT INTO games (title, image, description, price, category_id, genre, series, features) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
-      [title, image, description || '', price, category_id || null, genre || null, series || null, features || null]);
-    
+
+    await run('INSERT INTO games (title, image, description, price, size_gb, category_id, genre, series, features) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
+      [title, image, description || '', price, size_gb ? Number(size_gb) : 0, category_id || null, genre || null, series || null, features || null]);
+
     // Add genre to available_genres if it's new
     if (genre && genre.trim()) {
       try {
@@ -1598,7 +1621,7 @@ app.post('/api/games', authMiddleware, async (req, res) => {
         console.warn('Error adding genre to available_genres:', e.message);
       }
     }
-    
+
     // Add series to available_series if it's new
     if (series && series.trim()) {
       try {
@@ -1612,28 +1635,29 @@ app.post('/api/games', authMiddleware, async (req, res) => {
         console.warn('Error adding series to available_series:', e.message);
       }
     }
-    
+
     const row = await get('SELECT last_insert_rowid() as id');
-    
-    const newGame = { 
-      id: row.id, 
-      title, 
-      image, 
-      description: description || '', 
-      price, 
-      category_id: category_id || null, 
-      genre: genre || null, 
-      series: series || null, 
-      features: features || null 
+
+    const newGame = {
+      id: row.id,
+      title,
+      image,
+      description: description || '',
+      price,
+      size_gb: size_gb ? Number(size_gb) : 0,
+      category_id: category_id || null,
+      genre: genre || null,
+      series: series || null,
+      features: features || null
     };
-    
+
     // إرسال تحديث فوري
     broadcastUpdate('game_added', {
       game: newGame,
       message: 'تم إضافة لعبة جديدة'
     });
-    
-    console.log('[POST /api/games] ✅ Game added:', { id: newGame.id, title, category_id: newGame.category_id, genre, series, features });
+
+    console.log('[POST /api/games] ✅ Game added:', { id: newGame.id, title, category_id: newGame.category_id, genre, series, features, size_gb: newGame.size_gb });
     res.status(201).json(newGame);
   } catch (error) {
     console.error('[POST /api/games] ❌ Error:', error);
@@ -1644,11 +1668,11 @@ app.post('/api/games', authMiddleware, async (req, res) => {
 app.put('/api/games/:id', authMiddleware, async (req, res) => {
   try {
     const { id } = req.params;
-    const { title, image, description, price, category_id, genre, series, features } = req.body;
-    
-    await run('UPDATE games SET title = ?, image = ?, description = ?, price = ?, category_id = ?, genre = ?, series = ?, features = ? WHERE id = ?',
-      [title, image, description || '', price, category_id || null, genre || null, series || null, features || null, id]);
-    
+    const { title, image, description, price, size_gb, category_id, genre, series, features } = req.body;
+
+    await run('UPDATE games SET title = ?, image = ?, description = ?, price = ?, size_gb = ?, category_id = ?, genre = ?, series = ?, features = ? WHERE id = ?',
+      [title, image, description || '', price, size_gb ? Number(size_gb) : 0, category_id || null, genre || null, series || null, features || null, id]);
+
     // Add genre to available_genres if it's new
     if (genre && genre.trim()) {
       try {
@@ -1662,7 +1686,7 @@ app.put('/api/games/:id', authMiddleware, async (req, res) => {
         console.warn('Error adding genre to available_genres:', e.message);
       }
     }
-    
+
     // Add series to available_series if it's new
     if (series && series.trim()) {
       try {
@@ -1676,9 +1700,9 @@ app.put('/api/games/:id', authMiddleware, async (req, res) => {
         console.warn('Error adding series to available_series:', e.message);
       }
     }
-    
+
     const ch = await get('SELECT changes() as changes');
-    
+
     try {
       // Persist into mapping.json so reseeds keep manual edits
       const row = await get('SELECT image FROM games WHERE id = ?', [id]);
@@ -1692,8 +1716,8 @@ app.put('/api/games/:id', authMiddleware, async (req, res) => {
       // ignore mapping persist errors
       console.warn('[PUT /api/games] Mapping persist warning:', e.message);
     }
-    
-    console.log('[PUT /api/games/:id] ✅ Game updated:', { id, title, genre, series, features, changes: ch.changes });
+
+    console.log('[PUT /api/games/:id] ✅ Game updated:', { id, title, genre, series, features, size_gb, changes: ch.changes });
     res.json({ updated: ch.changes });
   } catch (error) {
     console.error('[PUT /api/games/:id] ❌ Error:', error);
@@ -1737,8 +1761,8 @@ app.post('/api/orders', (req, res) => {
 // Settings
 app.get('/api/settings', (req, res) => {
   const row = get('SELECT * FROM settings ORDER BY id DESC LIMIT 1');
-  res.json(row || { 
-    whatsapp_number: '', 
+  res.json(row || {
+    whatsapp_number: '',
     default_message: '',
     telegram_bot_token: '',
     telegram_chat_id: '',
@@ -1767,13 +1791,13 @@ app.put('/api/settings', authMiddleware, (req, res) => {
 app.post('/api/recognize-game', async (req, res) => {
   try {
     const { imageUrl, imagePath, imageBase64 } = req.body;
-    
+
     if (!imageUrl && !imagePath && !imageBase64) {
       return res.status(400).json({ error: 'Image URL, path, or base64 is required' });
     }
-    
+
     let imageBuffer;
-    
+
     // الطريقة 1: قراءة من base64 (الأسهل والأكثر موثوقية)
     if (imageBase64) {
       try {
@@ -1815,9 +1839,9 @@ app.post('/api/recognize-game', async (req, res) => {
         return res.status(500).json({ error: 'Failed to download image', details: e.message });
       }
     }
-    
+
     const recognizedGame = await recognizeGameFromImage(imageBuffer);
-    
+
     if (recognizedGame) {
       res.json({
         success: true,
@@ -1831,7 +1855,7 @@ app.post('/api/recognize-game', async (req, res) => {
         error: 'Could not recognize game from image'
       });
     }
-    
+
   } catch (error) {
     console.error('[API] Game recognition error:', error);
     res.status(500).json({ error: 'Failed to recognize game', details: error.message });
@@ -1842,24 +1866,24 @@ app.post('/api/recognize-game', async (req, res) => {
 app.post('/api/send-telegram', async (req, res) => {
   try {
     const { message, bot_token, chat_id, customer_phone } = req.body;
-    
+
     if (!bot_token || !chat_id || !message) {
       return res.status(400).json({ error: 'Missing required parameters' });
     }
-    
+
     // إضافة رقم الهاتف للرسالة إذا كان متوفراً
     let finalMessage = message;
     if (customer_phone) {
       finalMessage += `\n\n📞 رقم الهاتف: ${customer_phone}`;
     }
-    
+
     const telegramUrl = `https://api.telegram.org/bot${bot_token}/sendMessage`;
     const response = await axios.post(telegramUrl, {
       chat_id: chat_id,
       text: finalMessage,
       parse_mode: 'HTML'
     });
-    
+
     if (response.data.ok) {
       res.json({ success: true, message: 'Message sent successfully' });
     } else {
@@ -1877,7 +1901,7 @@ app.get('/api/stats', async (req, res) => {
     const totals = await get('SELECT COUNT(*) as totalOrders FROM invoices');
     const invoices = await all('SELECT items FROM invoices');
     const counts = new Map();
-    
+
     for (const invoice of invoices || []) {
       try {
         const items = JSON.parse(invoice.items);
@@ -1889,12 +1913,12 @@ app.get('/api/stats', async (req, res) => {
         console.error('Error parsing invoice items:', e);
       }
     }
-    
+
     const top = Array.from(counts.entries())
       .map(([gameId, count]) => ({ gameId: parseInt(gameId), count }))
       .sort((a, b) => b.count - a.count)
       .slice(0, 10);
-      
+
     console.log('📊 Stats generated:', { totalOrders: totals?.totalOrders || 0, topGames: top });
     res.json({ totalOrders: totals?.totalOrders || 0, topGames: top });
   } catch (error) {
@@ -1913,6 +1937,8 @@ app.post('/api/invoices', async (req, res) => {
       customerInfo,
       items,
       total,
+      totalSize = 0,
+      estimatedMinutes = 0,
       discount = 0,
       finalTotal,
       date,
@@ -1942,15 +1968,15 @@ app.post('/api/invoices', async (req, res) => {
       }
     } catch (numberError) {
       console.error('خطأ في ترقيم الفاتورة:', numberError);
-      return res.status(500).json({ 
-        success: false, 
+      return res.status(500).json({
+        success: false,
         message: 'خطأ في ترقيم الفاتورة. يرجى المحاولة مرة أخرى.',
         error: 'INVOICE_NUMBERING_ERROR'
       });
     }
 
     let { dailyNumber, fullNumber, isFallback } = invoiceNumberResult;
-    
+
     // تحذير في حالة استخدام رقم احتياطي
     if (isFallback) {
       console.warn('⚠️ تم استخدام رقم فاتورة احتياطي:', fullNumber);
@@ -1960,8 +1986,8 @@ app.post('/api/invoices', async (req, res) => {
     try {
       await run(`INSERT INTO invoices (
         invoice_number, customer_name, customer_phone, customer_address, 
-        customer_notes, items, total, discount, final_total, status, created_at
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`, [
+        customer_notes, items, total, total_size_gb, estimated_minutes, discount, final_total, status, created_at
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`, [
         fullNumber,
         customerInfo.name,
         customerInfo.phone,
@@ -1969,6 +1995,8 @@ app.post('/api/invoices', async (req, res) => {
         customerInfo.notes || '',
         JSON.stringify(items),
         total,
+        totalSize,
+        estimatedMinutes,
         discount,
         finalTotal || (total - discount),
         status,
@@ -1976,18 +2004,18 @@ app.post('/api/invoices', async (req, res) => {
       ]);
     } catch (dbError) {
       console.error('خطأ في حفظ الفاتورة في قاعدة البيانات:', dbError);
-      
+
       // في حالة تضارب رقم الفاتورة، حاول مرة أخرى برقم جديد
       if (dbError.message && dbError.message.includes('UNIQUE constraint failed')) {
         console.log('تضارب في رقم الفاتورة، محاولة الحصول على رقم جديد...');
         try {
           const newNumberResult = await getDailyInvoiceNumber();
           const newFullNumber = newNumberResult.fullNumber;
-          
+
           await run(`INSERT INTO invoices (
             invoice_number, customer_name, customer_phone, customer_address, 
-            customer_notes, items, total, discount, final_total, status, created_at
-          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`, [
+            customer_notes, items, total, total_size_gb, estimated_minutes, discount, final_total, status, created_at
+          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`, [
             newFullNumber,
             customerInfo.name,
             customerInfo.phone,
@@ -1995,27 +2023,29 @@ app.post('/api/invoices', async (req, res) => {
             customerInfo.notes || '',
             JSON.stringify(items),
             total,
+            totalSize,
+            estimatedMinutes,
             discount,
             finalTotal || (total - discount),
             status,
             createdAt
           ]);
-          
+
           // تحديث رقم الفاتورة المستخدم
           fullNumber = newFullNumber;
           console.log('✅ تم حفظ الفاتورة برقم جديد:', newFullNumber);
-          
+
         } catch (retryError) {
           console.error('فشل في إعادة المحاولة:', retryError);
-          return res.status(500).json({ 
-            success: false, 
+          return res.status(500).json({
+            success: false,
             message: 'خطأ في حفظ الفاتورة. يرجى المحاولة مرة أخرى.',
             error: 'DATABASE_ERROR'
           });
         }
       } else {
-        return res.status(500).json({ 
-          success: false, 
+        return res.status(500).json({
+          success: false,
           message: 'خطأ في حفظ الفاتورة في قاعدة البيانات.',
           error: 'DATABASE_ERROR'
         });
@@ -2032,11 +2062,11 @@ app.post('/api/invoices', async (req, res) => {
 
     // الحصول على الفاتورة المحفوظة
     const savedInvoice = await get('SELECT * FROM invoices WHERE invoice_number = ?', [fullNumber]);
-    
+
     if (!savedInvoice || !savedInvoice.id) {
       console.error('خطأ: لم يتم العثور على الفاتورة المحفوظة');
-      return res.status(500).json({ 
-        success: false, 
+      return res.status(500).json({
+        success: false,
         message: 'خطأ في التحقق من حفظ الفاتورة.',
         error: 'VERIFICATION_ERROR'
       });
@@ -2057,10 +2087,10 @@ app.post('/api/invoices', async (req, res) => {
 
   } catch (error) {
     console.error('خطأ في إنشاء الفاتورة:', error);
-    res.status(500).json({ 
-      success: false, 
+    res.status(500).json({
+      success: false,
       message: 'حدث خطأ في إنشاء الفاتورة',
-      error: error.message 
+      error: error.message
     });
   }
 });
@@ -2115,10 +2145,10 @@ app.post('/api/print-invoice', async (req, res) => {
 
   } catch (error) {
     console.error('خطأ في طباعة الفاتورة:', error);
-    res.status(500).json({ 
-      success: false, 
+    res.status(500).json({
+      success: false,
       message: 'حدث خطأ في طباعة الفاتورة',
-      error: error.message 
+      error: error.message
     });
   }
 });
@@ -2237,6 +2267,25 @@ app.put('/api/invoices/:id', authMiddleware, async (req, res) => {
     ]);
 
     const updated = await get('SELECT * FROM invoices WHERE id = ?', [id]);
+
+    // إرسال تنبيه في حال أصبح الطلب جاهزاً أو مكتملاً
+    if (status && (status === 'ready' || status === 'completed') && status !== invoice.status) {
+      try {
+        const subs = await all('SELECT * FROM push_subscriptions WHERE order_id = ?', [invoice.invoice_number]);
+        for (const sub of subs) {
+          const subscriptionDict = JSON.parse(sub.subscription_data);
+          const payload = JSON.stringify({
+            title: 'تحديث حالة الطلب',
+            body: `طلبك رقم ${invoice.invoice_number} الآن: ${status === 'ready' ? 'جاهز للاستلام' : 'مكتمل'}.`,
+            url: `/#/track/${invoice.invoice_number}`
+          });
+          await webpush.sendNotification(subscriptionDict, payload).catch(err => console.error('Push error:', err));
+        }
+      } catch (err) {
+        console.error('Error sending push notifications on status update:', err);
+      }
+    }
+
     res.json({
       success: true,
       message: 'تم تحديث الفاتورة بنجاح',
@@ -2245,10 +2294,10 @@ app.put('/api/invoices/:id', authMiddleware, async (req, res) => {
 
   } catch (error) {
     console.error('خطأ في تعديل الفاتورة:', error);
-    res.status(500).json({ 
-      success: false, 
+    res.status(500).json({
+      success: false,
       message: 'حدث خطأ في تعديل الفاتورة',
-      error: error.message 
+      error: error.message
     });
   }
 });
@@ -2266,16 +2315,16 @@ app.delete('/api/invoices/today', authMiddleware, async (req, res) => {
     recomputeDailyStats(today);
     res.json({
       success: true,
-      message: `تم حذف ${count} من فواتير اليوم (${today}) بنجاح` ,
+      message: `تم حذف ${count} من فواتير اليوم(${today}) بنجاح`,
       deletedCount: count,
       date: today
     });
   } catch (error) {
     console.error('خطأ في حذف فواتير اليوم:', error);
-    res.status(500).json({ 
-      success: false, 
+    res.status(500).json({
+      success: false,
       message: 'حدث خطأ في حذف فواتير اليوم',
-      error: error.message 
+      error: error.message
     });
   }
 });
@@ -2284,7 +2333,7 @@ app.delete('/api/invoices/today', authMiddleware, async (req, res) => {
 app.delete('/api/invoices/:id', authMiddleware, async (req, res) => {
   try {
     const { id } = req.params;
-    
+
     const invoice = await get('SELECT * FROM invoices WHERE id = ?', [id]);
     if (!invoice || !invoice.id) {
       return res.status(404).json({ success: false, message: 'الفاتورة غير موجودة' });
@@ -2293,10 +2342,10 @@ app.delete('/api/invoices/:id', authMiddleware, async (req, res) => {
     await run('DELETE FROM invoices WHERE id = ?', [id]);
     // إعادة احتساب الجرد لليوم الموافق لتاريخ هذه الفاتورة
     try {
-      const dateStr = (invoice.created_at || '').slice(0,10) || new Date().toISOString().split('T')[0];
+      const dateStr = (invoice.created_at || '').slice(0, 10) || new Date().toISOString().split('T')[0];
       recomputeDailyStats(dateStr);
-    } catch (_) {}
-    
+    } catch (_) { }
+
     res.json({
       success: true,
       message: 'تم حذف الفاتورة بنجاح'
@@ -2304,10 +2353,10 @@ app.delete('/api/invoices/:id', authMiddleware, async (req, res) => {
 
   } catch (error) {
     console.error('خطأ في حذف الفاتورة:', error);
-    res.status(500).json({ 
-      success: false, 
+    res.status(500).json({
+      success: false,
       message: 'حدث خطأ في حذف الفاتورة',
-      error: error.message 
+      error: error.message
     });
   }
 });
@@ -2318,13 +2367,13 @@ app.delete('/api/invoices', authMiddleware, async (req, res) => {
   try {
     const countResult = await get('SELECT COUNT(*) as count FROM invoices');
     const count = countResult?.count || 0;
-    
+
     await run('DELETE FROM invoices');
     await run("DELETE FROM sqlite_sequence WHERE name='invoices'");
     // Clear daily reports as well since invoices are wiped
     await run('DELETE FROM daily_invoices');
     await run("DELETE FROM sqlite_sequence WHERE name='daily_invoices'");
-    
+
     res.json({
       success: true,
       message: `تم حذف ${count} فاتورة بنجاح`,
@@ -2333,10 +2382,10 @@ app.delete('/api/invoices', authMiddleware, async (req, res) => {
 
   } catch (error) {
     console.error('خطأ في حذف جميع الفواتير:', error);
-    res.status(500).json({ 
-      success: false, 
+    res.status(500).json({
+      success: false,
       message: 'حدث خطأ في حذف الفواتير',
-      error: error.message 
+      error: error.message
     });
   }
 });
@@ -2345,10 +2394,10 @@ app.delete('/api/invoices', authMiddleware, async (req, res) => {
 app.get('/api/daily-report/:date?', authMiddleware, async (req, res) => {
   try {
     const date = req.params.date || new Date().toISOString().split('T')[0];
-    
+
     // الحصول على بيانات اليوم
     const dailyRecord = await get('SELECT * FROM daily_invoices WHERE date = ?', [date]);
-    
+
     if (!dailyRecord) {
       return res.json({
         success: true,
@@ -2364,14 +2413,14 @@ app.get('/api/daily-report/:date?', authMiddleware, async (req, res) => {
         }
       });
     }
-    
+
     // الحصول على فواتير اليوم
     const invoices = await all(`
       SELECT * FROM invoices 
-      WHERE DATE(created_at) = ? 
-      ORDER BY created_at ASC
-    `, [date]);
-    
+      WHERE DATE(created_at) = ?
+            ORDER BY created_at ASC
+            `, [date]);
+
     res.json({
       success: true,
       report: {
@@ -2382,13 +2431,13 @@ app.get('/api/daily-report/:date?', authMiddleware, async (req, res) => {
         }))
       }
     });
-    
+
   } catch (error) {
     console.error('خطأ في جلب الجرد اليومي:', error);
-    res.status(500).json({ 
-      success: false, 
+    res.status(500).json({
+      success: false,
       message: 'حدث خطأ في جلب الجرد اليومي',
-      error: error.message 
+      error: error.message
     });
   }
 });
@@ -2397,44 +2446,44 @@ app.get('/api/daily-report/:date?', authMiddleware, async (req, res) => {
 app.post('/api/daily-report/:date/close', authMiddleware, (req, res) => {
   try {
     const date = req.params.date;
-    
+
     // التحقق من وجود السجل
     const dailyRecord = get('SELECT * FROM daily_invoices WHERE date = ?', [date]);
-    
+
     if (!dailyRecord) {
-      return res.status(404).json({ 
-        success: false, 
-        message: 'لا يوجد سجل لهذا التاريخ' 
+      return res.status(404).json({
+        success: false,
+        message: 'لا يوجد سجل لهذا التاريخ'
       });
     }
-    
+
     if (dailyRecord.is_closed) {
-      return res.status(400).json({ 
-        success: false, 
-        message: 'تم إغلاق الجرد لهذا التاريخ مسبقاً' 
+      return res.status(400).json({
+        success: false,
+        message: 'تم إغلاق الجرد لهذا التاريخ مسبقاً'
       });
     }
-    
+
     // إغلاق الجرد مع ملاحظات اختيارية
     const notes = req.body && typeof req.body.notes !== 'undefined' ? String(req.body.notes) : null;
     run(`UPDATE daily_invoices SET 
-      is_closed = 1, 
-      closed_at = CURRENT_TIMESTAMP,
-      updated_at = CURRENT_TIMESTAMP,
-      notes = COALESCE(?, notes)
-      WHERE date = ?`, [notes, date]);
-    
+      is_closed = 1,
+            closed_at = CURRENT_TIMESTAMP,
+            updated_at = CURRENT_TIMESTAMP,
+            notes = COALESCE(?, notes)
+      WHERE date = ? `, [notes, date]);
+
     res.json({
       success: true,
       message: 'تم إغلاق الجرد اليومي بنجاح'
     });
-    
+
   } catch (error) {
     console.error('خطأ في إغلاق الجرد اليومي:', error);
-    res.status(500).json({ 
-      success: false, 
+    res.status(500).json({
+      success: false,
       message: 'حدث خطأ في إغلاق الجرد اليومي',
-      error: error.message 
+      error: error.message
     });
   }
 });
@@ -2444,15 +2493,15 @@ app.get('/api/daily-reports', authMiddleware, (req, res) => {
   try {
     const limit = parseInt(req.query.limit) || 30;
     const offset = parseInt(req.query.offset) || 0;
-    
+
     const reports = all(`
       SELECT * FROM daily_invoices 
       ORDER BY date DESC 
       LIMIT ? OFFSET ?
-    `, [limit, offset]);
-    
+              `, [limit, offset]);
+
     const total = get('SELECT COUNT(*) as count FROM daily_invoices').count;
-    
+
     res.json({
       success: true,
       reports,
@@ -2463,13 +2512,13 @@ app.get('/api/daily-reports', authMiddleware, (req, res) => {
         hasMore: (offset + limit) < total
       }
     });
-    
+
   } catch (error) {
     console.error('خطأ في جلب التقارير اليومية:', error);
-    res.status(500).json({ 
-      success: false, 
+    res.status(500).json({
+      success: false,
       message: 'حدث خطأ في جلب التقارير اليومية',
-      error: error.message 
+      error: error.message
     });
   }
 });
@@ -2483,33 +2532,33 @@ app.get('/api/invoices-summary', authMiddleware, async (req, res) => {
     const summary = await get(`
       SELECT 
         COUNT(*) as totalInvoices,
-        COALESCE(SUM(CASE WHEN final_total > 0 THEN final_total ELSE (total - COALESCE(discount, 0)) END), 0) as totalRevenue,
-        COALESCE(AVG(CASE WHEN final_total > 0 THEN final_total ELSE (total - COALESCE(discount, 0)) END), 0) as averageInvoice,
-        COALESCE(MAX(CASE WHEN final_total > 0 THEN final_total ELSE (total - COALESCE(discount, 0)) END), 0) as highestInvoice,
-        COALESCE(MIN(CASE WHEN final_total > 0 THEN final_total ELSE (total - COALESCE(discount, 0)) END), 0) as lowestInvoice
+            COALESCE(SUM(CASE WHEN final_total > 0 THEN final_total ELSE(total - COALESCE(discount, 0)) END), 0) as totalRevenue,
+            COALESCE(AVG(CASE WHEN final_total > 0 THEN final_total ELSE(total - COALESCE(discount, 0)) END), 0) as averageInvoice,
+            COALESCE(MAX(CASE WHEN final_total > 0 THEN final_total ELSE(total - COALESCE(discount, 0)) END), 0) as highestInvoice,
+            COALESCE(MIN(CASE WHEN final_total > 0 THEN final_total ELSE(total - COALESCE(discount, 0)) END), 0) as lowestInvoice
       FROM invoices
-    `);
+            `);
 
     const todayStart = new Date();
     todayStart.setHours(0, 0, 0, 0);
-    
+
     const todaySummary = await get(`
       SELECT 
         COUNT(*) as todayInvoices,
-        COALESCE(SUM(CASE WHEN final_total > 0 THEN final_total ELSE (total - COALESCE(discount, 0)) END), 0) as todayRevenue
+            COALESCE(SUM(CASE WHEN final_total > 0 THEN final_total ELSE(total - COALESCE(discount, 0)) END), 0) as todayRevenue
       FROM invoices
       WHERE created_at >= ?
-    `, [todayStart.toISOString()]);
+            `, [todayStart.toISOString()]);
 
     let rangeSummary = null;
     if (dateFrom && dateTo) {
       rangeSummary = await get(`
         SELECT 
           COUNT(*) as rangeInvoices,
-          COALESCE(SUM(CASE WHEN final_total > 0 THEN final_total ELSE (total - COALESCE(discount, 0)) END), 0) as rangeRevenue
+            COALESCE(SUM(CASE WHEN final_total > 0 THEN final_total ELSE(total - COALESCE(discount, 0)) END), 0) as rangeRevenue
         FROM invoices
         WHERE DATE(created_at) >= ? AND DATE(created_at) <= ?
-      `, [dateFrom, dateTo]);
+            `, [dateFrom, dateTo]);
     }
 
     res.json({
@@ -2523,10 +2572,10 @@ app.get('/api/invoices-summary', authMiddleware, async (req, res) => {
 
   } catch (error) {
     console.error('خطأ في حساب إجمالي الفواتير:', error);
-    res.status(500).json({ 
-      success: false, 
+    res.status(500).json({
+      success: false,
       message: 'حدث خطأ في حساب الإجمالي',
-      error: error.message 
+      error: error.message
     });
   }
 });
@@ -2542,10 +2591,10 @@ app.post('/api/print-test', authMiddleware, async (req, res) => {
     });
   } catch (error) {
     console.error('خطأ في الطباعة التجريبية:', error);
-    res.status(500).json({ 
-      success: false, 
+    res.status(500).json({
+      success: false,
       message: 'فشل في الطباعة التجريبية',
-      error: error.message 
+      error: error.message
     });
   }
 });
@@ -2570,10 +2619,10 @@ app.post('/api/printer-settings', authMiddleware, (req, res) => {
 
   } catch (error) {
     console.error('خطأ في تحديث إعدادات الطابعة:', error);
-    res.status(500).json({ 
-      success: false, 
+    res.status(500).json({
+      success: false,
       message: 'حدث خطأ في تحديث إعدادات الطابعة',
-      error: error.message 
+      error: error.message
     });
   }
 });
@@ -2583,28 +2632,28 @@ app.get('/api/backup-database', authMiddleware, (req, res) => {
   try {
     // حفظ قاعدة البيانات الحالية
     persistDb();
-    
+
     // قراءة ملف قاعدة البيانات
     const dbBuffer = fs.readFileSync(DB_PATH);
-    
+
     // إنشاء اسم ملف النسخة الاحتياطية مع التاريخ والوقت
     const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, -5);
-    const backupFilename = `database-backup-${timestamp}.sqlite`;
-    
+    const backupFilename = `database - backup - ${timestamp}.sqlite`;
+
     // إرسال الملف للتحميل
     res.setHeader('Content-Type', 'application/octet-stream');
-    res.setHeader('Content-Disposition', `attachment; filename="${backupFilename}"`);
+    res.setHeader('Content-Disposition', `attachment; filename = "${backupFilename}"`);
     res.setHeader('Content-Length', dbBuffer.length);
     res.send(dbBuffer);
-    
-    console.log(`✅ تم إنشاء نسخة احتياطية: ${backupFilename}`);
+
+    console.log(`✅ تم إنشاء نسخة احتياطية: ${backupFilename} `);
 
   } catch (error) {
     console.error('خطأ في إنشاء النسخة الاحتياطية:', error);
-    res.status(500).json({ 
-      success: false, 
+    res.status(500).json({
+      success: false,
       message: 'حدث خطأ في إنشاء النسخة الاحتياطية',
-      error: error.message 
+      error: error.message
     });
   }
 });
@@ -2613,26 +2662,26 @@ app.get('/api/backup-database', authMiddleware, (req, res) => {
 app.post('/api/restore-database', authMiddleware, async (req, res) => {
   try {
     const { backupData } = req.body;
-    
+
     if (!backupData) {
-      return res.status(400).json({ 
-        success: false, 
-        message: 'لم يتم إرسال بيانات النسخة الاحتياطية' 
+      return res.status(400).json({
+        success: false,
+        message: 'لم يتم إرسال بيانات النسخة الاحتياطية'
       });
     }
-    
+
     // إنشاء نسخة احتياطية من قاعدة البيانات الحالية قبل الاستعادة
     const currentDbBuffer = fs.readFileSync(DB_PATH);
-    const backupPath = path.join(DATA_DIR, `database-before-restore-${Date.now()}.sqlite`);
+    const backupPath = path.join(DATA_DIR, `database - before - restore - ${Date.now()}.sqlite`);
     fs.writeFileSync(backupPath, currentDbBuffer);
-    console.log(`✅ تم حفظ نسخة احتياطية من قاعدة البيانات الحالية: ${backupPath}`);
-    
+    console.log(`✅ تم حفظ نسخة احتياطية من قاعدة البيانات الحالية: ${backupPath} `);
+
     // تحويل البيانات من base64 إلى buffer
     const buffer = Buffer.from(backupData, 'base64');
-    
+
     // كتابة قاعدة البيانات الجديدة
     fs.writeFileSync(DB_PATH, buffer);
-    
+
     // إعادة تحميل قاعدة البيانات
     if (db) {
       try {
@@ -2641,24 +2690,24 @@ app.post('/api/restore-database', authMiddleware, async (req, res) => {
         console.warn('Warning closing old DB:', e.message);
       }
     }
-    
+
     const fileBuffer = fs.readFileSync(DB_PATH);
     db = new SQL.Database(fileBuffer);
-    
+
     res.json({
       success: true,
       message: 'تم استعادة قاعدة البيانات بنجاح',
       backupLocation: backupPath
     });
-    
+
     console.log('✅ تم استعادة قاعدة البيانات بنجاح');
 
   } catch (error) {
     console.error('خطأ في استعادة قاعدة البيانات:', error);
-    res.status(500).json({ 
-      success: false, 
+    res.status(500).json({
+      success: false,
       message: 'حدث خطأ في استعادة قاعدة البيانات',
-      error: error.message 
+      error: error.message
     });
   }
 });
@@ -2667,16 +2716,16 @@ app.post('/api/restore-database', authMiddleware, async (req, res) => {
 app.get('/api/invoice-settings', async (req, res) => {
   try {
     let settings = await get('SELECT * FROM invoice_settings ORDER BY id DESC LIMIT 1');
-    
+
     // إذا لم توجد إعدادات، إنشاء إعدادات افتراضية
     if (!settings || Object.keys(settings).length === 0) {
-      await run(`INSERT INTO invoice_settings (
-        store_name, store_name_english, store_address, store_phone, 
-        store_email, store_website, footer_message, header_logo_text,
-        show_store_info, show_footer, paper_width, font_size
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`, [
+      await run(`INSERT INTO invoice_settings(
+              store_name, store_name_english, store_address, store_phone,
+              store_email, store_website, footer_message, header_logo_text,
+              show_store_info, show_footer, paper_width, font_size
+            ) VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`, [
         'الشارده للإلكترونيات',
-        'Alnafar Store', 
+        'Alnafar Store',
         'شارع القضائيه مقابل مطحنة الفضيل',
         '0920595447',
         'info@alnafar.store',
@@ -2685,7 +2734,7 @@ app.get('/api/invoice-settings', async (req, res) => {
         'فاتورة مبيعات',
         1, 1, 58, 'large'
       ]);
-      
+
       settings = await get('SELECT * FROM invoice_settings ORDER BY id DESC LIMIT 1');
     }
 
@@ -2696,10 +2745,10 @@ app.get('/api/invoice-settings', async (req, res) => {
 
   } catch (error) {
     console.error('خطأ في جلب إعدادات الفاتورة:', error);
-    res.status(500).json({ 
-      success: false, 
+    res.status(500).json({
+      success: false,
       message: 'حدث خطأ في جلب إعدادات الفاتورة',
-      error: error.message 
+      error: error.message
     });
   }
 });
@@ -2724,15 +2773,15 @@ app.post('/api/invoice-settings', authMiddleware, async (req, res) => {
 
     // التحقق من وجود إعدادات حالية
     const existing = await get('SELECT * FROM invoice_settings ORDER BY id DESC LIMIT 1');
-    
+
     if (existing && existing.id) {
       // تحديث الإعدادات الموجودة
-      await run(`UPDATE invoice_settings SET 
-        store_name = ?, store_name_english = ?, store_address = ?, store_phone = ?,
-        store_email = ?, store_website = ?, footer_message = ?, header_logo_text = ?,
-        show_store_info = ?, show_footer = ?, paper_width = ?, font_size = ?,
-        updated_at = CURRENT_TIMESTAMP
-        WHERE id = ?`, [
+      await run(`UPDATE invoice_settings SET
+          store_name = ?, store_name_english = ?, store_address = ?, store_phone = ?,
+            store_email = ?, store_website = ?, footer_message = ?, header_logo_text = ?,
+            show_store_info = ?, show_footer = ?, paper_width = ?, font_size = ?,
+            updated_at = CURRENT_TIMESTAMP
+        WHERE id = ? `, [
         store_name || 'الشارجه للإلكترونيات',
         store_name_english || 'Alnafar Store',
         store_address || 'شارع القضائيه مقابل مطحنة الفضيل',
@@ -2749,11 +2798,11 @@ app.post('/api/invoice-settings', authMiddleware, async (req, res) => {
       ]);
     } else {
       // إنشاء إعدادات جديدة
-      await run(`INSERT INTO invoice_settings (
-        store_name, store_name_english, store_address, store_phone, 
-        store_email, store_website, footer_message, header_logo_text,
-        show_store_info, show_footer, paper_width, font_size
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`, [
+      await run(`INSERT INTO invoice_settings(
+              store_name, store_name_english, store_address, store_phone,
+              store_email, store_website, footer_message, header_logo_text,
+              show_store_info, show_footer, paper_width, font_size
+            ) VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`, [
         store_name || 'الشارجه للإلكترونيات',
         store_name_english || 'Alnafar Store',
         store_address || 'شارع القضائيه مقابل مطحنة الفضيل',
@@ -2784,10 +2833,10 @@ app.post('/api/invoice-settings', authMiddleware, async (req, res) => {
 
   } catch (error) {
     console.error('خطأ في تحديث إعدادات الفاتورة:', error);
-    res.status(500).json({ 
-      success: false, 
+    res.status(500).json({
+      success: false,
       message: 'حدث خطأ في تحديث إعدادات الفاتورة',
-      error: error.message 
+      error: error.message
     });
   }
 });
@@ -2812,7 +2861,7 @@ async function autoSeedFromUploads() {
   const folderPath = path.join(UPLOADS_DIR, folder);
 
   if (!fs.existsSync(folderPath)) {
-    console.log(`[Auto-Seed] Folder not found, skipping: ${folderPath}`);
+    console.log(`[Auto - Seed] Folder not found, skipping: ${folderPath} `);
     return;
   }
 
@@ -2821,9 +2870,9 @@ async function autoSeedFromUploads() {
     try {
       run('INSERT INTO categories (name) VALUES (?)', [categoryName]);
       cat = get('SELECT * FROM categories WHERE name = ?', [categoryName]);
-      console.log(`[Auto-Seed] Created category '${categoryName}'`);
+      console.log(`[Auto - Seed] Created category '${categoryName}'`);
     } catch (e) {
-      console.error(`[Auto-Seed] Failed to create category '${categoryName}'`, e);
+      console.error(`[Auto - Seed] Failed to create category '${categoryName}'`, e);
       return;
     }
   }
@@ -2867,7 +2916,7 @@ async function autoSeedFromUploads() {
   // استخدام Gemini لاكتشاف عنوان اللعبة من الصورة
   async function detectTitleFromImage(fsImagePath) {
     if (!genAI) return null;
-    
+
     try {
       const imageBuffer = fs.readFileSync(fsImagePath);
       const result = await recognizeGameFromImage(imageBuffer);
@@ -2881,10 +2930,10 @@ async function autoSeedFromUploads() {
   const mapping = loadMapping();
   for (const file of files) {
     try {
-      const imagePath = `/uploads/${folder}/${file}`;
+      const imagePath = `/ uploads / ${folder}/${file}`;
       const rawName = path.parse(file).name;
       let title = cleanTitle(rawName);
-      
+
       // Check mapping first
       if (mapping[file]) {
         title = mapping[file];
@@ -2893,7 +2942,7 @@ async function autoSeedFromUploads() {
         // Try OCR detection if Gemini is available
         const fsImage = path.join(folderPath, file);
         const detected = await detectTitleFromImage(fsImage);
-        
+
         if (detected) {
           title = detected;
           console.log(`[Auto-Seed] OCR detected title for ${file}: ${title}`);
@@ -3065,8 +3114,8 @@ app.get('/api/settings', (req, res) => {
 
   const row = get('SELECT * FROM settings ORDER BY id DESC LIMIT 1');
 
-  res.json(row || { 
-    whatsapp_number: '', 
+  res.json(row || {
+    whatsapp_number: '',
     default_message: 'مرحباً، أريد طلب الألعاب التالية:',
     telegram_bot_token: '',
     telegram_chat_id: '',
@@ -3120,7 +3169,7 @@ app.put('/api/settings', authMiddleware, (req, res) => {
 async function start() {
 
   await initDb();
-  
+
   // Initialize storage (Cloudinary or local)
   cloudinaryStorage.initStorage();
 
@@ -3139,15 +3188,42 @@ async function start() {
     // Serve built frontend
 
     const clientDist = path.join(__dirname, '..', 'dist');
-    
+
     console.log('🔍 Looking for dist folder at:', clientDist);
     console.log('📁 Dist exists:', fs.existsSync(clientDist));
 
     if (fs.existsSync(clientDist)) {
       console.log('✅ Serving static files from:', clientDist);
-      app.use(express.static(clientDist));
+      app.use(express.static(path.join(__dirname, '../frontend/dist')));
 
-      app.get('*', (_req, res) => {
+      // Push Notifications subscribe API
+      app.post('/api/notifications/subscribe', async (req, res) => {
+        try {
+          const { orderId, subscription } = req.body;
+          if (!orderId || !subscription) {
+            return res.status(400).json({ success: false, message: 'بيانات الاشتراك غير مكتملة' });
+          }
+
+          const subString = JSON.stringify(subscription);
+          // تأكد من عدم تكرار نفس الاشتراك لنفس الطلب
+          const existing = await get('SELECT id FROM push_subscriptions WHERE order_id = ? AND subscription_data = ?', [orderId, subString]);
+          if (!existing) {
+            await run('INSERT INTO push_subscriptions (order_id, subscription_data) VALUES (?, ?)', [orderId, subString]);
+          }
+
+          res.status(201).json({ success: true, message: 'تم الاشتراك في التنبيهات بنجاح' });
+        } catch (error) {
+          console.error('Push Notification Subscribe Error:', error);
+          res.status(500).json({ success: false, message: 'حدث خطأ أثناء الاشتراك' });
+        }
+      });
+
+      // VAPID Public Key API
+      app.get('/api/notifications/vapid-public-key', (req, res) => {
+        res.json({ success: true, publicKey: VAPID_PUBLIC_KEY });
+      });
+
+      app.get('*', (req, res) => {
         const indexPath = path.join(clientDist, 'index.html');
         console.log('📄 Serving index.html from:', indexPath);
         res.sendFile(indexPath);
@@ -3160,7 +3236,7 @@ async function start() {
       } catch (e) {
         console.warn('❌ Cannot read directory:', e.message);
       }
-      
+
       // Fallback: serve a simple message
       app.get('*', (_req, res) => {
         res.status(404).send(`
@@ -3189,34 +3265,34 @@ async function start() {
 
       vite = await createServer({
 
-      root: path.join(__dirname, '..', 'frontend'),
+        root: path.join(__dirname, '..', 'frontend'),
 
-      server: { middlewareMode: true },
+        server: { middlewareMode: true },
 
-      appType: 'spa',
+        appType: 'spa',
 
-    });
+      });
 
-    app.use(vite.middlewares);
+      app.use(vite.middlewares);
 
       // Add the catch-all route for Vite
-    app.use('*', async (_req, res) => {
+      app.use('*', async (_req, res) => {
 
-      const indexHtmlPath = path.join(__dirname, '..', 'frontend', 'index.html');
+        const indexHtmlPath = path.join(__dirname, '..', 'frontend', 'index.html');
 
-      const rawHtml = await fs.promises.readFile(indexHtmlPath, 'utf-8');
+        const rawHtml = await fs.promises.readFile(indexHtmlPath, 'utf-8');
 
-      const html = await vite.transformIndexHtml('/', rawHtml);
+        const html = await vite.transformIndexHtml('/', rawHtml);
 
-      res.setHeader('Content-Type', 'text/html');
+        res.setHeader('Content-Type', 'text/html');
 
-      res.status(200).end(html);
+        res.status(200).end(html);
 
-    });
+      });
 
       // استعادة console.warn
       console.warn = originalConsoleWarn;
-      
+
     } catch (error) {
       console.warn('Vite not available, serving static files only:', error.message);
       // Fallback to static files

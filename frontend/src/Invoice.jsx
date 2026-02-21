@@ -1,11 +1,12 @@
 import React, { useState } from 'react'
 import { api } from './api'
+import QRCode from 'qrcode.react'
 
 function currency(num) {
   return new Intl.NumberFormat('ar-LY', { style: 'currency', currency: 'LYD' }).format(num)
 }
 
-export default function Invoice({ cart, total, onClose, onSuccess }) {
+export default function Invoice({ cart, total, totalSize = 0, onClose, onSuccess }) {
   const [customerInfo, setCustomerInfo] = useState({
     name: '',
     phone: '',
@@ -15,7 +16,7 @@ export default function Invoice({ cart, total, onClose, onSuccess }) {
   const [discount, setDiscount] = useState(0)
   const [isPaid, setIsPaid] = useState(true)
   const [isProcessing, setIsProcessing] = useState(false)
-  
+
   // إنشاء رقم فاتورة مؤقت للعرض
   const [invoiceNumber, setInvoiceNumber] = useState(() => {
     const today = new Date().toISOString().split('T')[0].replace(/-/g, '')
@@ -45,13 +46,18 @@ export default function Invoice({ cart, total, onClose, onSuccess }) {
       return
     }
 
+    // حساب الوقت التقديري للتثبيت (مثلاً 10 دقائق لكل 50 جيجا، مع حد أدنى 10 دقائق)
+    const estimatedMinutes = totalSize > 0 ? Math.max(10, Math.ceil((totalSize / 50) * 10)) : 0
+
     setIsProcessing(true)
 
     try {
       const invoiceData = {
         customerInfo,
-        items: cart.map(({ title, price, type }) => ({ title, price, ...(type && { type }) })),
+        items: cart.map(({ title, price, size_gb, type }) => ({ title, price, size_gb, ...(type && { type }) })),
         total,
+        totalSize,
+        estimatedMinutes,
         discount,
         finalTotal: total - discount,
         date: new Date().toISOString(),
@@ -238,6 +244,45 @@ export default function Invoice({ cart, total, onClose, onSuccess }) {
               margin-top: 2px;
               line-height: 1.2;
             }
+            .customer-badge {
+              font-size: ${titleSize};
+              font-weight: 900;
+              background-color: #eee;
+              padding: 2px 5px;
+              border-radius: 4px;
+              display: inline-block;
+              margin: 2px 0;
+              border: 1px solid #000;
+            }
+            .qa-section {
+              margin-top: 5px;
+              border: 1px solid #000;
+              padding: 3px;
+              font-size: calc(${fontSize} - 1px);
+            }
+            .qa-title {
+              font-weight: bold;
+              text-align: center;
+              border-bottom: 1px solid #000;
+              margin-bottom: 3px;
+              padding-bottom: 1px;
+            }
+            .qa-item {
+              display: flex;
+              align-items: center;
+              margin: 2px 0;
+            }
+            .qa-box {
+              width: 10px;
+              height: 10px;
+              border: 1px solid #000;
+              margin-left: 5px;
+              display: inline-block;
+            }
+            .qr-container {
+              text-align: center;
+              margin-top: 5px;
+            }
             @media print {
               body { margin: 0; padding: 0; }
               .no-print { display: none !important; }
@@ -265,9 +310,8 @@ export default function Invoice({ cart, total, onClose, onSuccess }) {
             <div class="separator"></div>
             
             <div class="section-title">بيانات العميل</div>
-            <div class="info-row">
-              <span class="info-label">الاسم:</span>
-              <span class="info-value">${customerInfo.name}</span>
+            <div class="text-center" style="margin-bottom: 3px;">
+              <div class="customer-badge">${customerInfo.name}</div>
             </div>
             <div class="info-row">
               <span class="info-label">الهاتف:</span>
@@ -284,7 +328,7 @@ export default function Invoice({ cart, total, onClose, onSuccess }) {
             <div class="section-title">تفاصيل الطلب</div>
             ${cart.filter(i => i.type !== 'service').map(item => `
             <div class="item-row">
-              <span class="item-name">${item.title}</span>
+              <span class="item-name">[ ] ${item.title}</span>
               <span class="item-price">${currency(item.price)}</span>
             </div>`).join('')}
             ${cart.filter(i => i.type === 'service').length ? `
@@ -292,9 +336,20 @@ export default function Invoice({ cart, total, onClose, onSuccess }) {
             <div class="section-title">الخدمات</div>
             ${cart.filter(i => i.type === 'service').map(s => `
             <div class="item-row">
-              <span class="item-name">${s.title}</span>
+              <span class="item-name">[ ] ${s.title}</span>
               <span class="item-price">${currency(s.price)}</span>
             </div>`).join('')}` : ''}
+            
+            <div class="separator"></div>
+            ${totalSize > 0 ? `
+            <div class="info-row">
+              <span class="info-label">إجمالي الحجم:</span>
+              <span class="info-value" style="direction: ltr;">${totalSize.toFixed(2)} GB</span>
+            </div>
+            <div class="info-row" style="margin-bottom: 3px;">
+              <span class="info-label">الوقت التقديري:</span>
+              <span class="info-value">~${estimatedMinutes} دقيقة</span>
+            </div>` : ''}
             
             ${discount > 0 ? `
             <div class="info-row">
@@ -310,15 +365,24 @@ export default function Invoice({ cart, total, onClose, onSuccess }) {
               <span class="total-value">${currency(total - discount)}</span>
             </div>
             
+            <div class="qa-section">
+              <div class="qa-title">QA Checklist</div>
+              <div class="qa-item"><span class="qa-box"></span> عدد الألعاب مطابق (${cart.filter(i => i.type !== 'service').length})</div>
+              <div class="qa-item"><span class="qa-box"></span> مساحة الجهاز تكفي (${totalSize > 0 ? totalSize.toFixed(2) + ' GB' : '-'})</div>
+            </div>
+            
             
             ${showFooter && footerMsg ? `
             <div class="footer">
               <div>${footerMsg}</div>
             </div>` : ''}
+            <div class="qr-container" id="qr-code-placeholder"></div>
           </div>
         </body>
         </html>
       `
+
+      const trackingUrl = `https://alnafar-store.onrender.com/#/track/${encodeURIComponent(fullNumber)}`
 
       const printWindow = window.open('', '_blank', 'width=800,height=600')
       if (printWindow) {
@@ -331,6 +395,20 @@ export default function Invoice({ cart, total, onClose, onSuccess }) {
         }
         printWindow.document.write(invoiceHTML)
         printWindow.document.close()
+
+        // رسم رمز QR في النافذة المنبثقة
+        const qrCanvas = document.createElement('canvas')
+        const qrcodesvg = await import('qrcode')
+        try {
+          // يمكن استخدام مكتبة qrcode لرسم الكانفاس مباشرة
+          await qrcodesvg.toCanvas(qrCanvas, trackingUrl, { width: 100, margin: 1 })
+          const qrDataUrl = qrCanvas.toDataURL()
+          const qrPlaceholder = printWindow.document.getElementById('qr-code-placeholder')
+          if (qrPlaceholder) {
+            qrPlaceholder.innerHTML = `<img src="${qrDataUrl}" alt="تتبع الطلب" style="max-width:30mm; margin-top:5px; margin-bottom: 5px;"/>
+                                       <div style="font-size: 10px; font-weight: bold; margin-top: -3px;">تتبع طلبك عبر مسح الرمز</div>`
+          }
+        } catch (e) { console.error('Error generating QR code for print:', e) }
         printWindow.onload = () => {
           try {
             const doc = printWindow.document
@@ -347,7 +425,7 @@ export default function Invoice({ cart, total, onClose, onSuccess }) {
       }
 
       // تحديث حالة الطباعة
-      try { await api.post(`/invoices/${encodeURIComponent(fullNumber)}/mark-printed`) } catch (_) {}
+      try { await api.post(`/invoices/${encodeURIComponent(fullNumber)}/mark-printed`) } catch (_) { }
 
       onSuccess(response.data)
     } catch (error) {
@@ -375,7 +453,7 @@ export default function Invoice({ cart, total, onClose, onSuccess }) {
               <h2 className="text-xl sm:text-2xl font-bold text-white">إنشاء فاتورة</h2>
               <p className="text-sm text-gray-400 mt-1">رقم الفاتورة: {invoiceNumber}</p>
             </div>
-            <button 
+            <button
               onClick={onClose}
               className="text-gray-400 hover:text-white text-2xl p-1"
             >
@@ -393,7 +471,7 @@ export default function Invoice({ cart, total, onClose, onSuccess }) {
               </svg>
               معلومات العميل
             </h3>
-            
+
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-medium text-gray-300 mb-2">
@@ -408,7 +486,7 @@ export default function Invoice({ cart, total, onClose, onSuccess }) {
                   placeholder="أدخل الاسم الكامل"
                 />
               </div>
-              
+
               <div>
                 <label className="block text-sm font-medium text-gray-300 mb-2">
                   رقم الهاتف *
@@ -423,9 +501,9 @@ export default function Invoice({ cart, total, onClose, onSuccess }) {
                 />
               </div>
             </div>
-            
-            
-            
+
+
+
             <div>
               <label className="block text-sm font-medium text-gray-300 mb-2">
                 ملاحظات (اختياري)
@@ -448,7 +526,7 @@ export default function Invoice({ cart, total, onClose, onSuccess }) {
               </svg>
               ملخص الطلب
             </h3>
-            
+
             <div className="bg-gray-800/50 rounded-lg p-4 space-y-3">
               {cart.filter(i => i.type !== 'service').length > 0 && (
                 <>
@@ -476,8 +554,20 @@ export default function Invoice({ cart, total, onClose, onSuccess }) {
                   ))}
                 </>
               )}
-              
+
               <div className="pt-3 border-t border-gray-600 space-y-3">
+                {totalSize > 0 && (
+                  <div className="bg-primary/10 border border-primary/20 rounded-lg p-3 mb-4">
+                    <div className="flex justify-between items-center mb-1">
+                      <span className="text-sm font-medium text-gray-300">إجمالي الحجم:</span>
+                      <span className="text-sm font-bold text-white">{totalSize.toFixed(2)} GB</span>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span className="text-sm font-medium text-gray-300">الوقت التقديري:</span>
+                      <span className="text-sm font-bold text-primary">~{Math.max(10, Math.ceil((totalSize / 50) * 10))} دقيقة</span>
+                    </div>
+                  </div>
+                )}
                 <div className="flex justify-between items-center">
                   <label className="text-sm font-medium text-gray-300">الخصم (دينار ليبي):</label>
                   <input

@@ -33,7 +33,7 @@ export default function InvoicesTab() {
       console.log('📄 فاتورة جديدة:', data.message);
       loadInvoices(pagination.page); // إعادة تحميل الفواتير
       loadSummary(); // إعادة تحميل الإحصائيات
-      
+
       // إشعار بصري
       if (Notification.permission === 'granted') {
         new Notification('فاتورة جديدة', {
@@ -101,7 +101,7 @@ export default function InvoicesTab() {
 
   const deleteInvoice = async (id) => {
     if (!confirm('هل أنت متأكد من حذف هذه الفاتورة؟')) return
-    
+
     try {
       const { data } = await api.delete(`/invoices/${id}`)
       if (data.success) {
@@ -117,7 +117,7 @@ export default function InvoicesTab() {
 
   const deleteAllInvoices = async () => {
     if (!confirm('سيتم حذف فواتير اليوم فقط. هل تريد المتابعة؟')) return
-    
+
     try {
       const { data } = await api.delete('/invoices/today')
       if (data.success) {
@@ -190,15 +190,15 @@ export default function InvoicesTab() {
       </div>
 
       <div className="flex flex-wrap items-center gap-2 mb-4">
-        <input 
+        <input
           value={search}
-          onChange={e=>setSearch(e.target.value)}
+          onChange={e => setSearch(e.target.value)}
           placeholder="ابحث برقم الفاتورة أو اسم العميل..."
           className="flex-1 min-w-[240px] bg-gray-800 border border-gray-700 rounded-lg px-3 py-2.5 text-white"
         />
-        <select 
+        <select
           value={pageLimit}
-          onChange={e=>setPageLimit(parseInt(e.target.value)||50)}
+          onChange={e => setPageLimit(parseInt(e.target.value) || 50)}
           className="bg-gray-800 border border-gray-700 rounded-lg px-3 py-2.5 text-white"
         >
           <option value={20}>20 لكل صفحة</option>
@@ -276,7 +276,7 @@ export default function InvoicesTab() {
                   <td className="py-3 px-4 text-gray-300 text-sm">
                     {new Date(invoice.created_at).toLocaleString('ar-LY', {
                       year: 'numeric',
-                      month: '2-digit', 
+                      month: '2-digit',
                       day: '2-digit',
                       hour: '2-digit',
                       minute: '2-digit'
@@ -288,17 +288,17 @@ export default function InvoicesTab() {
                     </span>
                   </td>
                   <td className="py-3 px-4 text-center">
-                    <div className="flex gap-2 justify-center">
+                    <div className="flex flex-wrap gap-2 justify-center min-w-[120px]">
                       <button
                         onClick={() => reprintInvoice(invoice)}
-                        className="px-3 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg text-sm"
+                        className="p-2 sm:px-3 sm:py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg text-sm transition-colors"
                         title="إعادة طباعة"
                       >
                         🖨️
                       </button>
                       <button
                         onClick={() => {
-                          const items = Array.isArray(invoice.items) ? invoice.items : (()=>{ try { return JSON.parse(invoice.items) } catch { return [] } })()
+                          const items = Array.isArray(invoice.items) ? invoice.items : (() => { try { return JSON.parse(invoice.items) } catch { return [] } })()
                           const info = [
                             `رقم: ${invoice.invoice_number}`,
                             `التاريخ: ${new Date(invoice.created_at).toLocaleString('ar-LY')}`,
@@ -308,18 +308,18 @@ export default function InvoicesTab() {
                             `المجموع قبل الخصم: ${new Intl.NumberFormat('ar-LY', { style: 'currency', currency: 'LYD' }).format(invoice.total)}`,
                             invoice.discount > 0 ? `الخصم: -${new Intl.NumberFormat('ar-LY', { style: 'currency', currency: 'LYD' }).format(invoice.discount)}` : '',
                             `الإجمالي النهائي: ${new Intl.NumberFormat('ar-LY', { style: 'currency', currency: 'LYD' }).format((invoice.total || 0) - (invoice.discount || 0))}`,
-                            `العناصر:\n` + items.map((it,i)=>`${i+1}. ${it.title} — ${new Intl.NumberFormat('ar-LY', { style: 'currency', currency: 'LYD' }).format(it.price)}`).join('\n')
+                            `العناصر:\n` + items.map((it, i) => `${i + 1}. ${it.title} — ${new Intl.NumberFormat('ar-LY', { style: 'currency', currency: 'LYD' }).format(it.price)}`).join('\n')
                           ].filter(Boolean).join('\n')
                           alert(info)
                         }}
-                        className="px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm"
+                        className="p-2 sm:px-3 sm:py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm transition-colors"
                         title="عرض التفاصيل"
                       >
                         👁️
                       </button>
                       <button
                         onClick={() => deleteInvoice(invoice.id)}
-                        className="px-3 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg text-sm"
+                        className="p-2 sm:px-3 sm:py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg text-sm transition-colors"
                         title="حذف الفاتورة"
                       >
                         🗑️
@@ -332,9 +332,9 @@ export default function InvoicesTab() {
           </table>
           {/* Pagination */}
           <div className="flex items-center justify-center gap-3 mt-4">
-            <button disabled={pagination.page<=1} onClick={()=>loadInvoices(pagination.page-1)} className="px-3 py-1.5 bg-gray-700 disabled:opacity-50 rounded">السابق</button>
+            <button disabled={pagination.page <= 1} onClick={() => loadInvoices(pagination.page - 1)} className="px-3 py-1.5 bg-gray-700 disabled:opacity-50 rounded">السابق</button>
             <span className="text-gray-300">صفحة {pagination.page} من {pagination.pages}</span>
-            <button disabled={pagination.page>=pagination.pages} onClick={()=>loadInvoices(pagination.page+1)} className="px-3 py-1.5 bg-gray-700 disabled:opacity-50 rounded">التالي</button>
+            <button disabled={pagination.page >= pagination.pages} onClick={() => loadInvoices(pagination.page + 1)} className="px-3 py-1.5 bg-gray-700 disabled:opacity-50 rounded">التالي</button>
           </div>
         </div>
       )}

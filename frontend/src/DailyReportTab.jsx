@@ -291,18 +291,18 @@ export default function DailyReportTab() {
                           <td className="py-2 px-3 font-bold text-green-400">{currency((inv.total || 0) - (inv.discount || 0))}</td>
                           <td className="py-2 px-3 text-gray-400">{new Date(inv.created_at).toLocaleTimeString('ar-LY')}</td>
                           <td className="py-2 px-3 text-center">
-                            <div className="flex gap-2 justify-center">
+                            <div className="flex flex-wrap gap-2 justify-center min-w-[120px]">
                               <button
                                 onClick={() => handleReprint(inv)}
                                 disabled={reprinting === inv.id}
-                                className="px-2 py-1.5 bg-green-600 hover:bg-green-700 disabled:opacity-50 text-white rounded-lg text-xs font-medium"
+                                className="p-2 sm:px-2 sm:py-1.5 bg-green-600 hover:bg-green-700 disabled:opacity-50 text-white rounded-lg text-xs font-medium transition-colors"
                                 title="إعادة طباعة"
                               >
                                 {reprinting === inv.id ? '...' : '🖨️ طباعة'}
                               </button>
                               <button
                                 onClick={() => setEditInvoice({ ...inv })}
-                                className="px-2 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-medium"
+                                className="p-2 sm:px-2 sm:py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-medium transition-colors"
                                 title="تعديل الفاتورة"
                               >
                                 ✏️ تعديل
@@ -326,7 +326,7 @@ export default function DailyReportTab() {
       {range && (
         <div className="mt-6 bg-gray-800 p-5 rounded-xl border border-gray-700">
           <h3 className="text-lg font-bold text-white mb-4">تقارير من {range.start} إلى {range.end}</h3>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 mb-4">
             <div className="p-3 bg-gray-700 rounded-lg"><div className="text-gray-400 text-xs">عدد الفواتير</div><div className="text-xl font-bold text-white">{range.totals?.total_invoices ?? 0}</div></div>
             <div className="p-3 bg-gray-700 rounded-lg"><div className="text-gray-400 text-xs">إجمالي المبيعات</div><div className="font-bold text-green-400">{currency(range.totals?.total_revenue ?? 0)}</div></div>
             <div className="p-3 bg-gray-700 rounded-lg"><div className="text-gray-400 text-xs">إجمالي الخصومات</div><div className="font-bold text-red-400">{currency(range.totals?.total_discount ?? 0)}</div></div>

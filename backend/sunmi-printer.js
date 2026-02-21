@@ -17,7 +17,7 @@ class SunmiPrinter {
     this.deviceIP = process.env.SUNMI_DEVICE_IP || '192.168.1.100'; // يجب تحديد IP الجهاز
     this.devicePort = process.env.SUNMI_DEVICE_PORT || '8080';
     this.baseURL = `http://${this.deviceIP}:${this.devicePort}`;
-    
+
     // إعدادات الطباعة
     this.printSettings = {
       paperWidth: 58, // عرض الورق بالمليمتر (58mm للطابعات الحرارية)
@@ -25,7 +25,7 @@ class SunmiPrinter {
       alignment: 'center', // left, center, right
       charset: 'UTF-8'
     };
-    
+
     // تحقق من البيئة
     this.isCloudEnvironment = process.env.NODE_ENV === 'production' && !process.env.SUNMI_DEVICE_IP;
   }
@@ -71,15 +71,15 @@ class SunmiPrinter {
   // دالة لتنسيق النص في الوسط (محسنة للنصوص العربية)
   centerText(text, width = 32) {
     if (!text) return '';
-    
+
     // تنظيف النص أولاً
     const cleanedText = String(text).trim();
     if (cleanedText.length === 0) return '';
-    
+
     // حساب المسافات مع مراعاة طول النص الفعلي
     const textLength = cleanedText.length;
     if (textLength >= width) return cleanedText; // إذا كان النص أطول من العرض المتاح
-    
+
     const spaces = Math.max(0, Math.floor((width - textLength) / 2));
     return ' '.repeat(spaces) + cleanedText;
   }
@@ -118,9 +118,9 @@ class SunmiPrinter {
     settings.header_logo_text = settings.header_logo_text && settings.header_logo_text.trim().length ? settings.header_logo_text : defaultSettings.header_logo_text;
 
     let content = [];
-    
+
     // رأس الفاتورة - اطبع مباشرة كأول أسطر
-    
+
     // طباعة اسم المتجر مباشرة في بداية محتوى الفاتورة (مع تحكّم قوي بالفارغ)
     const storeNameClean = this.cleanText(settings.store_name || '');
     const englishNameClean = this.cleanText(settings.store_name_english || '');
@@ -129,7 +129,7 @@ class SunmiPrinter {
     const storeName = storeNameClean && storeNameClean.length ? storeNameClean : 'الشارده للإلكترونيات';
     const englishName = englishNameClean && englishNameClean.length ? englishNameClean : 'Alnafar Store';
     const headerText = headerTextClean && headerTextClean.length ? headerTextClean : 'فاتورة مبيعات';
-    
+
     // إضافة النصوص بشكل مباشر وبسيط
     content.push(storeName);
     content.push(englishName);
@@ -140,14 +140,14 @@ class SunmiPrinter {
     content.push('');
     content.push(this.createSeparatorLine('='));
     content.push('');
-    
+
     // معلومات الفاتورة
     content.push(`رقم الفاتورة: ${this.cleanText(invoiceNumber)}`);
     content.push(`التاريخ: ${new Date(date).toLocaleDateString('ar-LY')}`);
     content.push(`الوقت: ${new Date(date).toLocaleTimeString('ar-LY')}`);
     content.push(this.createSeparatorLine());
     content.push('');
-    
+
     // معلومات العميل
     content.push('بيانات العميل:');
     content.push(`الاسم: ${this.cleanText(customerName)}`);
@@ -157,31 +157,49 @@ class SunmiPrinter {
     }
     content.push(this.createSeparatorLine());
     content.push('');
-    
+
     // تفاصيل الألعاب
     content.push('تفاصيل الطلب:');
     content.push(this.createSeparatorLine('-'));
-    
+
     items.forEach((item, index) => {
-      content.push(`${index + 1}. ${this.cleanText(item.title)}`);
+      // إضافة مربع اختيار لكل لعبة
+      const prefix = item.type === 'service' ? '[ ] (خدمة) ' : '[ ] ';
+      content.push(`${index + 1}. ${prefix}${this.cleanText(item.title)}`);
       content.push(this.formatTwoColumns('', `${item.price.toFixed(3)} د.ل`));
       content.push('');
     });
-    
+
     content.push(this.createSeparatorLine('-'));
-    
+
     // الإجمالي
     content.push(this.formatTwoColumns('الإجمالي:', `${total.toFixed(3)} د.ل`));
     content.push(this.createSeparatorLine('='));
     content.push('');
-    
+
     // ملاحظات
     if (notes) {
       content.push('ملاحظات:');
       content.push(this.cleanText(notes));
       content.push('');
     }
-    
+
+    // QA Checklist (التحقق من الجودة)
+    content.push(this.createSeparatorLine('-'));
+    content.push(this.centerText('QA Checklist'));
+    content.push(this.createSeparatorLine('-'));
+    const gamesCount = items.filter(i => i.type !== 'service').length;
+    content.push(`[ ] عدد الألعاب مطابق (${gamesCount})`);
+    content.push('[ ] مساحة الجهاز تكفي');
+    content.push('');
+
+    // Tracking URL (رابط التتبع)
+    content.push(this.createSeparatorLine('-'));
+    content.push(this.centerText('لتتبع حالة طلبك:'));
+    content.push(this.centerText(`alnafar-store.onrender.com/#/track/${invoiceNumber}`));
+    content.push(this.createSeparatorLine('-'));
+    content.push('');
+
     // معلومات المتجر (اختيارية)
     if (settings.show_store_info) {
       content.push('معلومات المتجر:');
@@ -206,13 +224,13 @@ class SunmiPrinter {
       content.push(this.createSeparatorLine());
       content.push('');
     }
-    
+
     // تذييل الفاتورة
     if (settings.show_footer && settings.footer_message) {
       content.push(this.centerText(this.cleanText(settings.footer_message)));
       content.push('');
     }
-    
+
     content.push(this.centerText('تم الإنشاء بواسطة ' + this.cleanText(settings.store_name)));
     content.push('');
     content.push('');
@@ -220,7 +238,7 @@ class SunmiPrinter {
     content.push(''); // سطر إضافي
     content.push(''); // سطر إضافي
     content.push(''); // سطر إضافي لضمان قطع الورق بشكل صحيح
-    
+
     // استخدم CRLF بدلاً من LF فقط لزيادة توافق الطابعة
     return content.join('\r\n');
   }
@@ -229,11 +247,11 @@ class SunmiPrinter {
   async printInvoice(invoiceData, storeSettings = null) {
     try {
       const content = this.generateSafePrintContent(invoiceData, storeSettings);
-      
+
       // تحقق من البيئة السحابية
       if (process.env.NODE_ENV === 'production' && !process.env.SUNMI_DEVICE_IP) {
         console.log('⚠️ الطباعة غير متاحة في البيئة السحابية');
-        
+
         return {
           success: true,
           message: 'تم إنشاء الفاتورة (الطباعة غير متاحة في البيئة السحابية)',
@@ -242,13 +260,13 @@ class SunmiPrinter {
           cloudMode: true
         };
       }
-      
+
       // طباعة تجريبية لاختبار النصوص
       console.log('📄 محتوى الفاتورة للطباعة:');
       console.log('='.repeat(40));
       console.log(content);
       console.log('='.repeat(40));
-      
+
       // إعداد أمر الطباعة لجهاز Sunmi V2 - محسن للطابعات الحرارية
       const printCommand = {
         type: 'print_text',
@@ -269,14 +287,14 @@ class SunmiPrinter {
 
       // إرسال أمر الطباعة لجهاز Sunmi V2
       const response = await this.sendPrintCommand(printCommand);
-      
+
       console.log('✅ تم طباعة الفاتورة بنجاح:', invoiceData.invoiceNumber);
       return {
         success: true,
         message: 'تم طباعة الفاتورة بنجاح',
         invoiceNumber: invoiceData.invoiceNumber
       };
-      
+
     } catch (error) {
       console.error('❌ خطأ في طباعة الفاتورة:', error);
       throw new Error(`فشل في طباعة الفاتورة: ${error.message}`);
@@ -288,7 +306,7 @@ class SunmiPrinter {
     try {
       // التحقق من اتصال الجهاز أولاً
       await this.checkDeviceConnection();
-      
+
       // إرسال أمر الطباعة
       const response = await axios.post(`${this.baseURL}/api/print`, command, {
         timeout: 10000,
@@ -297,9 +315,9 @@ class SunmiPrinter {
           'Accept': 'application/json'
         }
       });
-      
+
       return response.data;
-      
+
     } catch (error) {
       if (error.code === 'ECONNREFUSED') {
         throw new Error('لا يمكن الاتصال بجهاز الطباعة. تأكد من تشغيل الجهاز واتصاله بالشبكة.');
@@ -317,13 +335,13 @@ class SunmiPrinter {
       const response = await axios.get(`${this.baseURL}/api/status`, {
         timeout: 5000
       });
-      
+
       if (response.data.status !== 'ready') {
         throw new Error('جهاز الطباعة غير جاهز');
       }
-      
+
       return true;
-      
+
     } catch (error) {
       throw new Error('لا يمكن الاتصال بجهاز الطباعة');
     }
@@ -345,9 +363,9 @@ class SunmiPrinter {
         date: new Date().toISOString(),
         notes: 'هذه فاتورة تجريبية'
       };
-      
+
       return await this.printInvoice(testData);
-      
+
     } catch (error) {
       throw new Error(`فشل في الطباعة التجريبية: ${error.message}`);
     }

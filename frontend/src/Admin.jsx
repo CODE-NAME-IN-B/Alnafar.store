@@ -17,12 +17,13 @@ export default function Admin() {
   const [tab, setTab] = useState('games')
   const [loginForm, setLoginForm] = useState({ username: '', password: '' })
   const [currentUser, setCurrentUser] = useState(null)
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
 
-  useEffect(() => { 
-    loadAuthFromStorage(); 
+  useEffect(() => {
+    loadAuthFromStorage();
     const has = !!localStorage.getItem('token');
     setLoggedIn(has)
-    if (has) { api.get('/auth/me').then(r => setCurrentUser(r.data?.user || null)).catch(()=>{}) }
+    if (has) { api.get('/auth/me').then(r => setCurrentUser(r.data?.user || null)).catch(() => { }) }
   }, [])
 
   async function submitLogin(e) {
@@ -31,7 +32,7 @@ export default function Admin() {
       const { data } = await api.post('/auth/login', loginForm)
       setAuthToken(data.token)
       setLoggedIn(true)
-      try { const r = await api.get('/auth/me'); setCurrentUser(r.data?.user||null) } catch {}
+      try { const r = await api.get('/auth/me'); setCurrentUser(r.data?.user || null) } catch { }
     } catch {
       alert('Invalid credentials')
     }
@@ -60,18 +61,29 @@ export default function Admin() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 text-white safe-area-bottom">
       {/* Header - محسّن للموبايل */}
-      <nav className="bg-gradient-to-r from-gray-800 to-gray-900 shadow-2xl border-b border-gray-700 safe-area-inset">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 py-4 sm:py-6">
+      <nav className="bg-gradient-to-r from-gray-800 to-gray-900 shadow-2xl border-b border-gray-700 safe-area-inset sticky top-0 z-50">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 py-4">
           <div className="flex items-center justify-between gap-3">
             <div className="flex items-center gap-3 min-w-0">
+              {/* Mobile Menu Button */}
+              <button
+                onClick={() => setIsMobileMenuOpen(true)}
+                className="md:hidden p-2 -ml-2 text-gray-300 hover:text-white focus:outline-none"
+                aria-label="القائمة"
+              >
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+                </svg>
+              </button>
+
               <img src={logo} alt="شعار المتجر" className="w-9 h-9 sm:w-10 sm:h-10 flex-shrink-0 rounded-lg object-contain bg-white" />
-              <h1 className="text-lg sm:text-2xl md:text-3xl font-bold bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent truncate">
+              <h1 className="text-lg sm:text-2xl md:text-3xl font-bold bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent truncate hidden sm:block">
                 لوحة تحكم المدير
               </h1>
             </div>
-            <button 
-              onClick={logout} 
-              className="px-4 py-2.5 sm:px-6 sm:py-3 rounded-xl bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white font-semibold text-sm sm:text-base transition-all duration-300 shadow-lg flex-shrink-0 min-h-[44px]"
+            <button
+              onClick={logout}
+              className="px-4 py-2 sm:px-6 sm:py-2.5 rounded-xl bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white font-semibold text-sm sm:text-base transition-all duration-300 shadow-lg flex-shrink-0"
             >
               تسجيل الخروج
             </button>
@@ -79,23 +91,50 @@ export default function Admin() {
         </div>
       </nav>
 
-      {/* Main Content - شبكة متجاوبة مع شريط جانبي قابل للتمرير على الموبايل */}
+      {/* Main Content - شبكة متجاوبة مع شريط جانبي */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 py-4 sm:py-8">
-        <div className="grid grid-cols-12 gap-4 sm:gap-6">
-          <aside className="col-span-12 md:col-span-3">
-            <div className="bg-gray-800/60 backdrop-blur-sm rounded-2xl border border-gray-700 p-3 sm:p-4 overflow-x-auto">
-              <div className="flex items-center gap-3 mb-4">
-                <div className="w-10 h-10 flex-shrink-0 bg-white rounded-lg overflow-hidden">
-                  <img src={logo} alt="شعار المتجر" className="w-full h-full object-contain" />
+        <div className="flex flex-col md:flex-row gap-4 sm:gap-6 relative">
+
+          {/* Mobile Overlay */}
+          {isMobileMenuOpen && (
+            <div
+              className="fixed inset-0 bg-black/50 z-40 md:hidden backdrop-blur-sm"
+              onClick={() => setIsMobileMenuOpen(false)}
+            />
+          )}
+
+          {/* Sidebar */}
+          <aside className={`
+            fixed md:static inset-y-0 right-0 z-50 w-64 md:w-1/4 lg:w-1/5 bg-gray-900 md:bg-transparent
+            transform ${isMobileMenuOpen ? 'translate-x-0' : 'translate-x-full'} md:translate-x-0
+            transition-transform duration-300 ease-in-out border-l border-gray-700 md:border-none shadow-2xl md:shadow-none
+            flex flex-col
+          `}>
+            <div className="bg-gray-800/60 md:backdrop-blur-sm rounded-none md:rounded-2xl border-0 md:border md:border-gray-700 p-4 flex-1 overflow-y-auto">
+              {/* Mobile Close Button & Header */}
+              <div className="flex items-center justify-between gap-3 mb-6 md:mb-4">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 flex-shrink-0 bg-white rounded-lg overflow-hidden">
+                    <img src={logo} alt="شعار المتجر" className="w-full h-full object-contain" />
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <div className="font-bold text-white text-sm">لوحة التحكم</div>
+                    {currentUser && (
+                      <div className="text-xs text-gray-400 truncate">{currentUser.username} — {currentUser.role}</div>
+                    )}
+                  </div>
                 </div>
-                <div className="min-w-0 flex-1">
-                  <div className="font-bold text-white">لوحة التحكم</div>
-                  {currentUser && (
-                    <div className="text-xs text-gray-400">{currentUser.username} — {currentUser.role}</div>
-                  )}
-                </div>
+                <button
+                  onClick={() => setIsMobileMenuOpen(false)}
+                  className="md:hidden p-2 text-gray-400 hover:text-white"
+                >
+                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
               </div>
-              <div className="space-y-2">
+
+              <div className="space-y-1">
                 {[
                   { id: 'games', label: 'الألعاب', icon: '🎮' },
                   { id: 'categories', label: 'التصنيفات', icon: '📂' },
@@ -109,21 +148,21 @@ export default function Admin() {
                 ].map(({ id, label, icon }) => (
                   <button
                     key={id}
-                    onClick={() => setTab(id)}
-                    className={`w-full text-right px-4 py-3 rounded-xl font-semibold transition-all duration-200 min-h-[48px] flex items-center justify-end ${
-                      tab === id
+                    onClick={() => { setTab(id); setIsMobileMenuOpen(false); }}
+                    className={`w-full text-right px-4 py-3 rounded-xl font-semibold transition-all duration-200 min-h-[48px] flex items-center justify-start gap-3 ${tab === id
                         ? 'bg-gradient-to-r from-blue-500 to-purple-600 text-white shadow-lg'
-                        : 'bg-gray-700/50 text-gray-300 hover:bg-gray-600/50 hover:text-white'
-                    }`}
+                        : 'bg-transparent text-gray-300 hover:bg-gray-700/50 hover:text-white'
+                      }`}
                   >
-                    <span className="ml-2">{icon}</span>
-                    {label}
+                    <span className="text-xl w-6 text-center">{icon}</span>
+                    <span>{label}</span>
                   </button>
                 ))}
               </div>
             </div>
           </aside>
-          <section className="col-span-12 md:col-span-9">
+
+          <section className="flex-1 min-w-0 md:w-3/4 lg:w-4/5">
             <div className="bg-gray-800/30 backdrop-blur-sm rounded-2xl border border-gray-700 shadow-2xl">
               {tab === 'games' && <GamesTabNew />}
               {tab === 'categories' && <CategoriesTab />}
@@ -146,21 +185,21 @@ function CategoriesTab() {
   const [items, setItems] = useState([])
   const [name, setName] = useState('')
   const [editing, setEditing] = useState(null)
-  
-  async function load() { 
-    const { data } = await api.get('/categories'); 
-    setItems(data) 
+
+  async function load() {
+    const { data } = await api.get('/categories');
+    setItems(data)
   }
-  
+
   useEffect(() => { load() }, [])
-  
+
   async function save() {
     if (!name.trim()) return
     if (editing) {
       await api.put(`/categories/${editing.id}`, { name })
       // تحديث محلي بدلاً من إعادة التحميل
-      setItems(prevItems => 
-        prevItems.map(item => 
+      setItems(prevItems =>
+        prevItems.map(item =>
           item.id === editing.id ? { ...item, name } : item
         )
       )
@@ -171,21 +210,21 @@ function CategoriesTab() {
     }
     setName(''); setEditing(null)
   }
-  
+
   async function remove(id) {
     if (!confirm('هل أنت متأكد من حذف هذا التصنيف؟')) return
     await api.delete(`/categories/${id}`)
     // حذف محلي بدلاً من إعادة التحميل
     setItems(prevItems => prevItems.filter(item => item.id !== id))
   }
-  
+
   return (
     <div className="p-8">
       <div className="mb-8">
         <h2 className="text-3xl font-bold text-white mb-2">إدارة التصنيفات</h2>
         <p className="text-gray-400">إضافة وتعديل وحذف تصنيفات الألعاب</p>
       </div>
-      
+
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
         <div className="bg-gradient-to-br from-gray-800 to-gray-900 p-8 rounded-2xl border border-gray-700 shadow-2xl">
           <div className="flex items-center mb-6">
@@ -194,28 +233,28 @@ function CategoriesTab() {
             </div>
             <h3 className="text-2xl font-bold text-white">{editing ? 'تعديل التصنيف' : 'إضافة تصنيف جديد'}</h3>
           </div>
-          
+
           <div className="space-y-6">
             <div>
               <label className="block text-sm font-semibold text-gray-300 mb-2">اسم التصنيف</label>
-              <input 
-                className="w-full bg-gray-700 border border-gray-600 rounded-xl px-4 py-3 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all duration-300" 
-                placeholder="أدخل اسم التصنيف" 
-                value={name} 
-                onChange={e => setName(e.target.value)} 
+              <input
+                className="w-full bg-gray-700 border border-gray-600 rounded-xl px-4 py-3 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all duration-300"
+                placeholder="أدخل اسم التصنيف"
+                value={name}
+                onChange={e => setName(e.target.value)}
               />
             </div>
-            
+
             <div className="flex space-x-4">
-              <button 
-                onClick={save} 
+              <button
+                onClick={save}
                 className="flex-1 px-6 py-3 bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white font-semibold rounded-xl transition-all duration-300 transform hover:scale-105 shadow-lg"
               >
                 {editing ? 'تحديث التصنيف' : 'إضافة التصنيف'}
               </button>
               {editing && (
-                <button 
-                  onClick={() => { setEditing(null); setName('') }} 
+                <button
+                  onClick={() => { setEditing(null); setName('') }}
                   className="px-6 py-3 bg-gray-600 hover:bg-gray-700 text-white font-semibold rounded-xl transition-all duration-300"
                 >
                   إلغاء
@@ -232,30 +271,30 @@ function CategoriesTab() {
             </div>
             <h3 className="text-2xl font-bold text-white">قائمة التصنيفات ({items.length})</h3>
           </div>
-          
+
           <div className="space-y-3">
             {items.map(item => (
               <div key={item.id} className="flex items-center justify-between p-4 bg-gray-700/50 rounded-xl hover:bg-gray-700 transition-colors">
                 <span className="text-gray-200 font-medium">{item.name}</span>
                 <div className="flex space-x-2">
-                  <button 
-                    onClick={() => { setEditing(item); setName(item.name) }} 
+                  <button
+                    onClick={() => { setEditing(item); setName(item.name) }}
                     className="px-3 py-1 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-semibold transition-colors"
                   >
                     تعديل
                   </button>
-                  <button 
-                    onClick={() => remove(item.id)} 
+                  <button
+                    onClick={() => remove(item.id)}
                     className="px-3 py-1 bg-red-600 hover:bg-red-700 text-white rounded-lg text-xs font-semibold transition-colors"
                   >
                     حذف
                   </button>
-        </div>
-      </div>
+                </div>
+              </div>
             ))}
           </div>
         </div>
-  </div>
+      </div>
     </div>
   )
 }
@@ -379,21 +418,21 @@ function ServicesTab() {
 
 function StatsTab() {
   const [stats, setStats] = useState({ totalOrders: 0, topGames: [] })
-  
-  async function load() { 
-    const { data } = await api.get('/stats'); 
-    setStats(data) 
+
+  async function load() {
+    const { data } = await api.get('/stats');
+    setStats(data)
   }
-  
+
   useEffect(() => { load() }, [])
-  
+
   return (
     <div className="p-8">
       <div className="mb-8">
         <h2 className="text-3xl font-bold text-white mb-2">الإحصائيات</h2>
         <p className="text-gray-400">عرض إحصائيات المتجر والألعاب الأكثر طلباً</p>
       </div>
-      
+
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
         <div className="bg-gradient-to-br from-gray-800 to-gray-900 p-8 rounded-2xl border border-gray-700 shadow-2xl">
           <div className="flex items-center mb-6">
@@ -402,7 +441,7 @@ function StatsTab() {
             </div>
             <h3 className="text-2xl font-bold text-white">إجمالي الطلبات</h3>
           </div>
-          
+
           <div className="text-4xl font-bold text-purple-400">{stats.totalOrders}</div>
           <p className="text-gray-400 mt-2">طلب إجمالي</p>
         </div>
@@ -414,7 +453,7 @@ function StatsTab() {
             </div>
             <h3 className="text-2xl font-bold text-white">الألعاب الأكثر طلباً</h3>
           </div>
-          
+
           <div className="space-y-3">
             {stats.topGames.length > 0 ? (
               stats.topGames.map((g, i) => (
