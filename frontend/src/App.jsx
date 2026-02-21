@@ -467,8 +467,61 @@ export default function App() {
   if (route.startsWith('#/admin')) return <Admin />
 
   if (route.startsWith('#/track/')) {
-    const orderIdPattern = route.replace('#/track/', '').split('?')[0] // removing query strings if any
+    const orderIdPattern = route.replace('#/track/', '').split('?')[0]
     return <OrderTracking orderId={orderIdPattern} />
+  }
+
+  // حماية المتجر: يجب تسجيل الدخول للوصول إلى نقطة البيع
+  const hasToken = !!localStorage.getItem('token')
+  if (!hasToken && !showLogin) {
+    return (
+      <div className="min-h-screen bg-black text-white flex flex-col items-center justify-center p-6">
+        <div className="fixed inset-0 pointer-events-none opacity-20">
+          <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-primary rounded-full blur-[120px]"></div>
+          <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-blue-600 rounded-full blur-[120px]"></div>
+        </div>
+        <div className="relative z-10 text-center max-w-sm w-full">
+          <img src={logo} alt="Alnafar Store" className="h-20 mx-auto mb-6" />
+          <h1 className="text-2xl font-bold mb-2 bg-gradient-to-r from-primary to-emerald-400 bg-clip-text text-transparent">
+            متجر النفار
+          </h1>
+          <p className="text-gray-400 mb-8">نظام نقطة البيع</p>
+          <form
+            onSubmit={submitLogin}
+            className="bg-gray-900/80 backdrop-blur-md border border-white/10 rounded-2xl p-6 space-y-4 shadow-2xl"
+          >
+            <div>
+              <label className="block text-sm font-medium text-gray-300 mb-2">اسم المستخدم</label>
+              <input
+                className="w-full border border-gray-700 bg-gray-800 text-white rounded-lg px-3 py-2.5 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent text-base"
+                placeholder="أدخل اسم المستخدم"
+                value={loginForm.username}
+                onChange={e => setLoginForm({ ...loginForm, username: e.target.value })}
+                autoComplete="username"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-300 mb-2">كلمة المرور</label>
+              <input
+                className="w-full border border-gray-700 bg-gray-800 text-white rounded-lg px-3 py-2.5 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent text-base"
+                placeholder="أدخل كلمة المرور"
+                type="password"
+                value={loginForm.password}
+                onChange={e => setLoginForm({ ...loginForm, password: e.target.value })}
+                autoComplete="current-password"
+              />
+            </div>
+            <button
+              type="submit"
+              className="w-full px-4 py-3 rounded-lg bg-gradient-to-r from-primary to-emerald-600 hover:from-primary-dark hover:to-emerald-700 text-white disabled:opacity-50 transition-all font-bold flex items-center justify-center gap-2"
+              disabled={loginLoading}
+            >
+              {loginLoading ? 'جارٍ الدخول...' : 'تسجيل الدخول'}
+            </button>
+          </form>
+        </div>
+      </div>
+    )
   }
 
   // Compute current value for the genre select (to support split-only special option)
