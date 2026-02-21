@@ -81,12 +81,20 @@ export default function Admin() {
                 لوحة تحكم المدير
               </h1>
             </div>
-            <button
-              onClick={logout}
-              className="px-4 py-2 sm:px-6 sm:py-2.5 rounded-xl bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white font-semibold text-sm sm:text-base transition-all duration-300 shadow-lg flex-shrink-0"
-            >
-              تسجيل الخروج
-            </button>
+            <div className="flex items-center gap-3">
+              <button
+                onClick={() => window.location.hash = '#/'}
+                className="hidden sm:flex px-4 py-2 rounded-xl bg-blue-600/20 text-blue-400 border border-blue-500/30 hover:bg-blue-600/30 font-semibold text-sm transition-all duration-300 items-center gap-2"
+              >
+                🏠 المتجر الرئيسي
+              </button>
+              <button
+                onClick={logout}
+                className="px-4 py-2 sm:px-6 sm:py-2.5 rounded-xl bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white font-semibold text-sm sm:text-base transition-all duration-300 shadow-lg flex-shrink-0"
+              >
+                تسجيل الخروج
+              </button>
+            </div>
           </div>
         </div>
       </nav>
@@ -144,14 +152,18 @@ export default function Admin() {
                   { id: 'invoice-settings', label: 'إعدادات الفاتورة', icon: '🖨️' },
                   { id: 'services', label: 'الخدمات', icon: '🔧' },
                   { id: 'stats', label: 'الإحصائيات', icon: '📊' },
+                  { id: 'store-home', label: 'الرئيسية (POS)', icon: '🏠', action: () => window.location.hash = '#/' },
                   ...(currentUser?.role === 'admin' ? [{ id: 'users', label: 'الإدمن', icon: '🛡️' }] : [])
-                ].map(({ id, label, icon }) => (
+                ].map(({ id, label, icon, action }) => (
                   <button
                     key={id}
-                    onClick={() => { setTab(id); setIsMobileMenuOpen(false); }}
+                    onClick={() => {
+                      if (action) action();
+                      else { setTab(id); setIsMobileMenuOpen(false); }
+                    }}
                     className={`w-full text-right px-4 py-3 rounded-xl font-semibold transition-all duration-200 min-h-[48px] flex items-center justify-start gap-3 ${tab === id
-                        ? 'bg-gradient-to-r from-blue-500 to-purple-600 text-white shadow-lg'
-                        : 'bg-transparent text-gray-300 hover:bg-gray-700/50 hover:text-white'
+                      ? 'bg-gradient-to-r from-blue-500 to-purple-600 text-white shadow-lg'
+                      : 'bg-transparent text-gray-300 hover:bg-gray-700/50 hover:text-white'
                       }`}
                   >
                     <span className="text-xl w-6 text-center">{icon}</span>

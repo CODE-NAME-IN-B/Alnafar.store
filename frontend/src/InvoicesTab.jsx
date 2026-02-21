@@ -288,9 +288,9 @@ export default function InvoicesTab() {
                       value={invoice.status || 'pending'}
                       onChange={(e) => updateStatus(invoice.id, e.target.value)}
                       className={`text-xs p-1 rounded-md border-none focus:ring-1 focus:ring-primary ${invoice.status === 'ready' ? 'bg-green-900/50 text-green-400' :
-                          invoice.status === 'completed' ? 'bg-blue-900/50 text-blue-400' :
-                            invoice.status === 'processing' ? 'bg-yellow-900/50 text-yellow-400' :
-                              'bg-gray-700 text-gray-300'
+                        invoice.status === 'completed' ? 'bg-blue-900/50 text-blue-400' :
+                          invoice.status === 'processing' ? 'bg-yellow-900/50 text-yellow-400' :
+                            'bg-gray-700 text-gray-300'
                         }`}
                     >
                       <option value="pending">⏳ قيد الانتظار</option>
@@ -336,6 +336,24 @@ export default function InvoicesTab() {
                         title="عرض التفاصيل"
                       >
                         👁️
+                      </button>
+                      <button
+                        onClick={() => {
+                          const items = Array.isArray(invoice.items) ? invoice.items : (() => { try { return JSON.parse(invoice.items) } catch { return [] } })()
+                          localStorage.setItem('editing_invoice', JSON.stringify({
+                            id: invoice.id,
+                            invoice_number: invoice.invoice_number,
+                            customer_name: invoice.customer_name,
+                            customer_phone: invoice.customer_phone,
+                            items: items,
+                            discount: invoice.discount || 0
+                          }));
+                          window.location.hash = '#/';
+                        }}
+                        className="p-2 sm:px-3 sm:py-2 bg-yellow-600 hover:bg-yellow-700 text-white rounded-lg text-sm transition-colors"
+                        title="تعديل الفاتورة"
+                      >
+                        ✏️
                       </button>
                       <button
                         onClick={() => deleteInvoice(invoice.id)}

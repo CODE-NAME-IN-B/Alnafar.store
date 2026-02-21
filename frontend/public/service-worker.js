@@ -11,8 +11,12 @@ self.addEventListener('push', function (event) {
 
     const options = {
         body: data.body,
-        icon: '/logo.png',
-        badge: '/logo.png',
+        icon: '/favicon.svg',
+        badge: '/favicon.svg',
+        vibrate: [200, 100, 200, 100, 200],
+        requireInteraction: true,
+        tag: 'order-status-' + (data.url ? data.url.split('/').pop() : 'update'),
+        renotify: true,
         data: {
             url: data.url
         }

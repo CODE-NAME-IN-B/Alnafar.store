@@ -8,12 +8,16 @@ function currency(num) {
 
 export default function Invoice({ cart, total, totalSize = 0, onClose, onSuccess }) {
   const [customerInfo, setCustomerInfo] = useState({
-    name: '',
-    phone: '',
+    name: cart[0]?.customer_name || '',
+    phone: cart[0]?.customer_phone || '',
     address: '',
     notes: ''
   })
-  const [discount, setDiscount] = useState(0)
+  // If we are editing, we might have initial data passed in or available via cart items
+  const isEditing = !!localStorage.getItem('editing_invoice')
+  const editingData = isEditing ? JSON.parse(localStorage.getItem('editing_invoice')) : null
+
+  const [discount, setDiscount] = useState(editingData?.discount || 0)
   const [isPaid, setIsPaid] = useState(true)
   const [isProcessing, setIsProcessing] = useState(false)
 
@@ -64,8 +68,15 @@ export default function Invoice({ cart, total, totalSize = 0, onClose, onSuccess
         status: isPaid ? 'paid' : 'pending'
       }
 
-      // حفظ أولاً للحصول على رقم الفاتورة الصحيح (اليومي)
-      const response = await api.post('/invoices', invoiceData)
+      // إذا كنا في وضع التعديل، نستخدم PUT بدلاً من POST
+      let response;
+      if (isEditing && editingData?.id) {
+        response = await api.put(`/api/invoices/${editingData.id}`, invoiceData)
+        localStorage.removeItem('editing_invoice')
+      } else {
+        response = await api.post('/invoices', invoiceData)
+      }
+
       if (!response.data?.success) {
         throw new Error('create_failed')
       }

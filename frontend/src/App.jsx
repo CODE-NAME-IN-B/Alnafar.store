@@ -110,8 +110,29 @@ export default function App() {
   const [showMobileCart, setShowMobileCart] = useState(false)
 
 
+  const [editingInvoiceData, setEditingInvoiceData] = useState(null)
+
   useEffect(() => {
     api.get('/services').then(({ data }) => setServices(Array.isArray(data) ? data : [])).catch(() => { })
+
+    // Check for editing mode
+    const stored = localStorage.getItem('editing_invoice')
+    if (stored) {
+      try {
+        const data = JSON.parse(stored)
+        setEditingInvoiceData(data)
+        // Load into cart
+        const gamesItems = (data.items || []).filter(it => it.type === 'game' || (!it.type && it.size_gb !== undefined))
+        const servicesItems = (data.items || []).filter(it => it.type === 'service' || (!it.type && it.size_gb === undefined))
+
+        setCart(gamesItems)
+        setServicesCart(servicesItems)
+        setCustomerPhone(data.customer_phone || '')
+        // Clean up title if needed or just use as is
+      } catch (e) {
+        console.error('Failed to parse editing_invoice', e)
+      }
+    }
   }, [])
 
   useEffect(() => {
@@ -432,6 +453,14 @@ export default function App() {
     setShowInvoice(true)
   }
 
+  const cancelEdit = () => {
+    localStorage.removeItem('editing_invoice')
+    setEditingInvoiceData(null)
+    setCart([])
+    setServicesCart([])
+    setCustomerPhone('')
+  }
+
   const handleInvoiceSuccess = (invoice) => {
     setCart([])
     setServicesCart([])
@@ -531,6 +560,20 @@ export default function App() {
     <div className="min-h-screen bg-base text-white safe-area-inset">
       {/* Header */}
       <header className="bg-gradient-to-r from-gray-900 to-black border-b border-white/10 sticky top-0 z-50 safe-area-inset">
+        {editingInvoiceData && (
+          <div className="bg-yellow-600 text-black px-4 py-2 flex items-center justify-between text-xs sm:text-sm font-bold">
+            <div className="flex items-center gap-2">
+              <span className="text-lg">✏️</span>
+              <span>تعديل الفاتورة رقم: {editingInvoiceData.invoice_number}</span>
+            </div>
+            <button
+              onClick={cancelEdit}
+              className="bg-black/20 hover:bg-black/40 px-3 py-1 rounded-md border border-black/10 transition-colors"
+            >
+              إلغاء التعديل
+            </button>
+          </div>
+        )}
         <div className="w-full px-3 min-[400px]:px-4 sm:px-4 md:px-5 lg:px-6 xl:px-8 max-w-[100vw]">
           {/* Top row - Logo, Cart (mobile), Login */}
           <div className="h-12 min-[400px]:h-14 sm:h-16 flex items-center justify-between gap-2">
