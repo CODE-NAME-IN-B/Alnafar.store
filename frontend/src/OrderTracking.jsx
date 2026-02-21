@@ -4,13 +4,17 @@ import logo from '../assites/logo.png';
 
 // status mapping for progress bar logic
 const statusMap = {
-    'pending': { label: 'قيد الانتظار', step: 1, color: 'text-yellow-400', bg: 'bg-yellow-400' },
-    'paid': { label: 'تم الدفع', step: 1, color: 'text-blue-400', bg: 'bg-blue-400' },
-    'processing': { label: 'جاري التثبيت', step: 2, color: 'text-indigo-400', bg: 'bg-indigo-400' },
-    'ready': { label: 'جاهز للاستلام', step: 3, color: 'text-emerald-400', bg: 'bg-emerald-400' },
-    'completed': { label: 'مكتمل', step: 4, color: 'text-green-500', bg: 'bg-green-500' },
-    'cancelled': { label: 'ملغي', step: 0, color: 'text-red-500', bg: 'bg-red-500' }
+    'pending': { label: 'قيد الانتظار', step: 1, color: 'text-yellow-400', bg: 'bg-yellow-400', isPaid: false },
+    'paid': { label: 'تم الدفع (خالص)', step: 1, color: 'text-blue-400', bg: 'bg-blue-400', isPaid: true },
+    'processing': { label: 'جاري التثبيت', step: 2, color: 'text-indigo-400', bg: 'bg-indigo-400', isPaid: null },
+    'ready': { label: 'جاهز للاستلام', step: 3, color: 'text-emerald-400', bg: 'bg-emerald-400', isPaid: null },
+    'completed': { label: 'مكتمل', step: 4, color: 'text-green-500', bg: 'bg-green-500', isPaid: true },
+    'cancelled': { label: 'ملغي', step: 0, color: 'text-red-500', bg: 'bg-red-500', isPaid: null }
 };
+
+function currency(num) {
+    return new Intl.NumberFormat('ar-LY', { style: 'currency', currency: 'LYD' }).format(num);
+}
 
 function urlBase64ToUint8Array(base64String) {
     const padding = '='.repeat((4 - base64String.length % 4) % 4);
@@ -331,18 +335,35 @@ export default function OrderTracking({ orderId }) {
                                                 {idx + 1}
                                             </div>
                                             <div>
-                                                <p className="font-medium">{item.title}</p>
-                                                {item.type === 'service' && <span className="text-[10px] bg-white/10 px-1.5 py-0.5 rounded text-gray-300 mr-2">خدمة</span>}
-                                                {item.size_gb > 0 && <span className="text-[10px] text-gray-500 mr-2">{item.size_gb} GB</span>}
+                                                <p className="font-medium text-sm sm:text-base">{item.title}</p>
+                                                <div className="flex items-center gap-2 mt-0.5">
+                                                    {item.type === 'service' && <span className="text-[10px] bg-indigo-500/20 text-indigo-300 px-1.5 py-0.5 rounded border border-indigo-500/20">خدمة</span>}
+                                                    {item.size_gb > 0 && <span className="text-[11px] text-gray-500">{item.size_gb} GB</span>}
+                                                </div>
                                             </div>
+                                        </div>
+                                        <div className="text-left">
+                                            <p className="font-bold text-primary text-sm sm:text-base">{currency(item.price || 0)}</p>
                                         </div>
                                     </li>
                                 ))}
                             </ul>
 
-                            <div className="border-t border-white/10 pt-4 mt-4 flex justify-between items-center text-gray-300">
-                                <span>إجمالي الحجم المطلوب:</span>
-                                <span className="font-mono text-lg text-white font-bold">{Number(order.totalSize || order.total_size_gb || 0).toFixed(2)} GB</span>
+                            <div className="space-y-3 pt-4 border-t border-white/10 mt-4">
+                                <div className="flex justify-between items-center text-gray-300">
+                                    <span className="text-sm">إجمالي الحجم:</span>
+                                    <span className="font-mono text-sm text-white">{Number(order.totalSize || order.total_size_gb || 0).toFixed(2)} GB</span>
+                                </div>
+                                <div className="flex justify-between items-center text-gray-200">
+                                    <span className="text-sm">حالة الدفع:</span>
+                                    <span className={`px-2 py-0.5 rounded text-[11px] font-bold ${order.status === 'pending' ? 'bg-red-500/20 text-red-400 border border-red-500/20' : 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/20'}`}>
+                                        {order.status === 'pending' ? '🔴 غير مدفوع' : '🟢 مدفوع (خالص)'}
+                                    </span>
+                                </div>
+                                <div className="flex justify-between items-center border-t border-white/5 pt-3">
+                                    <span className="text-lg font-bold text-white">إجمالي الطلب:</span>
+                                    <span className="text-2xl font-black text-primary">{currency(order.total || 0)}</span>
+                                </div>
                             </div>
                         </div>
                     </div>
