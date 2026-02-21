@@ -140,6 +140,18 @@ export default function InvoicesTab() {
     }
   }
 
+  const updateStatus = async (id, status) => {
+    try {
+      const { data } = await api.put(`/invoices/${id}/status`, { status })
+      if (data.success) {
+        setInvoices(prev => prev.map(inv => inv.id === id ? { ...inv, status: data.invoice.status } : inv))
+      }
+    } catch (error) {
+      console.error('Update status error:', error)
+      alert('فشل تحديث الحالة')
+    }
+  }
+
   if (loading) {
     return (
       <div className="p-8 text-center">
@@ -258,10 +270,9 @@ export default function InvoicesTab() {
                 <th className="text-right py-3 px-4">رقم الفاتورة</th>
                 <th className="text-right py-3 px-4">اسم العميل</th>
                 <th className="text-right py-3 px-4">المجموع</th>
-                <th className="text-right py-3 px-4">الخصم</th>
                 <th className="text-right py-3 px-4">الإجمالي</th>
+                <th className="text-right py-3 px-4">الحالة</th>
                 <th className="text-right py-3 px-4">وقت الإنشاء</th>
-                <th className="text-right py-3 px-4">عدد الطباعات</th>
                 <th className="text-center py-3 px-4">الإجراءات</th>
               </tr>
             </thead>
@@ -270,22 +281,31 @@ export default function InvoicesTab() {
                 <tr key={invoice.id} className="border-b border-gray-700 hover:bg-gray-700/30">
                   <td className="py-3 px-4 font-mono text-primary">{invoice.invoice_number}</td>
                   <td className="py-3 px-4">{invoice.customer_name}</td>
-                  <td className="py-3 px-4 text-gray-300">{currency(invoice.total)}</td>
-                  <td className="py-3 px-4 text-red-400">{invoice.discount > 0 ? `-${currency(invoice.discount)}` : '—'}</td>
+                  <td className="py-3 px-4 text-gray-300 text-sm">{currency(invoice.total)}</td>
                   <td className="py-3 px-4 font-bold text-green-400">{currency((invoice.total || 0) - (invoice.discount || 0))}</td>
-                  <td className="py-3 px-4 text-gray-300 text-sm">
+                  <td className="py-3 px-4">
+                    <select
+                      value={invoice.status || 'pending'}
+                      onChange={(e) => updateStatus(invoice.id, e.target.value)}
+                      className={`text-xs p-1 rounded-md border-none focus:ring-1 focus:ring-primary ${invoice.status === 'ready' ? 'bg-green-900/50 text-green-400' :
+                          invoice.status === 'completed' ? 'bg-blue-900/50 text-blue-400' :
+                            invoice.status === 'processing' ? 'bg-yellow-900/50 text-yellow-400' :
+                              'bg-gray-700 text-gray-300'
+                        }`}
+                    >
+                      <option value="pending">⏳ قيد الانتظار</option>
+                      <option value="processing">⚙️ جاري التجهيز</option>
+                      <option value="ready">✅ جاهز للاستلام</option>
+                      <option value="completed">🏁 مكتمل</option>
+                    </select>
+                  </td>
+                  <td className="py-3 px-4 text-gray-300 text-[10px] leading-tight">
                     {new Date(invoice.created_at).toLocaleString('ar-LY', {
-                      year: 'numeric',
                       month: '2-digit',
                       day: '2-digit',
                       hour: '2-digit',
                       minute: '2-digit'
                     })}
-                  </td>
-                  <td className="py-3 px-4 text-gray-300 text-center">
-                    <span className="bg-gray-700 px-2 py-1 rounded text-xs">
-                      {invoice.print_count || 0}
-                    </span>
                   </td>
                   <td className="py-3 px-4 text-center">
                     <div className="flex flex-wrap gap-2 justify-center min-w-[120px]">

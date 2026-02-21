@@ -382,7 +382,7 @@ export default function Invoice({ cart, total, totalSize = 0, onClose, onSuccess
         </html>
       `
 
-      const trackingUrl = `https://alnafar-store.onrender.com/#/track/${encodeURIComponent(fullNumber)}`
+      const trackingUrl = `${window.location.origin}/#/track/${encodeURIComponent(fullNumber)}`
 
       const printWindow = window.open('', '_blank', 'width=800,height=600')
       if (printWindow) {

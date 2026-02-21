@@ -12,8 +12,6 @@ const statusMap = {
     'cancelled': { label: 'ملغي', step: 0, color: 'text-red-500', bg: 'bg-red-500' }
 };
 
-const VAPID_PUBLIC_KEY = 'BEl62iUYgUivxIkv69yViEuiBIa-Ib9-SkvMeAtA3LFgDykRxXAm410LI-y4iQv9F9Z3rA_j_d5H_xU15GvN7i4';
-
 function urlBase64ToUint8Array(base64String) {
     const padding = '='.repeat((4 - base64String.length % 4) % 4);
     const base64 = (base64String + padding)
@@ -34,21 +32,17 @@ export default function OrderTracking({ orderId }) {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
     const [subscribed, setSubscribed] = useState(false);
+    const [vapidKey, setVapidKey] = useState('');
 
     useEffect(() => {
         let active = true;
         const fetchOrder = async () => {
             try {
                 setLoading(true);
-                // GET /api/invoices/:invoiceNumber
-                const response = await api.get(`/invoices/${encodeURIComponent(orderId)}`);
-                if (active && response.data) {
-                    // Parse items if it's a string, SQLite often stores JSON as string
-                    let items = response.data.items;
-                    if (typeof items === 'string') {
-                        try { items = JSON.parse(items); } catch (e) { items = []; }
-                    }
-                    setOrder({ ...response.data, items });
+                // استخدام المسار العام الجديد /api/orders/:id
+                const response = await api.get(`/orders/${encodeURIComponent(orderId)}`);
+                if (active && response.data && response.data.success) {
+                    setOrder(response.data.order);
                 }
             } catch (err) {
                 if (active) setError(err.response?.data?.message || 'تعذر جلب بيانات الطلب');
@@ -59,29 +53,31 @@ export default function OrderTracking({ orderId }) {
 
         if (orderId) {
             fetchOrder();
-            // Polling every 15 seconds to auto-update status
-            const intervalId = setInterval(fetchOrder, 15000);
+            const intervalId = setInterval(fetchOrder, 20000); // 20 seconds polling
             return () => { active = false; clearInterval(intervalId); };
         }
     }, [orderId]);
 
-    // Handle Notifications Setup
+    // Fetch VAPID Key and Handle Notifications Setup
     useEffect(() => {
         if ('serviceWorker' in navigator && 'PushManager' in window && orderId && !subscribed) {
-            const subscribeUser = async () => {
+            const setupNotifications = async () => {
                 try {
+                    // Get VAPID key from server
+                    const { data } = await api.get('/notifications/vapid-public-key');
+                    if (!data.success || !data.publicKey) return;
+
                     const registration = await navigator.serviceWorker.register('/service-worker.js');
 
                     let subscription = await registration.pushManager.getSubscription();
                     if (!subscription && Notification.permission === 'granted') {
-                        const convertedVapidKey = urlBase64ToUint8Array(VAPID_PUBLIC_KEY);
+                        const convertedVapidKey = urlBase64ToUint8Array(data.publicKey);
                         subscription = await registration.pushManager.subscribe({
                             userVisibleOnly: true,
                             applicationServerKey: convertedVapidKey
                         });
                     }
 
-                    // Send subscription to backend if we have one
                     if (subscription) {
                         await api.post('/notifications/subscribe', {
                             orderId: orderId,
@@ -94,7 +90,7 @@ export default function OrderTracking({ orderId }) {
                 }
             };
 
-            subscribeUser();
+            setupNotifications();
         }
     }, [orderId, subscribed]);
 

@@ -409,6 +409,13 @@ async function initializeDatabase() {
     );`);
   try { await run('ALTER TABLE daily_invoices ADD COLUMN notes TEXT'); } catch (e) { }
 
+  await exec(`CREATE TABLE IF NOT EXISTS push_subscriptions (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      order_id TEXT NOT NULL,
+      subscription_data TEXT NOT NULL,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    );`);
+
   await exec(`CREATE TABLE IF NOT EXISTS services (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       title TEXT NOT NULL,
@@ -805,6 +812,105 @@ app.post('/api/invoices/:invoiceNumber/mark-printed', async (req, res) => {
   } catch (error) {
     console.error('mark-printed error:', error);
     res.status(500).json({ success: false, message: 'تعذر تحديث حالة الطباعة', error: error.message });
+  }
+});
+
+// تحديث حالة الفاتورة (قيد التنفيذ، جاهزة، مكتملة)
+app.put('/api/invoices/:id/status', authMiddleware, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { status } = req.body;
+
+    if (!status) return res.status(400).json({ success: false, message: 'الحالة مطلوبة' });
+
+    await run('UPDATE invoices SET status = ? WHERE id = ?', [status, id]);
+    const updated = await get('SELECT * FROM invoices WHERE id = ?', [id]);
+
+    // إذا أصبحت الحالة "جاهزة"، نرسل إشعار دفع
+    if (status === 'ready' && updated && updated.invoice_number) {
+      const subs = await all('SELECT subscription_data FROM push_subscriptions WHERE order_id = ?', [updated.invoice_number]);
+
+      const payload = JSON.stringify({
+        title: 'طلبك جاهز! 🎉',
+        body: `فاتورتك رقم ${updated.invoice_number} أصبحت جاهزة للاستلام.`,
+        icon: '/favicon.svg',
+        url: `/#/track/${encodeURIComponent(updated.invoice_number)}`
+      });
+
+      for (const s of subs) {
+        try {
+          const subscription = JSON.parse(s.subscription_data);
+          await webpush.sendNotification(subscription, payload);
+        } catch (err) {
+          console.error('Failed to send push notification:', err);
+        }
+      }
+    }
+
+    res.json({ success: true, invoice: updated });
+  } catch (error) {
+    console.error('Update status error:', error);
+    res.status(500).json({ success: false, message: 'فشل تحديث الحالة' });
+  }
+});
+
+// Push Notifications subscribe API
+app.post('/api/notifications/subscribe', async (req, res) => {
+  try {
+    const { orderId, subscription } = req.body;
+    if (!orderId || !subscription) {
+      return res.status(400).json({ success: false, message: 'بيانات الاشتراك غير مكتملة' });
+    }
+
+    const subString = JSON.stringify(subscription);
+    // تأكد من عدم تكرار نفس الاشتراك لنفس الطلب
+    const existing = await get('SELECT id FROM push_subscriptions WHERE order_id = ? AND subscription_data = ?', [orderId, subString]);
+    if (!existing) {
+      await run('INSERT INTO push_subscriptions (order_id, subscription_data) VALUES (?, ?)', [orderId, subString]);
+    }
+
+    res.status(201).json({ success: true, message: 'تم الاشتراك في التنبيهات بنجاح' });
+  } catch (error) {
+    console.error('Push Notification Subscribe Error:', error);
+    res.status(500).json({ success: false, message: 'حدث خطأ أثناء الاشتراك' });
+  }
+});
+
+// VAPID Public Key API
+app.get('/api/notifications/vapid-public-key', (req, res) => {
+  res.json({ success: true, publicKey: VAPID_PUBLIC_KEY });
+});
+
+// جلب طلب للتتبع (عام)
+app.get('/api/orders/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    // يمكن البحث برقم الفاتورة أو المعرف
+    const order = await get('SELECT invoice_number, status, items, total, total_size_gb, estimated_minutes, created_at FROM invoices WHERE invoice_number = ? OR id = ?', [id, id]);
+
+    if (!order || !order.invoice_number) {
+      return res.status(404).json({ success: false, message: 'الطلب غير موجود' });
+    }
+
+    // إرجاع البيانات الأساسية فقط للأمان
+    let itemsParsed = [];
+    try { itemsParsed = JSON.parse(order.items); } catch (_) { itemsParsed = []; }
+
+    res.json({
+      success: true,
+      order: {
+        invoice_number: order.invoice_number,
+        status: order.status,
+        items: itemsParsed.map(it => ({ title: it.title, price: it.price })),
+        total: order.total,
+        totalSize: order.total_size_gb,
+        estimatedMinutes: order.estimated_minutes,
+        created_at: order.created_at
+      }
+    });
+  } catch (error) {
+    console.error('Fetch order error:', error);
+    res.status(500).json({ success: false, message: 'حدث خطأ في جلب بيانات الطلب' });
   }
 });
 
@@ -3195,33 +3301,6 @@ async function start() {
     if (fs.existsSync(clientDist)) {
       console.log('✅ Serving static files from:', clientDist);
       app.use(express.static(path.join(__dirname, '../frontend/dist')));
-
-      // Push Notifications subscribe API
-      app.post('/api/notifications/subscribe', async (req, res) => {
-        try {
-          const { orderId, subscription } = req.body;
-          if (!orderId || !subscription) {
-            return res.status(400).json({ success: false, message: 'بيانات الاشتراك غير مكتملة' });
-          }
-
-          const subString = JSON.stringify(subscription);
-          // تأكد من عدم تكرار نفس الاشتراك لنفس الطلب
-          const existing = await get('SELECT id FROM push_subscriptions WHERE order_id = ? AND subscription_data = ?', [orderId, subString]);
-          if (!existing) {
-            await run('INSERT INTO push_subscriptions (order_id, subscription_data) VALUES (?, ?)', [orderId, subString]);
-          }
-
-          res.status(201).json({ success: true, message: 'تم الاشتراك في التنبيهات بنجاح' });
-        } catch (error) {
-          console.error('Push Notification Subscribe Error:', error);
-          res.status(500).json({ success: false, message: 'حدث خطأ أثناء الاشتراك' });
-        }
-      });
-
-      // VAPID Public Key API
-      app.get('/api/notifications/vapid-public-key', (req, res) => {
-        res.json({ success: true, publicKey: VAPID_PUBLIC_KEY });
-      });
 
       app.get('*', (req, res) => {
         const indexPath = path.join(clientDist, 'index.html');
