@@ -1,91 +1,98 @@
 <!doctype html>
 <html lang="ar" dir="rtl">
-  <head>
-    <meta charset="UTF-8" />
-    <!-- Enhanced viewport for better mobile experience -->
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes, viewport-fit=cover" />
-    
-    <!-- SEO and Mobile Meta Tags -->
-    <title>متجر الألعاب - Alnafar Store | أفضل الألعاب لأجهزة PS و PC</title>
-    <meta name="description" content="منظومة  الألعاب - اختر لعبة من المتجر لأجهزة PlayStation و PC. أسعار منافسة في ليبيا." />
-    <meta name="keywords" content="ألعاب, تأجير ألعاب, PlayStation, PC, ليبيا, متجر ألعاب, PS4, PS5" />
-    
-    <!-- Mobile Web App Meta Tags -->
-    <meta name="mobile-web-app-capable" content="yes" />
-    <meta name="apple-mobile-web-app-capable" content="yes" />
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-    <meta name="apple-mobile-web-app-title" content="Alnafar Store" />
-    <meta name="theme-color" content="#14b8a6" />
-    <meta name="msapplication-TileColor" content="#14b8a6" />
-    
-    <!-- Prevent automatic phone number detection -->
-    <meta name="format-detection" content="telephone=no" />
-    
-    <!-- Favicon / App Icons - SVG أولاً للوضوح عند التثبيت كـ PWA -->
-    <link rel="icon" type="image/svg+xml" href="/icon-192x192.svg" />
-    <link rel="icon" type="image/png" href="/logo.png" />
-    <link rel="apple-touch-icon" href="/icon-192x192.png" />
-    <link rel="apple-touch-icon" sizes="192x192" href="/icon-192x192.png" />
-    <link rel="apple-touch-icon" sizes="512x512" href="/icon-512x512.png" />
-    
-    <!-- PWA Manifest -->
-    <link rel="manifest" href="/manifest.json" />
-    
-    <!-- Google Fonts - Arabic & English -->
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <!-- Cairo: Modern Arabic font with excellent readability -->
-    <!-- Inter: Clean English font that pairs well with Cairo -->
-    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;600;700;900&family=Inter:wght@300;400;600;700;900&display=swap" rel="stylesheet">
-    
-    <!-- Preload critical resources -->
-    <!-- <link rel="preload" href="/src/styles.css" as="style" /> -->
-    
-    
-    <!-- Performance optimization -->
-    <link rel="dns-prefetch" href="//fonts.googleapis.com" />
-    <link rel="dns-prefetch" href="//fonts.gstatic.com" />
-    <link rel="dns-prefetch" href="//cdnjs.cloudflare.com" />
-  </head>
-  <body>
-    <div id="root"></div>
-    <script type="module" src="/src/main.jsx"></script>
-    
-    <!-- PWA Service Worker Registration -->
-    <script>
-      // Register Service Worker for PWA functionality
-      if ('serviceWorker' in navigator) {
-        window.addEventListener('load', () => {
-          // لا تسجل sw.js في صفحة التتبع (لتجنب التعارض مع service-worker.js الخاص بالإشعارات)
-          if (window.location.hash && window.location.hash.startsWith('#/track/')) return;
-          
-          navigator.serviceWorker.register('/sw.js')
-            .then((registration) => {
-              console.log('SW registered: ', registration);
-              // التحديثات تتم تلقائياً بدون إزعاج المستخدم
-            })
-            .catch((registrationError) => {
-              console.log('SW registration failed: ', registrationError);
-            });
-        });
-      }
 
-      // PWA Install Prompt — لا تظهر في صفحة التتبع
-      let deferredPrompt;
-      window.addEventListener('beforeinstallprompt', (e) => {
-        e.preventDefault();
-        deferredPrompt = e;
-        // لا تظهر في صفحة التتبع
+<head>
+  <meta charset="UTF-8" />
+  <!-- Enhanced viewport for better mobile experience -->
+  <meta name="viewport"
+    content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes, viewport-fit=cover" />
+
+  <!-- SEO and Mobile Meta Tags -->
+  <title>متجر الألعاب - Alnafar Store | أفضل الألعاب لأجهزة PS و PC</title>
+  <meta name="description"
+    content="منظومة  الألعاب - اختر لعبة من المتجر لأجهزة PlayStation و PC. أسعار منافسة في ليبيا." />
+  <meta name="keywords" content="ألعاب, تأجير ألعاب, PlayStation, PC, ليبيا, متجر ألعاب, PS4, PS5" />
+
+  <!-- Mobile Web App Meta Tags -->
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="Alnafar Store" />
+  <meta name="theme-color" content="#14b8a6" />
+  <meta name="msapplication-TileColor" content="#14b8a6" />
+
+  <!-- Prevent automatic phone number detection -->
+  <meta name="format-detection" content="telephone=no" />
+
+  <!-- Favicon / App Icons -->
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+  <link rel="icon" type="image/png" href="/icon-192x192.png" />
+  <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+  <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
+  <link rel="apple-touch-icon" sizes="192x192" href="/icon-192x192.png" />
+  <link rel="apple-touch-icon" sizes="512x512" href="/icon-512x512.png" />
+
+  <!-- PWA Manifest -->
+  <link rel="manifest" href="/manifest.json" />
+
+  <!-- Google Fonts - Arabic & English -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <!-- Cairo: Modern Arabic font with excellent readability -->
+  <!-- Inter: Clean English font that pairs well with Cairo -->
+  <link
+    href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;600;700;900&family=Inter:wght@300;400;600;700;900&display=swap"
+    rel="stylesheet">
+
+  <!-- Preload critical resources -->
+  <!-- <link rel="preload" href="/src/styles.css" as="style" /> -->
+
+
+  <!-- Performance optimization -->
+  <link rel="dns-prefetch" href="//fonts.googleapis.com" />
+  <link rel="dns-prefetch" href="//fonts.gstatic.com" />
+  <link rel="dns-prefetch" href="//cdnjs.cloudflare.com" />
+</head>
+
+<body>
+  <div id="root"></div>
+  <script type="module" src="/src/main.jsx"></script>
+
+  <!-- PWA Service Worker Registration -->
+  <script>
+    // Register Service Worker for PWA functionality
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        // لا تسجل sw.js في صفحة التتبع (لتجنب التعارض مع service-worker.js الخاص بالإشعارات)
         if (window.location.hash && window.location.hash.startsWith('#/track/')) return;
-        showInstallPromotion();
-      });
 
-      function showInstallPromotion() {
-        if (document.getElementById('install-button')) return;
-        const installButton = document.createElement('button');
-        installButton.id = 'install-button';
-        installButton.innerHTML = '📱 تثبيت التطبيق';
-        installButton.style.cssText = `
+        navigator.serviceWorker.register('/sw.js')
+          .then((registration) => {
+            console.log('SW registered: ', registration);
+            // التحديثات تتم تلقائياً بدون إزعاج المستخدم
+          })
+          .catch((registrationError) => {
+            console.log('SW registration failed: ', registrationError);
+          });
+      });
+    }
+
+    // PWA Install Prompt — لا تظهر في صفحة التتبع
+    let deferredPrompt;
+    window.addEventListener('beforeinstallprompt', (e) => {
+      e.preventDefault();
+      deferredPrompt = e;
+      // لا تظهر في صفحة التتبع
+      if (window.location.hash && window.location.hash.startsWith('#/track/')) return;
+      showInstallPromotion();
+    });
+
+    function showInstallPromotion() {
+      if (document.getElementById('install-button')) return;
+      const installButton = document.createElement('button');
+      installButton.id = 'install-button';
+      installButton.innerHTML = '📱 تثبيت التطبيق';
+      installButton.style.cssText = `
           position: fixed;
           bottom: 20px;
           right: 20px;
@@ -101,41 +108,41 @@
           z-index: 1000;
           transition: all 0.3s ease;
         `;
-        
-        installButton.addEventListener('click', async () => {
-          if (deferredPrompt) {
-            deferredPrompt.prompt();
-            const { outcome } = await deferredPrompt.userChoice;
-            console.log(`User response to the install prompt: ${outcome}`);
-            deferredPrompt = null;
-            installButton.remove();
-          }
-        });
-        
-        document.body.appendChild(installButton);
-        
-        // Auto-hide after 10 seconds
-        setTimeout(() => {
-          if (installButton && installButton.parentNode) {
-            installButton.style.opacity = '0';
-            setTimeout(() => installButton.remove(), 300);
-          }
-        }, 10000);
-      }
 
-      // Handle app installation
-      window.addEventListener('appinstalled', (evt) => {
-        console.log('App was installed');
-        // Hide install button if it exists
-        const installButton = document.getElementById('install-button');
-        if (installButton) {
+      installButton.addEventListener('click', async () => {
+        if (deferredPrompt) {
+          deferredPrompt.prompt();
+          const { outcome } = await deferredPrompt.userChoice;
+          console.log(`User response to the install prompt: ${outcome}`);
+          deferredPrompt = null;
           installButton.remove();
         }
-        
-        // Show success message
-        const successMsg = document.createElement('div');
-        successMsg.innerHTML = '✅ تم تثبيت التطبيق بنجاح!';
-        successMsg.style.cssText = `
+      });
+
+      document.body.appendChild(installButton);
+
+      // Auto-hide after 10 seconds
+      setTimeout(() => {
+        if (installButton && installButton.parentNode) {
+          installButton.style.opacity = '0';
+          setTimeout(() => installButton.remove(), 300);
+        }
+      }, 10000);
+    }
+
+    // Handle app installation
+    window.addEventListener('appinstalled', (evt) => {
+      console.log('App was installed');
+      // Hide install button if it exists
+      const installButton = document.getElementById('install-button');
+      if (installButton) {
+        installButton.remove();
+      }
+
+      // Show success message
+      const successMsg = document.createElement('div');
+      successMsg.innerHTML = '✅ تم تثبيت التطبيق بنجاح!';
+      successMsg.style.cssText = `
           position: fixed;
           top: 20px;
           right: 20px;
@@ -147,30 +154,29 @@
           z-index: 1001;
           box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
         `;
-        document.body.appendChild(successMsg);
-        setTimeout(() => successMsg.remove(), 3000);
-      });
+      document.body.appendChild(successMsg);
+      setTimeout(() => successMsg.remove(), 3000);
+    });
 
-      // Simple print function - opens browser print dialog like printatestpage.com
-      window.enhancedPrint = function() {
-        console.log('🖨️ Opening browser print dialog');
-        window.print();
-      };
-      
-      // Sunmi innerPrinter detection and setup
-      window.addEventListener('load', function() {
-        // Check for Sunmi innerPrinter availability
-        if (typeof Android !== 'undefined' && Android.innerPrinter) {
-          window.sunmiInnerPrinter = Android.innerPrinter;
-          console.log('✅ Sunmi innerPrinter detected via Android interface');
-        } else if (window.sunmiInnerPrinter) {
-          console.log('✅ Sunmi innerPrinter already available');
-        } else {
-          console.log('ℹ️ Sunmi innerPrinter not detected, using web printing');
-        }
-      });
-    </script>
-  </body>
-  </html>
+    // Simple print function - opens browser print dialog like printatestpage.com
+    window.enhancedPrint = function () {
+      console.log('🖨️ Opening browser print dialog');
+      window.print();
+    };
 
+    // Sunmi innerPrinter detection and setup
+    window.addEventListener('load', function () {
+      // Check for Sunmi innerPrinter availability
+      if (typeof Android !== 'undefined' && Android.innerPrinter) {
+        window.sunmiInnerPrinter = Android.innerPrinter;
+        console.log('✅ Sunmi innerPrinter detected via Android interface');
+      } else if (window.sunmiInnerPrinter) {
+        console.log('✅ Sunmi innerPrinter already available');
+      } else {
+        console.log('ℹ️ Sunmi innerPrinter not detected, using web printing');
+      }
+    });
+  </script>
+</body>
 
+</html>
