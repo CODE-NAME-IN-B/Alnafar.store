@@ -66,7 +66,7 @@ export default function OrderTracking({ orderId }) {
 
         if (orderId) {
             fetchOrder();
-            const intervalId = setInterval(fetchOrder, 30000); // poll every 30 seconds
+            const intervalId = setInterval(fetchOrder, 60000); // poll every 60 seconds (1 minute)
             return () => { active = false; clearInterval(intervalId); };
         }
     }, [orderId]);
