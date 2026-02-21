@@ -456,7 +456,7 @@ export default function App() {
       const { data } = await api.post('/auth/login', loginForm)
       localStorage.setItem('token', data.token)
       setShowLogin(false)
-      window.location.hash = '#/admin'
+      // البقاء في واجهة المتجر بعد تسجيل الدخول بدلاً من التوجيه للوحة التحكم
     } catch {
       alert('بيانات الدخول غير صحيحة')
     } finally {
@@ -558,12 +558,21 @@ export default function App() {
                 )}
               </button>
 
-              <button
-                onClick={() => setShowLogin(true)}
-                className="text-xs sm:text-sm bg-white/10 hover:bg-white/20 px-3 py-2.5 min-h-[44px] rounded-lg transition-colors touch-target"
-              >
-                تسجيل دخول
-              </button>
+              {hasToken ? (
+                <button
+                  onClick={() => { window.location.hash = '#/admin' }}
+                  className="text-xs sm:text-sm bg-primary/20 hover:bg-primary/30 text-primary px-3 py-2.5 min-h-[44px] rounded-lg transition-colors touch-target font-bold"
+                >
+                  ⚙️ لوحة التحكم
+                </button>
+              ) : (
+                <button
+                  onClick={() => setShowLogin(true)}
+                  className="text-xs sm:text-sm bg-white/10 hover:bg-white/20 px-3 py-2.5 min-h-[44px] rounded-lg transition-colors touch-target"
+                >
+                  تسجيل دخول
+                </button>
+              )}
             </div>
           </div>
 
