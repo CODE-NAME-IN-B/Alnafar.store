@@ -2013,7 +2013,10 @@ app.get('/api/stats', async (req, res) => {
         const items = JSON.parse(invoice.items);
         for (const item of items) {
           const id = item.id;
-          counts.set(id, (counts.get(id) || 0) + 1);
+          // تجاهل العناصر التي ليس لها معرف (مثل الخدمات القديمة) أو التي ليست من نوع "لعبة"
+          if (id && (item.type === 'game' || !item.type)) {
+            counts.set(id, (counts.get(id) || 0) + 1);
+          }
         }
       } catch (e) {
         console.error('Error parsing invoice items:', e);

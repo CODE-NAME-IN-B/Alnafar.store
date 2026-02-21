@@ -31,16 +31,19 @@ function TopList({ onAdd }) {
           rows = Array.isArray(res.data) ? res.data : []
         } catch (_) { rows = [] }
         const map = new Map(rows.map(g => [Number(g.id), g]))
-        const resolved = topGames.map(t => {
-          const g = map.get(Number(t.gameId)) || {}
-          return {
-            id: g.id || t.gameId,
-            title: g.title || `لعبة #${t.gameId}`,
-            image: g.image || '',
-            price: typeof g.price === 'number' ? g.price : 0,
-            count: t.count
-          }
-        })
+        const resolved = topGames
+          .map(t => {
+            const g = map.get(Number(t.gameId)) || {}
+            return {
+              id: g.id || t.gameId,
+              title: g.title || (t.gameId ? `لعبة #${t.gameId}` : null),
+              image: g.image || '',
+              price: typeof g.price === 'number' ? g.price : 0,
+              count: t.count
+            }
+          })
+          .filter(g => g.id !== null && g.id !== undefined && g.title !== null)
+
         if (!cancelled) setDetails(resolved)
       } catch (e) {
         console.error('Failed to load top list', e)
