@@ -362,7 +362,7 @@ async function initializeDatabase() {
       estimated_minutes INTEGER DEFAULT 0,
       discount REAL DEFAULT 0,
       final_total REAL,
-      status TEXT DEFAULT 'completed',
+      status TEXT DEFAULT 'pending',
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
       printed_at DATETIME,
       print_count INTEGER DEFAULT 0

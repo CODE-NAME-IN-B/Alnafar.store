@@ -18,7 +18,7 @@ export async function fetchFullInvoice(invoiceNumber) {
   return data
 }
 
-export function openInvoicePrintWindow(invoice, invSettings = {}) {
+export async function openInvoicePrintWindow(invoice, invSettings = {}) {
   const paperMM = Number(invSettings?.paper_width) || 58
   const fs = String(invSettings?.font_size || 'normal').toLowerCase()
   const fontSize = paperMM <= 58 ? '11px' : (fs === 'large' ? '12px' : fs === 'small' ? '10px' : '11px')
@@ -74,6 +74,9 @@ export function openInvoicePrintWindow(invoice, invSettings = {}) {
     .item-price { text-align: left; font-weight: bold; direction: ltr; flex-shrink: 0; }
     .total-row { display: flex; justify-content: space-between; margin-top: 1px; padding-top: 1px; border-top: 2px solid #000; font-weight: bold; font-size: ${fontSize}; }
     .footer { text-align: center; font-size: ${paperMM <= 58 ? '10px' : '8px'}; color: #555; margin-top: 1px; line-height: 1.2; }
+    .qr-container { text-align: center; margin: 3px 0; }
+    .qr-container img { max-width: 30mm; }
+    .qr-label { font-size: 10px; font-weight: bold; margin-top: -2px; text-align: center; }
     @media print { html, body { width: ${paperMM}mm; max-width: ${paperMM}mm; margin: 0; padding: 0; } .no-print { display: none !important; } }
   </style>
 </head>
@@ -96,7 +99,7 @@ export function openInvoicePrintWindow(invoice, invSettings = {}) {
     <div class="section-title">تفاصيل الطلب</div>
     ${(() => { const games = items.filter(i => i.type !== 'service'); return (games.length ? games : items); })().map(item => `
     <div class="item-row">
-      <span class="item-name">${item.title || ''}</span>
+      <span class="item-name">[ ] ${item.title || ''}</span>
       <span class="item-price">${currency(item.price || 0)}</span>
     </div>`).join('')}
     ${(() => { const svc = items.filter(i => i.type === 'service'); return svc; })().length ? `
@@ -120,6 +123,7 @@ export function openInvoicePrintWindow(invoice, invSettings = {}) {
     ${storeWeb ? `<div class="info-row"><span class="info-label">الموقع:</span><span class="info-value">${storeWeb}</span></div>` : ''}
     ` : ''}
     ${showFooter && footerMsg ? `<div class="footer"><div>${footerMsg}</div></div>` : ''}
+    <div class="qr-container" id="qr-code-placeholder"></div>
   </div>
   <script>
     (function(){
@@ -138,6 +142,20 @@ export function openInvoicePrintWindow(invoice, invSettings = {}) {
   if (printWindow) {
     printWindow.document.write(invoiceHTML)
     printWindow.document.close()
+
+    // Generate QR code
+    const trackingUrl = `${origin}/#/track/${encodeURIComponent(fullNumber)}`
+    try {
+      const qrcodeLib = await import('qrcode')
+      const qrCanvas = document.createElement('canvas')
+      await qrcodeLib.toCanvas(qrCanvas, trackingUrl, { width: 100, margin: 1 })
+      const qrDataUrl = qrCanvas.toDataURL()
+      const qrPlaceholder = printWindow.document.getElementById('qr-code-placeholder')
+      if (qrPlaceholder) {
+        qrPlaceholder.innerHTML = `<img src="${qrDataUrl}" alt="تتبع الطلب" style="max-width:30mm; margin-top:5px; margin-bottom:5px;"/>
+          <div class="qr-label">تتبع طلبك عبر مسح الرمز</div>`
+      }
+    } catch (e) { console.error('QR generation error:', e) }
   }
 }
 
@@ -148,7 +166,7 @@ export async function reprintInvoice(invoice) {
     openInvoicePrintWindow(fullInvoice, invSettings)
     try {
       await api.post(`/invoices/${encodeURIComponent(String(invoice.invoice_number || fullInvoice.invoice_number))}/mark-printed`)
-    } catch (_) {}
+    } catch (_) { }
   } catch (err) {
     console.error('فشل في إعادة الطباعة:', err)
     throw err

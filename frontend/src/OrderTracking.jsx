@@ -36,24 +36,25 @@ export default function OrderTracking({ orderId }) {
 
     useEffect(() => {
         let active = true;
+        let isFirstLoad = true;
         const fetchOrder = async () => {
             try {
-                setLoading(true);
-                // استخدام المسار العام الجديد /api/orders/:id
+                if (isFirstLoad) setLoading(true);
                 const response = await api.get(`/orders/${encodeURIComponent(orderId)}`);
                 if (active && response.data && response.data.success) {
                     setOrder(response.data.order);
+                    setError('');
                 }
             } catch (err) {
-                if (active) setError(err.response?.data?.message || 'تعذر جلب بيانات الطلب');
+                if (active && isFirstLoad) setError(err.response?.data?.message || 'تعذر جلب بيانات الطلب');
             } finally {
-                if (active) setLoading(false);
+                if (active) { setLoading(false); isFirstLoad = false; }
             }
         };
 
         if (orderId) {
             fetchOrder();
-            const intervalId = setInterval(fetchOrder, 20000); // 20 seconds polling
+            const intervalId = setInterval(fetchOrder, 30000); // poll every 30 seconds
             return () => { active = false; clearInterval(intervalId); };
         }
     }, [orderId]);
@@ -121,7 +122,6 @@ export default function OrderTracking({ orderId }) {
                     </svg>
                     <h2 className="text-xl font-bold text-red-400 mb-2">خطأ</h2>
                     <p className="text-red-200">{error || 'لم يتم العثور على الطلب.'}</p>
-                    <a href="#/" className="mt-6 inline-block bg-white/10 hover:bg-white/20 px-6 py-2 rounded-lg transition-colors">العودة للمتجر</a>
                 </div>
             </div>
         );
@@ -275,16 +275,12 @@ export default function OrderTracking({ orderId }) {
 
                             <div className="border-t border-white/10 pt-4 mt-4 flex justify-between items-center text-gray-300">
                                 <span>إجمالي الحجم المطلوب:</span>
-                                <span className="font-mono text-lg text-white font-bold">{Number(order.total_size_gb || 0).toFixed(2)} GB</span>
+                                <span className="font-mono text-lg text-white font-bold">{Number(order.totalSize || order.total_size_gb || 0).toFixed(2)} GB</span>
                             </div>
                         </div>
                     </div>
 
-                    <div className="text-center">
-                        <a href="#/" className="text-gray-400 hover:text-white transition-colors underline decoration-white/30 underline-offset-4">
-                            العودة إلى الصفحة الرئيسية
-                        </a>
-                    </div>
+
 
                 </main>
             </div>
