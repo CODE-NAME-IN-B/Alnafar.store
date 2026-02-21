@@ -33,6 +33,14 @@ export default function OrderTracking({ orderId }) {
     const [error, setError] = useState('');
     const [subscribed, setSubscribed] = useState(false);
     const [vapidKey, setVapidKey] = useState('');
+    const [storeInfo, setStoreInfo] = useState({});
+
+    // Fetch store settings for branding
+    useEffect(() => {
+        api.get('/invoice-settings').then(({ data }) => {
+            if (data?.settings) setStoreInfo(data.settings);
+        }).catch(() => { });
+    }, []);
 
     useEffect(() => {
         let active = true;
@@ -152,13 +160,28 @@ export default function OrderTracking({ orderId }) {
 
             <div className="max-w-3xl mx-auto relative z-10">
                 <header className="flex flex-col items-center mb-10 text-center">
-                    <a href="#/" className="inline-block transition-transform hover:scale-105 mb-4">
-                        <img src={logo} alt="Alnafar Store" className="h-14 sm:h-20 object-contain" />
-                    </a>
+                    <img src={logo} alt="Alnafar Store" className="h-14 sm:h-20 object-contain mb-4" />
                     <h1 className="text-2xl sm:text-3xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-primary to-emerald-400">
-                        تتبع حالة الطلب
+                        {storeInfo.store_name || 'متجر النفار'}
                     </h1>
-                    <p className="text-gray-400 mt-2 text-sm sm:text-base">تحديث تلقائي لحالة تجهيز طلبك</p>
+                    {storeInfo.store_name_english && <p className="text-gray-400 text-sm mt-1">{storeInfo.store_name_english}</p>}
+                    <p className="text-gray-400 mt-2 text-sm sm:text-base">تتبع حالة الطلب</p>
+                    {(storeInfo.store_address || storeInfo.store_phone) && (
+                        <div className="flex flex-wrap items-center justify-center gap-3 mt-3 text-xs text-gray-500">
+                            {storeInfo.store_address && (
+                                <span className="flex items-center gap-1">
+                                    <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
+                                    {storeInfo.store_address}
+                                </span>
+                            )}
+                            {storeInfo.store_phone && (
+                                <a href={`tel:${storeInfo.store_phone}`} className="flex items-center gap-1 hover:text-primary transition-colors">
+                                    <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" /></svg>
+                                    {storeInfo.store_phone}
+                                </a>
+                            )}
+                        </div>
+                    )}
                 </header>
 
                 <main className="space-y-6">
@@ -175,6 +198,22 @@ export default function OrderTracking({ orderId }) {
                                 <p className="text-sm font-medium">{orderDate}</p>
                             </div>
                         </div>
+
+                        {/* Customer Info */}
+                        {order.customer_name && (
+                            <div className="mb-6 flex flex-wrap gap-4 text-sm">
+                                <div className="flex items-center gap-2 text-gray-300">
+                                    <svg className="w-4 h-4 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg>
+                                    <span>العميل: <strong className="text-white">{order.customer_name}</strong></span>
+                                </div>
+                                {order.customer_phone && (
+                                    <div className="flex items-center gap-2 text-gray-300">
+                                        <svg className="w-4 h-4 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" /></svg>
+                                        <span>{order.customer_phone}</span>
+                                    </div>
+                                )}
+                            </div>
+                        )}
 
                         {/* Visual Status Indicator */}
                         {currentStep > 0 && currentStep <= 4 ? (
@@ -280,8 +319,15 @@ export default function OrderTracking({ orderId }) {
                         </div>
                     </div>
 
-
-
+                    {/* Store Contact Footer */}
+                    <div className="bg-gray-900/40 backdrop-blur-sm border border-white/5 rounded-2xl p-5 text-center">
+                        <p className="text-sm font-bold text-primary mb-2">{storeInfo.store_name || 'متجر النفار'}</p>
+                        {storeInfo.store_address && <p className="text-xs text-gray-400 mb-1">📍 {storeInfo.store_address}</p>}
+                        {storeInfo.store_phone && <p className="text-xs text-gray-400 mb-1">📞 <a href={`tel:${storeInfo.store_phone}`} className="hover:text-primary transition-colors">{storeInfo.store_phone}</a></p>}
+                        {storeInfo.store_email && <p className="text-xs text-gray-400 mb-1">✉️ {storeInfo.store_email}</p>}
+                        {storeInfo.store_website && <p className="text-xs text-gray-400 mb-1">🌐 {storeInfo.store_website}</p>}
+                        {storeInfo.footer_message && <p className="text-xs text-gray-500 mt-3 italic">{storeInfo.footer_message}</p>}
+                    </div>
                 </main>
             </div>
         </div>
