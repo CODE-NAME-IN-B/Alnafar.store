@@ -69,45 +69,73 @@ export default function OrderTracking({ orderId }) {
 
     // Fetch VAPID Key and Handle Notifications Setup
     useEffect(() => {
-        if ('serviceWorker' in navigator && 'PushManager' in window && orderId && !subscribed) {
-            const setupNotifications = async () => {
-                try {
-                    // Get VAPID key from server
-                    const { data } = await api.get('/notifications/vapid-public-key');
-                    if (!data.success || !data.publicKey) return;
+        if (!('serviceWorker' in navigator) || !('PushManager' in window) || !orderId || subscribed) return;
 
-                    const registration = await navigator.serviceWorker.register('/service-worker.js');
+        const setupNotifications = async () => {
+            try {
+                // Get VAPID key from server
+                const { data } = await api.get('/notifications/vapid-public-key');
+                if (!data.success || !data.publicKey) return;
 
-                    let subscription = await registration.pushManager.getSubscription();
-                    if (!subscription && Notification.permission === 'granted') {
-                        const convertedVapidKey = urlBase64ToUint8Array(data.publicKey);
-                        subscription = await registration.pushManager.subscribe({
-                            userVisibleOnly: true,
-                            applicationServerKey: convertedVapidKey
-                        });
-                    }
+                const registration = await navigator.serviceWorker.register('/service-worker.js');
+                await navigator.serviceWorker.ready;
 
-                    if (subscription) {
-                        await api.post('/notifications/subscribe', {
-                            orderId: orderId,
-                            subscription: subscription
-                        });
-                        setSubscribed(true);
-                    }
-                } catch (error) {
-                    console.error('Failed to subscribe to push notifications:', error);
+                let subscription = await registration.pushManager.getSubscription();
+
+                // فقط اشترك إذا كان الإذن ممنوحاً بالفعل
+                if (!subscription && (Notification.permission === 'granted')) {
+                    const convertedVapidKey = urlBase64ToUint8Array(data.publicKey);
+                    subscription = await registration.pushManager.subscribe({
+                        userVisibleOnly: true,
+                        applicationServerKey: convertedVapidKey
+                    });
                 }
-            };
 
-            setupNotifications();
-        }
+                // أرسل الاشتراك إلى الخادم
+                if (subscription) {
+                    await api.post('/notifications/subscribe', {
+                        orderId: orderId,
+                        subscription: subscription
+                    });
+                    setSubscribed(true);
+                }
+            } catch (error) {
+                console.error('Failed to subscribe to push notifications:', error);
+            }
+        };
+
+        setupNotifications();
     }, [orderId, subscribed]);
 
     const requestNotificationPermission = async () => {
-        const permission = await Notification.requestPermission();
-        if (permission === 'granted') {
-            // trigger the useEffect again or directly subscribe
-            setSubscribed(false); // Quick hack to re-run the effect if permission granted
+        try {
+            const permission = await Notification.requestPermission();
+            if (permission === 'granted') {
+                // بعد الموافقة، اشترك مباشرة
+                const { data } = await api.get('/notifications/vapid-public-key');
+                if (!data.success || !data.publicKey) return;
+
+                const registration = await navigator.serviceWorker.ready;
+                let subscription = await registration.pushManager.getSubscription();
+
+                if (!subscription) {
+                    const convertedVapidKey = urlBase64ToUint8Array(data.publicKey);
+                    subscription = await registration.pushManager.subscribe({
+                        userVisibleOnly: true,
+                        applicationServerKey: convertedVapidKey
+                    });
+                }
+
+                if (subscription) {
+                    await api.post('/notifications/subscribe', {
+                        orderId: orderId,
+                        subscription: subscription
+                    });
+                    setSubscribed(true);
+                }
+            }
+        } catch (error) {
+            console.error('Notification permission/subscribe error:', error);
         }
     };
 
