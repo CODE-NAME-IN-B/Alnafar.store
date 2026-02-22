@@ -64,7 +64,6 @@ export default function Invoice({ cart, total, totalSize = 0, onClose, onSuccess
       let response;
       if (isEditing && editingData?.id) {
         response = await api.put(`/api/invoices/${editingData.id}`, invoiceData)
-        localStorage.removeItem('editing_invoice')
       } else {
         response = await api.post('/invoices', invoiceData)
       }

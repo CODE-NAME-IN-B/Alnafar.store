@@ -468,8 +468,14 @@ export default function App() {
   }
 
   const handleInvoiceSuccess = (invoice) => {
-    setCart([])
-    setServicesCart([])
+    // If we are NOT editing, clear the cart. 
+    // If we ARE editing, we keep the items so we can add more to the SAME invoice.
+    if (!editingInvoiceData) {
+      setCart([])
+      setServicesCart([])
+      setCustomerPhone('')
+      setCustomerName('')
+    }
     setShowInvoice(false)
 
     // رسالة مختلفة حسب البيئة

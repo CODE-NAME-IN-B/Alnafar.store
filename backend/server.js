@@ -2342,12 +2342,11 @@ app.put('/api/invoices/:id', authMiddleware, async (req, res) => {
   try {
     const { id } = req.params;
     const {
-      customer_name,
-      customer_phone,
-      customer_address,
-      customer_notes,
+      customerInfo,
       items,
       total,
+      totalSize,
+      discount,
       status
     } = req.body;
 
@@ -2363,14 +2362,18 @@ app.put('/api/invoices/:id', authMiddleware, async (req, res) => {
       customer_notes = ?,
       items = ?,
       total = ?,
+      total_size_gb = ?,
+      discount = ?,
       status = ?
       WHERE id = ?`, [
-      customer_name || invoice.customer_name,
-      customer_phone || invoice.customer_phone,
-      customer_address || invoice.customer_address || '',
-      customer_notes || invoice.customer_notes || '',
+      customerInfo?.name || invoice.customer_name,
+      customerInfo?.phone || invoice.customer_phone,
+      customerInfo?.address || invoice.customer_address || '',
+      customerInfo?.notes || invoice.customer_notes || '',
       items ? JSON.stringify(items) : invoice.items,
       total || invoice.total,
+      totalSize !== undefined ? totalSize : invoice.total_size_gb,
+      discount !== undefined ? discount : invoice.discount,
       status || invoice.status,
       id
     ]);
