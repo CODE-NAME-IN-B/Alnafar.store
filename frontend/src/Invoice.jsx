@@ -1,41 +1,32 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { api } from './api'
-import QRCode from 'qrcode.react'
+import { openInvoicePrintWindow, getInvoiceSettings } from './utils/invoicePrint'
 
 function currency(num) {
   return new Intl.NumberFormat('ar-LY', { style: 'currency', currency: 'LYD' }).format(num)
 }
 
 export default function Invoice({ cart, total, totalSize = 0, onClose, onSuccess }) {
-  const [customerInfo, setCustomerInfo] = useState({
-    name: cart[0]?.customer_name || '',
-    phone: cart[0]?.customer_phone || '',
-    address: '',
-    notes: ''
-  })
   // If we are editing, we might have initial data passed in or available via cart items
   const isEditing = !!localStorage.getItem('editing_invoice')
   const editingData = isEditing ? JSON.parse(localStorage.getItem('editing_invoice')) : null
 
+  const [customerInfo, setCustomerInfo] = useState({
+    name: editingData?.customer_name || cart[0]?.customer_name || '',
+    phone: editingData?.customer_phone || cart[0]?.customer_phone || '',
+    address: editingData?.customer_address || '',
+    notes: editingData?.notes || editingData?.customer_notes || ''
+  })
+
   const [discount, setDiscount] = useState(editingData?.discount || 0)
-  const [isPaid, setIsPaid] = useState(true)
   const [isProcessing, setIsProcessing] = useState(false)
 
   // إنشاء رقم فاتورة مؤقت للعرض
-  const [invoiceNumber, setInvoiceNumber] = useState(() => {
+  const [invoiceNumber, setInvoiceNumber] = useState(editingData?.invoice_number || (() => {
     const today = new Date().toISOString().split('T')[0].replace(/-/g, '')
     const randomSuffix = Math.floor(Math.random() * 1000).toString().padStart(3, '0')
     return `${today}-${randomSuffix}`
-  })
-
-  // سيتم إنشاء رقم الفاتورة تلقائياً في الخادم
-  const currentDate = new Date().toLocaleDateString('ar-LY', {
-    year: 'numeric',
-    month: 'long',
-    day: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit'
-  })
+  }))
 
   const handleSubmit = async (e) => {
     e.preventDefault()
@@ -65,7 +56,7 @@ export default function Invoice({ cart, total, totalSize = 0, onClose, onSuccess
         discount,
         finalTotal: total - discount,
         date: new Date().toISOString(),
-        status: isPaid ? 'paid' : 'pending'
+        status: isEditing ? (editingData?.status || 'pending') : 'pending' // Default to pending, or keep old status if editing
       }
 
       // إذا كنا في وضع التعديل، نستخدم PUT بدلاً من POST
@@ -82,361 +73,19 @@ export default function Invoice({ cart, total, totalSize = 0, onClose, onSuccess
       }
 
       const savedInvoice = response.data.invoice || {}
-      const fullNumber = savedInvoice.invoice_number || invoiceNumber
-      setInvoiceNumber(fullNumber)
+      savedInvoice.items = cart // Ensure current items are used if the backend doesn't return them
 
       // جلب إعدادات الفاتورة بعد الحفظ لاستخدامها في الطباعة
-      let invSettings = {}
-      try {
-        const r = await api.get('/invoice-settings')
-        invSettings = r?.data?.settings || {}
-      } catch (_) { invSettings = {} }
+      const invSettings = await getInvoiceSettings()
 
-      const paperMM = Number(invSettings?.paper_width) || 58
-      const fs = String(invSettings?.font_size || 'normal').toLowerCase()
-      const fontSize = paperMM <= 58 ? '11px' : (fs === 'large' ? '12px' : fs === 'small' ? '10px' : '11px')
-      const titleSize = paperMM <= 58 ? '13px' : (fs === 'large' ? '15px' : fs === 'small' ? '13px' : '14px')
-      const origin = typeof window !== 'undefined' ? window.location.origin : ''
-      const logoW = paperMM <= 58 ? '42mm' : '48mm'
-      const logoH = paperMM <= 58 ? '12mm' : '14mm'
-      // تضمين الشعار كـ data URL لضمان ظهوره عند الطباعة (لا يعتمد على مسار الخادم)
-      let logoDataUrl = ''
-      try {
-        const res = await fetch(`${origin}/invoice-header.png?v=${Date.now()}`, { mode: 'cors' })
-        if (res.ok) {
-          const blob = await res.blob()
-          logoDataUrl = await new Promise((resolve, reject) => {
-            const r = new FileReader()
-            r.onload = () => resolve(r.result)
-            r.onerror = reject
-            r.readAsDataURL(blob)
-          })
-        }
-        if (!logoDataUrl) {
-          const res2 = await fetch(`${origin}/logo.png?v=${Date.now()}`, { mode: 'cors' })
-          if (res2.ok) {
-            const blob2 = await res2.blob()
-            logoDataUrl = await new Promise((resolve, reject) => {
-              const r = new FileReader()
-              r.onload = () => resolve(r.result)
-              r.onerror = reject
-              r.readAsDataURL(blob2)
-            })
-          }
-        }
-      } catch (_) { /* نترك logoDataUrl فارغاً فيظهر نص البديل */ }
-
-      const headerText = invSettings?.header_logo_text || 'فاتورة مبيعات'
-      const showStoreInfo = !!Number(invSettings?.show_store_info ?? 1)
-      const showFooter = !!Number(invSettings?.show_footer ?? 1)
-      const defaultStoreName = 'الشارده للإلكترونيات'
-      const defaultStoreNameEn = 'Alnafar Store'
-      const defaultStoreAddr = 'شارع القضائيه مقابل مطحنة الفضيل'
-      const defaultStorePhone = '0920595447'
-      const storeName = (invSettings?.store_name || '').trim() || defaultStoreName
-      const storeNameEn = (invSettings?.store_name_english || '').trim() || defaultStoreNameEn
-      const storeAddr = (invSettings?.store_address || '').trim() || defaultStoreAddr
-      const storePhone = (invSettings?.store_phone || '').trim() || defaultStorePhone
-      const storeEmail = invSettings?.store_email || ''
-      const storeWeb = invSettings?.store_website || ''
-      const footerMsg = invSettings?.footer_message || 'شكراً لتسوقكم معنا'
-
-      const dailyNo = (response?.data?.dailyNumber !== undefined && response?.data?.dailyNumber !== null)
-        ? String(response.data.dailyNumber).padStart(3, '0')
-        : (fullNumber && fullNumber.includes('-')
-          ? String((fullNumber.split('-')[1] || '')).padStart(3, '0')
-          : fullNumber)
-
-      const invoiceHTML = `
-        <!DOCTYPE html>
-        <html lang="ar" dir="rtl">
-        <head>
-          <meta charset="UTF-8">
-          <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
-          <meta name="viewport" content="width=device-width, initial-scale=1.0">
-          <title>فاتورة ${dailyNo}</title>
-          <style>
-            * { margin: 0; padding: 0; box-sizing: border-box; }
-            html, body { width: ${paperMM}mm; max-width: ${paperMM}mm; overflow-x: hidden; font-family: Tahoma, Arial, sans-serif; background: #fff; color: #000; font-size: ${fontSize}; line-height: 1.25; direction: rtl; }
-            @page { size: ${paperMM}mm auto; margin: 2mm; }
-            .receipt { width: 100%; max-width: ${paperMM}mm; margin: 0 auto; padding: 1mm; background: #fff; }
-            .logo { text-align: center; margin: 0 0 1mm 0; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-            .logo img { display: block; margin: 0 auto; max-width: ${logoW}; max-height: ${logoH}; width: auto; height: auto; object-fit: contain; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-            .store-name-ar { 
-              font-size: ${titleSize}; 
-              font-weight: bold; 
-              text-align: center; 
-              margin: 0.1mm 0 1px 0;
-            }
-            .store-name-en { font-size: ${fontSize}; font-weight: bold; text-align: center; margin: 0 0 1px 0; }
-            .text-center { text-align: center; }
-            .text-right { text-align: right; }
-            .font-bold { font-weight: 700; }
-            .font-extrabold { font-weight: 900; }
-            .title { 
-              font-size: ${titleSize}; 
-              font-weight: bold; 
-              text-align: center; 
-              margin-bottom: 1px;
-            }
-            .subtitle { 
-              font-size: calc(${fontSize} - 1px); 
-              text-align: center; 
-              margin-bottom: 0px;
-            }
-            .subtitle.store-contact { 
-              font-size: calc(${fontSize} + 2px); 
-              font-weight: 700;
-              margin: 0.5px 0;
-            }
-            .section-title { 
-              font-size: ${fontSize}; 
-              font-weight: bold; 
-              margin: 2px 0 1px 0;
-              text-align: right;
-            }
-            .separator { 
-              border-top: 1px dashed #999; 
-              margin: 1px 0; 
-            }
-            .separator-solid { 
-              border-top: 2px solid #000; 
-              margin: 3px 0; 
-            }
-            .info-row { 
-              display: flex; 
-              justify-content: space-between; 
-              margin: 1px 0;
-              gap: 4px;
-            }
-            .info-label { 
-              font-weight: bold; 
-              color: #000;
-              flex-shrink: 0;
-            }
-            .info-value { 
-              text-align: left; 
-              color: #000;
-              word-break: break-word;
-            }
-            .item-row { 
-              display: flex; 
-              justify-content: space-between; 
-              margin: 1px 0;
-              padding: 1px 0;
-              border-bottom: 1px dashed #ddd;
-              gap: 4px;
-            }
-            .item-name { 
-              text-align: right;
-              word-break: break-word;
-              flex: 1;
-            }
-            .item-price { text-align: left; font-weight: bold; direction: ltr; flex-shrink: 0; }
-            .item-name { min-width: 0; word-break: break-all; }
-            .total-row { 
-              display: flex; 
-              justify-content: space-between; 
-              margin-top: 2px;
-              padding-top: 2px;
-              border-top: 2px solid #000;
-              font-size: ${fontSize};
-              font-weight: bold;
-            }
-            .total-label { text-align: right; }
-            .total-value { 
-              text-align: left; 
-              direction: ltr;
-            }
-            .footer { 
-              text-align: center; 
-              font-size: calc(${fontSize} - 2px); 
-              color: #555; 
-              margin-top: 2px;
-              line-height: 1.2;
-            }
-            .customer-badge {
-              font-size: ${titleSize};
-              font-weight: 900;
-              background-color: #eee;
-              padding: 2px 5px;
-              border-radius: 4px;
-              display: inline-block;
-              margin: 2px 0;
-              border: 1px solid #000;
-            }
-            .qa-section {
-              margin-top: 5px;
-              border: 1px solid #000;
-              padding: 3px;
-              font-size: calc(${fontSize} - 1px);
-            }
-            .qa-title {
-              font-weight: bold;
-              text-align: center;
-              border-bottom: 1px solid #000;
-              margin-bottom: 3px;
-              padding-bottom: 1px;
-            }
-            .qa-item {
-              display: flex;
-              align-items: center;
-              margin: 2px 0;
-            }
-            .qa-box {
-              width: 10px;
-              height: 10px;
-              border: 1px solid #000;
-              margin-left: 5px;
-              display: inline-block;
-            }
-            .qr-container {
-              text-align: center;
-              margin-top: 5px;
-            }
-            @media print {
-              body { margin: 0; padding: 0; }
-              .no-print { display: none !important; }
-              .logo img { 
-                -webkit-print-color-adjust: exact !important;
-                color-adjust: exact !important;
-                print-color-adjust: exact !important;
-              }
-            }
-          </style>
-        </head>
-        <body>
-          <div class="receipt">
-            <div class="logo">
-              ${logoDataUrl ? `<img src="${logoDataUrl}" alt="شعار المتجر" style="max-width:${logoW};max-height:${logoH};" />` : ''}
-            </div>
-            <div class="store-name-ar">${storeName}</div>
-            <div class="subtitle store-name-en">${storeNameEn}</div>
-            ${storeAddr ? `<div class="subtitle store-contact">📍 ${storeAddr}</div>` : ''}
-            ${storePhone ? `<div class="subtitle store-contact">📞 ${storePhone}</div>` : ''}
-            <div class="subtitle">رقم: ${dailyNo}</div>
-            <div class="subtitle">${new Date().toLocaleString('ar-LY')}</div>
-            <div class="subtitle">الحالة: ${isPaid ? 'تم الدفع' : 'غير خالص'}</div>
-            
-            <div class="separator"></div>
-            
-            <div class="section-title">بيانات العميل</div>
-            <div class="text-center" style="margin-bottom: 3px;">
-              <div class="customer-badge">${customerInfo.name}</div>
-            </div>
-            <div class="info-row">
-              <span class="info-label">الهاتف:</span>
-              <span class="info-value">${customerInfo.phone}</span>
-            </div>
-            ${customerInfo.notes ? `
-            <div class="info-row">
-              <span class="info-label">ملاحظات:</span>
-              <span class="info-value">${customerInfo.notes}</span>
-            </div>` : ''}
-            
-            <div class="separator"></div>
-            
-            <div class="section-title">تفاصيل الطلب</div>
-            ${cart.filter(i => i.type !== 'service').map(item => `
-            <div class="item-row">
-              <span class="item-name">[ ] ${item.title}</span>
-              <span class="item-price">${currency(item.price)}</span>
-            </div>`).join('')}
-            ${cart.filter(i => i.type === 'service').length ? `
-            <div class="separator"></div>
-            <div class="section-title">الخدمات</div>
-            ${cart.filter(i => i.type === 'service').map(s => `
-            <div class="item-row">
-              <span class="item-name">[ ] ${s.title}</span>
-              <span class="item-price">${currency(s.price)}</span>
-            </div>`).join('')}` : ''}
-            
-            <div class="separator"></div>
-            ${totalSize > 0 ? `
-            <div class="info-row">
-              <span class="info-label">إجمالي الحجم:</span>
-              <span class="info-value" style="direction: ltr;">${totalSize.toFixed(2)} GB</span>
-            </div>
-            <div class="info-row" style="margin-bottom: 3px;">
-              <span class="info-label">الوقت التقديري:</span>
-              <span class="info-value">~${estimatedMinutes} دقيقة</span>
-            </div>` : ''}
-            
-            ${discount > 0 ? `
-            <div class="info-row">
-              <span class="info-label">المجموع قبل الخصم:</span>
-              <span class="info-value">${currency(total)}</span>
-            </div>
-            <div class="info-row">
-              <span class="info-label">الخصم:</span>
-              <span class="info-value">-${currency(discount)}</span>
-            </div>` : ''}
-            <div class="total-row">
-              <span class="total-label">الإجمالي النهائي:</span>
-              <span class="total-value">${currency(total - discount)}</span>
-            </div>
-            
-            <div class="qa-section">
-              <div class="qa-title">QA Checklist</div>
-              <div class="qa-item"><span class="qa-box"></span> عدد الألعاب مطابق (${cart.filter(i => i.type !== 'service').length})</div>
-              <div class="qa-item"><span class="qa-box"></span> مساحة الجهاز تكفي (${totalSize > 0 ? totalSize.toFixed(2) + ' GB' : '-'})</div>
-            </div>
-            
-            
-            ${showFooter && footerMsg ? `
-            <div class="footer">
-              <div>${footerMsg}</div>
-            </div>` : ''}
-            <div class="qr-container" id="qr-code-placeholder"></div>
-          </div>
-        </body>
-        </html>
-      `
-
-      const trackingUrl = `${window.location.origin}/#/track/${encodeURIComponent(fullNumber)}`
-
-      const printWindow = window.open('', '_blank', 'width=800,height=600')
-      if (printWindow) {
-        let printCalled = false
-        const doPrintOnce = () => {
-          if (printCalled) return
-          printCalled = true
-          printWindow.focus()
-          printWindow.print()
-        }
-        printWindow.document.write(invoiceHTML)
-        printWindow.document.close()
-
-        // رسم رمز QR في النافذة المنبثقة
-        const qrCanvas = document.createElement('canvas')
-        const qrcodesvg = await import('qrcode')
-        try {
-          // يمكن استخدام مكتبة qrcode لرسم الكانفاس مباشرة
-          await qrcodesvg.toCanvas(qrCanvas, trackingUrl, { width: 100, margin: 1 })
-          const qrDataUrl = qrCanvas.toDataURL()
-          const qrPlaceholder = printWindow.document.getElementById('qr-code-placeholder')
-          if (qrPlaceholder) {
-            qrPlaceholder.innerHTML = `<img src="${qrDataUrl}" alt="تتبع الطلب" style="max-width:30mm; margin-top:5px; margin-bottom: 5px;"/>
-                                       <div style="font-size: 10px; font-weight: bold; margin-top: -3px;">تتبع طلبك عبر مسح الرمز</div>`
-          }
-        } catch (e) { console.error('Error generating QR code for print:', e) }
-        printWindow.onload = () => {
-          try {
-            const doc = printWindow.document
-            const imgs = Array.from(doc.images || [])
-            const waitImgs = imgs.length
-              ? Promise.all(imgs.map(img => img.complete ? Promise.resolve() : new Promise(res => { img.onload = img.onerror = res })))
-              : Promise.resolve()
-            const timeout = new Promise(r => setTimeout(r, 2000))
-            Promise.race([waitImgs, timeout]).then(doPrintOnce)
-          } catch (_) {
-            doPrintOnce()
-          }
-        }
-      }
+      // استخدام نافذة الطباعة الموحدة
+      await openInvoicePrintWindow(savedInvoice, invSettings)
 
       // تحديث حالة الطباعة
-      try { await api.post(`/invoices/${encodeURIComponent(fullNumber)}/mark-printed`) } catch (_) { }
+      try {
+        const fullNum = savedInvoice.invoice_number || invoiceNumber
+        await api.post(`/invoices/${encodeURIComponent(fullNum)}/mark-printed`)
+      } catch (_) { }
 
       onSuccess(response.data)
     } catch (error) {
@@ -600,16 +249,7 @@ export default function Invoice({ cart, total, totalSize = 0, onClose, onSuccess
                 )}
                 <div className="flex justify-between items-center">
                   <span className="text-lg font-bold text-white">الإجمالي النهائي:</span>
-                  <span className="text-xl font-bold text-primary">{currency(total - discount)}</span>
-                </div>
-                <div className="flex items-center justify-between">
-                  <label className="text-sm font-medium text-gray-300">تم الدفع؟</label>
-                  <input
-                    type="checkbox"
-                    checked={isPaid}
-                    onChange={(e) => setIsPaid(e.target.checked)}
-                    className="w-5 h-5"
-                  />
+                  <span className="text-xl font-bold text-primary">{new Intl.NumberFormat('ar-LY', { style: 'currency', currency: 'LYD' }).format(total - discount)}</span>
                 </div>
               </div>
             </div>

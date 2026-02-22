@@ -48,114 +48,186 @@ export async function openInvoicePrintWindow(invoice, invSettings = {}) {
   const logoW = paperMM <= 58 ? '42mm' : '48mm'
   const logoH = paperMM <= 58 ? '12mm' : '14mm'
 
+  // Fetch logo as data URL for better reliability
+  let logoDataUrl = ''
+  try {
+    const res = await fetch(`${origin}/invoice-header.png?v=${Date.now()}`, { mode: 'cors' })
+    if (res.ok) {
+      const blob = await res.blob()
+      logoDataUrl = await new Promise((resolve, reject) => {
+        const r = new FileReader()
+        r.onload = () => resolve(r.result)
+        r.onerror = reject
+        r.readAsDataURL(blob)
+      })
+    }
+    if (!logoDataUrl) {
+      const res2 = await fetch(`${origin}/logo.png?v=${Date.now()}`, { mode: 'cors' })
+      if (res2.ok) {
+        const blob2 = await res2.blob()
+        logoDataUrl = await new Promise((resolve, reject) => {
+          const r = new FileReader()
+          r.onload = () => resolve(r.result)
+          r.onerror = reject
+          r.readAsDataURL(blob2)
+        })
+      }
+    }
+  } catch (_) { }
+
+  // Generate QR code data URL first
+  let qrDataUrl = '';
+  try {
+    const qrcodeLib = await import('qrcode');
+    const qrCanvas = document.createElement('canvas');
+    const trackingUrl = `${origin}/#/track/${encodeURIComponent(fullNumber)}`;
+    await qrcodeLib.toCanvas(qrCanvas, trackingUrl, { width: 100, margin: 1 });
+    qrDataUrl = qrCanvas.toDataURL();
+  } catch (e) {
+    console.error('QR generation error:', e);
+  }
+
   const invoiceHTML = `
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=${paperMM}mm">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>فاتورة ${dailyNo}</title>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
-    html, body { width: ${paperMM}mm; max-width: ${paperMM}mm; overflow-x: hidden; font-family: Tahoma, Arial, sans-serif; background: #fff; color: #000; direction: rtl; line-height: 1.25; font-size: ${fontSize}; }
+    html, body { width: ${paperMM}mm; max-width: ${paperMM}mm; overflow-x: hidden; font-family: Tahoma, Arial, sans-serif; background: #fff; color: #000; font-size: ${fontSize}; line-height: 1.25; direction: rtl; }
     @page { size: ${paperMM}mm auto; margin: 2mm; }
-    .receipt { width: 100%; max-width: ${paperMM}mm; margin: 0 auto; padding: 1mm 1mm; }
+    .receipt { width: 100%; max-width: ${paperMM}mm; margin: 0 auto; padding: 1mm; background: #fff; }
     .logo { text-align: center; margin: 0 0 1mm 0; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-    .logo img { display: block; margin: 0 auto; max-width: ${logoW}; width: auto; height: auto; max-height: ${logoH}; object-fit: contain; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-    .store-name-ar { font-size: ${titleSize}; font-weight: bold; text-align: center; margin: 0; }
-    .subtitle { font-size: ${fontSize}; text-align: center; margin-bottom: 0; }
-    .section-title { font-size: ${fontSize}; font-weight: bold; margin: 1px 0; text-align: right; }
+    .logo img { display: block; margin: 0 auto; max-width: ${logoW}; max-height: ${logoH}; width: auto; height: auto; object-fit: contain; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    .store-name-ar { font-size: ${titleSize}; font-weight: bold; text-align: center; margin: 0.1mm 0 1px 0; }
+    .store-name-en { font-size: ${fontSize}; font-weight: bold; text-align: center; margin: 0 0 1px 0; }
+    .text-center { text-align: center; }
+    .font-bold { font-weight: 700; }
+    .subtitle { font-size: calc(${fontSize} - 1px); text-align: center; margin-bottom: 0px; }
+    .subtitle.store-contact { font-size: calc(${fontSize} + 2px); font-weight: 700; margin: 0.5px 0; }
+    .section-title { font-size: ${fontSize}; font-weight: bold; margin: 2px 0 1px 0; text-align: right; }
     .separator { border-top: 1px dashed #999; margin: 1px 0; }
-    .info-row { display: flex; justify-content: space-between; margin: 0; gap: 2px; font-size: ${fontSize}; }
-    .info-label { flex-shrink: 0; }
-    .info-value { text-align: left; word-break: break-all; max-width: 60%; }
-    .item-row { display: flex; justify-content: space-between; margin: 0; padding: 0; border-bottom: 1px dashed #ddd; gap: 2px; font-size: ${fontSize}; }
+    .info-row { display: flex; justify-content: space-between; margin: 1px 0; gap: 4px; }
+    .info-label { font-weight: bold; color: #000; flex-shrink: 0; }
+    .info-value { text-align: left; color: #000; word-break: break-word; }
+    .item-row { display: flex; justify-content: space-between; margin: 1px 0; padding: 1px 0; border-bottom: 1px dashed #ddd; gap: 4px; }
     .item-name { text-align: right; word-break: break-all; flex: 1; min-width: 0; }
     .item-price { text-align: left; font-weight: bold; direction: ltr; flex-shrink: 0; }
-    .total-row { display: flex; justify-content: space-between; margin-top: 1px; padding-top: 1px; border-top: 2px solid #000; font-weight: bold; font-size: ${fontSize}; }
-    .footer { text-align: center; font-size: ${paperMM <= 58 ? '10px' : '8px'}; color: #555; margin-top: 1px; line-height: 1.2; }
-    .qr-container { text-align: center; margin: 3px 0; }
+    .total-row { display: flex; justify-content: space-between; margin-top: 2px; padding-top: 2px; border-top: 2px solid #000; font-size: ${fontSize}; font-weight: bold; }
+    .total-label { text-align: right; }
+    .total-value { text-align: left; direction: ltr; }
+    .footer { text-align: center; font-size: calc(${fontSize} - 2px); color: #555; margin-top: 2px; line-height: 1.2; }
+    .customer-badge { font-size: ${titleSize}; font-weight: 900; background-color: #eee; padding: 2px 5px; border-radius: 4px; display: inline-block; margin: 2px 0; border: 1px solid #000; }
+    .qa-section { margin-top: 5px; border: 1px solid #000; padding: 3px; font-size: calc(${fontSize} - 1px); }
+    .qa-title { font-weight: bold; text-align: center; border-bottom: 1px solid #000; margin-bottom: 3px; padding-bottom: 1px; }
+    .qa-item { display: flex; align-items: center; margin: 2px 0; }
+    .qa-box { width: 10px; height: 10px; border: 1px solid #000; margin-left: 5px; display: inline-block; }
+    .qr-container { text-align: center; margin-top: 5px; }
     .qr-container img { max-width: 30mm; }
-    .qr-label { font-size: 10px; font-weight: bold; margin-top: -2px; text-align: center; }
-    @media print { html, body { width: ${paperMM}mm; max-width: ${paperMM}mm; margin: 0; padding: 0; } .no-print { display: none !important; } }
+    .qr-label { font-size: 10px; font-weight: bold; margin-top: -3px; }
+    @media print { body { margin: 0; padding: 0; } .no-print { display: none !important; } }
   </style>
 </head>
 <body>
   <div class="receipt">
     <div class="logo">
-      <img src="${logoUrl}" alt="شعار المتجر" onerror="this.onerror=null; this.src='${logoFallback}'; this.style.maxWidth='${logoW}'; this.style.maxHeight='${logoH}';" />
+      ${logoDataUrl ? `<img src="${logoDataUrl}" alt="شعار المتجر" />` : ''}
     </div>
     <div class="store-name-ar">${storeName}</div>
-    <div class="subtitle">${storeNameEn}</div>
+    <div class="subtitle store-name-en">${storeNameEn}</div>
+    ${storeAddr ? `<div class="subtitle store-contact">📍 ${storeAddr}</div>` : ''}
+    ${storePhone ? `<div class="subtitle store-contact">📞 ${storePhone}</div>` : ''}
     <div class="subtitle">رقم: ${dailyNo}</div>
     <div class="subtitle">${new Date(invoice.created_at).toLocaleString('ar-LY')}</div>
-    <div class="subtitle">الحالة: ${(invoice.status || '') === 'paid' ? 'تم الدفع' : 'غير خالص'}</div>
+    
     <div class="separator"></div>
+    
     <div class="section-title">بيانات العميل</div>
-    <div class="info-row"><span class="info-label">الاسم:</span><span class="info-value">${invoice.customer_name || ''}</span></div>
-    <div class="info-row"><span class="info-label">الهاتف:</span><span class="info-value">${invoice.customer_phone || ''}</span></div>
-    ${notes ? `<div class="info-row"><span class="info-label">ملاحظات:</span><span class="info-value">${notes}</span></div>` : ''}
+    <div class="text-center" style="margin-bottom: 3px;">
+      <div class="customer-badge">${invoice.customer_name || ''}</div>
+    </div>
+    <div class="info-row">
+      <span class="info-label">الهاتف:</span>
+      <span class="info-value">${invoice.customer_phone || ''}</span>
+    </div>
+    ${notes ? `
+    <div class="info-row">
+      <span class="info-label">ملاحظات:</span>
+      <span class="info-value">${notes}</span>
+    </div>` : ''}
+    
     <div class="separator"></div>
+    
     <div class="section-title">تفاصيل الطلب</div>
-    ${(() => { const games = items.filter(i => i.type !== 'service'); return (games.length ? games : items); })().map(item => `
+    ${items.filter(i => i.type !== 'service').map(item => `
     <div class="item-row">
-      <span class="item-name">[ ] ${item.title || ''}</span>
-      <span class="item-price">${currency(item.price || 0)}</span>
+      <span class="item-name">[ ] ${item.title}</span>
+      <span class="item-price">${currency(item.price)}</span>
     </div>`).join('')}
-    ${(() => { const svc = items.filter(i => i.type === 'service'); return svc; })().length ? `
+    ${items.filter(i => i.type === 'service').length ? `
     <div class="separator"></div>
     <div class="section-title">الخدمات</div>
     ${items.filter(i => i.type === 'service').map(s => `
     <div class="item-row">
-      <span class="item-name">${s.title || ''}</span>
-      <span class="item-price">${currency(s.price || 0)}</span>
+      <span class="item-name">[ ] ${s.title}</span>
+      <span class="item-price">${currency(s.price)}</span>
     </div>`).join('')}` : ''}
-    <div class="total-row">
-      <span>الإجمالي النهائي:</span>
-      <span>${currency((invoice.total || 0) - (invoice.discount || 0))}</span>
-    </div>
-    ${showStoreInfo && (storeAddr || storePhone || storeEmail || storeWeb) ? `
+    
     <div class="separator"></div>
-    <div class="section-title">معلومات المتجر</div>
-    ${storeAddr ? `<div class="info-row"><span class="info-label">العنوان:</span><span class="info-value">${storeAddr}</span></div>` : ''}
-    ${storePhone ? `<div class="info-row"><span class="info-label">الهاتف:</span><span class="info-value">${storePhone}</span></div>` : ''}
-    ${storeEmail ? `<div class="info-row"><span class="info-label">البريد:</span><span class="info-value">${storeEmail}</span></div>` : ''}
-    ${storeWeb ? `<div class="info-row"><span class="info-label">الموقع:</span><span class="info-value">${storeWeb}</span></div>` : ''}
-    ` : ''}
-    ${showFooter && footerMsg ? `<div class="footer"><div>${footerMsg}</div></div>` : ''}
-    <div class="qr-container" id="qr-code-placeholder"></div>
+    ${(invoice.total_size_gb > 0 || invoice.totalSize > 0) ? `
+    <div class="info-row">
+      <span class="info-label">إجمالي الحجم:</span>
+      <span class="info-value" style="direction: ltr;">${Number(invoice.total_size_gb || invoice.totalSize).toFixed(2)} GB</span>
+    </div>` : ''}
+    
+    ${invoice.discount > 0 ? `
+    <div class="info-row">
+      <span class="info-label">المجموع قبل الخصم:</span>
+      <span class="info-value">${currency(invoice.total)}</span>
+    </div>
+    <div class="info-row">
+      <span class="info-label">الخصم:</span>
+      <span class="info-value">-${currency(invoice.discount)}</span>
+    </div>` : ''}
+    <div class="total-row">
+      <span class="total-label">الإجمالي النهائي:</span>
+      <span class="total-value">${currency((invoice.total || 0) - (invoice.discount || 0))}</span>
+    </div>
+    
+    <div class="qa-section">
+      <div class="qa-title">QA Checklist</div>
+      <div class="qa-item"><span class="qa-box"></span> عدد الألعاب مطابق (${items.filter(i => i.type !== 'service').length})</div>
+      <div class="qa-item"><span class="qa-box"></span> مساحة الجهاز تكفي (${(invoice.total_size_gb > 0 || invoice.totalSize > 0) ? Number(invoice.total_size_gb || invoice.totalSize).toFixed(2) + ' GB' : '-'})</div>
+    </div>
+    
+    ${showFooter && footerMsg ? `
+    <div class="footer">
+      <div>${footerMsg}</div>
+    </div>` : ''}
+    <div class="qr-container">
+      ${qrDataUrl ? `<img src="${qrDataUrl}" alt="تتبع الطلب" /><div class="qr-label">تتبع طلبك عبر مسح الرمز</div>` : ''}
+    </div>
   </div>
   <script>
     (function(){
-      var img = document.querySelector('.logo img');
       function doPrint(){ try { window.print(); } catch(e) {} }
-      if (img) {
-        if (img.complete) setTimeout(doPrint, 150);
-        else { img.onload = function(){ setTimeout(doPrint, 150); }; setTimeout(doPrint, 2000); }
-      } else setTimeout(doPrint, 300);
+      const imgs = Array.from(document.images || [])
+      const waitImgs = imgs.length
+        ? Promise.all(imgs.map(img => img.complete ? Promise.resolve() : new Promise(res => { img.onload = img.onerror = res })))
+        : Promise.resolve()
+      const timeout = new Promise(r => setTimeout(r, 2000))
+      Promise.race([waitImgs, timeout]).then(() => setTimeout(doPrint, 150))
     })();
   </script>
 </body>
-</html>`
+</html>`;
 
-  const printWindow = window.open('', '_blank', 'width=400,height=700')
+  const printWindow = window.open('', '_blank', 'width=400,height=700');
   if (printWindow) {
-    printWindow.document.write(invoiceHTML)
-    printWindow.document.close()
-
-    // Generate QR code
-    const trackingUrl = `${origin}/#/track/${encodeURIComponent(fullNumber)}`
-    try {
-      const qrcodeLib = await import('qrcode')
-      const qrCanvas = document.createElement('canvas')
-      await qrcodeLib.toCanvas(qrCanvas, trackingUrl, { width: 100, margin: 1 })
-      const qrDataUrl = qrCanvas.toDataURL()
-      const qrPlaceholder = printWindow.document.getElementById('qr-code-placeholder')
-      if (qrPlaceholder) {
-        qrPlaceholder.innerHTML = `<img src="${qrDataUrl}" alt="تتبع الطلب" style="max-width:30mm; margin-top:5px; margin-bottom:5px;"/>
-          <div class="qr-label">تتبع طلبك عبر مسح الرمز</div>`
-      }
-    } catch (e) { console.error('QR generation error:', e) }
+    printWindow.document.write(invoiceHTML);
+    printWindow.document.close();
   }
 }
 

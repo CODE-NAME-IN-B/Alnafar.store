@@ -106,6 +106,8 @@ export default function App() {
   const [splitOnly, setSplitOnly] = useState(false) // kept for logic compatibility, UI removed below
   const [letterFilter, setLetterFilter] = useState('')
   const [customerPhone, setCustomerPhone] = useState('')
+  const [customerName, setCustomerName] = useState('')
+  const [paymentType, setPaymentType] = useState('cash')
   const [showLogin, setShowLogin] = useState(false)
   const [loginForm, setLoginForm] = useState({ username: '', password: '' })
   const [loginLoading, setLoginLoading] = useState(false)
@@ -131,6 +133,7 @@ export default function App() {
         setCart(gamesItems)
         setServicesCart(servicesItems)
         setCustomerPhone(data.customer_phone || '')
+        setCustomerName(data.customer_name || '')
         // Clean up title if needed or just use as is
       } catch (e) {
         console.error('Failed to parse editing_invoice', e)
