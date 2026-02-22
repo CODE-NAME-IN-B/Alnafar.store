@@ -19,6 +19,7 @@ export default function Invoice({ cart, total, totalSize = 0, onClose, onSuccess
   })
 
   const [discount, setDiscount] = useState(editingData?.discount || 0)
+  const [isPaid, setIsPaid] = useState(true)
   const [isProcessing, setIsProcessing] = useState(false)
 
   // إنشاء رقم فاتورة مؤقت للعرض
@@ -56,7 +57,7 @@ export default function Invoice({ cart, total, totalSize = 0, onClose, onSuccess
         discount,
         finalTotal: total - discount,
         date: new Date().toISOString(),
-        status: isEditing ? (editingData?.status || 'pending') : 'pending' // Default to pending, or keep old status if editing
+        status: isPaid ? 'paid' : 'pending'
       }
 
       // إذا كنا في وضع التعديل، نستخدم PUT بدلاً من POST
@@ -250,6 +251,15 @@ export default function Invoice({ cart, total, totalSize = 0, onClose, onSuccess
                 <div className="flex justify-between items-center">
                   <span className="text-lg font-bold text-white">الإجمالي النهائي:</span>
                   <span className="text-xl font-bold text-primary">{new Intl.NumberFormat('ar-LY', { style: 'currency', currency: 'LYD' }).format(total - discount)}</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <label className="text-sm font-medium text-gray-300">تم الدفع؟</label>
+                  <input
+                    type="checkbox"
+                    checked={isPaid}
+                    onChange={(e) => setIsPaid(e.target.checked)}
+                    className="w-5 h-5 accent-primary"
+                  />
                 </div>
               </div>
             </div>

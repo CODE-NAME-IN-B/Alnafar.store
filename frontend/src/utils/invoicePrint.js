@@ -141,6 +141,7 @@ export async function openInvoicePrintWindow(invoice, invSettings = {}) {
     ${storePhone ? `<div class="subtitle store-contact">📞 ${storePhone}</div>` : ''}
     <div class="subtitle">رقم: ${dailyNo}</div>
     <div class="subtitle">${new Date(invoice.created_at).toLocaleString('ar-LY')}</div>
+    <div class="subtitle font-bold">الحالة: ${(invoice.status || '') === 'paid' ? 'تم الدفع' : 'غير خالص'}</div>
     
     <div class="separator"></div>
     
@@ -163,7 +164,7 @@ export async function openInvoicePrintWindow(invoice, invSettings = {}) {
     <div class="section-title">تفاصيل الطلب</div>
     ${items.filter(i => i.type !== 'service').map(item => `
     <div class="item-row">
-      <span class="item-name">[ ] ${item.title}</span>
+      <span class="item-name">${item.title}</span>
       <span class="item-price">${currency(item.price)}</span>
     </div>`).join('')}
     ${items.filter(i => i.type === 'service').length ? `
@@ -171,7 +172,7 @@ export async function openInvoicePrintWindow(invoice, invSettings = {}) {
     <div class="section-title">الخدمات</div>
     ${items.filter(i => i.type === 'service').map(s => `
     <div class="item-row">
-      <span class="item-name">[ ] ${s.title}</span>
+      <span class="item-name">${s.title}</span>
       <span class="item-price">${currency(s.price)}</span>
     </div>`).join('')}` : ''}
     
