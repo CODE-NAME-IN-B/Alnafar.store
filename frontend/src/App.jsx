@@ -715,7 +715,7 @@ export default function App() {
                     <option value="">كل الأنواع</option>
                     <option value="__split__">تقسيم الشاشة</option>
                     <option value="__others__">أخرى</option>
-                    {availableGenres.map(g => (
+                    {availableGenres.filter(g => g !== 'تقسيم الشاشة' && g !== 'أخرى').map(g => (
                       <option key={g} value={g}>{genreArLabels[g] || g}</option>
                     ))}
                   </select>

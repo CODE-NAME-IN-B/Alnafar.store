@@ -120,10 +120,7 @@ export async function openInvoicePrintWindow(invoice, invSettings = {}) {
     .total-value { text-align: left; direction: ltr; }
     .footer { text-align: center; font-size: calc(${fontSize} - 2px); color: #555; margin-top: 2px; line-height: 1.2; }
     .customer-badge { font-size: ${titleSize}; font-weight: 900; background-color: #eee; padding: 2px 5px; border-radius: 4px; display: inline-block; margin: 2px 0; border: 1px solid #000; }
-    .qa-section { margin-top: 5px; border: 1px solid #000; padding: 3px; font-size: calc(${fontSize} - 1px); }
-    .qa-title { font-weight: bold; text-align: center; border-bottom: 1px solid #000; margin-bottom: 3px; padding-bottom: 1px; }
-    .qa-item { display: flex; align-items: center; margin: 2px 0; }
-    .qa-box { width: 10px; height: 10px; border: 1px solid #000; margin-left: 5px; display: inline-block; }
+
     .qr-container { text-align: center; margin-top: 5px; }
     .qr-container img { max-width: 30mm; }
     .qr-label { font-size: 10px; font-weight: bold; margin-top: -3px; }
@@ -197,11 +194,7 @@ export async function openInvoicePrintWindow(invoice, invSettings = {}) {
       <span class="total-value">${currency((invoice.total || 0) - (invoice.discount || 0))}</span>
     </div>
     
-    <div class="qa-section">
-      <div class="qa-title">QA Checklist</div>
-      <div class="qa-item"><span class="qa-box"></span> عدد الألعاب مطابق (${items.filter(i => i.type !== 'service').length})</div>
-      <div class="qa-item"><span class="qa-box"></span> مساحة الجهاز تكفي (${(invoice.total_size_gb > 0 || invoice.totalSize > 0) ? Number(invoice.total_size_gb || invoice.totalSize).toFixed(2) + ' GB' : '-'})</div>
-    </div>
+
     
     ${showFooter && footerMsg ? `
     <div class="footer">

@@ -184,14 +184,7 @@ class SunmiPrinter {
       content.push('');
     }
 
-    // QA Checklist (التحقق من الجودة)
-    content.push(this.createSeparatorLine('-'));
-    content.push(this.centerText('QA Checklist'));
-    content.push(this.createSeparatorLine('-'));
-    const gamesCount = items.filter(i => i.type !== 'service').length;
-    content.push(`[ ] عدد الألعاب مطابق (${gamesCount})`);
-    content.push('[ ] مساحة الجهاز تكفي');
-    content.push('');
+
 
     // Tracking URL (رابط التتبع)
     content.push(this.createSeparatorLine('-'));
