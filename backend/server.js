@@ -621,7 +621,7 @@ async function getDailyInvoiceNumber() {
 // دالة لتحديث إحصائيات اليوم
 function updateDailyStats(invoiceData) {
   const today = new Date().toISOString().split('T')[0];
-  const { total, discount = 0 } = invoiceData;
+  const { total, discount = 0, paidAmount = 0 } = invoiceData;
   const netRevenue = total - discount;
 
   run(`UPDATE daily_invoices SET 
@@ -629,8 +629,9 @@ function updateDailyStats(invoiceData) {
     total_revenue = total_revenue + ?,
     total_discount = total_discount + ?,
     net_revenue = net_revenue + ?,
+    collected_revenue = collected_revenue + ?,
     updated_at = CURRENT_TIMESTAMP
-    WHERE date = ?`, [total, discount, netRevenue, today]);
+    WHERE date = ?`, [total, discount, netRevenue, paidAmount, today]);
 }
 
 // إعادة احتساب إحصائيات الجرد اليومي من جدول الفواتير
@@ -640,7 +641,8 @@ function recomputeDailyStats(dateStr) {
     SELECT 
       COUNT(*) AS total_invoices,
       COALESCE(SUM(total), 0) AS total_revenue,
-      COALESCE(SUM(COALESCE(discount, 0)), 0) AS total_discount
+      COALESCE(SUM(COALESCE(discount, 0)), 0) AS total_discount,
+      COALESCE(SUM(COALESCE(paid_amount, 0)), 0) AS collected_revenue
     FROM invoices
     WHERE DATE(created_at) = ?
   `, [date]);
@@ -649,12 +651,19 @@ function recomputeDailyStats(dateStr) {
     FROM invoices
     WHERE DATE(created_at) = ?
   `, [date]);
-  const net = (agg.total_revenue || 0) - (agg.total_discount || 0);
-  const existing = get('SELECT * FROM daily_invoices WHERE date = ?', [date]);
-  if (!existing || !existing.id) {
-    run(`INSERT INTO daily_invoices (date, last_invoice_number, total_invoices, total_revenue, total_discount, net_revenue, updated_at) VALUES (?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)`, [date, lastNum.last || 0, agg.total_invoices || 0, agg.total_revenue || 0, agg.total_discount || 0, net]);
-  } else {
-    run(`UPDATE daily_invoices SET last_invoice_number = ?, total_invoices = ?, total_revenue = ?, total_discount = ?, net_revenue = ?, updated_at = CURRENT_TIMESTAMP WHERE date = ?`, [lastNum.last || 0, agg.total_invoices || 0, agg.total_revenue || 0, agg.total_discount || 0, net, date]);
+
+  if (agg) {
+    const totalRev = agg.total_revenue;
+    const totalDisc = agg.total_discount;
+    const netRev = totalRev - totalDisc;
+    const collectedRev = agg.collected_revenue;
+    const existing = get('SELECT * FROM daily_invoices WHERE date = ?', [date]);
+
+    if (!existing || !existing.id) {
+      run(`INSERT INTO daily_invoices (date, last_invoice_number, total_invoices, total_revenue, total_discount, net_revenue, collected_revenue, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)`, [date, lastNum.last || 0, agg.total_invoices || 0, totalRev, totalDisc, netRev, collectedRev]);
+    } else {
+      run(`UPDATE daily_invoices SET last_invoice_number = ?, total_invoices = ?, total_revenue = ?, total_discount = ?, net_revenue = ?, collected_revenue = ?, updated_at = CURRENT_TIMESTAMP WHERE date = ?`, [lastNum.last || 0, agg.total_invoices || 0, totalRev, totalDisc, netRev, collectedRev, date]);
+    }
   }
 }
 
@@ -2050,8 +2059,9 @@ app.post('/api/invoices', async (req, res) => {
       estimatedMinutes = 0,
       discount = 0,
       finalTotal,
+      paidAmount = 0,
       date,
-      status = 'completed'
+      status = 'pending'
     } = req.body;
 
     const createdAt = date || new Date().toISOString();
@@ -2095,8 +2105,8 @@ app.post('/api/invoices', async (req, res) => {
     try {
       await run(`INSERT INTO invoices (
         invoice_number, customer_name, customer_phone, customer_address, 
-        customer_notes, items, total, total_size_gb, estimated_minutes, discount, final_total, status, created_at
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`, [
+        customer_notes, items, total, total_size_gb, estimated_minutes, discount, final_total, status, paid_amount, created_at
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`, [
         fullNumber,
         customerInfo.name,
         customerInfo.phone,
@@ -2109,6 +2119,7 @@ app.post('/api/invoices', async (req, res) => {
         discount,
         finalTotal || (total - discount),
         status,
+        paidAmount,
         createdAt
       ]);
     } catch (dbError) {
@@ -2123,8 +2134,8 @@ app.post('/api/invoices', async (req, res) => {
 
           await run(`INSERT INTO invoices (
             invoice_number, customer_name, customer_phone, customer_address, 
-            customer_notes, items, total, total_size_gb, estimated_minutes, discount, final_total, status, created_at
-          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`, [
+            customer_notes, items, total, total_size_gb, estimated_minutes, discount, final_total, status, paid_amount, created_at
+          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`, [
             newFullNumber,
             customerInfo.name,
             customerInfo.phone,
@@ -2137,6 +2148,7 @@ app.post('/api/invoices', async (req, res) => {
             discount,
             finalTotal || (total - discount),
             status,
+            paidAmount,
             createdAt
           ]);
 
@@ -2161,9 +2173,9 @@ app.post('/api/invoices', async (req, res) => {
       }
     }
 
-    // تحديث إحصائيات اليوم
+    // تحديث إحصائيات اليوم (بما في ذلك الكاش المحصّل)
     try {
-      updateDailyStats({ total, discount });
+      updateDailyStats({ total, discount, paidAmount });
     } catch (statsError) {
       console.warn('تحذير: فشل في تحديث الإحصائيات:', statsError.message);
       // لا نوقف العملية بسبب خطأ في الإحصائيات
@@ -2441,6 +2453,60 @@ app.delete('/api/invoices/today', authMiddleware, async (req, res) => {
   }
 });
 
+// إضافة دفعة على فاتورة موجودة
+app.put('/api/invoices/:id/payment', authMiddleware, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { amount } = req.body;
+    const payment = Number(amount);
+
+    if (isNaN(payment) || payment <= 0) {
+      return res.status(400).json({ success: false, message: 'مبلغ الدفعة غير صالح' });
+    }
+
+    const invoice = await get('SELECT * FROM invoices WHERE id = ?', [id]);
+    if (!invoice || !invoice.id) {
+      return res.status(404).json({ success: false, message: 'الفاتورة غير موجودة' });
+    }
+
+    // إضافة الدفعة إلى الفاتورة
+    await run('UPDATE invoices SET paid_amount = paid_amount + ? WHERE id = ?', [payment, id]);
+
+    // إضافة القيمة كإيراد محصل لليوم الحالي (يوم تفعيل الدفعة وليس يوم إنشاء الفاتورة)
+    const today = new Date().toISOString().split('T')[0];
+
+    // التأكد من وجود سجل لليوم في daily_invoices
+    const dailyRecord = await get('SELECT id FROM daily_invoices WHERE date = ?', [today]);
+    if (!dailyRecord) {
+      await run('INSERT INTO daily_invoices (date, collected_revenue) VALUES (?, ?)', [today, payment]);
+    } else {
+      await run('UPDATE daily_invoices SET collected_revenue = collected_revenue + ? WHERE date = ?', [payment, today]);
+    }
+
+    const updatedInvoice = await get('SELECT * FROM invoices WHERE id = ?', [id]);
+
+    // بث التحديث
+    broadcastUpdate('invoice_updated', {
+      invoice: updatedInvoice,
+      message: `تم قبض دفعة بقيمة ${payment} د.ل للفاتورة ${invoice.invoice_number}`
+    });
+
+    res.json({
+      success: true,
+      message: 'تم تسجيل الدفعة بنجاح',
+      invoice: updatedInvoice
+    });
+
+  } catch (error) {
+    console.error('خطأ في تسجيل الدفعة:', error);
+    res.status(500).json({
+      success: false,
+      message: 'حدث خطأ في تسجيل الدفعة',
+      error: error.message
+    });
+  }
+});
+
 // حذف فاتورة
 app.delete('/api/invoices/:id', authMiddleware, async (req, res) => {
   try {
@@ -2645,6 +2711,7 @@ app.get('/api/invoices-summary', authMiddleware, async (req, res) => {
       SELECT 
         COUNT(*) as totalInvoices,
             COALESCE(SUM(CASE WHEN final_total > 0 THEN final_total ELSE(total - COALESCE(discount, 0)) END), 0) as totalRevenue,
+            COALESCE(SUM(COALESCE(paid_amount, 0)), 0) as collectedRevenue,
             COALESCE(AVG(CASE WHEN final_total > 0 THEN final_total ELSE(total - COALESCE(discount, 0)) END), 0) as averageInvoice,
             COALESCE(MAX(CASE WHEN final_total > 0 THEN final_total ELSE(total - COALESCE(discount, 0)) END), 0) as highestInvoice,
             COALESCE(MIN(CASE WHEN final_total > 0 THEN final_total ELSE(total - COALESCE(discount, 0)) END), 0) as lowestInvoice
@@ -2657,7 +2724,8 @@ app.get('/api/invoices-summary', authMiddleware, async (req, res) => {
     const todaySummary = await get(`
       SELECT 
         COUNT(*) as todayInvoices,
-            COALESCE(SUM(CASE WHEN final_total > 0 THEN final_total ELSE(total - COALESCE(discount, 0)) END), 0) as todayRevenue
+            COALESCE(SUM(CASE WHEN final_total > 0 THEN final_total ELSE(total - COALESCE(discount, 0)) END), 0) as todayRevenue,
+            COALESCE(SUM(COALESCE(paid_amount, 0)), 0) as todayCollectedRevenue
       FROM invoices
       WHERE created_at >= ?
             `, [todayStart.toISOString()]);
@@ -2667,7 +2735,8 @@ app.get('/api/invoices-summary', authMiddleware, async (req, res) => {
       rangeSummary = await get(`
         SELECT 
           COUNT(*) as rangeInvoices,
-            COALESCE(SUM(CASE WHEN final_total > 0 THEN final_total ELSE(total - COALESCE(discount, 0)) END), 0) as rangeRevenue
+            COALESCE(SUM(CASE WHEN final_total > 0 THEN final_total ELSE(total - COALESCE(discount, 0)) END), 0) as rangeRevenue,
+            COALESCE(SUM(COALESCE(paid_amount, 0)), 0) as rangeCollectedRevenue
         FROM invoices
         WHERE DATE(created_at) >= ? AND DATE(created_at) <= ?
             `, [dateFrom, dateTo]);

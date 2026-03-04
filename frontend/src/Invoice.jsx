@@ -19,7 +19,7 @@ export default function Invoice({ cart, total, totalSize = 0, onClose, onSuccess
   })
 
   const [discount, setDiscount] = useState(editingData?.discount || 0)
-  const [isPaid, setIsPaid] = useState(true)
+  const [paidAmount, setPaidAmount] = useState(editingData?.paid_amount !== undefined ? editingData.paid_amount : total)
   const [isProcessing, setIsProcessing] = useState(false)
 
   // إنشاء رقم فاتورة مؤقت للعرض
@@ -48,6 +48,7 @@ export default function Invoice({ cart, total, totalSize = 0, onClose, onSuccess
     setIsProcessing(true)
 
     try {
+      const finalTotal = total - discount;
       const invoiceData = {
         customerInfo,
         items: cart.map(({ title, price, size_gb, type }) => ({ title, price, size_gb, ...(type && { type }) })),
@@ -55,9 +56,10 @@ export default function Invoice({ cart, total, totalSize = 0, onClose, onSuccess
         totalSize,
         estimatedMinutes,
         discount,
-        finalTotal: total - discount,
+        finalTotal,
+        paidAmount,
         date: new Date().toISOString(),
-        status: isPaid ? 'paid' : 'pending'
+        status: paidAmount >= finalTotal ? 'completed' : 'pending'
       }
 
       // إذا كنا في وضع التعديل، نستخدم PUT بدلاً من POST
@@ -251,15 +253,30 @@ export default function Invoice({ cart, total, totalSize = 0, onClose, onSuccess
                   <span className="text-lg font-bold text-white">الإجمالي النهائي:</span>
                   <span className="text-xl font-bold text-primary">{new Intl.NumberFormat('ar-LY', { style: 'currency', currency: 'LYD' }).format(total - discount)}</span>
                 </div>
-                <div className="flex items-center justify-between">
-                  <label className="text-sm font-medium text-gray-300">تم الدفع؟</label>
-                  <input
-                    type="checkbox"
-                    checked={isPaid}
-                    onChange={(e) => setIsPaid(e.target.checked)}
-                    className="w-5 h-5 accent-primary"
-                  />
+                <div className="flex flex-col gap-2">
+                  <label className="text-sm font-medium text-gray-300">المبلغ المدفوع (الكاش المستلم):</label>
+                  <div className="flex gap-2 items-center">
+                    <input
+                      type="number"
+                      min="0"
+                      max={total - discount}
+                      step="0.01"
+                      value={paidAmount}
+                      onChange={(e) => setPaidAmount(Number(e.target.value) || 0)}
+                      className="flex-1 bg-gray-700 border border-gray-600 rounded px-3 py-2 text-white text-base"
+                      placeholder="أدخل القيمة المدفوعة"
+                    />
+                    <button type="button" onClick={() => setPaidAmount(total - discount)} className="px-2 py-1 text-xs bg-gray-600 hover:bg-gray-500 rounded text-white">الكل</button>
+                    <button type="button" onClick={() => setPaidAmount((total - discount) / 2)} className="px-2 py-1 text-xs bg-gray-600 hover:bg-gray-500 rounded text-white">النصف</button>
+                    <button type="button" onClick={() => setPaidAmount(0)} className="px-2 py-1 text-xs bg-gray-600 hover:bg-gray-500 rounded text-white">آجل</button>
+                  </div>
                 </div>
+                {paidAmount < (total - discount) && (
+                  <div className="flex justify-between items-center text-sm mt-1">
+                    <span className="text-red-400 font-medium">الباقي (غير خالص):</span>
+                    <span className="text-red-400 font-bold">{currency((total - discount) - paidAmount)}</span>
+                  </div>
+                )}
               </div>
             </div>
           </div>

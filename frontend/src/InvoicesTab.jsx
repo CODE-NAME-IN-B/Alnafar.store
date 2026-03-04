@@ -152,6 +152,35 @@ export default function InvoicesTab() {
     }
   }
 
+  const payBalance = async (invoice) => {
+    const finalTotal = (invoice.total || 0) - (invoice.discount || 0);
+    const paidAmount = invoice.paid_amount || 0;
+    const balance = finalTotal - paidAmount;
+
+    if (balance <= 0) return;
+
+    const amountStr = prompt(`المبلغ المتبقي: ${currency(balance)}\n\nأدخل قيمة الدفعة (أو اضغط موافق لتسديد الباقي كاملاً):`, balance.toString());
+    if (amountStr === null) return;
+
+    const payment = Number(amountStr);
+    if (isNaN(payment) || payment <= 0 || payment > balance) {
+      alert('قيمة الدفعة غير صالحة');
+      return;
+    }
+
+    try {
+      const { data } = await api.put(`/api/invoices/${invoice.id}/payment`, { amount: payment });
+      if (data.success) {
+        alert('تم تسجيل الدفعة بنجاح');
+        loadInvoices(pagination.page);
+        loadSummary();
+      }
+    } catch (error) {
+      console.error('فشل في تسجيل الدفعة:', error);
+      alert('فشل في تسجيل الدفعة');
+    }
+  }
+
   if (loading) {
     return (
       <div className="p-8 text-center">
@@ -236,22 +265,36 @@ export default function InvoicesTab() {
               </div>
             </div>
           )}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+
+          {dateFrom && dateTo && (summary.rangeCollectedRevenue !== undefined) && (
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-4">
+              <div className="bg-gradient-to-br from-indigo-600 to-indigo-700 p-6 rounded-xl text-white border-2 border-indigo-400 opacity-90">
+                <div className="text-sm opacity-90 mb-1">الكاش المحصّل فعلياً (بدون الآجل)</div>
+                <div className="text-2xl font-bold">{currency(Number(summary.rangeCollectedRevenue) || 0)}</div>
+                <div className="text-xs opacity-80 mt-1">عن الفترة المحددة</div>
+              </div>
+            </div>
+          )}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
             <div className="bg-gradient-to-br from-blue-600 to-blue-700 p-6 rounded-xl text-white">
               <div className="text-sm opacity-90 mb-1">إجمالي الفواتير</div>
               <div className="text-3xl font-bold">{summary.totalInvoices}</div>
             </div>
-            <div className="bg-gradient-to-br from-green-600 to-green-700 p-6 rounded-xl text-white">
-              <div className="text-sm opacity-90 mb-1">إجمالي الإيرادات</div>
+            <div className="bg-gradient-to-br from-indigo-600 to-indigo-700 p-6 rounded-xl text-white opacity-80">
+              <div className="text-sm opacity-90 mb-1">إجمالي المبيعات</div>
               <div className="text-2xl font-bold">{currency(Number(summary.totalRevenue) || 0)}</div>
+            </div>
+            <div className="bg-gradient-to-br from-green-600 to-green-700 p-6 rounded-xl text-white">
+              <div className="text-sm opacity-90 mb-1">الكاش المحصّل كلياً</div>
+              <div className="text-2xl font-bold">{currency(Number(summary.collectedRevenue) || 0)}</div>
             </div>
             <div className="bg-gradient-to-br from-purple-600 to-purple-700 p-6 rounded-xl text-white">
               <div className="text-sm opacity-90 mb-1">فواتير اليوم</div>
               <div className="text-3xl font-bold">{summary.todayInvoices}</div>
             </div>
             <div className="bg-gradient-to-br from-orange-600 to-orange-700 p-6 rounded-xl text-white">
-              <div className="text-sm opacity-90 mb-1">إيرادات اليوم</div>
-              <div className="text-2xl font-bold">{currency(Number(summary.todayRevenue) || 0)}</div>
+              <div className="text-sm opacity-90 mb-1">كاش اليوم الفعلي</div>
+              <div className="text-2xl font-bold">{currency(Number(summary.todayCollectedRevenue) || 0)}</div>
             </div>
           </div>
         </div>
@@ -270,8 +313,9 @@ export default function InvoicesTab() {
                 <th className="text-right py-3 px-4">رقم الفاتورة</th>
                 <th className="text-right py-3 px-4">اسم العميل</th>
                 <th className="text-right py-3 px-4">المجموع</th>
-                <th className="text-right py-3 px-4">الإجمالي</th>
-                <th className="text-right py-3 px-4">الحالة</th>
+                <th className="text-right py-3 px-4">المدفوع</th>
+                <th className="text-right py-3 px-4">الباقي</th>
+                <th className="text-right py-3 px-4">التجهيز</th>
                 <th className="text-right py-3 px-4">وقت الإنشاء</th>
                 <th className="text-center py-3 px-4">الإجراءات</th>
               </tr>
@@ -282,7 +326,8 @@ export default function InvoicesTab() {
                   <td className="py-3 px-4 font-mono text-primary">{invoice.invoice_number}</td>
                   <td className="py-3 px-4">{invoice.customer_name}</td>
                   <td className="py-3 px-4 text-gray-300 text-sm">{currency(invoice.total)}</td>
-                  <td className="py-3 px-4 font-bold text-green-400">{currency((invoice.total || 0) - (invoice.discount || 0))}</td>
+                  <td className="py-3 px-4 font-bold text-green-400">{currency(invoice.paid_amount || 0)}</td>
+                  <td className="py-3 px-4 font-bold text-red-400">{currency(((invoice.total || 0) - (invoice.discount || 0)) - (invoice.paid_amount || 0))}</td>
                   <td className="py-3 px-4">
                     <select
                       value={invoice.status || 'pending'}
@@ -362,6 +407,15 @@ export default function InvoicesTab() {
                       >
                         🗑️
                       </button>
+                      {((invoice.total || 0) - (invoice.discount || 0)) - (invoice.paid_amount || 0) > 0 && (
+                        <button
+                          onClick={() => payBalance(invoice)}
+                          className="p-2 sm:px-3 sm:py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-sm transition-colors font-bold"
+                          title="تسديد دفعة / الباقي"
+                        >
+                          💰 تسديد
+                        </button>
+                      )}
                     </div>
                   </td>
                 </tr>
