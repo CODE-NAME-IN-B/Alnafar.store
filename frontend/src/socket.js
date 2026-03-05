@@ -1,6 +1,23 @@
-import { io } from 'socket.io-client';
+// import { io } from 'socket.io-client';
 
-// إعداد الاتصال بـ Socket.IO
+// محاكي لـ Socket.IO لتجنب مشاكل الاتصال في Vercel
+// Vercel Serverless Functions لا تدعم WebSockets بشكل دائم
+const socket = {
+  on: (event, callback) => {
+    // console.log(`[Socket Mock] Subscribed to ${event}`);
+  },
+  off: (event, callback) => {
+    // console.log(`[Socket Mock] Unsubscribed from ${event}`);
+  },
+  emit: (event, data) => {
+    console.log(`[Socket Mock] Emitted ${event}`, data);
+  },
+  connect: () => { },
+  disconnect: () => { }
+};
+
+/*
+// إعداد الاتصال بـ Socket.IO (معطل حالياً للانتقال لـ Vercel)
 const socket = io(
   import.meta.env.PROD ? window.location.origin : 'http://localhost:5000',
   {
@@ -12,18 +29,7 @@ const socket = io(
     timeout: 20000,
   }
 );
-
-// أحداث الاتصال
-socket.on('connect', () => {
-  console.log('🔌 متصل بالخادم للتحديثات الفورية');
-});
-
-socket.on('disconnect', () => {
-  console.log('🔌 انقطع الاتصال مع الخادم');
-});
-
-socket.on('connect_error', (error) => {
-  console.error('🔌 خطأ في الاتصال:', error);
-});
+*/
 
 export default socket;
+

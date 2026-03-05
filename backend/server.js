@@ -7,7 +7,7 @@ const fs = require('fs');
 const express = require('express');
 const cors = require('cors');
 const { createServer } = require('http');
-const { Server } = require('socket.io');
+// const { Server } = require('socket.io'); (Removed for Vercel)
 const dbAdapter = require('./db-adapter');
 const cloudinaryStorage = require('./cloudinary-storage');
 const bcrypt = require('bcryptjs');
@@ -492,12 +492,12 @@ async function initializeDatabase() {
 
 const app = express();
 const httpServer = createServer(app);
-const io = new Server(httpServer, {
-  cors: {
-    origin: "*",
-    methods: ["GET", "POST"]
-  }
-});
+// const io = new Server(httpServer, {
+//   cors: {
+//     origin: "*",
+//     methods: ["GET", "POST"]
+//   }
+// }); (Socket.IO removed for Vercel)
 
 // تقارير بنطاق تاريخ
 app.get('/api/daily-report-range', authMiddleware, async (req, res) => {
@@ -563,7 +563,8 @@ app.get('/api/daily-report/export.csv', authMiddleware, async (req, res) => {
   }
 });
 
-// Socket.IO للتحديثات الفورية
+// Socket.IO للتحديثات الفورية (معطل في Vercel)
+/*
 io.on('connection', (socket) => {
   console.log('🔌 عميل متصل:', socket.id);
 
@@ -571,10 +572,12 @@ io.on('connection', (socket) => {
     console.log('🔌 عميل منقطع:', socket.id);
   });
 });
+*/
 
-// دالة لإرسال التحديثات الفورية
+// دالة لإرسال التحديثات الفورية (معطلة في Vercel)
 function broadcastUpdate(event, data) {
-  io.emit(event, data);
+  // io.emit(event, data);
+  console.log(`[Socket.IO Bypass] Event: ${event}`);
 }
 
 // دالة للتحقق من حالة قاعدة البيانات
@@ -3466,23 +3469,51 @@ async function start() {
 
 
   // استخدم منفذ ثابت من البيئة أو 5000 لضمان توافق بروكسي Vite
+  // استخدم منفذ ثابت من البيئة أو 5000 لضمان توافق بروكسي Vite
   const listenPort = Number(process.env.PORT) || 5000;
-  httpServer.listen(listenPort, '0.0.0.0', () => {
-    console.log(`🚀 Server listening on port ${listenPort}`);
-    console.log(`🔌 Socket.IO enabled for real-time updates`);
-    console.log(`🌐 Environment: ${process.env.NODE_ENV || 'development'}`);
-    console.log(`📊 Admin panel: /#/admin`);
-    if (process.env.NODE_ENV !== 'production') {
-      console.log(`🔗 Local access: http://localhost:${listenPort}`);
-      console.log(`📱 Network access: http://192.168.8.104:${listenPort}`);
-    }
-  });
 
+  // لضمان عمل المنظومة في Vercel، لا نقوم بتشغيل httpServer.listen بشكل مباشر إذا لم نكن في بيئة تطوير محلية
+  // أو إذا تم استدعاء الملف كدالة
+  if (process.env.NODE_ENV !== 'production' || !process.env.VERCEL) {
+    httpServer.listen(listenPort, '0.0.0.0', () => {
+      console.log(`🚀 Server listening on port ${listenPort}`);
+      console.log(`🔌 Socket.IO bypassed for Vercel compatibility`);
+      console.log(`🌐 Environment: ${process.env.NODE_ENV || 'development'}`);
+      console.log(`📊 Admin panel: /#/admin`);
+      if (process.env.NODE_ENV !== 'production') {
+        console.log(`🔗 Local access: http://localhost:${listenPort}`);
+        console.log(`📱 Network access: http://192.168.8.104:${listenPort}`);
+      }
+    });
+  }
 }
 
+// تهيئة قاعدة البيانات عند بدء التشغيل
+let isDbInitialized = false;
+async function ensureDb() {
+  if (!isDbInitialized) {
+    await initDb();
+    await initializeDatabase();
+    isDbInitialized = true;
+  }
+}
 
+// Middleware لضمان تهيئة قاعدة البيانات في Vercel
+app.use(async (req, res, next) => {
+  try {
+    await ensureDb();
+    next();
+  } catch (error) {
+    console.error('Database initialization error:', error);
+    res.status(500).send('Database Error');
+  }
+});
 
-start();
+start().catch(err => console.error('Start error:', err));
+
+// تصدير التطبيق ليكون متوافقاً مع Vercel
+module.exports = app;
+
 
 
 

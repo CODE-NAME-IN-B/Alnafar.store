@@ -5,8 +5,8 @@
   "description": "Full-stack Game Store (Express + SQLite, React + Tailwind) with integrated dev server",
   "scripts": {
     "dev": "nodemon backend/server.js",
-    "build": "cd frontend && npm install --include=dev && npm run build",
-    "postbuild": "rm -rf dist && cp -r frontend/dist dist && cp frontend/assites/logo.png dist/logo.png 2>/dev/null || true && cp frontend/assites/Invoice_Logo.png dist/invoice-header.png 2>/dev/null || true && cp frontend/public/icon-192x192.svg dist/icon-192x192.svg 2>/dev/null || true && cp frontend/public/icon-512x512.svg dist/icon-512x512.svg 2>/dev/null || true && cp frontend/assites/logo.png dist/icon-192x192.png 2>/dev/null || true && cp frontend/assites/logo.png dist/icon-512x512.png 2>/dev/null || true",
+    "build": "cd frontend && npm install && npm run build && cd .. && rm -rf dist && cp -r frontend/dist dist",
+    "postbuild": "cp frontend/assites/logo.png dist/logo.png 2>/dev/null || true && cp frontend/assites/Invoice_Logo.png dist/invoice-header.png 2>/dev/null || true && cp frontend/public/icon-192x192.svg dist/icon-192x192.svg 2>/dev/null || true && cp frontend/public/icon-512x512.svg dist/icon-512x512.svg 2>/dev/null || true && cp frontend/assites/logo.png dist/icon-192x192.png 2>/dev/null || true && cp frontend/assites/logo.png dist/icon-512x512.png 2>/dev/null || true",
     "start": "node backend/server.js",
     "start:render": "node backend/server.js",
     "postinstall": "echo postinstall"
@@ -30,7 +30,6 @@
     "qrcode.react": "^4.2.0",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
-    "socket.io": "^4.7.5",
     "socket.io-client": "^4.7.5",
     "sql.js": "^1.13.0",
     "sqlite3": "^5.1.7",
