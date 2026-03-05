@@ -373,6 +373,7 @@ async function initializeDatabase() {
   try { await run('ALTER TABLE invoices ADD COLUMN final_total REAL'); } catch (e) { }
   try { await run('ALTER TABLE invoices ADD COLUMN total_size_gb REAL DEFAULT 0'); } catch (e) { }
   try { await run('ALTER TABLE invoices ADD COLUMN estimated_minutes INTEGER DEFAULT 0'); } catch (e) { }
+  try { await run('ALTER TABLE invoices ADD COLUMN paid_amount REAL DEFAULT 0'); } catch (e) { }
 
   await exec(`CREATE TABLE IF NOT EXISTS invoice_settings (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -408,6 +409,7 @@ async function initializeDatabase() {
       updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
     );`);
   try { await run('ALTER TABLE daily_invoices ADD COLUMN notes TEXT'); } catch (e) { }
+  try { await run('ALTER TABLE daily_invoices ADD COLUMN collected_revenue REAL DEFAULT 0'); } catch (e) { }
 
   await exec(`CREATE TABLE IF NOT EXISTS push_subscriptions (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
