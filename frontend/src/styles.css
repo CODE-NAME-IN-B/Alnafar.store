@@ -3,74 +3,147 @@
 @tailwind utilities;
 
 :root {
-	/* colors inspired by logo/cover: deep navy background + cyan accent */
-	--bg: #0f1724; /* deep navy */
-	--card: #0b1220; /* slightly lighter for cards */
-	--primary: #14b8a6; /* teal/cyan accent */
-	--primary-dark: #0e7f74;
-	--muted: #94a3b8;
-	
-	/* Google Fonts */
-	--font-arabic: 'Cairo', sans-serif;
-	--font-english: 'Inter', sans-serif;
-	--font-mixed: 'Cairo', 'Inter', sans-serif;
+    /* colors inspired by logo/cover: deep navy background + cyan accent */
+    --bg: #0f1724;
+    /* deep navy */
+    --card: #0b1220;
+    /* slightly lighter for cards */
+    --primary: #14b8a6;
+    /* teal/cyan accent */
+    --primary-dark: #0e7f74;
+    --muted: #94a3b8;
+
+    /* Google Fonts */
+    --font-arabic: 'Cairo', sans-serif;
+    --font-english: 'Inter', sans-serif;
+    --font-mixed: 'Cairo', 'Inter', sans-serif;
+
+    /* ═══ Fluid Typography - تدرج تلقائي للخطوط بين أحجام الشاشات ═══ */
+    /* clamp(min, preferred, max) - min at 320px, max at 1440px */
+    --text-xs: clamp(0.625rem, 0.5rem + 0.5vw, 0.75rem);
+    /* 10px → 12px */
+    --text-sm: clamp(0.75rem, 0.65rem + 0.5vw, 0.875rem);
+    /* 12px → 14px */
+    --text-base: clamp(0.875rem, 0.75rem + 0.6vw, 1rem);
+    /* 14px → 16px */
+    --text-lg: clamp(1rem, 0.85rem + 0.75vw, 1.25rem);
+    /* 16px → 20px */
+    --text-xl: clamp(1.125rem, 0.9rem + 1vw, 1.5rem);
+    /* 18px → 24px */
+    --text-2xl: clamp(1.25rem, 1rem + 1.25vw, 1.875rem);
+    /* 20px → 30px */
+    --text-3xl: clamp(1.5rem, 1.1rem + 1.75vw, 2.25rem);
+    /* 24px → 36px */
+
+    /* ═══ Fluid Spacing ═══ */
+    --space-xs: clamp(0.25rem, 0.5vw, 0.5rem);
+    --space-sm: clamp(0.5rem, 1vw, 0.75rem);
+    --space-md: clamp(0.75rem, 1.5vw, 1.25rem);
+    --space-lg: clamp(1rem, 2vw, 1.5rem);
+    --space-xl: clamp(1.5rem, 3vw, 2.5rem);
 }
 
+
 body {
-	background-color: var(--bg);
-	font-family: var(--font-mixed);
-	-webkit-font-smoothing: antialiased;
-	-moz-osx-font-smoothing: grayscale;
-	color: #e2e8f0;
-	/* PWA safe area for notches and home indicator */
-	padding-left: env(safe-area-inset-left);
-	padding-right: env(safe-area-inset-right);
-	padding-bottom: env(safe-area-inset-bottom);
-	min-height: 100vh;
-	min-height: -webkit-fill-available;
+    background-color: var(--bg);
+    font-family: var(--font-mixed);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    color: #e2e8f0;
+    /* PWA safe area for notches and home indicator */
+    padding-left: env(safe-area-inset-left);
+    padding-right: env(safe-area-inset-right);
+    padding-bottom: env(safe-area-inset-bottom);
+    min-height: 100vh;
+    min-height: -webkit-fill-available;
 }
 
 /* وضوح أفضل للنصوص على الجوال والكمبيوتر */
-h1, h2, h3, h4 { color: #f1f5f9; font-family: var(--font-arabic); }
-p { color: var(--muted); line-height: 1.5; }
-@media (max-width: 767px) {
-	body { font-size: 16px; }
+h1,
+h2,
+h3,
+h4 {
+    color: #f1f5f9;
+    font-family: var(--font-arabic);
 }
 
-.bg-card { background-color: var(--card); }
-.bg-primary { background-color: var(--primary); }
-.bg-primary-dark { background-color: var(--primary-dark); }
-.text-muted { color: var(--muted); }
+p {
+    color: var(--muted);
+    line-height: 1.5;
+}
+
+body {
+    font-size: var(--text-base);
+}
+
+@media (max-width: 767px) {
+    body {
+        font-size: 16px;
+    }
+}
+
+.bg-card {
+    background-color: var(--card);
+}
+
+.bg-primary {
+    background-color: var(--primary);
+}
+
+.bg-primary-dark {
+    background-color: var(--primary-dark);
+}
+
+.text-muted {
+    color: var(--muted);
+}
 
 /* Input styles - Mobile optimized */
-input, textarea, select { 
-    background-color: transparent; 
-    color: #fff; 
-    border-color: rgba(255,255,255,0.08);
-    font-size: 16px; /* Prevent zoom on iOS */
+input,
+textarea,
+select {
+    background-color: transparent;
+    color: #fff;
+    border-color: rgba(255, 255, 255, 0.08);
+    font-size: 16px;
+    /* Prevent zoom on iOS */
     transition: all 0.2s ease;
 }
 
-input:focus, textarea:focus, select:focus { 
-    outline: none; 
-    box-shadow: 0 0 0 2px rgba(20,184,166,0.35); 
-    border-color: rgba(20,184,166,0.6);
+input:focus,
+textarea:focus,
+select:focus {
+    outline: none;
+    box-shadow: 0 0 0 2px rgba(20, 184, 166, 0.35);
+    border-color: rgba(20, 184, 166, 0.6);
     transform: scale(1.02);
 }
 
 @media (min-width: 768px) {
-    input, textarea, select {
+
+    input,
+    textarea,
+    select {
         font-size: 14px;
     }
-    
-    input:focus, textarea:focus, select:focus {
+
+    input:focus,
+    textarea:focus,
+    select:focus {
         transform: none;
     }
 }
 
 /* improve native select dropdown contrast */
-select option { background-color: var(--card); color: #fff; }
-select optgroup { background-color: var(--card); color: #fff; }
+select option {
+    background-color: var(--card);
+    color: #fff;
+}
+
+select optgroup {
+    background-color: var(--card);
+    color: #fff;
+}
 
 /* Legacy card styles (kept for compatibility) */
 .card {
@@ -81,7 +154,8 @@ select optgroup { background-color: var(--card); color: #fff; }
 
 .card-image-wrapper {
     @apply w-full;
-    padding-top: 100%; /* 1:1 Aspect Ratio */
+    padding-top: 100%;
+    /* 1:1 Aspect Ratio */
     position: relative;
 }
 
@@ -233,12 +307,10 @@ select optgroup { background-color: var(--card); color: #fff; }
 
 .game-card-overlay {
     @apply absolute inset-0 pointer-events-none;
-    background: linear-gradient(
-        to bottom,
-        rgba(15, 23, 36, 0) 0%,
-        rgba(15, 23, 36, 0.3) 60%,
-        rgba(15, 23, 36, 0.8) 100%
-    );
+    background: linear-gradient(to bottom,
+            rgba(15, 23, 36, 0) 0%,
+            rgba(15, 23, 36, 0.3) 60%,
+            rgba(15, 23, 36, 0.8) 100%);
 }
 
 .game-card-content {
@@ -265,7 +337,7 @@ select optgroup { background-color: var(--card); color: #fff; }
 }
 
 .game-card-title {
-    font-size: 0.875rem;
+    font-size: clamp(0.7rem, 1.2vw + 0.5rem, 1rem);
     font-weight: 600;
     color: #ffffff;
     line-height: 1.35;
@@ -279,28 +351,6 @@ select optgroup { background-color: var(--card); color: #fff; }
     font-family: var(--font-arabic);
     text-align: right;
     letter-spacing: 0.01em;
-}
-
-@media (min-width: 480px) {
-    .game-card-title {
-        font-size: 0.9rem;
-        min-height: 2.5rem;
-    }
-}
-
-@media (min-width: 640px) {
-    .game-card-title {
-        font-size: 0.95rem;
-        line-height: 1.4;
-    }
-}
-
-@media (min-width: 768px) {
-    .game-card-title {
-        font-size: 1rem;
-        line-height: 1.4;
-        min-height: 2.75rem;
-    }
 }
 
 .game-card-tags {
@@ -402,21 +452,7 @@ select optgroup { background-color: var(--card); color: #fff; }
     transform: translateY(0);
     font-family: var(--font-arabic);
     letter-spacing: 0.02em;
-    font-size: 0.8rem;
-}
-
-@media (min-width: 480px) {
-    .game-card-button {
-        @apply py-2.5 px-3.5;
-        font-size: 0.85rem;
-    }
-}
-
-@media (min-width: 768px) {
-    .game-card-button {
-        @apply py-3 px-4;
-        font-size: 0.9rem;
-    }
+    font-size: clamp(0.7rem, 1vw + 0.5rem, 0.9rem);
 }
 
 .game-card-button:hover {
@@ -429,13 +465,29 @@ select optgroup { background-color: var(--card); color: #fff; }
 }
 
 /* Scrollbar styles */
-.toplist-scroll::-webkit-scrollbar { width: 8px; }
-.toplist-scroll::-webkit-scrollbar-track { background: rgba(255,255,255,0.05); border-radius: 8px; }
-.toplist-scroll::-webkit-scrollbar-thumb { background: rgba(20,184,166,0.6); border-radius: 8px; }
-.toplist-scroll { scrollbar-color: rgba(20,184,166,0.6) rgba(255,255,255,0.05); scrollbar-width: thin; }
+.toplist-scroll::-webkit-scrollbar {
+    width: 8px;
+}
+
+.toplist-scroll::-webkit-scrollbar-track {
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 8px;
+}
+
+.toplist-scroll::-webkit-scrollbar-thumb {
+    background: rgba(20, 184, 166, 0.6);
+    border-radius: 8px;
+}
+
+.toplist-scroll {
+    scrollbar-color: rgba(20, 184, 166, 0.6) rgba(255, 255, 255, 0.05);
+    scrollbar-width: thin;
+}
 
 @media (min-width: 768px) {
-    .toplist-scroll::-webkit-scrollbar { width: 10px; }
+    .toplist-scroll::-webkit-scrollbar {
+        width: 10px;
+    }
 }
 
 /* Hide scrollbar for horizontal navigation */
@@ -450,21 +502,27 @@ select optgroup { background-color: var(--card); color: #fff; }
 
 /* Mobile touch improvements */
 @media (max-width: 768px) {
+
     /* Larger touch targets */
-    button, .game-card, input, select {
+    button,
+    .game-card,
+    input,
+    select {
         min-height: 44px;
     }
-    
+
     /* Better spacing for touch */
     .game-card {
         margin-bottom: 0.5rem;
     }
-    
+
     /* Prevent zoom on input focus */
-    input, select, textarea {
+    input,
+    select,
+    textarea {
         font-size: 16px;
     }
-    
+
     /* Smooth scrolling */
     * {
         -webkit-overflow-scrolling: touch;
@@ -476,7 +534,7 @@ select optgroup { background-color: var(--card); color: #fff; }
     .game-card {
         transition: all 0.2s ease-out;
     }
-    
+
     .game-card:hover {
         transform: translateY(-2px);
     }
@@ -486,7 +544,7 @@ select optgroup { background-color: var(--card); color: #fff; }
     .game-card {
         transition: none;
     }
-    
+
     .game-card:hover {
         transform: none;
     }
@@ -497,7 +555,7 @@ select optgroup { background-color: var(--card); color: #fff; }
     .game-card {
         border-width: 2px;
     }
-    
+
     .game-card-button {
         border: 2px solid currentColor;
     }
@@ -509,12 +567,14 @@ select optgroup { background-color: var(--card); color: #fff; }
         padding: 0.375rem;
         gap: 0.25rem;
     }
+
     .game-card-title {
         font-size: 0.7rem;
         min-height: 2.2em;
         -webkit-line-clamp: 2;
         line-clamp: 2;
     }
+
     .game-card-button {
         padding: 0.375rem 0.5rem;
         font-size: 0.7rem;
@@ -527,16 +587,19 @@ select optgroup { background-color: var(--card); color: #fff; }
         padding: 0.5rem;
         gap: 0.375rem;
     }
+
     .game-card-title {
         font-size: 0.75rem;
         min-height: 1.75rem;
         -webkit-line-clamp: 2;
         line-clamp: 2;
     }
+
     .game-card-button {
         @apply py-2 px-2;
         font-size: 0.75rem;
     }
+
     .game-tag {
         @apply px-1.5 py-0.5 text-[10px];
     }
@@ -544,16 +607,17 @@ select optgroup { background-color: var(--card); color: #fff; }
 
 /* Landscape phone optimization */
 @media (max-height: 500px) and (orientation: landscape) {
+
     /* Reduce header height */
     header {
         position: relative !important;
     }
-    
+
     /* Compact hero section */
     .hero-section {
         padding: 1rem 0;
     }
-    
+
     /* Smaller cards in landscape */
     .game-card-image-wrapper {
         min-height: 100px;
@@ -571,6 +635,7 @@ select optgroup { background-color: var(--card); color: #fff; }
     0% {
         background-position: -200% 0;
     }
+
     100% {
         background-position: 200% 0;
     }
@@ -578,18 +643,23 @@ select optgroup { background-color: var(--card); color: #fff; }
 
 /* Improved tap targets */
 @media (hover: none) and (pointer: coarse) {
+
     /* This targets touch devices */
-    button, .game-card, a, input, select {
+    button,
+    .game-card,
+    a,
+    input,
+    select {
         min-height: 48px;
         min-width: 48px;
     }
-    
+
     /* Remove hover effects on touch devices */
     .game-card:hover {
         transform: none;
         box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
     }
-    
+
     .game-card-button:hover {
         transform: none;
     }
@@ -601,13 +671,13 @@ select optgroup { background-color: var(--card); color: #fff; }
         padding-left: max(1rem, env(safe-area-inset-left));
         padding-right: max(1rem, env(safe-area-inset-right));
     }
-    
+
     header {
         padding-top: max(0.5rem, env(safe-area-inset-top));
         padding-left: max(0.5rem, env(safe-area-inset-left));
         padding-right: max(0.5rem, env(safe-area-inset-right));
     }
-    
+
     /* Bottom nav / fixed buttons avoid home indicator */
     .safe-area-bottom {
         padding-bottom: max(1rem, env(safe-area-inset-bottom));
@@ -615,8 +685,11 @@ select optgroup { background-color: var(--card); color: #fff; }
 }
 
 /* PWA standalone: improve app-like feel on mobile */
-@media (display-mode: standalone), (display-mode: fullscreen) {
-    body { padding-top: env(safe-area-inset-top); }
+@media (display-mode: standalone),
+(display-mode: fullscreen) {
+    body {
+        padding-top: env(safe-area-inset-top);
+    }
 }
 
 /* ========== توافق أحجام الشاشات (هاتف → تابلت → PC) ========== */
@@ -625,32 +698,58 @@ select optgroup { background-color: var(--card); color: #fff; }
     padding-left: 0.75rem;
     padding-right: 0.75rem;
 }
+
 @media (min-width: 384px) {
-    .page-padding { padding-left: 1rem; padding-right: 1rem; }
+    .page-padding {
+        padding-left: 1rem;
+        padding-right: 1rem;
+    }
 }
+
 @media (min-width: 640px) {
-    .page-padding { padding-left: 1.25rem; padding-right: 1.25rem; }
+    .page-padding {
+        padding-left: 1.25rem;
+        padding-right: 1.25rem;
+    }
 }
+
 @media (min-width: 768px) {
-    .page-padding { padding-left: 1.5rem; padding-right: 1.5rem; }
+    .page-padding {
+        padding-left: 1.5rem;
+        padding-right: 1.5rem;
+    }
 }
+
 @media (min-width: 1024px) {
-    .page-padding { padding-left: 2rem; padding-right: 2rem; }
+    .page-padding {
+        padding-left: 2rem;
+        padding-right: 2rem;
+    }
 }
+
 @media (min-width: 1280px) {
-    .page-padding { padding-left: 2.5rem; padding-right: 2.5rem; }
+    .page-padding {
+        padding-left: 2.5rem;
+        padding-right: 2.5rem;
+    }
 }
 
 /* أزرار وعناصر تفاعلية: مساحة لمس مناسبة على الهاتف */
 @media (max-width: 767px) {
+
     button:not(.no-touch-resize),
     a[role="button"],
     .touch-target {
         min-height: 44px;
         min-width: 44px;
     }
+
     /* عدم تكبير كل الأزرار الصغيرة (أيقونة حذف مثلاً) */
-    button.p-1, button.p-2 { min-width: 44px; min-height: 44px; }
+    button.p-1,
+    button.p-2 {
+        min-width: 44px;
+        min-height: 44px;
+    }
 }
 
 /* تحسين التمرير الأفقي للتنقل (الفئات والأحرف) */
@@ -659,6 +758,7 @@ select optgroup { background-color: var(--card); color: #fff; }
     scroll-behavior: smooth;
     scrollbar-width: none;
 }
+
 .nav-scroll::-webkit-scrollbar {
     display: none;
 }

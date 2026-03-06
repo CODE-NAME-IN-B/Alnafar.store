@@ -27,6 +27,38 @@
             "dest": "/frontend/assets/$1"
         },
         {
+            "src": "/manifest.json",
+            "dest": "/frontend/manifest.json"
+        },
+        {
+            "src": "/sw.js",
+            "dest": "/frontend/sw.js"
+        },
+        {
+            "src": "/service-worker.js",
+            "dest": "/frontend/service-worker.js"
+        },
+        {
+            "src": "/favicon.ico",
+            "dest": "/frontend/favicon.ico"
+        },
+        {
+            "src": "/icon-(.*)",
+            "dest": "/frontend/icon-$1"
+        },
+        {
+            "src": "/apple-touch-icon(.*)",
+            "dest": "/frontend/apple-touch-icon$1"
+        },
+        {
+            "src": "/logo.png",
+            "dest": "/frontend/logo.png"
+        },
+        {
+            "src": "/invoice-header.png",
+            "dest": "/frontend/invoice-header.png"
+        },
+        {
             "handle": "filesystem"
         },
         {
