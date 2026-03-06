@@ -169,7 +169,7 @@ export default function InvoicesTab() {
     }
 
     try {
-      const { data } = await api.put(`/api/invoices/${invoice.id}/payment`, { amount: payment });
+      const { data } = await api.put(`/invoices/${invoice.id}/payment`, { amount: payment });
       if (data.success) {
         alert('تم تسجيل الدفعة بنجاح');
         loadInvoices(pagination.page);

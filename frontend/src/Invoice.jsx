@@ -65,7 +65,7 @@ export default function Invoice({ cart, total, totalSize = 0, onClose, onSuccess
       // إذا كنا في وضع التعديل، نستخدم PUT بدلاً من POST
       let response;
       if (isEditing && editingData?.id) {
-        response = await api.put(`/api/invoices/${editingData.id}`, invoiceData)
+        response = await api.put(`/invoices/${editingData.id}`, invoiceData)
       } else {
         response = await api.post('/invoices', invoiceData)
       }
