@@ -234,8 +234,12 @@ function CategoriesTab() {
   const [editing, setEditing] = useState(null)
 
   async function load() {
-    const { data } = await api.get('/categories');
-    setItems(data)
+    try {
+      const { data } = await api.get('/categories');
+      setItems(Array.isArray(data) ? data : [])
+    } catch (e) {
+      setItems([])
+    }
   }
 
   useEffect(() => { load() }, [])
@@ -473,8 +477,15 @@ function StatsTab() {
   const [stats, setStats] = useState({ totalOrders: 0, topGames: [] })
 
   async function load() {
-    const { data } = await api.get('/stats');
-    setStats(data)
+    try {
+      const { data } = await api.get('/stats');
+      setStats({
+        totalOrders: data?.totalOrders || 0,
+        topGames: Array.isArray(data?.topGames) ? data.topGames : []
+      })
+    } catch (e) {
+      setStats({ totalOrders: 0, topGames: [] })
+    }
   }
 
   useEffect(() => { load() }, [])

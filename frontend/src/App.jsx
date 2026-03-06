@@ -167,7 +167,11 @@ export default function App() {
   }, [])
 
   useEffect(() => {
-    api.get('/categories').then(r => { setCategories(r.data); if (!activeCategory && r.data?.length) setActiveCategory(String(r.data[0].id)) })
+    api.get('/categories').then(r => {
+      const data = Array.isArray(r.data) ? r.data : []
+      setCategories(data);
+      if (!activeCategory && data.length) setActiveCategory(String(data[0].id))
+    })
   }, [])
 
   useEffect(() => {
@@ -176,7 +180,7 @@ export default function App() {
     if (activeCategory) params.category = activeCategory
     if (minPrice) params.minPrice = minPrice
     if (maxPrice) params.maxPrice = maxPrice
-    api.get('/games', { params }).then(r => setGames(r.data))
+    api.get('/games', { params }).then(r => setGames(Array.isArray(r.data) ? r.data : []))
   }, [query, activeCategory, minPrice, maxPrice])
 
   // Heuristic classification (title/description) → genre, series, split-screen
@@ -262,11 +266,13 @@ export default function App() {
 
   function fromStored(g) {
     // read stored
+    // read stored
     let split = false
     if (g.features) {
       try {
-        const f = typeof g.features === 'string' ? JSON.parse(g.features).map(x => String(x)) : g.features
-        split = Array.isArray(f) && f.some(v => String(v).toLowerCase().includes('split'))
+        let f = typeof g.features === 'string' ? JSON.parse(g.features) : g.features
+        if (!Array.isArray(f)) f = []
+        split = f.some(v => String(v).toLowerCase().includes('split'))
       } catch {
         split = String(g.features).toLowerCase().includes('split')
       }

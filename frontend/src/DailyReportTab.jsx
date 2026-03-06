@@ -36,7 +36,7 @@ export default function DailyReportTab() {
     try {
       setLoading(true)
       const { data } = await api.get(`/daily-report/${date}`)
-      setReport(data.report)
+      setReport(data.report || null)
     } catch (error) {
       console.error('خطأ في تحميل الجرد اليومي:', error)
     } finally {
@@ -282,7 +282,7 @@ export default function DailyReportTab() {
                       </tr>
                     </thead>
                     <tbody>
-                      {report.invoices.map((inv) => (
+                      {(report.invoices || []).map((inv) => (
                         <tr key={inv.id} className="border-b border-gray-700 hover:bg-gray-700/30">
                           <td className="py-2 px-3 font-mono text-primary">{inv.invoice_number}</td>
                           <td className="py-2 px-3">{inv.customer_name}</td>
@@ -377,7 +377,7 @@ export default function DailyReportTab() {
                 </tr>
               </thead>
               <tbody>
-                {reports.map((r) => (
+                {(reports || []).map((r) => (
                   <tr key={r.date} className="border-b border-gray-700 hover:bg-gray-700/30 cursor-pointer" onClick={() => setSelectedDate(r.date)}>
                     <td className="py-2 px-3 font-medium">{r.date}</td>
                     <td className="py-2 px-3">{r.total_invoices}</td>
