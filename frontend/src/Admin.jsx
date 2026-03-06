@@ -136,7 +136,7 @@ export default function Admin() {
 
       {/* Main Content - شبكة متجاوبة مع شريط جانبي */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 py-4 sm:py-8">
-        <div className="flex flex-col md:flex-row gap-4 sm:gap-6 relative">
+        <div className="flex flex-col md:flex-row gap-4 sm:gap-6 relative items-start">
 
           {/* Mobile Overlay */}
           {isMobileMenuOpen && (
@@ -148,12 +148,12 @@ export default function Admin() {
 
           {/* Sidebar */}
           <aside className={`
-            fixed md:static inset-y-0 right-0 z-50 w-64 md:w-1/4 lg:w-1/5 bg-gray-900 md:bg-transparent
+            fixed md:sticky top-0 md:top-24 right-0 z-50 w-64 md:w-1/4 lg:w-1/5 h-screen md:h-auto
             transform ${isMobileMenuOpen ? 'translate-x-0' : 'translate-x-full'} md:translate-x-0
             transition-transform duration-300 ease-in-out border-l border-gray-700 md:border-none shadow-2xl md:shadow-none
-            flex flex-col
+            flex flex-col md:block
           `}>
-            <div className="bg-gray-800/60 md:backdrop-blur-sm rounded-none md:rounded-2xl border-0 md:border md:border-gray-700 p-4 flex-1 overflow-y-auto">
+            <div className="bg-gray-800/60 md:backdrop-blur-sm rounded-none md:rounded-2xl border-0 md:border md:border-gray-700 p-4 h-full md:h-auto overflow-y-auto">
               {/* Mobile Close Button & Header */}
               <div className="flex items-center justify-between gap-3 mb-6 md:mb-4">
                 <div className="flex items-center gap-3">
