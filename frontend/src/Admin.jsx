@@ -47,13 +47,48 @@ export default function Admin() {
 
   if (!loggedIn) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-900">
-        <form onSubmit={submitLogin} className="bg-gray-800 p-6 rounded-xl shadow-xl w-full max-w-sm space-y-3 border border-gray-700">
-          <h2 className="text-xl font-semibold text-white">تسجيل دخول المدير</h2>
-          <input className="w-full border border-gray-700 bg-gray-900 text-white rounded-lg px-3 py-2 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary" placeholder="اسم المستخدم" value={loginForm.username} onChange={e => setLoginForm({ ...loginForm, username: e.target.value })} />
-          <input className="w-full border border-gray-700 bg-gray-900 text-white rounded-lg px-3 py-2 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary" placeholder="كلمة المرور" type="password" value={loginForm.password} onChange={e => setLoginForm({ ...loginForm, password: e.target.value })} />
-          <button className="w-full bg-primary hover:bg-primary-dark text-white rounded-lg px-3 py-2">دخول</button>
-        </form>
+      <div className="min-h-screen bg-gray-950 text-white flex flex-col items-center justify-center p-6 relative overflow-hidden">
+        {/* Animated background blobs */}
+        <div className="fixed inset-0 pointer-events-none opacity-20">
+          <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-blue-600 rounded-full blur-[120px] animate-pulse"></div>
+          <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-purple-600 rounded-full blur-[120px] animate-pulse" style={{ animationDelay: '1s' }}></div>
+        </div>
+        <div className="relative z-10 text-center max-w-sm w-full">
+          <div className="w-16 h-16 mx-auto mb-4 bg-white rounded-2xl shadow-xl overflow-hidden flex items-center justify-center">
+            <img src={logo} alt="Alnafar" className="w-full h-full object-contain" />
+          </div>
+          <h1 className="text-2xl font-bold mb-1 bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent">لوحة التحكم</h1>
+          <p className="text-gray-400 mb-8 text-sm">متجر النفار — نظام الإدارة</p>
+          <form onSubmit={submitLogin} className="bg-gray-900/80 backdrop-blur-md border border-white/10 rounded-2xl p-6 space-y-4 shadow-2xl">
+            <div>
+              <label className="block text-sm font-medium text-gray-300 mb-2 text-right">اسم المستخدم</label>
+              <input
+                className="w-full border border-gray-700 bg-gray-800 text-white rounded-lg px-3 py-2.5 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-base transition-all"
+                placeholder="أدخل اسم المستخدم"
+                value={loginForm.username}
+                onChange={e => setLoginForm({ ...loginForm, username: e.target.value })}
+                autoComplete="username"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-300 mb-2 text-right">كلمة المرور</label>
+              <input
+                className="w-full border border-gray-700 bg-gray-800 text-white rounded-lg px-3 py-2.5 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-base transition-all"
+                placeholder="أدخل كلمة المرور"
+                type="password"
+                value={loginForm.password}
+                onChange={e => setLoginForm({ ...loginForm, password: e.target.value })}
+                autoComplete="current-password"
+              />
+            </div>
+            <button
+              type="submit"
+              className="w-full px-4 py-3 rounded-lg bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white font-bold flex items-center justify-center gap-2 transition-all shadow-lg hover:shadow-blue-500/25"
+            >
+              تسجيل الدخول
+            </button>
+          </form>
+        </div>
       </div>
     )
   }
@@ -231,22 +266,22 @@ function CategoriesTab() {
   }
 
   return (
-    <div className="p-8">
-      <div className="mb-8">
-        <h2 className="text-3xl font-bold text-white mb-2">إدارة التصنيفات</h2>
+    <div className="p-4 sm:p-6 lg:p-8">
+      <div className="mb-6 sm:mb-8">
+        <h2 className="text-2xl sm:text-3xl font-bold text-white mb-2">إدارة التصنيفات</h2>
         <p className="text-gray-400">إضافة وتعديل وحذف تصنيفات الألعاب</p>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-        <div className="bg-gradient-to-br from-gray-800 to-gray-900 p-8 rounded-2xl border border-gray-700 shadow-2xl">
-          <div className="flex items-center mb-6">
-            <div className="w-12 h-12 bg-gradient-to-r from-green-500 to-green-600 rounded-xl flex items-center justify-center mr-4">
-              <span className="text-2xl">📂</span>
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 lg:gap-8">
+        <div className="bg-gradient-to-br from-gray-800 to-gray-900 p-5 sm:p-8 rounded-2xl border border-gray-700 shadow-2xl">
+          <div className="flex items-center mb-5 sm:mb-6">
+            <div className="w-10 h-10 sm:w-12 sm:h-12 bg-gradient-to-r from-green-500 to-green-600 rounded-xl flex items-center justify-center mr-3 sm:mr-4 flex-shrink-0">
+              <span className="text-xl sm:text-2xl">📂</span>
             </div>
-            <h3 className="text-2xl font-bold text-white">{editing ? 'تعديل التصنيف' : 'إضافة تصنيف جديد'}</h3>
+            <h3 className="text-xl sm:text-2xl font-bold text-white">{editing ? 'تعديل التصنيف' : 'إضافة تصنيف جديد'}</h3>
           </div>
 
-          <div className="space-y-6">
+          <div className="space-y-4 sm:space-y-6">
             <div>
               <label className="block text-sm font-semibold text-gray-300 mb-2">اسم التصنيف</label>
               <input
@@ -257,17 +292,17 @@ function CategoriesTab() {
               />
             </div>
 
-            <div className="flex space-x-4">
+            <div className="flex gap-3">
               <button
                 onClick={save}
-                className="flex-1 px-6 py-3 bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white font-semibold rounded-xl transition-all duration-300 transform hover:scale-105 shadow-lg"
+                className="flex-1 px-4 sm:px-6 py-3 bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white font-semibold rounded-xl transition-all duration-300 hover:scale-105 shadow-lg text-sm sm:text-base"
               >
                 {editing ? 'تحديث التصنيف' : 'إضافة التصنيف'}
               </button>
               {editing && (
                 <button
                   onClick={() => { setEditing(null); setName('') }}
-                  className="px-6 py-3 bg-gray-600 hover:bg-gray-700 text-white font-semibold rounded-xl transition-all duration-300"
+                  className="px-4 sm:px-6 py-3 bg-gray-600 hover:bg-gray-700 text-white font-semibold rounded-xl transition-all duration-300 text-sm sm:text-base"
                 >
                   إلغاء
                 </button>
@@ -276,28 +311,28 @@ function CategoriesTab() {
           </div>
         </div>
 
-        <div className="bg-gradient-to-br from-gray-800 to-gray-900 p-8 rounded-2xl border border-gray-700 shadow-2xl">
-          <div className="flex items-center mb-6">
-            <div className="w-12 h-12 bg-gradient-to-r from-blue-500 to-blue-600 rounded-xl flex items-center justify-center mr-4">
-              <span className="text-2xl">📋</span>
+        <div className="bg-gradient-to-br from-gray-800 to-gray-900 p-5 sm:p-8 rounded-2xl border border-gray-700 shadow-2xl">
+          <div className="flex items-center mb-5 sm:mb-6">
+            <div className="w-10 h-10 sm:w-12 sm:h-12 bg-gradient-to-r from-blue-500 to-blue-600 rounded-xl flex items-center justify-center mr-3 sm:mr-4 flex-shrink-0">
+              <span className="text-xl sm:text-2xl">📋</span>
             </div>
-            <h3 className="text-2xl font-bold text-white">قائمة التصنيفات ({items.length})</h3>
+            <h3 className="text-xl sm:text-2xl font-bold text-white">قائمة التصنيفات ({items.length})</h3>
           </div>
 
           <div className="space-y-3">
             {items.map(item => (
-              <div key={item.id} className="flex items-center justify-between p-4 bg-gray-700/50 rounded-xl hover:bg-gray-700 transition-colors">
-                <span className="text-gray-200 font-medium">{item.name}</span>
-                <div className="flex space-x-2">
+              <div key={item.id} className="flex items-center justify-between p-3 sm:p-4 bg-gray-700/50 rounded-xl hover:bg-gray-700 transition-colors">
+                <span className="text-gray-200 font-medium text-sm sm:text-base">{item.name}</span>
+                <div className="flex gap-2">
                   <button
                     onClick={() => { setEditing(item); setName(item.name) }}
-                    className="px-3 py-1 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-semibold transition-colors"
+                    className="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-semibold transition-colors"
                   >
                     تعديل
                   </button>
                   <button
                     onClick={() => remove(item.id)}
-                    className="px-3 py-1 bg-red-600 hover:bg-red-700 text-white rounded-lg text-xs font-semibold transition-colors"
+                    className="px-3 py-1.5 bg-red-600 hover:bg-red-700 text-white rounded-lg text-xs font-semibold transition-colors"
                   >
                     حذف
                   </button>
@@ -369,17 +404,17 @@ function ServicesTab() {
   }
 
   return (
-    <div className="p-8">
-      <div className="mb-6">
-        <h2 className="text-2xl font-bold text-white">الخدمات</h2>
-        <p className="text-gray-400 mt-1">مثل: فورمات PS4، صيانة، إلخ. تظهر في الواجهة الرئيسية ويضيفها الزبون مع الألعاب.</p>
+    <div className="p-4 sm:p-6 lg:p-8">
+      <div className="mb-5 sm:mb-6">
+        <h2 className="text-xl sm:text-2xl font-bold text-white">الخدمات</h2>
+        <p className="text-gray-400 mt-1 text-sm sm:text-base">مثل: فورمات PS4، صيانة، إلخ. تظهر في الواجهة الرئيسية ويضيفها الزبون مع الألعاب.</p>
       </div>
-      <form onSubmit={save} className="bg-gray-800 p-4 rounded-xl border border-gray-700 mb-6 flex flex-wrap items-end gap-3">
+      <form onSubmit={save} className="bg-gray-800 p-4 rounded-xl border border-gray-700 mb-6 flex flex-col sm:flex-row sm:items-end gap-3">
         <input
           placeholder="اسم الخدمة (مثال: فورمات PS4)"
           value={form.title}
           onChange={e => setForm({ ...form, title: e.target.value })}
-          className="bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-white min-w-[200px]"
+          className="bg-gray-700 border border-gray-600 rounded-lg px-3 py-2.5 text-white flex-1 min-w-0"
         />
         <input
           type="number"
@@ -387,36 +422,42 @@ function ServicesTab() {
           placeholder="السعر (د.ل)"
           value={form.price}
           onChange={e => setForm({ ...form, price: e.target.value })}
-          className="bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-white w-28"
+          className="bg-gray-700 border border-gray-600 rounded-lg px-3 py-2.5 text-white sm:w-32"
         />
         <label className="flex items-center gap-2 text-gray-300">
           <input type="checkbox" checked={!!form.is_active} onChange={e => setForm({ ...form, is_active: e.target.checked ? 1 : 0 })} />
           نشط
         </label>
-        <button type="submit" className="px-4 py-2 bg-primary hover:bg-primary-dark text-white rounded-lg font-medium">
-          {editingId ? 'حفظ التعديل' : 'إضافة خدمة'}
-        </button>
-        {editingId && <button type="button" onClick={() => { setEditingId(null); setForm({ title: '', price: '', is_active: 1 }) }} className="px-3 py-2 bg-gray-600 text-white rounded-lg">إلغاء</button>}
+        <div className="flex gap-2">
+          <button type="submit" className="flex-1 sm:flex-none px-4 py-2.5 bg-primary hover:bg-primary-dark text-white rounded-lg font-medium">
+            {editingId ? 'حفظ التعديل' : 'إضافة خدمة'}
+          </button>
+          {editingId && <button type="button" onClick={() => { setEditingId(null); setForm({ title: '', price: '', is_active: 1 }) }} className="px-3 py-2.5 bg-gray-600 text-white rounded-lg">إلغاء</button>}
+        </div>
       </form>
       <div className="bg-gray-800 rounded-xl border border-gray-700 overflow-x-auto">
-        <table className="w-full text-white">
+        <table className="w-full text-white min-w-[400px]">
           <thead>
             <tr className="border-b border-gray-600">
-              <th className="text-right py-3 px-4">الخدمة</th>
-              <th className="text-right py-3 px-4">السعر (د.ل)</th>
-              <th className="text-right py-3 px-4">الحالة</th>
-              <th className="text-center py-3 px-4">إجراءات</th>
+              <th className="text-right py-3 px-4 text-sm">الخدمة</th>
+              <th className="text-right py-3 px-4 text-sm">السعر (د.ل)</th>
+              <th className="text-right py-3 px-4 text-sm">الحالة</th>
+              <th className="text-center py-3 px-4 text-sm">إجراءات</th>
             </tr>
           </thead>
           <tbody>
             {items.map(s => (
               <tr key={s.id} className="border-b border-gray-700 hover:bg-gray-700/30">
-                <td className="py-3 px-4">{s.title}</td>
-                <td className="py-3 px-4 font-mono">{Number(s.price).toFixed(3)}</td>
-                <td className="py-3 px-4">{s.is_active ? 'نشط' : 'معطل'}</td>
+                <td className="py-3 px-4 text-sm">{s.title}</td>
+                <td className="py-3 px-4 font-mono text-sm">{Number(s.price).toFixed(3)}</td>
+                <td className="py-3 px-4">
+                  <span className={`inline-block px-2 py-0.5 rounded-full text-xs font-semibold ${s.is_active ? 'bg-green-900/40 text-green-300' : 'bg-gray-700 text-gray-400'}`}>
+                    {s.is_active ? 'نشط' : 'معطل'}
+                  </span>
+                </td>
                 <td className="py-3 px-4 text-center">
-                  <button onClick={() => { setForm({ title: s.title, price: s.price, is_active: s.is_active }); setEditingId(s.id) }} className="px-2 py-1 bg-blue-600 hover:bg-blue-700 text-white rounded text-sm mx-1">تعديل</button>
-                  <button onClick={() => remove(s.id)} className="px-2 py-1 bg-red-600 hover:bg-red-700 text-white rounded text-sm mx-1">حذف</button>
+                  <button onClick={() => { setForm({ title: s.title, price: s.price, is_active: s.is_active }); setEditingId(s.id) }} className="px-2 py-1 bg-blue-600 hover:bg-blue-700 text-white rounded text-xs mx-1">تعديل</button>
+                  <button onClick={() => remove(s.id)} className="px-2 py-1 bg-red-600 hover:bg-red-700 text-white rounded text-xs mx-1">حذف</button>
                 </td>
               </tr>
             ))}
@@ -439,39 +480,41 @@ function StatsTab() {
   useEffect(() => { load() }, [])
 
   return (
-    <div className="p-8">
-      <div className="mb-8">
-        <h2 className="text-3xl font-bold text-white mb-2">الإحصائيات</h2>
+    <div className="p-4 sm:p-6 lg:p-8">
+      <div className="mb-6 sm:mb-8">
+        <h2 className="text-2xl sm:text-3xl font-bold text-white mb-2">الإحصائيات</h2>
         <p className="text-gray-400">عرض إحصائيات المتجر والألعاب الأكثر طلباً</p>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-        <div className="bg-gradient-to-br from-gray-800 to-gray-900 p-8 rounded-2xl border border-gray-700 shadow-2xl">
-          <div className="flex items-center mb-6">
-            <div className="w-12 h-12 bg-gradient-to-r from-purple-500 to-purple-600 rounded-xl flex items-center justify-center mr-4">
-              <span className="text-2xl">📊</span>
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 lg:gap-8">
+        <div className="bg-gradient-to-br from-gray-800 to-gray-900 p-5 sm:p-8 rounded-2xl border border-gray-700 shadow-2xl">
+          <div className="flex items-center mb-5 sm:mb-6">
+            <div className="w-10 h-10 sm:w-12 sm:h-12 bg-gradient-to-r from-purple-500 to-purple-600 rounded-xl flex items-center justify-center mr-3 sm:mr-4 flex-shrink-0">
+              <span className="text-xl sm:text-2xl">📊</span>
             </div>
-            <h3 className="text-2xl font-bold text-white">إجمالي الطلبات</h3>
+            <h3 className="text-xl sm:text-2xl font-bold text-white">إجمالي الطلبات</h3>
           </div>
-
-          <div className="text-4xl font-bold text-purple-400">{stats.totalOrders}</div>
-          <p className="text-gray-400 mt-2">طلب إجمالي</p>
+          <div className="text-4xl sm:text-5xl font-bold text-purple-400 mb-2">{stats.totalOrders}</div>
+          <p className="text-gray-400">طلب إجمالي</p>
         </div>
 
-        <div className="bg-gradient-to-br from-gray-800 to-gray-900 p-8 rounded-2xl border border-gray-700 shadow-2xl">
-          <div className="flex items-center mb-6">
-            <div className="w-12 h-12 bg-gradient-to-r from-orange-500 to-orange-600 rounded-xl flex items-center justify-center mr-4">
-              <span className="text-2xl">🏆</span>
+        <div className="bg-gradient-to-br from-gray-800 to-gray-900 p-5 sm:p-8 rounded-2xl border border-gray-700 shadow-2xl">
+          <div className="flex items-center mb-5 sm:mb-6">
+            <div className="w-10 h-10 sm:w-12 sm:h-12 bg-gradient-to-r from-orange-500 to-orange-600 rounded-xl flex items-center justify-center mr-3 sm:mr-4 flex-shrink-0">
+              <span className="text-xl sm:text-2xl">🏆</span>
             </div>
-            <h3 className="text-2xl font-bold text-white">الألعاب الأكثر طلباً</h3>
+            <h3 className="text-xl sm:text-2xl font-bold text-white">الألعاب الأكثر طلباً</h3>
           </div>
 
           <div className="space-y-3">
             {stats.topGames.length > 0 ? (
-              stats.topGames.map((g, i) => (
+              stats.topGames.slice(0, 5).map((g, i) => (
                 <div key={i} className="flex items-center justify-between p-3 bg-gray-700/50 rounded-xl">
-                  <span className="text-gray-200">اللعبة #{g.gameId}</span>
-                  <span className="text-orange-400 font-semibold">{g.count} طلب</span>
+                  <div className="flex items-center gap-2">
+                    <span className="w-6 h-6 bg-orange-500/20 text-orange-400 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0">{i + 1}</span>
+                    <span className="text-gray-200 text-sm">{g.title || `لعبة #${g.gameId}`}</span>
+                  </div>
+                  <span className="text-orange-400 font-semibold text-sm">{g.count}</span>
                 </div>
               ))
             ) : (
