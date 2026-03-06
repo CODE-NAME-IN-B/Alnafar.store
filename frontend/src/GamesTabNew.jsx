@@ -378,7 +378,11 @@ export default function GamesTab() {
                         try {
                           const r = await api.post('/uploads', { filename: file.name, data: base })
                           setForm(f => ({ ...f, image: r.data.url }))
-                        } catch (err) { alert('فشل رفع الصورة') }
+                        } catch (err) {
+                          console.error('Upload error:', err);
+                          const msg = err.response?.data?.error || err.response?.data?.message || err.message;
+                          alert(`فشل رفع الصورة: ${msg}`);
+                        }
                       }
                       reader.readAsDataURL(file)
                     }}

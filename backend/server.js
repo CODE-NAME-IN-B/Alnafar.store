@@ -688,13 +688,19 @@ app.post('/api/uploads', async (req, res) => {
     // sanitize filename
     const safeName = filename.replace(/[^a-zA-Z0-9._-]/g, '_')
 
-    // رفع إلى Cloudinary أو التخزين المحلي
+    // رفع إلى Cloudinary أو التخزين المحلي (Cloudinary required on Vercel)
     const result = await cloudinaryStorage.uploadBase64Image(data, safeName, 'games');
 
     res.json({ url: result.url })
   } catch (e) {
-    console.error('upload error', e)
-    res.status(500).json({ message: 'Upload failed', error: e.message })
+    console.error('upload error:', e)
+    // Return specific error message if available
+    res.status(500).json({
+      success: false,
+      message: 'Upload failed',
+      error: e.message,
+      code: e.message.includes('Cloudinary') ? 'CLOUDINARY_MISSING' : 'UPLOAD_ERROR'
+    })
   }
 })
 
@@ -1526,10 +1532,15 @@ app.post('/api/seed-folder', authMiddleware, async (req, res) => {
 // list upload folders (authenticated)
 app.get('/api/uploads-folders', authMiddleware, (req, res) => {
   try {
+    if (!fs.existsSync(UPLOADS_DIR)) {
+      console.warn('UPLOADS_DIR does not exist:', UPLOADS_DIR);
+      return res.json([]);
+    }
     const dirs = fs.readdirSync(UPLOADS_DIR).filter(name => fs.statSync(path.join(UPLOADS_DIR, name)).isDirectory())
     res.json(dirs)
   } catch (e) {
-    res.status(500).json({ message: 'failed' })
+    console.error('uploads-folders error:', e);
+    res.status(500).json({ message: 'failed', error: e.message })
   }
 })
 
