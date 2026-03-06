@@ -1,11 +1,17 @@
+```json
 {
     "version": 2,
-    "buildCommand": "cd frontend && npm install && npm run build",
-    "outputDirectory": "frontend/dist",
     "builds": [
         {
             "src": "backend/server.js",
             "use": "@vercel/node"
+        },
+        {
+            "src": "frontend/package.json",
+            "use": "@vercel/static-build",
+            "config": {
+                "distDir": "dist"
+            }
         }
     ],
     "routes": [
@@ -18,8 +24,7 @@
             "dest": "/backend/server.js"
         },
         {
-            "src": "/(.*\\.(js|css|png|jpg|svg|ico|json|woff|woff2|ttf|map|webp|gif))",
-            "dest": "/$1"
+            "handle": "filesystem"
         },
         {
             "src": "/(.*)",
@@ -27,3 +32,4 @@
         }
     ]
 }
+```
