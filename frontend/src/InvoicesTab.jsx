@@ -191,61 +191,77 @@ export default function InvoicesTab() {
   }
 
   return (
-    <div className="p-8">
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
+    <div className="p-4 sm:p-8 overflow-hidden max-w-[100vw]">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6 mt-2">
         <div>
-          <h2 className="text-2xl font-bold text-white">الفواتير</h2>
-          <p className="text-gray-400 mt-1">اختر نطاق التاريخ لحساب الأرباح (مثلاً من أول الشهر لليوم)</p>
+          <h2 className="text-xl sm:text-2xl font-bold text-white">الفواتير</h2>
+          <p className="text-gray-400 mt-1 text-sm">اختر نطاق التاريخ لحساب الأرباح (عن فترة محددة)</p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex gap-2 w-full sm:w-auto">
           <button
             onClick={deleteAllInvoices}
-            className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg font-medium transition-colors"
+            className="flex-1 sm:flex-none px-4 py-2.5 bg-red-600/20 text-red-400 hover:bg-red-600 hover:text-white border border-red-600/30 rounded-lg font-medium transition-all flex justify-center items-center gap-2"
           >
-            🗑️ حذف فواتير اليوم
+            <span>🗑️</span> <span className="text-sm">حذف فواتير اليوم</span>
           </button>
         </div>
       </div>
 
-      <div className="flex flex-wrap items-center gap-3 mb-4">
-        <label className="text-gray-400 text-sm">من تاريخ:</label>
-        <input
-          type="date"
-          value={dateFrom}
-          onChange={(e) => setDateFrom(e.target.value)}
-          className="bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-white"
-        />
-        <label className="text-gray-400 text-sm">إلى تاريخ:</label>
-        <input
-          type="date"
-          value={dateTo}
-          onChange={(e) => setDateTo(e.target.value)}
-          className="bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-white"
-        />
-        <button
-          onClick={() => loadInvoices(1)}
-          className="px-4 py-2 bg-primary hover:bg-primary-dark text-white rounded-lg font-medium"
-        >
-          عرض
-        </button>
-      </div>
+      {/* Filters Section */}
+      <div className="bg-gray-800/40 p-3 sm:p-5 rounded-xl border border-gray-700/50 mb-6 space-y-4">
+        {/* Date Filters */}
+        <div className="flex flex-col sm:flex-row flex-wrap items-stretch sm:items-end gap-3">
+          <div className="flex-1 flex flex-row gap-2 sm:gap-4">
+            <div className="flex-1">
+              <label className="text-gray-400 text-xs sm:text-sm block mb-1.5 focus-within:text-primary transition-colors">من تاريخ:</label>
+              <input
+                type="date"
+                value={dateFrom}
+                onChange={(e) => setDateFrom(e.target.value)}
+                className="w-full bg-gray-900 border border-gray-700 rounded-lg px-2 sm:px-3 py-2 text-white text-sm focus:border-primary focus:ring-1 focus:ring-primary transition-all"
+              />
+            </div>
+            <div className="flex-1">
+              <label className="text-gray-400 text-xs sm:text-sm block mb-1.5 focus-within:text-primary transition-colors">إلى تاريخ:</label>
+              <input
+                type="date"
+                value={dateTo}
+                onChange={(e) => setDateTo(e.target.value)}
+                className="w-full bg-gray-900 border border-gray-700 rounded-lg px-2 sm:px-3 py-2 text-white text-sm focus:border-primary focus:ring-1 focus:ring-primary transition-all"
+              />
+            </div>
+          </div>
+          <button
+            onClick={() => loadInvoices(1)}
+            className="w-full sm:w-auto px-6 py-2.5 bg-primary hover:bg-primary-dark text-white rounded-lg font-medium transition-all shadow-lg shadow-primary/20 text-sm"
+          >
+            بحث بالتاريخ
+          </button>
+        </div>
 
-      <div className="flex flex-wrap items-center gap-2 mb-4">
-        <input
-          value={search}
-          onChange={e => setSearch(e.target.value)}
-          placeholder="ابحث برقم الفاتورة أو اسم العميل..."
-          className="flex-1 min-w-[240px] bg-gray-800 border border-gray-700 rounded-lg px-3 py-2.5 text-white"
-        />
-        <select
-          value={pageLimit}
-          onChange={e => setPageLimit(parseInt(e.target.value) || 50)}
-          className="bg-gray-800 border border-gray-700 rounded-lg px-3 py-2.5 text-white"
-        >
-          <option value={20}>20 لكل صفحة</option>
-          <option value={50}>50 لكل صفحة</option>
-          <option value={100}>100 لكل صفحة</option>
-        </select>
+        {/* Search & Limit */}
+        <div className="flex flex-col sm:flex-row flex-wrap items-stretch sm:items-center gap-3 pt-2 sm:pt-0 sm:border-t-0 border-t border-gray-700/50">
+          <div className="relative flex-1">
+            <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
+              <span className="text-gray-400 text-sm">🔍</span>
+            </div>
+            <input
+              value={search}
+              onChange={e => setSearch(e.target.value)}
+              placeholder="ابحث برقم الفاتورة أو العميل..."
+              className="w-full bg-gray-900 border border-gray-700 rounded-lg pr-9 pl-3 py-2.5 text-white text-sm focus:border-primary focus:ring-1 focus:ring-primary transition-all"
+            />
+          </div>
+          <select
+            value={pageLimit}
+            onChange={e => setPageLimit(parseInt(e.target.value) || 50)}
+            className="w-full sm:w-auto bg-gray-900 border border-gray-700 rounded-lg px-3 py-2.5 text-white text-sm focus:border-primary transition-all"
+          >
+            <option value={20}>20 فاتورة</option>
+            <option value={50}>50 فاتورة</option>
+            <option value={100}>100 فاتورة</option>
+          </select>
+        </div>
       </div>
 
       {/* إحصائيات الفواتير - عند اختيار نطاق تاريخ تظهر إحصائيات الفترة */}
@@ -301,132 +317,214 @@ export default function InvoicesTab() {
       )}
 
       {invoices.length === 0 ? (
-        <div className="bg-gray-800 p-8 rounded-xl text-center">
+        <div className="bg-gray-800/40 p-8 sm:p-12 rounded-2xl border border-gray-700/50 text-center shadow-lg">
+          <div className="text-4xl mb-4 opacity-50">🧾</div>
           <h3 className="text-xl font-bold text-white mb-2">لا توجد فواتير</h3>
-          <p className="text-gray-400">لم يتم إنشاء أي فواتير بعد</p>
+          <p className="text-gray-400 text-sm">لم يتم العثور على أي فواتير في هذه الفترة</p>
         </div>
       ) : (
-        <div className="bg-gray-800 p-6 rounded-xl overflow-x-auto">
-          <table className="w-full text-white">
-            <thead>
-              <tr className="border-b border-gray-600">
-                <th className="text-right py-3 px-4">رقم الفاتورة</th>
-                <th className="text-right py-3 px-4">اسم العميل</th>
-                <th className="text-right py-3 px-4">المجموع</th>
-                <th className="text-right py-3 px-4">المدفوع</th>
-                <th className="text-right py-3 px-4">الباقي</th>
-                <th className="text-right py-3 px-4">التجهيز</th>
-                <th className="text-right py-3 px-4">وقت الإنشاء</th>
-                <th className="text-center py-3 px-4">الإجراءات</th>
-              </tr>
-            </thead>
-            <tbody>
-              {filteredInvoices.map((invoice) => (
-                <tr key={invoice.id} className="border-b border-gray-700 hover:bg-gray-700/30">
-                  <td className="py-3 px-4 font-mono text-primary">{invoice.invoice_number}</td>
-                  <td className="py-3 px-4">{invoice.customer_name}</td>
-                  <td className="py-3 px-4 text-gray-300 text-sm">{currency(invoice.total)}</td>
-                  <td className="py-3 px-4 font-bold text-green-400">{currency(invoice.paid_amount || 0)}</td>
-                  <td className="py-3 px-4 font-bold text-red-400">{currency(((invoice.total || 0) - (invoice.discount || 0)) - (invoice.paid_amount || 0))}</td>
-                  <td className="py-3 px-4">
+        <div className="mb-4">
+          {/* Mobile Cards (Hidden on Desktop) */}
+          <div className="grid grid-cols-1 md:hidden gap-4">
+            {filteredInvoices.map((invoice) => {
+              const finalTotal = (invoice.total || 0) - (invoice.discount || 0);
+              const balance = finalTotal - (invoice.paid_amount || 0);
+              const items = Array.isArray(invoice.items) ? invoice.items : (() => { try { return JSON.parse(invoice.items) } catch { return [] } })();
+              
+              return (
+                <div key={invoice.id} className="bg-gray-800/80 rounded-xl border border-gray-700 p-4 shadow-sm flex flex-col gap-3">
+                  {/* Header: Num + Status */}
+                  <div className="flex justify-between items-start pb-3 border-b border-gray-700">
+                    <div className="flex flex-col gap-1">
+                      <span className="font-mono text-primary font-bold text-sm">{invoice.invoice_number}</span>
+                      <span className="text-white text-sm font-medium">{invoice.customer_name || 'عميل نقدي'}</span>
+                    </div>
                     <select
                       value={invoice.status || 'pending'}
                       onChange={(e) => updateStatus(invoice.id, e.target.value)}
-                      className={`text-xs p-1 rounded-md border-none focus:ring-1 focus:ring-primary ${invoice.status === 'ready' ? 'bg-green-900/50 text-green-400' :
+                      className={`text-xs p-1.5 rounded-md border-none focus:ring-1 focus:ring-primary ${
+                        invoice.status === 'ready' ? 'bg-green-900/50 text-green-400' :
                         invoice.status === 'completed' ? 'bg-blue-900/50 text-blue-400' :
-                          invoice.status === 'processing' ? 'bg-yellow-900/50 text-yellow-400' :
-                            'bg-gray-700 text-gray-300'
-                        }`}
+                        invoice.status === 'processing' ? 'bg-yellow-900/50 text-yellow-400' :
+                        'bg-gray-700 text-gray-300'
+                      }`}
                     >
                       <option value="pending">⏳ قيد الانتظار</option>
-                      <option value="processing">⚙️ جاري التجهيز</option>
-                      <option value="ready">✅ جاهز للاستلام</option>
+                      <option value="processing">⚙️ التجهيز</option>
+                      <option value="ready">✅ جاهز</option>
                       <option value="completed">🏁 مكتمل</option>
                     </select>
-                  </td>
-                  <td className="py-3 px-4 text-gray-300 text-[10px] leading-tight">
-                    {new Date(invoice.created_at).toLocaleString('ar-LY', {
-                      month: '2-digit',
-                      day: '2-digit',
-                      hour: '2-digit',
-                      minute: '2-digit'
-                    })}
-                  </td>
-                  <td className="py-3 px-4 text-center">
-                    <div className="flex flex-wrap gap-2 justify-center min-w-[120px]">
-                      <button
-                        onClick={() => reprintInvoice(invoice)}
-                        className="p-2 sm:px-3 sm:py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg text-sm transition-colors"
-                        title="إعادة طباعة"
-                      >
-                        🖨️
+                  </div>
+
+                  {/* Body: Amounts */}
+                  <div className="grid grid-cols-2 gap-3 text-sm">
+                    <div className="flex flex-col bg-gray-900/50 p-2 rounded-lg">
+                      <span className="text-gray-400 text-xs mb-1">المجموع</span>
+                      <span className="text-white font-semibold">{currency(finalTotal)}</span>
+                    </div>
+                    <div className="flex flex-col bg-gray-900/50 p-2 rounded-lg">
+                      <span className="text-gray-400 text-xs mb-1">المدفوع</span>
+                      <span className="text-green-400 font-bold">{currency(invoice.paid_amount || 0)}</span>
+                    </div>
+                    {balance > 0 && (
+                      <div className="col-span-2 flex flex-col bg-red-900/20 border border-red-900/30 p-2 rounded-lg">
+                        <span className="text-red-300 text-xs mb-1">الباقي (الآجل)</span>
+                        <span className="text-red-400 font-bold">{currency(balance)}</span>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Date */}
+                  <div className="text-gray-400 text-xs flex justify-between items-center">
+                    <span>التاريخ:</span>
+                    <span>
+                      {new Date(invoice.created_at).toLocaleString('ar-LY', {
+                        month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit'
+                      })}
+                    </span>
+                  </div>
+
+                  {/* Actions */}
+                  <div className="grid grid-cols-4 gap-2 mt-2 pt-3 border-t border-gray-700">
+                    <button onClick={() => reprintInvoice(invoice)} className="py-2.5 bg-green-600/20 text-green-400 hover:bg-green-600 hover:text-white rounded-lg transition-colors flex items-center justify-center text-lg" title="طباعة">🖨️</button>
+                    <button onClick={() => {
+                      const info = [
+                        `رقم: ${invoice.invoice_number}`,
+                        `التاريخ: ${new Date(invoice.created_at).toLocaleString('ar-LY')}`,
+                        `الاسم: ${invoice.customer_name}`,
+                        `الهاتف: ${invoice.customer_phone}`,
+                        invoice.customer_address ? `العنوان: ${invoice.customer_address}` : '',
+                        `المجموع: ${currency(invoice.total)}`,
+                        invoice.discount > 0 ? `الخصم: -${currency(invoice.discount)}` : '',
+                        `النهائي: ${currency(finalTotal)}`,
+                        `\nالعناصر:\n` + items.map((it, i) => `${i + 1}. ${it.title} — ${currency(it.price)}`).join('\n')
+                      ].filter(Boolean).join('\n');
+                      alert(info);
+                    }} className="py-2.5 bg-blue-600/20 text-blue-400 hover:bg-blue-600 hover:text-white rounded-lg transition-colors flex items-center justify-center text-lg" title="التفاصيل">👁️</button>
+                    <button onClick={() => {
+                        localStorage.setItem('editing_invoice', JSON.stringify({
+                          id: invoice.id, invoice_number: invoice.invoice_number,
+                          customer_name: invoice.customer_name, customer_phone: invoice.customer_phone,
+                          items: items, discount: invoice.discount || 0
+                        }));
+                        window.location.hash = '#/';
+                    }} className="py-2.5 bg-yellow-600/20 text-yellow-400 hover:bg-yellow-600 hover:text-white rounded-lg transition-colors flex items-center justify-center text-lg" title="تعديل">✏️</button>
+                    <button onClick={() => deleteInvoice(invoice.id)} className="py-2.5 bg-red-600/20 text-red-400 hover:bg-red-600 hover:text-white rounded-lg transition-colors flex items-center justify-center text-lg" title="حذف">🗑️</button>
+                    
+                    {balance > 0 && (
+                      <button onClick={() => payBalance(invoice)} className="col-span-4 mt-1 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-lg text-sm transition-colors shadow-lg">
+                        💰 تسديد الباقي ({currency(balance)})
                       </button>
-                      <button
-                        onClick={() => {
-                          const items = Array.isArray(invoice.items) ? invoice.items : (() => { try { return JSON.parse(invoice.items) } catch { return [] } })()
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+
+          {/* Desktop Table (Hidden on Mobile) */}
+          <div className="hidden md:block bg-gray-800 rounded-xl overflow-x-auto border border-gray-700">
+            <table className="w-full text-white table-auto">
+              <thead>
+                <tr className="border-b border-gray-600 bg-gray-900/50">
+                  <th className="text-right py-4 px-4 font-semibold text-sm">رقم الفاتورة</th>
+                  <th className="text-right py-4 px-4 font-semibold text-sm">العميل</th>
+                  <th className="text-right py-4 px-4 font-semibold text-sm">المجموع</th>
+                  <th className="text-right py-4 px-4 font-semibold text-sm">المدفوع</th>
+                  <th className="text-right py-4 px-4 font-semibold text-sm">الباقي</th>
+                  <th className="text-right py-4 px-4 font-semibold text-sm">الحالة</th>
+                  <th className="text-right py-4 px-4 font-semibold text-sm">التاريخ</th>
+                  <th className="text-center py-4 px-4 font-semibold text-sm">إجراءات</th>
+                </tr>
+              </thead>
+              <tbody>
+                {filteredInvoices.map((invoice) => {
+                  const finalTotal = (invoice.total || 0) - (invoice.discount || 0);
+                  const balance = finalTotal - (invoice.paid_amount || 0);
+                  const items = Array.isArray(invoice.items) ? invoice.items : (() => { try { return JSON.parse(invoice.items) } catch { return [] } })();
+                  return (
+                  <tr key={invoice.id} className="border-b border-gray-700 hover:bg-gray-700/50 transition-colors">
+                    <td className="py-3 px-4 font-mono text-primary font-bold">{invoice.invoice_number}</td>
+                    <td className="py-3 px-4">
+                      <div className="font-medium">{invoice.customer_name || 'نقدي'}</div>
+                      {invoice.customer_phone && <div className="text-xs text-gray-400 mt-0.5">{invoice.customer_phone}</div>}
+                    </td>
+                    <td className="py-3 px-4 text-gray-200">{currency(finalTotal)}</td>
+                    <td className="py-3 px-4 font-bold text-green-400">{currency(invoice.paid_amount || 0)}</td>
+                    <td className="py-3 px-4 font-bold text-red-400">{currency(balance)}</td>
+                    <td className="py-3 px-4">
+                      <select
+                        value={invoice.status || 'pending'}
+                        onChange={(e) => updateStatus(invoice.id, e.target.value)}
+                        className={`text-xs p-1.5 rounded-md border-none focus:ring-1 focus:ring-primary font-medium ${
+                          invoice.status === 'ready' ? 'bg-green-900/50 text-green-400' :
+                          invoice.status === 'completed' ? 'bg-blue-900/50 text-blue-400' :
+                          invoice.status === 'processing' ? 'bg-yellow-900/50 text-yellow-400' :
+                          'bg-gray-700 text-gray-300'
+                        }`}
+                      >
+                        <option value="pending">قيد الانتظار</option>
+                        <option value="processing">تجهيز</option>
+                        <option value="ready">جاهز</option>
+                        <option value="completed">مكتمل</option>
+                      </select>
+                    </td>
+                    <td className="py-3 px-4 text-gray-400 text-xs">
+                      {new Date(invoice.created_at).toLocaleString('ar-LY', {
+                        month: 'short', day: '2-digit', hour: '2-digit', minute: '2-digit'
+                      })}
+                    </td>
+                    <td className="py-3 px-4 text-center">
+                      <div className="flex flex-wrap gap-2 justify-center">
+                        <button onClick={() => reprintInvoice(invoice)} className="p-2 bg-gray-700 hover:bg-green-600 text-white rounded-lg transition-colors" title="طباعة">🖨️</button>
+                        <button onClick={() => {
                           const info = [
                             `رقم: ${invoice.invoice_number}`,
                             `التاريخ: ${new Date(invoice.created_at).toLocaleString('ar-LY')}`,
                             `الاسم: ${invoice.customer_name}`,
                             `الهاتف: ${invoice.customer_phone}`,
                             invoice.customer_address ? `العنوان: ${invoice.customer_address}` : '',
-                            `المجموع قبل الخصم: ${new Intl.NumberFormat('ar-LY', { style: 'currency', currency: 'LYD' }).format(invoice.total)}`,
-                            invoice.discount > 0 ? `الخصم: -${new Intl.NumberFormat('ar-LY', { style: 'currency', currency: 'LYD' }).format(invoice.discount)}` : '',
-                            `الإجمالي النهائي: ${new Intl.NumberFormat('ar-LY', { style: 'currency', currency: 'LYD' }).format((invoice.total || 0) - (invoice.discount || 0))}`,
-                            `العناصر:\n` + items.map((it, i) => `${i + 1}. ${it.title} — ${new Intl.NumberFormat('ar-LY', { style: 'currency', currency: 'LYD' }).format(it.price)}`).join('\n')
-                          ].filter(Boolean).join('\n')
-                          alert(info)
-                        }}
-                        className="p-2 sm:px-3 sm:py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm transition-colors"
-                        title="عرض التفاصيل"
-                      >
-                        👁️
-                      </button>
-                      <button
-                        onClick={() => {
-                          const items = Array.isArray(invoice.items) ? invoice.items : (() => { try { return JSON.parse(invoice.items) } catch { return [] } })()
+                            `المجموع: ${currency(invoice.total)}`,
+                            invoice.discount > 0 ? `الخصم: -${currency(invoice.discount)}` : '',
+                            `النهائي: ${currency(finalTotal)}`,
+                            `\nالعناصر:\n` + items.map((it, i) => `${i + 1}. ${it.title} — ${currency(it.price)}`).join('\n')
+                          ].filter(Boolean).join('\n');
+                          alert(info);
+                        }} className="p-2 bg-gray-700 hover:bg-blue-600 text-white rounded-lg transition-colors" title="تفاصيل">👁️</button>
+                        <button onClick={() => {
                           localStorage.setItem('editing_invoice', JSON.stringify({
-                            id: invoice.id,
-                            invoice_number: invoice.invoice_number,
-                            customer_name: invoice.customer_name,
-                            customer_phone: invoice.customer_phone,
-                            items: items,
-                            discount: invoice.discount || 0
+                            id: invoice.id, invoice_number: invoice.invoice_number,
+                            customer_name: invoice.customer_name, customer_phone: invoice.customer_phone,
+                            items: items, discount: invoice.discount || 0
                           }));
                           window.location.hash = '#/';
-                        }}
-                        className="p-2 sm:px-3 sm:py-2 bg-yellow-600 hover:bg-yellow-700 text-white rounded-lg text-sm transition-colors"
-                        title="تعديل الفاتورة"
-                      >
-                        ✏️
-                      </button>
-                      <button
-                        onClick={() => deleteInvoice(invoice.id)}
-                        className="p-2 sm:px-3 sm:py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg text-sm transition-colors"
-                        title="حذف الفاتورة"
-                      >
-                        🗑️
-                      </button>
-                      {((invoice.total || 0) - (invoice.discount || 0)) - (invoice.paid_amount || 0) > 0 && (
-                        <button
-                          onClick={() => payBalance(invoice)}
-                          className="p-2 sm:px-3 sm:py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-sm transition-colors font-bold"
-                          title="تسديد دفعة / الباقي"
-                        >
-                          💰 تسديد
-                        </button>
-                      )}
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-          {/* Pagination */}
-          <div className="flex items-center justify-center gap-3 mt-4">
-            <button disabled={pagination.page <= 1} onClick={() => loadInvoices(pagination.page - 1)} className="px-3 py-1.5 bg-gray-700 disabled:opacity-50 rounded">السابق</button>
-            <span className="text-gray-300">صفحة {pagination.page} من {pagination.pages}</span>
-            <button disabled={pagination.page >= pagination.pages} onClick={() => loadInvoices(pagination.page + 1)} className="px-3 py-1.5 bg-gray-700 disabled:opacity-50 rounded">التالي</button>
+                        }} className="p-2 bg-gray-700 hover:bg-yellow-600 text-white rounded-lg transition-colors" title="تعديل">✏️</button>
+                        <button onClick={() => deleteInvoice(invoice.id)} className="p-2 bg-gray-700 hover:bg-red-600 text-white rounded-lg transition-colors" title="حذف">🗑️</button>
+                        {balance > 0 && (
+                          <button onClick={() => payBalance(invoice)} className="px-3 py-2 bg-indigo-600/90 hover:bg-indigo-600 text-white rounded-lg text-xs font-bold transition-colors shadow-md">
+                            💰 تسديد
+                          </button>
+                        )}
+                      </div>
+                    </td>
+                  </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+
+          {/* Pagination (Shared) */}
+          <div className="flex items-center justify-between bg-gray-800/50 p-4 rounded-xl border border-gray-700/50 mt-4">
+            <button disabled={pagination.page <= 1} onClick={() => loadInvoices(pagination.page - 1)} className="px-4 py-2 bg-gray-700 hover:bg-gray-600 disabled:opacity-50 disabled:cursor-not-allowed rounded-lg text-sm font-medium transition-colors">
+              السابق
+            </button>
+            <span className="text-gray-300 text-sm font-medium font-mono">
+              {pagination.page} / {pagination.pages}
+            </span>
+            <button disabled={pagination.page >= pagination.pages} onClick={() => loadInvoices(pagination.page + 1)} className="px-4 py-2 bg-gray-700 hover:bg-gray-600 disabled:opacity-50 disabled:cursor-not-allowed rounded-lg text-sm font-medium transition-colors">
+              التالي
+            </button>
           </div>
         </div>
       )}
