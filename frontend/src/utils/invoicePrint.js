@@ -158,22 +158,6 @@ export async function openInvoicePrintWindow(invoice, invSettings = {}) {
     
     <div class="separator"></div>
     
-    <div class="section-title">تفاصيل الطلب</div>
-    ${items.filter(i => i.type !== 'service').map(item => `
-    <div class="item-row">
-      <span class="item-name">${item.title}</span>
-      <span class="item-price">${currency(item.price)}</span>
-    </div>`).join('')}
-    ${items.filter(i => i.type === 'service').length ? `
-    <div class="separator"></div>
-    <div class="section-title">الخدمات</div>
-    ${items.filter(i => i.type === 'service').map(s => `
-    <div class="item-row">
-      <span class="item-name">${s.title}</span>
-      <span class="item-price">${currency(s.price)}</span>
-    </div>`).join('')}` : ''}
-    
-    <div class="separator"></div>
     ${(invoice.total_size_gb > 0 || invoice.totalSize > 0) ? `
     <div class="info-row">
       <span class="info-label">إجمالي الحجم:</span>
@@ -194,15 +178,17 @@ export async function openInvoicePrintWindow(invoice, invSettings = {}) {
       <span class="total-value">${currency((invoice.total || 0) - (invoice.discount || 0))}</span>
     </div>
     
-
+    <div class="separator"></div>
     
+    <div class="qr-container" style="margin-top: 10px; margin-bottom: 5px;">
+      ${qrDataUrl ? `<img src="${qrDataUrl}" alt="تتبع الطلب" style="max-width: 45mm;" />
+      <div class="qr-label" style="font-size: 11px; margin-top: 2px;">امسح الدائرة لعرض الألعاب والتفاصيل</div>` : ''}
+    </div>
+
     ${showFooter && footerMsg ? `
     <div class="footer">
       <div>${footerMsg}</div>
     </div>` : ''}
-    <div class="qr-container">
-      ${qrDataUrl ? `<img src="${qrDataUrl}" alt="تتبع الطلب" /><div class="qr-label">تتبع طلبك عبر مسح الرمز</div>` : ''}
-    </div>
   </div>
   <script>
     (function(){
