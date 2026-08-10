@@ -179,11 +179,12 @@ export default function InvoiceSettings() {
           </div>
           
           <div>
-            <label className="block text-xs sm:text-sm font-medium text-gray-300 mb-1.5 sm:mb-2">رقم الهاتف</label>
+            <label className="block text-xs sm:text-sm font-medium text-gray-300 mb-1.5 sm:mb-2">رقم الواتساب / الهاتف</label>
             <input
               type="tel"
               value={settings.store_phone}
               onChange={(e) => handleInputChange('store_phone', e.target.value)}
+              placeholder="+218920595447"
               className="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 sm:px-4 py-2.5 sm:py-3 text-white text-sm sm:text-base"
             />
           </div>
