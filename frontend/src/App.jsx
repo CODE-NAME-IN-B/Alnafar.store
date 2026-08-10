@@ -1098,55 +1098,74 @@ export default function App() {
               {displayedGames.map(game => {
                 const categoryName = (categories || []).find(c => c.id === game.category_id)?.name || 'PS4'
                 return (
-                  <div key={game.id} className="game-card game-card-store group rounded-xl overflow-hidden border border-white/10 bg-card hover:border-primary/40 transition-all" data-game-id={game.id}>
-                      <div className="aspect-square relative overflow-hidden bg-gray-800/80">
+                  <div key={game.id} className="game-card game-card-store group rounded-2xl overflow-hidden border border-white/5 bg-gradient-to-b from-gray-800/80 to-gray-900/90 hover:border-purple-500/50 hover:shadow-[0_0_30px_rgba(124,58,237,0.25)] transition-all duration-300 hover:-translate-y-1" data-game-id={game.id}>
+                    {/* صورة اللعبة مع overlay */}
+                    <div className="aspect-[4/3] relative overflow-hidden bg-gray-800">
                       <img
                         src={game.image.startsWith('http') ? game.image : game.image}
                         alt={game.title}
                         loading="lazy"
                         decoding="async"
-                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                        className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
                         referrerPolicy="no-referrer"
                         onError={(e) => {
                           e.target.onerror = null;
                           e.target.src = cover;
                         }}
                       />
-                    </div>
-                    <div className="p-3 sm:p-4 flex flex-col flex-grow">
-                      <h3 className="game-card-title text-white font-semibold mb-2 line-clamp-2 min-h-[2.5rem]">{game.title}</h3>
-                      <div className="flex items-center justify-between mb-2 gap-2">
-                        <span className="px-2 py-1 bg-primary/20 text-primary rounded-lg text-xs font-bold">
-                          {categoryName}
-                        </span>
-                        <div className="flex flex-col items-end">
-                          <span className="text-primary font-bold text-base sm:text-lg tabular-nums">
-                            {game.price.toFixed(3)} د.ل
-                          </span>
-                          {game.size_gb > 0 && (
-                            <span className="text-gray-400 text-xs mt-0.5">{game.size_gb} GB</span>
-                          )}
-                        </div>
-                      </div>
+                      {/* Gradient overlay */}
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+                      
+                      {/* شارة النوع */}
                       {game._cls?.genre && (
-                        <div className="mb-3">
-                          <span className={`inline-block px-2 py-1 rounded-lg text-xs font-semibold ${genreClass(game._cls.genre)}`}>
-                            {genreArLabels[game._cls.genre] || game._cls.genre}
-                          </span>
-                        </div>
+                        <span className={`absolute top-3 right-3 px-2.5 py-1 rounded-full text-[10px] font-bold backdrop-blur-sm border ${genreClass(game._cls.genre)}`}>
+                          {genreArLabels[game._cls.genre] || game._cls.genre}
+                        </span>
                       )}
                       
-                      {(hasToken || isGuestMode) && (
-                      <button
-                        onClick={() => addToCart(game)}
-                        className="mt-auto w-full bg-gradient-to-r from-primary to-emerald-500 hover:from-primary-dark hover:to-emerald-600 text-white font-bold py-2.5 sm:py-3 px-4 rounded-lg transition-all hover:scale-[1.02] active:scale-[0.98] shadow-lg flex items-center justify-center gap-2 text-sm sm:text-base"
-                      >
-                        <svg className="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
-                        </svg>
-                        أضف للسلة
-                      </button>
+                      {/* شارة الحجم */}
+                      {game.size_gb > 0 && (
+                        <span className="absolute top-3 left-3 px-2 py-1 bg-black/60 backdrop-blur-sm text-white text-[10px] font-bold rounded-full flex items-center gap-1">
+                          <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4" /></svg>
+                          {game.size_gb} GB
+                        </span>
                       )}
+                    </div>
+                    
+                    {/* محتوى البطاقة */}
+                    <div className="p-3 sm:p-4 flex flex-col flex-grow">
+                      <h3 className="game-card-title text-white font-bold text-sm sm:text-base mb-2 line-clamp-2 min-h-[2.5rem] group-hover:text-purple-300 transition-colors">{game.title}</h3>
+                      
+                      {/* شارة التصنيف */}
+                      <div className="mb-3">
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-blue-500/15 text-blue-400 rounded-full text-[10px] font-semibold border border-blue-500/20">
+                          <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z" /></svg>
+                          {categoryName}
+                        </span>
+                      </div>
+                      
+                      {/* السعر */}
+                      <div className="mt-auto">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-baseline gap-1">
+                            <span className="text-purple-400 font-black text-lg sm:text-xl tabular-nums">{game.price.toFixed(3)}</span>
+                            <span className="text-gray-500 text-xs font-medium">د.ل</span>
+                          </div>
+                        </div>
+                        
+                        {/* زر السلة */}
+                        {(hasToken || isGuestMode) && (
+                          <button
+                            onClick={() => addToCart(game)}
+                            className="mt-3 w-full bg-gradient-to-r from-purple-600 to-emerald-500 hover:from-purple-500 hover:to-emerald-400 text-white font-bold py-2.5 px-4 rounded-xl transition-all duration-300 hover:shadow-[0_0_20px_rgba(124,58,237,0.5)] active:scale-[0.97] flex items-center justify-center gap-2 text-sm cursor-pointer"
+                          >
+                            <svg className="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
+                            </svg>
+                            أضف للسلة
+                          </button>
+                        )}
+                      </div>
                     </div>
                   </div>
                 )

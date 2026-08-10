@@ -227,15 +227,15 @@ select optgroup {
 
 .game-card {
     background: linear-gradient(145deg, #1a1f2e 0%, #0f1419 100%);
-    border-radius: 12px;
+    border-radius: 16px;
     box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
     overflow: hidden;
     border: 1px solid rgba(255, 255, 255, 0.05);
     display: flex;
     flex-direction: column;
-    transition: transform 0.2s ease-out, box-shadow 0.2s ease-out;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     position: relative;
-    will-change: transform;
+    will-change: transform, box-shadow;
 }
 
 /* All cards same size - disabled dynamic sizing */
@@ -247,9 +247,31 @@ select optgroup {
 }
 
 .game-card:hover {
-    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.4);
-    border-color: rgba(20, 184, 166, 0.3);
+    box-shadow: 0 0 30px rgba(124, 58, 237, 0.25), 0 20px 40px rgba(0, 0, 0, 0.4);
+    border-color: rgba(124, 58, 237, 0.5);
     transform: translateY(-4px);
+}
+
+/* Neon glow effect on hover */
+.game-card::before {
+    content: '';
+    position: absolute;
+    inset: -1px;
+    border-radius: 16px;
+    padding: 1px;
+    background: linear-gradient(135deg, rgba(124, 58, 237, 0), rgba(124, 58, 237, 0));
+    -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+    mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+    -webkit-mask-composite: xor;
+    mask-composite: exclude;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+    pointer-events: none;
+}
+
+.game-card:hover::before {
+    background: linear-gradient(135deg, rgba(124, 58, 237, 0.6), rgba(16, 185, 129, 0.6));
+    opacity: 1;
 }
 
 .game-card-image-wrapper {
@@ -838,4 +860,76 @@ select optgroup {
 
 .nav-scroll::-webkit-scrollbar {
     display: none;
+}
+
+/* ===== Gaming UI Animations ===== */
+
+/* Pulse glow for CTA buttons */
+@keyframes pulse-glow {
+    0%, 100% {
+        box-shadow: 0 0 10px rgba(124, 58, 237, 0.3);
+    }
+    50% {
+        box-shadow: 0 0 25px rgba(124, 58, 237, 0.6);
+    }
+}
+
+/* Shimmer effect for loading */
+@keyframes shimmer {
+    0% {
+        background-position: -200% 0;
+    }
+    100% {
+        background-position: 200% 0;
+    }
+}
+
+/* Gradient flow for borders */
+@keyframes gradient-flow {
+    0% {
+        background-position: 0% 50%;
+    }
+    50% {
+        background-position: 100% 50%;
+    }
+    100% {
+        background-position: 0% 50%;
+    }
+}
+
+/* Float animation for featured items */
+@keyframes float {
+    0%, 100% {
+        transform: translateY(0);
+    }
+    50% {
+        transform: translateY(-5px);
+    }
+}
+
+/* Apply gaming effects */
+.game-card:hover .game-card-button {
+    animation: pulse-glow 2s ease-in-out infinite;
+}
+
+/* Skeleton loading effect */
+.skeleton {
+    background: linear-gradient(90deg, #1a1f2e 25%, #2a2f3e 50%, #1a1f2e 75%);
+    background-size: 200% 100%;
+    animation: shimmer 1.5s infinite;
+}
+
+/* Neon text effect */
+.neon-text {
+    text-shadow: 0 0 10px rgba(124, 58, 237, 0.5),
+                 0 0 20px rgba(124, 58, 237, 0.3),
+                 0 0 30px rgba(124, 58, 237, 0.2);
+}
+
+/* Glass morphism for overlays */
+.glass {
+    background: rgba(15, 20, 30, 0.7);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
 }
