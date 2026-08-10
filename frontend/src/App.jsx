@@ -1100,7 +1100,7 @@ export default function App() {
                 return (
                   <div key={game.id} className="game-card game-card-store group rounded-2xl overflow-hidden border border-white/5 bg-gradient-to-b from-gray-800/80 to-gray-900/90 hover:border-purple-500/50 hover:shadow-[0_0_30px_rgba(124,58,237,0.25)] transition-all duration-300 hover:-translate-y-1" data-game-id={game.id}>
                     {/* صورة اللعبة مع overlay */}
-                    <div className="aspect-[4/3] relative overflow-hidden bg-gray-800">
+                    <div className="aspect-square sm:aspect-[4/3] relative overflow-hidden bg-gray-800">
                       <img
                         src={game.image.startsWith('http') ? game.image : game.image}
                         alt={game.title}
