@@ -755,8 +755,8 @@ app.use(async (req, res, next) => {
     await ensureDb();
     next();
   } catch (error) {
-    console.error('Database initialization error:', error);
-    res.status(500).json({ message: 'Database Error' });
+    console.error('Database initialization error:', error.message, error.stack);
+    res.status(500).json({ message: 'Database Error', detail: error.message });
   }
 });
 
@@ -3639,17 +3639,9 @@ app.put('/api/settings', authMiddleware, (req, res) => {
 
 async function start() {
 
-  await initDb();
+  // DB init is now handled by ensureDb() middleware
+  await ensureDb();
 
-  // Initialize storage (Cloudinary or local)
-  cloudinaryStorage.initStorage();
-
-  await initializeDatabase();
-
-  // Optional: enable automatic seeding only if explicitly requested
-  if (String(process.env.AUTO_SEED_ON_START || '').toLowerCase() === 'true') {
-    await autoSeedFromUploads();
-  }
   const isProd = process.env.NODE_ENV === 'production';
 
 
@@ -3775,12 +3767,26 @@ async function start() {
 
 // تهيئة قاعدة البيانات عند بدء التشغيل
 let isDbInitialized = false;
+let dbInitPromise = null;
+
 async function ensureDb() {
-  if (!isDbInitialized) {
-    await initDb();
-    await initializeDatabase();
-    isDbInitialized = true;
-  }
+  if (isDbInitialized) return;
+  if (dbInitPromise) return dbInitPromise;
+  
+  dbInitPromise = (async () => {
+    try {
+      await initDb();
+      cloudinaryStorage.initStorage();
+      await initializeDatabase();
+      isDbInitialized = true;
+      console.log('✅ Database fully initialized');
+    } catch (error) {
+      dbInitPromise = null;
+      throw error;
+    }
+  })();
+  
+  return dbInitPromise;
 }
 
 start().catch(err => console.error('Start error:', err));
