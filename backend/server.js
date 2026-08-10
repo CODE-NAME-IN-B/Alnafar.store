@@ -735,8 +735,8 @@ app.use(cors({
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'],
   allowedHeaders: ['Content-Type', 'Authorization'],
 }));
-app.use(express.json({ limit: '5mb' }));
-app.use(express.urlencoded({ extended: false, limit: '5mb' }));
+app.use(express.json({ limit: '25mb' }));
+app.use(express.urlencoded({ extended: false, limit: '25mb' }));
 
 // Security headers
 app.use((req, res, next) => {
@@ -760,7 +760,7 @@ app.post('/api/uploads', authMiddleware, uploadLimiter, async (req, res) => {
   if (!filename || !data) return res.status(400).json({ message: 'Missing file data' })
   if (typeof filename !== 'string' || typeof data !== 'string') return res.status(400).json({ message: 'Invalid input types' })
   if (filename.length > 200) return res.status(400).json({ message: 'Filename too long' })
-  if (data.length > 10 * 1024 * 1024) return res.status(413).json({ message: 'File too large (max 10MB)' })
+  if (data.length > 20 * 1024 * 1024) return res.status(413).json({ message: 'File too large (max 20MB)' })
   try {
     // sanitize filename
     const safeName = filename.replace(/[^a-zA-Z0-9._-]/g, '_')
