@@ -107,26 +107,45 @@ function TopList({ onAdd }) {
   )
 
   return (
-    <ul className="space-y-2 sm:space-y-3">
-      {details.map(g => (
-        <li key={g.id} className="flex items-center gap-2 sm:gap-3 p-2 sm:p-3 bg-white/5 rounded-lg hover:bg-white/10 transition-colors">
+    <ul className="space-y-2">
+      {details.map((g, idx) => (
+        <li key={g.id} className="flex items-center gap-3 p-2.5 bg-gradient-to-l from-white/5 to-transparent rounded-xl hover:from-purple-500/10 hover:to-transparent border border-white/5 hover:border-purple-500/30 transition-all duration-200 group">
+          {/* رقم الترتيب */}
+          <div className={`w-7 h-7 rounded-lg flex items-center justify-center text-xs font-black flex-shrink-0 ${
+            idx === 0 ? 'bg-yellow-500/20 text-yellow-400' :
+            idx === 1 ? 'bg-gray-400/20 text-gray-300' :
+            idx === 2 ? 'bg-orange-500/20 text-orange-400' :
+            'bg-white/5 text-gray-500'
+          }`}>
+            {idx + 1}
+          </div>
+          
+          {/* صورة اللعبة */}
           <img
             src={g.image || cover}
             alt={g.title}
-            className="w-12 h-12 sm:w-14 sm:h-14 object-cover rounded-lg flex-shrink-0"
+            className="w-11 h-11 object-cover rounded-lg flex-shrink-0 border border-white/10 group-hover:border-purple-500/30 transition-colors"
             referrerPolicy="no-referrer"
             onError={(e) => { e.currentTarget.onerror = null; e.currentTarget.src = cover; }}
           />
+          
+          {/* معلومات اللعبة */}
           <div className="flex-1 min-w-0">
-            <div className="font-semibold truncate text-sm sm:text-base text-white" title={g.title}>{g.title}</div>
-            <div className="text-primary font-bold text-xs sm:text-sm">{typeof g.price === 'number' ? currency(g.price) : ''}</div>
+            <div className="font-semibold truncate text-sm text-white group-hover:text-purple-300 transition-colors" title={g.title}>{g.title}</div>
+            <div className="flex items-center gap-2 mt-0.5">
+              <span className="text-purple-400 font-bold text-xs">{typeof g.price === 'number' ? currency(g.price) : ''}</span>
+              <span className="text-gray-600 text-[10px]">•</span>
+              <span className="text-gray-500 text-[10px]">{g.count} مبيعة</span>
+            </div>
           </div>
+          
+          {/* زر الإضافة */}
           {onAdd && (
             <button
               onClick={() => onAdd(g)}
-              className="px-2 sm:px-3 py-1 sm:py-1.5 bg-primary hover:bg-primary-dark text-black rounded-lg font-semibold text-xs sm:text-sm transition-colors flex-shrink-0"
+              className="w-8 h-8 bg-purple-600/20 hover:bg-purple-600 text-purple-400 hover:text-white rounded-lg font-semibold text-xs transition-all flex items-center justify-center flex-shrink-0 opacity-70 group-hover:opacity-100"
             >
-              أضف
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 4v16m8-8H4" /></svg>
             </button>
           )}
         </li>
@@ -1176,65 +1195,84 @@ export default function App() {
           <aside className="space-y-4 sm:space-y-6 lg:h-fit lg:sticky lg:top-24">
             {/* السلة - متجاوبة مع الهاتف والتابلت */}
             {(hasToken || isGuestMode) && (
-            <div className="bg-card rounded-xl shadow-sm border border-white/10 p-3 min-[400px]:p-4 sm:p-5">
-              <div className="flex items-center justify-between mb-3 sm:mb-4">
-                <h2 className="text-lg sm:text-xl font-bold">السلة</h2>
+            <div className="bg-gradient-to-b from-gray-800/80 to-gray-900/90 rounded-2xl shadow-lg border border-white/5 p-4 sm:p-5">
+              {/* Header */}
+              <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center gap-2">
+                  <div className="w-8 h-8 bg-purple-500/20 rounded-lg flex items-center justify-center">
+                    <svg className="w-4 h-4 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" /></svg>
+                  </div>
+                  <h2 className="text-lg font-bold text-white">السلة</h2>
+                </div>
                 {cart.length > 0 && (
-                  <span className="bg-primary text-black px-2 py-1 rounded-full text-xs font-bold">
-                    {cart.length}
+                  <span className="bg-purple-500/20 text-purple-400 px-2.5 py-1 rounded-full text-xs font-bold border border-purple-500/30">
+                    {cart.length} {cart.length === 1 ? 'لعبة' : 'ألعاب'}
                   </span>
                 )}
               </div>
 
               {cart.length === 0 && servicesCart.length === 0 ? (
-                <div className="text-center py-6 sm:py-8 text-gray-400">
-                  <svg className="w-12 h-12 mx-auto mb-3 opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
-                  </svg>
-                  <p className="text-sm">السلة فارغة</p>
+                <div className="text-center py-8">
+                  <div className="w-16 h-16 bg-gray-700/30 rounded-2xl flex items-center justify-center mx-auto mb-3">
+                    <svg className="w-8 h-8 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
+                    </svg>
+                  </div>
+                  <p className="text-sm text-gray-400">السلة فارغة</p>
+                  <p className="text-xs text-gray-600 mt-1">أضف ألعاباً للبدء</p>
                 </div>
               ) : (
                 <>
-                  <ul className="space-y-2 sm:space-y-3 max-h-48 sm:max-h-64 overflow-y-auto">
+                  <ul className="space-y-2 max-h-52 overflow-y-auto custom-scrollbar">
                     {cart.map((g, i) => (
-                      <li key={`g-${i}`} className="flex items-center gap-3 p-2 sm:p-3 bg-white/5 rounded-lg">
+                      <li key={`g-${i}`} className="flex items-center gap-3 p-2.5 bg-white/5 hover:bg-white/8 rounded-xl transition-colors group">
+                        <div className="w-2 h-2 bg-purple-500 rounded-full flex-shrink-0"></div>
                         <div className="flex-1 min-w-0">
-                          <p className="text-sm sm:text-base font-medium truncate" title={g.title}>{g.title}</p>
-                          <p className="text-xs sm:text-sm text-gray-300">{currency(g.price)}</p>
+                          <p className="text-sm font-medium truncate text-white" title={g.title}>{g.title}</p>
+                          <p className="text-xs text-purple-400 font-bold">{currency(g.price)}</p>
                         </div>
-                        <button onClick={() => removeFromCart(i)} className="text-red-400 hover:text-red-300 p-1 rounded-full hover:bg-red-900/20" aria-label="حذف"><svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg></button>
+                        <button onClick={() => removeFromCart(i)} className="w-7 h-7 flex items-center justify-center text-gray-500 hover:text-red-400 hover:bg-red-500/10 rounded-lg transition-all opacity-0 group-hover:opacity-100" aria-label="حذف">
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+                        </button>
                       </li>
                     ))}
                     {servicesCart.map((s, i) => (
-                      <li key={`s-${i}`} className="flex items-center gap-3 p-2 sm:p-3 bg-primary/10 rounded-lg border border-primary/20">
+                      <li key={`s-${i}`} className="flex items-center gap-3 p-2.5 bg-emerald-500/5 hover:bg-emerald-500/8 rounded-xl border border-emerald-500/10 transition-colors group">
+                        <div className="w-2 h-2 bg-emerald-500 rounded-full flex-shrink-0"></div>
                         <div className="flex-1 min-w-0">
-                          <p className="text-sm sm:text-base font-medium truncate" title={s.title}>{s.title}</p>
-                          <p className="text-xs sm:text-sm text-primary">{currency(s.price)}</p>
+                          <p className="text-sm font-medium truncate text-white" title={s.title}>{s.title}</p>
+                          <p className="text-xs text-emerald-400 font-bold">{currency(s.price)}</p>
                         </div>
-                        <button onClick={() => removeFromServicesCart(i)} className="text-red-400 hover:text-red-300 p-1 rounded-full hover:bg-red-900/20" aria-label="حذف"><svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg></button>
+                        <button onClick={() => removeFromServicesCart(i)} className="w-7 h-7 flex items-center justify-center text-gray-500 hover:text-red-400 hover:bg-red-500/10 rounded-lg transition-all opacity-0 group-hover:opacity-100" aria-label="حذف">
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+                        </button>
                       </li>
                     ))}
                   </ul>
 
-                  <div className="mt-4 pt-3 border-t border-white/10">
+                  {/* ملخص الطلب */}
+                  <div className="mt-4 pt-4 border-t border-white/5">
                     <div className="flex justify-between items-center mb-2">
-                      <span className="text-sm font-semibold text-gray-300">مجموع الحجم:</span>
-                      <span className="text-sm font-semibold text-gray-300">{totalSize.toFixed(2)} GB</span>
+                      <span className="text-xs text-gray-400 flex items-center gap-1">
+                        <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4" /></svg>
+                        الحجم
+                      </span>
+                      <span className="text-xs text-gray-300 font-medium">{totalSize.toFixed(2)} GB</span>
                     </div>
                     <div className="flex justify-between items-center mb-4">
-                      <span className="text-base sm:text-lg font-bold">الإجمالي</span>
-                      <span className="text-lg sm:text-xl font-bold text-primary">{currency(total)}</span>
+                      <span className="text-sm font-bold text-white">الإجمالي</span>
+                      <span className="text-xl font-black text-purple-400 tabular-nums">{currency(total)}</span>
                     </div>
 
-                    <div className="space-y-3">
+                    <div className="space-y-2.5">
                       <button
                         disabled={cart.length === 0 && servicesCart.length === 0}
                         onClick={sendOrder}
-                        className={`w-full disabled:opacity-50 disabled:cursor-not-allowed text-white font-bold py-3 px-4 rounded-lg transition-all duration-300 text-sm sm:text-base flex items-center justify-center gap-2 ${
+                        className={`w-full disabled:opacity-40 disabled:cursor-not-allowed text-white font-bold py-3 px-4 rounded-xl transition-all duration-300 text-sm flex items-center justify-center gap-2 ${
                           (!hasToken || isGuestMode)
-                            ? 'bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700'
-                            : 'bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700'
-                        }`}
+                            ? 'bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-400 hover:to-emerald-400 hover:shadow-[0_0_20px_rgba(34,197,94,0.4)]'
+                            : 'bg-gradient-to-r from-purple-600 to-purple-500 hover:from-purple-500 hover:to-purple-400 hover:shadow-[0_0_20px_rgba(124,58,237,0.4)]'
+                        } active:scale-[0.98]`}
                       >
                         {(!hasToken || isGuestMode) ? (
                           <>
@@ -1251,11 +1289,11 @@ export default function App() {
                         )}
                       </button>
 
-                      <div className="text-xs sm:text-sm text-gray-400 bg-gray-800/50 p-2 rounded-lg text-center">
+                      <div className="text-[11px] text-gray-500 bg-gray-800/30 p-2 rounded-lg text-center">
                         {(!hasToken || isGuestMode) ? (
                           <p>سيتم فتح واتساب لإرسال طلبك</p>
                         ) : (
-                          <p>سيتم إنشاء فاتورة مفصلة وطباعتها على جهاز Sunmi V2</p>
+                          <p>سيتم إنشاء فاتورة وطباعتها</p>
                         )}
                       </div>
                     </div>
@@ -1327,17 +1365,28 @@ export default function App() {
       {/* نافذة السلة على الموبايل - متوافقة مع الشاشات الصغيرة والكبيرة */}
       {showMobileCart && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 lg:hidden" onClick={() => setShowMobileCart(false)}>
-          <div className="absolute bottom-0 left-0 right-0 bg-card rounded-t-2xl max-h-[85vh] min-h-[40vh] overflow-hidden flex flex-col" style={{ paddingBottom: 'env(safe-area-inset-bottom)' }} onClick={e => e.stopPropagation()}>
+          <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-b from-gray-800 to-gray-900 rounded-t-3xl max-h-[85vh] min-h-[40vh] overflow-hidden flex flex-col border-t border-white/10" style={{ paddingBottom: 'env(safe-area-inset-bottom)' }} onClick={e => e.stopPropagation()}>
             {/* Drag Handle */}
             <div className="flex justify-center pt-3 pb-1">
               <div className="w-10 h-1 bg-gray-600 rounded-full"></div>
             </div>
+            
             {/* Header */}
-            <div className="flex items-center justify-between px-4 py-3 border-b border-white/10">
-              <h2 className="text-xl font-bold">السلة</h2>
+            <div className="flex items-center justify-between px-5 py-3 border-b border-white/5">
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 bg-purple-500/20 rounded-lg flex items-center justify-center">
+                  <svg className="w-4 h-4 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" /></svg>
+                </div>
+                <h2 className="text-lg font-bold text-white">السلة</h2>
+                {cart.length > 0 && (
+                  <span className="bg-purple-500/20 text-purple-400 px-2 py-0.5 rounded-full text-xs font-bold">
+                    {cart.length}
+                  </span>
+                )}
+              </div>
               <button
                 onClick={() => setShowMobileCart(false)}
-                className="p-2 hover:bg-white/10 rounded-lg transition-colors min-w-[44px] min-h-[44px] flex items-center justify-center"
+                className="w-10 h-10 flex items-center justify-center text-gray-400 hover:text-white hover:bg-white/10 rounded-xl transition-all"
                 aria-label="إغلاق السلة"
               >
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1347,49 +1396,58 @@ export default function App() {
             </div>
 
             {/* Cart Content */}
-            <div className="p-4 overflow-y-auto max-h-[60vh]">
+            <div className="p-4 overflow-y-auto flex-1">
               {cart.length === 0 && servicesCart.length === 0 ? (
-                <div className="text-center py-8 text-gray-400">
-                  <svg className="w-16 h-16 mx-auto mb-4 opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
-                  </svg>
-                  <p>السلة فارغة</p>
+                <div className="text-center py-10">
+                  <div className="w-16 h-16 bg-gray-700/30 rounded-2xl flex items-center justify-center mx-auto mb-3">
+                    <svg className="w-8 h-8 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
+                    </svg>
+                  </div>
+                  <p className="text-sm text-gray-400">السلة فارغة</p>
+                  <p className="text-xs text-gray-600 mt-1">أضف ألعاباً للبدء</p>
                 </div>
               ) : (
                 <>
-                  <ul className="space-y-3 mb-6">
+                  <ul className="space-y-2 mb-4">
                     {cart.map((g, i) => (
-                      <li key={`g-${i}`} className="flex items-center gap-3 p-3 bg-white/5 rounded-lg">
+                      <li key={`g-${i}`} className="flex items-center gap-3 p-3 bg-white/5 hover:bg-white/8 rounded-xl transition-colors group">
+                        <div className="w-2 h-2 bg-purple-500 rounded-full flex-shrink-0"></div>
                         <div className="flex-1 min-w-0">
-                          <p className="font-medium truncate text-white" title={g.title}>{g.title}</p>
-                          <p className="text-primary font-bold">{currency(g.price)}</p>
+                          <p className="font-medium truncate text-white text-sm" title={g.title}>{g.title}</p>
+                          <p className="text-purple-400 font-bold text-xs">{currency(g.price)}</p>
                         </div>
-                        <button onClick={() => removeFromCart(i)} className="text-red-400 hover:text-red-300 p-2 rounded-full hover:bg-red-900/20 transition-colors" aria-label="حذف من السلة">
+                        <button onClick={() => removeFromCart(i)} className="w-8 h-8 flex items-center justify-center text-gray-500 hover:text-red-400 hover:bg-red-500/10 rounded-lg transition-all" aria-label="حذف من السلة">
                           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
                         </button>
                       </li>
                     ))}
                     {servicesCart.map((s, i) => (
-                      <li key={`s-${i}`} className="flex items-center gap-3 p-3 bg-primary/10 rounded-lg border border-primary/20">
+                      <li key={`s-${i}`} className="flex items-center gap-3 p-3 bg-emerald-500/5 hover:bg-emerald-500/8 rounded-xl border border-emerald-500/10 transition-colors group">
+                        <div className="w-2 h-2 bg-emerald-500 rounded-full flex-shrink-0"></div>
                         <div className="flex-1 min-w-0">
-                          <p className="font-medium truncate text-white" title={s.title}>{s.title}</p>
-                          <p className="text-primary font-bold">{currency(s.price)}</p>
+                          <p className="font-medium truncate text-white text-sm" title={s.title}>{s.title}</p>
+                          <p className="text-emerald-400 font-bold text-xs">{currency(s.price)}</p>
                         </div>
-                        <button onClick={() => removeFromServicesCart(i)} className="text-red-400 hover:text-red-300 p-2 rounded-full hover:bg-red-900/20 transition-colors" aria-label="حذف من السلة">
+                        <button onClick={() => removeFromServicesCart(i)} className="w-8 h-8 flex items-center justify-center text-gray-500 hover:text-red-400 hover:bg-red-500/10 rounded-lg transition-all" aria-label="حذف من السلة">
                           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
                         </button>
                       </li>
                     ))}
                   </ul>
 
-                  <div className="border-t border-white/10 pt-4">
+                  {/* ملخص الطلب */}
+                  <div className="border-t border-white/5 pt-4">
                     <div className="flex justify-between items-center mb-2">
-                      <span className="text-base font-semibold text-gray-300">مجموع الحجم:</span>
-                      <span className="text-base font-semibold text-gray-300">{totalSize.toFixed(2)} GB</span>
+                      <span className="text-xs text-gray-400 flex items-center gap-1">
+                        <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4" /></svg>
+                        الحجم
+                      </span>
+                      <span className="text-xs text-gray-300 font-medium">{totalSize.toFixed(2)} GB</span>
                     </div>
                     <div className="flex justify-between items-center mb-4">
-                      <span className="text-lg font-bold">الإجمالي:</span>
-                      <span className="text-xl font-bold text-primary">{currency(total)}</span>
+                      <span className="text-sm font-bold text-white">الإجمالي</span>
+                      <span className="text-xl font-black text-purple-400 tabular-nums">{currency(total)}</span>
                     </div>
 
                     <button
@@ -1398,10 +1456,10 @@ export default function App() {
                         setShowMobileCart(false)
                         sendOrder()
                       }}
-                      className={`w-full disabled:opacity-50 disabled:cursor-not-allowed text-white font-bold py-4 px-4 rounded-lg transition-all duration-300 flex items-center justify-center gap-2 ${
+                      className={`w-full disabled:opacity-40 disabled:cursor-not-allowed text-white font-bold py-4 px-4 rounded-xl transition-all duration-300 flex items-center justify-center gap-2 active:scale-[0.98] ${
                         (!hasToken || isGuestMode)
-                          ? 'bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700'
-                          : 'bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700'
+                          ? 'bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-400 hover:to-emerald-400 hover:shadow-[0_0_20px_rgba(34,197,94,0.4)]'
+                          : 'bg-gradient-to-r from-purple-600 to-purple-500 hover:from-purple-500 hover:to-purple-400 hover:shadow-[0_0_20px_rgba(124,58,237,0.4)]'
                       }`}
                     >
                       {(!hasToken || isGuestMode) ? (
