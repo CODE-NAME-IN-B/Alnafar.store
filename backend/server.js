@@ -528,6 +528,27 @@ const httpServer = createServer(app);
 //   }
 // }); (Socket.IO removed for Vercel)
 
+// تهيئة قاعدة البيانات عند بدء التشغيل
+let isDbInitialized = false;
+async function ensureDb() {
+  if (!isDbInitialized) {
+    await initDb();
+    await initializeDatabase();
+    isDbInitialized = true;
+  }
+}
+
+// Middleware لضمان تهيئة قاعدة البيانات قبل أي route (يجب أن يكون قبل جميع routes)
+app.use(async (req, res, next) => {
+  try {
+    await ensureDb();
+    next();
+  } catch (error) {
+    console.error('Database initialization error:', error);
+    res.status(500).send('Database Error');
+  }
+});
+
 // تقارير بنطاق تاريخ
 app.get('/api/daily-report-range', authMiddleware, async (req, res) => {
   try {
@@ -3741,27 +3762,6 @@ async function start() {
     });
   }
 }
-
-// تهيئة قاعدة البيانات عند بدء التشغيل
-let isDbInitialized = false;
-async function ensureDb() {
-  if (!isDbInitialized) {
-    await initDb();
-    await initializeDatabase();
-    isDbInitialized = true;
-  }
-}
-
-// Middleware لضمان تهيئة قاعدة البيانات في Vercel
-app.use(async (req, res, next) => {
-  try {
-    await ensureDb();
-    next();
-  } catch (error) {
-    console.error('Database initialization error:', error);
-    res.status(500).send('Database Error');
-  }
-});
 
 start().catch(err => console.error('Start error:', err));
 
