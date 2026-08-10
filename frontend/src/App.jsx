@@ -135,6 +135,18 @@ function TopList({ onAdd }) {
   )
 }
 
+// Format phone number for wa.me links (Libya country code: 218)
+function formatWhatsAppPhone(raw) {
+  let digits = (raw || '').replace(/[^0-9]/g, '')
+  // Remove leading + or 00 international prefix
+  if (digits.startsWith('00')) digits = digits.substring(2)
+  // If starts with 0, assume local Libyan number → replace 0 with 218
+  if (digits.startsWith('0')) digits = '218' + digits.substring(1)
+  // If missing country code entirely and looks like local (9 digits), prepend 218
+  if (digits.length === 9 && !digits.startsWith('218')) digits = '218' + digits
+  return digits
+}
+
 export default function App() {
   const [route, setRoute] = useState(window.location.hash || '#/')
   const [categories, setCategories] = useState([])
@@ -605,7 +617,7 @@ export default function App() {
     msg += '━━━━━━━━━━━━━━━━━━━━\n'
     msg += '\n⏳ *ملاحظة:* يرجى تأكيد الطلب وتحديد موعد التثبيت'
 
-    const phone = storePhone.replace(/[^0-9]/g, '')
+    const phone = formatWhatsAppPhone(storePhone)
     const url = `https://wa.me/${phone}?text=${encodeURIComponent(msg)}`
     window.open(url, '_blank')
   }

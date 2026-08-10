@@ -43,7 +43,14 @@ export default function InvoiceSettings() {
     e.preventDefault()
     try {
       setSaving(true)
-      await api.post('/invoice-settings', settings)
+      // Auto-format phone for WhatsApp: ensure country code 218
+      let phone = (settings.store_phone || '').replace(/[^0-9]/g, '')
+      if (phone.startsWith('00')) phone = phone.substring(2)
+      if (phone.startsWith('0')) phone = '218' + phone.substring(1)
+      if (phone.length === 9 && !phone.startsWith('218')) phone = '218' + phone
+      const formatted = { ...settings, store_phone: phone }
+      await api.post('/invoice-settings', formatted)
+      setSettings(formatted)
       alert('تم حفظ الإعدادات بنجاح!')
     } catch (error) {
       alert('حدث خطأ في حفظ الإعدادات')
@@ -184,7 +191,7 @@ export default function InvoiceSettings() {
               type="tel"
               value={settings.store_phone}
               onChange={(e) => handleInputChange('store_phone', e.target.value)}
-              placeholder="+218920595447"
+              placeholder="218920595447"
               className="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 sm:px-4 py-2.5 sm:py-3 text-white text-sm sm:text-base"
             />
           </div>
