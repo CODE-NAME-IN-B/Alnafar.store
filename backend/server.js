@@ -749,6 +749,17 @@ app.use((req, res, next) => {
   next();
 });
 
+// Database initialization middleware - MUST be before all routes
+app.use(async (req, res, next) => {
+  try {
+    await ensureDb();
+    next();
+  } catch (error) {
+    console.error('Database initialization error:', error);
+    res.status(500).json({ message: 'Database Error' });
+  }
+});
+
 // serve uploaded files (with auth)
 app.use('/uploads', express.static(UPLOADS_DIR));
 
@@ -3086,32 +3097,41 @@ app.post('/api/printer-settings', authMiddleware, (req, res) => {
 });
 
 // إنشاء نسخة احتياطية من قاعدة البيانات
-app.get('/api/backup-database', authMiddleware, (req, res) => {
+app.get('/api/backup-database', authMiddleware, async (req, res) => {
   try {
-    // حفظ قاعدة البيانات الحالية
-    persistDb();
+    const dbClient = require('./db-adapter').getDbClient();
+    const dbType = require('./db-adapter').getDbType();
 
-    // قراءة ملف قاعدة البيانات
-    const dbBuffer = fs.readFileSync(DB_PATH);
+    if (dbType === 'turso') {
+      // Turso has its own backup via dashboard
+      return res.status(400).json({
+        success: false,
+        message: 'النسخ الاحتياطي غير مدعوم مع Turso. استخدم لوحة تحكم Turso'
+      });
+    }
 
-    // إنشاء اسم ملف النسخة الاحتياطية مع التاريخ والوقت
+    if (!dbClient || !dbClient.persist || !dbClient.DB_PATH) {
+      return res.status(500).json({ success: false, message: 'قاعدة البيانات غير جاهزة' });
+    }
+
+    dbClient.persist();
+    const dbBuffer = fs.readFileSync(dbClient.DB_PATH);
+
     const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, -5);
-    const backupFilename = `database - backup - ${timestamp}.sqlite`;
+    const backupFilename = `database-backup-${timestamp}.sqlite`;
 
-    // إرسال الملف للتحميل
     res.setHeader('Content-Type', 'application/octet-stream');
-    res.setHeader('Content-Disposition', `attachment; filename = "${backupFilename}"`);
+    res.setHeader('Content-Disposition', `attachment; filename="${backupFilename}"`);
     res.setHeader('Content-Length', dbBuffer.length);
     res.send(dbBuffer);
 
-    console.log(`✅ تم إنشاء نسخة احتياطية: ${backupFilename} `);
+    console.log(`✅ Backup created: ${backupFilename}`);
 
   } catch (error) {
-    console.error('خطأ في إنشاء النسخة الاحتياطية:', error);
+    console.error('Backup error:', error);
     res.status(500).json({
       success: false,
-      message: 'حدث خطأ في إنشاء النسخة الاحتياطية',
-      error: error.message
+      message: 'حدث خطأ في إنشاء النسخة الاحتياطية'
     });
   }
 });
@@ -3128,44 +3148,37 @@ app.post('/api/restore-database', authMiddleware, async (req, res) => {
       });
     }
 
-    // إنشاء نسخة احتياطية من قاعدة البيانات الحالية قبل الاستعادة
-    const currentDbBuffer = fs.readFileSync(DB_PATH);
-    const backupPath = path.join(DATA_DIR, `database - before - restore - ${Date.now()}.sqlite`);
-    fs.writeFileSync(backupPath, currentDbBuffer);
-    console.log(`✅ تم حفظ نسخة احتياطية من قاعدة البيانات الحالية: ${backupPath} `);
+    const dbClient = require('./db-adapter').getDbClient();
+    const dbType = require('./db-adapter').getDbType();
 
-    // تحويل البيانات من base64 إلى buffer
-    const buffer = Buffer.from(backupData, 'base64');
-
-    // كتابة قاعدة البيانات الجديدة
-    fs.writeFileSync(DB_PATH, buffer);
-
-    // إعادة تحميل قاعدة البيانات
-    if (db) {
-      try {
-        db.close();
-      } catch (e) {
-        console.warn('Warning closing old DB:', e.message);
-      }
+    if (dbType === 'turso') {
+      return res.status(400).json({
+        success: false,
+        message: 'استعادة النسخ الاحتياطي غير مدعومة مع Turso'
+      });
     }
 
-    const fileBuffer = fs.readFileSync(DB_PATH);
-    db = new SQL.Database(fileBuffer);
+    if (!dbClient || !dbClient.DB_PATH) {
+      return res.status(500).json({ success: false, message: 'قاعدة البيانات غير جاهزة' });
+    }
+
+    const buffer = Buffer.from(backupData, 'base64');
+    fs.writeFileSync(dbClient.DB_PATH, buffer);
+
+    // Reinitialize DB
+    isDbInitialized = false;
+    await ensureDb();
 
     res.json({
       success: true,
-      message: 'تم استعادة قاعدة البيانات بنجاح',
-      backupLocation: backupPath
+      message: 'تم استعادة قاعدة البيانات بنجاح'
     });
 
-    console.log('✅ تم استعادة قاعدة البيانات بنجاح');
-
   } catch (error) {
-    console.error('خطأ في استعادة قاعدة البيانات:', error);
+    console.error('Restore error:', error);
     res.status(500).json({
       success: false,
-      message: 'حدث خطأ في استعادة قاعدة البيانات',
-      error: error.message
+      message: 'حدث خطأ في استعادة قاعدة البيانات'
     });
   }
 });
@@ -3769,17 +3782,6 @@ async function ensureDb() {
     isDbInitialized = true;
   }
 }
-
-// Middleware لضمان تهيئة قاعدة البيانات في Vercel
-app.use(async (req, res, next) => {
-  try {
-    await ensureDb();
-    next();
-  } catch (error) {
-    console.error('Database initialization error:', error);
-    res.status(500).send('Database Error');
-  }
-});
 
 start().catch(err => console.error('Start error:', err));
 
