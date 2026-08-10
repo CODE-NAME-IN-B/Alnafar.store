@@ -64,9 +64,11 @@ const UPLOADS_DIR = path.join(DATA_DIR, 'uploads');
 
 const MAPPING_PATH = path.join(DATA_DIR, 'mapping.json');
 
-// ensure mapping file exists
-if (!fs.existsSync(MAPPING_PATH)) {
-  fs.writeFileSync(MAPPING_PATH, JSON.stringify({}, null, 2));
+// ensure mapping file exists (skip on Vercel read-only filesystem)
+if (!process.env.VERCEL) {
+  if (!fs.existsSync(MAPPING_PATH)) {
+    fs.writeFileSync(MAPPING_PATH, JSON.stringify({}, null, 2));
+  }
 }
 
 // ---- Global Wikipedia helper and simple in-memory cache ----
@@ -216,11 +218,14 @@ function normalizeMapEntry(entry) {
   return { title, genre, series };
 }
 
-if (!fs.existsSync(DATA_DIR)) {
-  fs.mkdirSync(DATA_DIR, { recursive: true });
-}
-if (!fs.existsSync(UPLOADS_DIR)) {
-  fs.mkdirSync(UPLOADS_DIR, { recursive: true });
+// Create local data dirs only outside Vercel
+if (!process.env.VERCEL) {
+  if (!fs.existsSync(DATA_DIR)) {
+    fs.mkdirSync(DATA_DIR, { recursive: true });
+  }
+  if (!fs.existsSync(UPLOADS_DIR)) {
+    fs.mkdirSync(UPLOADS_DIR, { recursive: true });
+  }
 }
 
 // Database functions - now using db-adapter
