@@ -636,9 +636,9 @@ function broadcastUpdate(event, data) {
 }
 
 // دالة للتحقق من حالة قاعدة البيانات
-function checkDatabaseHealth() {
+async function checkDatabaseHealth() {
   try {
-    const result = get('SELECT 1 as test');
+    const result = await get('SELECT 1 as test');
     return result && result.test === 1;
   } catch (error) {
     console.error('خطأ في التحقق من حالة قاعدة البيانات:', error);
@@ -788,8 +788,8 @@ app.post('/api/uploads', authMiddleware, async (req, res) => {
 })
 
 // health check محسن
-app.get('/api/health', (req, res) => {
-  const dbHealth = checkDatabaseHealth();
+app.get('/api/health', async (req, res) => {
+  const dbHealth = await checkDatabaseHealth();
   const status = {
     ok: dbHealth,
     database: dbHealth ? 'connected' : 'disconnected',
@@ -817,7 +817,7 @@ app.get('/api/invoice-numbering-status', authMiddleware, async (req, res) => {
       dailyRecord: dailyRecord || null,
       lastInvoice: lastInvoice || null,
       nextNumber: dailyRecord ? (dailyRecord.last_invoice_number || 0) + 1 : 1,
-      databaseHealth: checkDatabaseHealth()
+      databaseHealth: await checkDatabaseHealth()
     });
   } catch (error) {
     console.error('خطأ في فحص حالة ترقيم الفواتير:', error);
