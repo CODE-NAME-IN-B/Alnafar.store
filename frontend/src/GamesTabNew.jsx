@@ -265,10 +265,10 @@ export default function GamesTab() {
           <h3 className="text-lg sm:text-xl font-bold text-white">الألعاب ({filteredItems.length})</h3>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-4">
+        <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-2 sm:gap-3">
           {filteredItems.map(game => (
             <div key={game.id} className="bg-gray-700/50 rounded-xl overflow-hidden border border-gray-600 hover:border-blue-500 transition-all group">
-              <div className="aspect-square relative overflow-hidden bg-gray-800">
+              <div className="aspect-[3/4] sm:aspect-square relative overflow-hidden bg-gray-800">
                 <img
                   src={game.image}
                   alt={game.title}
@@ -278,45 +278,32 @@ export default function GamesTab() {
                   onError={(e) => { e.target.src = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="200" height="200"%3E%3Crect fill="%23374151" width="200" height="200"/%3E%3Ctext x="50%25" y="50%25" dominant-baseline="middle" text-anchor="middle" fill="%239ca3af" font-size="60"%3E🎮%3C/text%3E%3C/svg%3E' }}
                 />
               </div>
-              <div className="p-3 sm:p-4">
-                <h4 className="text-white font-semibold mb-2 line-clamp-2 text-sm sm:text-base">{game.title}</h4>
-                <div className="flex items-center justify-between mb-2">
-                  <span className="px-2 py-1 bg-blue-600/20 text-blue-300 rounded text-xs">
+              <div className="p-2 sm:p-3">
+                <h4 className="text-white font-semibold mb-1 line-clamp-2 text-xs sm:text-sm leading-tight">{game.title}</h4>
+                <div className="flex items-center justify-between mb-1">
+                  <span className="px-1.5 py-0.5 bg-blue-600/20 text-blue-300 rounded text-[10px] sm:text-xs truncate max-w-[60%]">
                     {categories.find(c => c.id === game.category_id)?.name || 'غير محدد'}
                   </span>
-                  <div className="flex flex-col items-end">
-                    <span className="text-green-400 font-bold">{currency(game.price)}</span>
-                    {game.size_gb > 0 && <span className="text-gray-400 text-xs mt-1">{game.size_gb} GB</span>}
-                  </div>
+                  <span className="text-green-400 font-bold text-xs sm:text-sm">{currency(game.price)}</span>
                 </div>
-                {game.genre && (
-                  <div className="mb-2">
-                    <span className="px-2 py-1 bg-purple-600/20 text-purple-300 rounded text-xs">
+                <div className="flex items-center gap-1 flex-wrap">
+                  {game.genre && (
+                    <span className="px-1.5 py-0.5 bg-purple-600/20 text-purple-300 rounded text-[10px] sm:text-xs">
                       {game.genre}
                     </span>
-                    {game.features && (() => {
-                      try {
-                        return JSON.parse(game.features).includes('تعاوني');
-                      } catch {
-                        return false;
-                      }
-                    })() && (
-                        <span className="px-2 py-1 bg-green-600/20 text-green-300 rounded text-xs mr-1">
-                          تعاوني
-                        </span>
-                      )}
-                  </div>
-                )}
-                <div className="flex gap-2 mt-3">
+                  )}
+                  {game.size_gb > 0 && <span className="text-gray-400 text-[10px]">{game.size_gb}GB</span>}
+                </div>
+                <div className="flex gap-1.5 mt-2">
                   <button
                     onClick={() => openEditModal(game)}
-                    className="flex-1 px-3 py-2.5 min-h-[44px] bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-semibold transition-colors"
+                    className="flex-1 px-2 py-1.5 min-h-[36px] bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-semibold transition-colors"
                   >
                     تعديل
                   </button>
                   <button
                     onClick={() => remove(game.id)}
-                    className="px-3 py-2.5 min-h-[44px] bg-red-600 hover:bg-red-700 text-white rounded-lg text-sm font-semibold transition-colors"
+                    className="px-2 py-1.5 min-h-[36px] bg-red-600 hover:bg-red-700 text-white rounded-lg text-xs font-semibold transition-colors"
                   >
                     حذف
                   </button>
