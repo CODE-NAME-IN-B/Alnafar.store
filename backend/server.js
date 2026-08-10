@@ -701,42 +701,9 @@ function recomputeDailyStats(dateStr) {
   }
 }
 
-const rateLimit = require('express-rate-limit');
-
-// Rate limiting - general
-const generalLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000,
-  max: 200,
-  message: { message: 'Too many requests, please try again later' },
-  standardHeaders: true,
-  legacyHeaders: false,
-});
-
-// Rate limiting - login (stricter)
-const loginLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000,
-  max: 10,
-  message: { message: 'Too many login attempts, please try again in 15 minutes' },
-  standardHeaders: true,
-  legacyHeaders: false,
-});
-
-// Rate limiting - uploads
-const uploadLimiter = rateLimit({
-  windowMs: 60 * 60 * 1000,
-  max: 50,
-  message: { message: 'Too many uploads, please try again later' },
-  standardHeaders: true,
-  legacyHeaders: false,
-});
-
-app.use(cors({
-  origin: process.env.CORS_ORIGIN || '*',
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'],
-  allowedHeaders: ['Content-Type', 'Authorization'],
-}));
-app.use(express.json({ limit: '25mb' }));
-app.use(express.urlencoded({ extended: false, limit: '25mb' }));
+app.use(cors());
+app.use(express.json({ limit: '50mb' }));
+app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 
 // Security headers
 app.use((req, res, next) => {
@@ -744,34 +711,36 @@ app.use((req, res, next) => {
   res.setHeader('X-Frame-Options', 'DENY');
   res.setHeader('X-XSS-Protection', '1; mode=block');
   res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
-  res.setHeader('Permissions-Policy', 'camera=(), microphone=(), geolocation=()');
   res.removeHeader('X-Powered-By');
   next();
 });
 
-// Database initialization middleware - MUST be before all routes
-app.use(async (req, res, next) => {
-  try {
-    await ensureDb();
-    next();
-  } catch (error) {
-    console.error('Database initialization error:', error.message, error.stack);
-    res.status(500).json({ message: 'Database Error', detail: error.message });
+// Simple in-memory rate limiter for login (no npm dependency needed)
+const loginAttempts = new Map();
+function loginRateLimit(req, res, next) {
+  const ip = req.ip || req.connection?.remoteAddress || 'unknown';
+  const now = Date.now();
+  const windowMs = 15 * 60 * 1000;
+  const maxAttempts = 15;
+  const attempts = loginAttempts.get(ip) || [];
+  const recent = attempts.filter(t => now - t < windowMs);
+  if (recent.length >= maxAttempts) {
+    return res.status(429).json({ message: 'Too many login attempts, please try again in 15 minutes' });
   }
-});
+  recent.push(now);
+  loginAttempts.set(ip, recent);
+  next();
+}
 
-// serve uploaded files (with auth)
+// serve uploaded files
 app.use('/uploads', express.static(UPLOADS_DIR));
 
 // axios is already required above; use it to fetch descriptions
 
-// Accept base64 uploads: { filename, data } - AUTH REQUIRED + rate limited
-app.post('/api/uploads', authMiddleware, uploadLimiter, async (req, res) => {
+// Accept base64 uploads: { filename, data }
+app.post('/api/uploads', authMiddleware, async (req, res) => {
   const { filename, data } = req.body || {}
   if (!filename || !data) return res.status(400).json({ message: 'Missing file data' })
-  if (typeof filename !== 'string' || typeof data !== 'string') return res.status(400).json({ message: 'Invalid input types' })
-  if (filename.length > 200) return res.status(400).json({ message: 'Filename too long' })
-  if (data.length > 20 * 1024 * 1024) return res.status(413).json({ message: 'File too large (max 20MB)' })
   try {
     // sanitize filename
     const safeName = filename.replace(/[^a-zA-Z0-9._-]/g, '_')
@@ -1504,8 +1473,8 @@ function requireAdmin(req, res, next) {
   next();
 }
 
-// Auth - with rate limiting to prevent brute force
-app.post('/api/auth/login', loginLimiter, async (req, res) => {
+// Auth - with rate limiting + input validation
+app.post('/api/auth/login', loginRateLimit, async (req, res) => {
   try {
     const { username, password } = req.body;
     if (!username || !password) return res.status(400).json({ message: 'Missing credentials' });
@@ -2174,7 +2143,7 @@ app.put('/api/settings', authMiddleware, (req, res) => {
 });
 
 // Game recognition endpoint - استخدام Gemini Vision API (بدون authentication للتبسيط)
-app.post('/api/recognize-game', authMiddleware, uploadLimiter, async (req, res) => {
+app.post('/api/recognize-game', authMiddleware, async (req, res) => {
   try {
     const { imageUrl, imagePath, imageBase64 } = req.body;
 
@@ -2244,12 +2213,12 @@ app.post('/api/recognize-game', authMiddleware, uploadLimiter, async (req, res) 
 
   } catch (error) {
     console.error('[API] Game recognition error:', error);
-    res.status(500).json({ error: 'Failed to recognize game' });
+    res.status(500).json({ error: 'Failed to recognize game', details: error.message });
   }
 });
 
 // Telegram endpoint
-app.post('/api/send-telegram', generalLimiter, async (req, res) => {
+app.post('/api/send-telegram', async (req, res) => {
   try {
     const { message, bot_token, chat_id, customer_phone } = req.body;
 
@@ -2273,11 +2242,11 @@ app.post('/api/send-telegram', generalLimiter, async (req, res) => {
     if (response.data.ok) {
       res.json({ success: true, message: 'Message sent successfully' });
     } else {
-      res.status(400).json({ error: 'Failed to send message' });
+      res.status(400).json({ error: 'Failed to send message', details: response.data });
     }
   } catch (error) {
     console.error('Telegram error:', error);
-    res.status(500).json({ error: 'Failed to send telegram message' });
+    res.status(500).json({ error: 'Failed to send telegram message', details: error.message });
   }
 });
 
@@ -2320,13 +2289,13 @@ app.get('/api/stats', async (req, res) => {
 const printer = new SunmiPrinter();
 
 // إنشاء فاتورة جديدة
-app.post('/api/invoices', generalLimiter, async (req, res) => {
+app.post('/api/invoices', async (req, res) => {
   try {
     const {
       customerInfo,
       items,
       total,
-       totalSize = 0,
+      totalSize = 0,
       estimatedMinutes = 0,
       discount = 0,
       finalTotal,
@@ -2482,13 +2451,14 @@ app.post('/api/invoices', generalLimiter, async (req, res) => {
     console.error('خطأ في إنشاء الفاتورة:', error);
     res.status(500).json({
       success: false,
-      message: 'حدث خطأ في إنشاء الفاتورة'
+      message: 'حدث خطأ في إنشاء الفاتورة',
+      error: error.message
     });
   }
 });
 
 // طباعة فاتورة على جهاز Sunmi V2
-app.post('/api/print-invoice', generalLimiter, async (req, res) => {
+app.post('/api/print-invoice', async (req, res) => {
   try {
     const {
       invoiceNumber,
@@ -2539,7 +2509,8 @@ app.post('/api/print-invoice', generalLimiter, async (req, res) => {
     console.error('خطأ في طباعة الفاتورة:', error);
     res.status(500).json({
       success: false,
-      message: 'حدث خطأ في طباعة الفاتورة'
+      message: 'حدث خطأ في طباعة الفاتورة',
+      error: error.message
     });
   }
 });
@@ -3097,41 +3068,32 @@ app.post('/api/printer-settings', authMiddleware, (req, res) => {
 });
 
 // إنشاء نسخة احتياطية من قاعدة البيانات
-app.get('/api/backup-database', authMiddleware, async (req, res) => {
+app.get('/api/backup-database', authMiddleware, (req, res) => {
   try {
-    const dbClient = require('./db-adapter').getDbClient();
-    const dbType = require('./db-adapter').getDbType();
+    // حفظ قاعدة البيانات الحالية
+    persistDb();
 
-    if (dbType === 'turso') {
-      // Turso has its own backup via dashboard
-      return res.status(400).json({
-        success: false,
-        message: 'النسخ الاحتياطي غير مدعوم مع Turso. استخدم لوحة تحكم Turso'
-      });
-    }
+    // قراءة ملف قاعدة البيانات
+    const dbBuffer = fs.readFileSync(DB_PATH);
 
-    if (!dbClient || !dbClient.persist || !dbClient.DB_PATH) {
-      return res.status(500).json({ success: false, message: 'قاعدة البيانات غير جاهزة' });
-    }
-
-    dbClient.persist();
-    const dbBuffer = fs.readFileSync(dbClient.DB_PATH);
-
+    // إنشاء اسم ملف النسخة الاحتياطية مع التاريخ والوقت
     const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, -5);
-    const backupFilename = `database-backup-${timestamp}.sqlite`;
+    const backupFilename = `database - backup - ${timestamp}.sqlite`;
 
+    // إرسال الملف للتحميل
     res.setHeader('Content-Type', 'application/octet-stream');
-    res.setHeader('Content-Disposition', `attachment; filename="${backupFilename}"`);
+    res.setHeader('Content-Disposition', `attachment; filename = "${backupFilename}"`);
     res.setHeader('Content-Length', dbBuffer.length);
     res.send(dbBuffer);
 
-    console.log(`✅ Backup created: ${backupFilename}`);
+    console.log(`✅ تم إنشاء نسخة احتياطية: ${backupFilename} `);
 
   } catch (error) {
-    console.error('Backup error:', error);
+    console.error('خطأ في إنشاء النسخة الاحتياطية:', error);
     res.status(500).json({
       success: false,
-      message: 'حدث خطأ في إنشاء النسخة الاحتياطية'
+      message: 'حدث خطأ في إنشاء النسخة الاحتياطية',
+      error: error.message
     });
   }
 });
@@ -3148,37 +3110,44 @@ app.post('/api/restore-database', authMiddleware, async (req, res) => {
       });
     }
 
-    const dbClient = require('./db-adapter').getDbClient();
-    const dbType = require('./db-adapter').getDbType();
+    // إنشاء نسخة احتياطية من قاعدة البيانات الحالية قبل الاستعادة
+    const currentDbBuffer = fs.readFileSync(DB_PATH);
+    const backupPath = path.join(DATA_DIR, `database - before - restore - ${Date.now()}.sqlite`);
+    fs.writeFileSync(backupPath, currentDbBuffer);
+    console.log(`✅ تم حفظ نسخة احتياطية من قاعدة البيانات الحالية: ${backupPath} `);
 
-    if (dbType === 'turso') {
-      return res.status(400).json({
-        success: false,
-        message: 'استعادة النسخ الاحتياطي غير مدعومة مع Turso'
-      });
-    }
-
-    if (!dbClient || !dbClient.DB_PATH) {
-      return res.status(500).json({ success: false, message: 'قاعدة البيانات غير جاهزة' });
-    }
-
+    // تحويل البيانات من base64 إلى buffer
     const buffer = Buffer.from(backupData, 'base64');
-    fs.writeFileSync(dbClient.DB_PATH, buffer);
 
-    // Reinitialize DB
-    isDbInitialized = false;
-    await ensureDb();
+    // كتابة قاعدة البيانات الجديدة
+    fs.writeFileSync(DB_PATH, buffer);
+
+    // إعادة تحميل قاعدة البيانات
+    if (db) {
+      try {
+        db.close();
+      } catch (e) {
+        console.warn('Warning closing old DB:', e.message);
+      }
+    }
+
+    const fileBuffer = fs.readFileSync(DB_PATH);
+    db = new SQL.Database(fileBuffer);
 
     res.json({
       success: true,
-      message: 'تم استعادة قاعدة البيانات بنجاح'
+      message: 'تم استعادة قاعدة البيانات بنجاح',
+      backupLocation: backupPath
     });
 
+    console.log('✅ تم استعادة قاعدة البيانات بنجاح');
+
   } catch (error) {
-    console.error('Restore error:', error);
+    console.error('خطأ في استعادة قاعدة البيانات:', error);
     res.status(500).json({
       success: false,
-      message: 'حدث خطأ في استعادة قاعدة البيانات'
+      message: 'حدث خطأ في استعادة قاعدة البيانات',
+      error: error.message
     });
   }
 });
@@ -3639,9 +3608,17 @@ app.put('/api/settings', authMiddleware, (req, res) => {
 
 async function start() {
 
-  // DB init is now handled by ensureDb() middleware
-  await ensureDb();
+  await initDb();
 
+  // Initialize storage (Cloudinary or local)
+  cloudinaryStorage.initStorage();
+
+  await initializeDatabase();
+
+  // Optional: enable automatic seeding only if explicitly requested
+  if (String(process.env.AUTO_SEED_ON_START || '').toLowerCase() === 'true') {
+    await autoSeedFromUploads();
+  }
   const isProd = process.env.NODE_ENV === 'production';
 
 
@@ -3767,27 +3744,24 @@ async function start() {
 
 // تهيئة قاعدة البيانات عند بدء التشغيل
 let isDbInitialized = false;
-let dbInitPromise = null;
-
 async function ensureDb() {
-  if (isDbInitialized) return;
-  if (dbInitPromise) return dbInitPromise;
-  
-  dbInitPromise = (async () => {
-    try {
-      await initDb();
-      cloudinaryStorage.initStorage();
-      await initializeDatabase();
-      isDbInitialized = true;
-      console.log('✅ Database fully initialized');
-    } catch (error) {
-      dbInitPromise = null;
-      throw error;
-    }
-  })();
-  
-  return dbInitPromise;
+  if (!isDbInitialized) {
+    await initDb();
+    await initializeDatabase();
+    isDbInitialized = true;
+  }
 }
+
+// Middleware لضمان تهيئة قاعدة البيانات في Vercel
+app.use(async (req, res, next) => {
+  try {
+    await ensureDb();
+    next();
+  } catch (error) {
+    console.error('Database initialization error:', error);
+    res.status(500).send('Database Error');
+  }
+});
 
 start().catch(err => console.error('Start error:', err));
 
