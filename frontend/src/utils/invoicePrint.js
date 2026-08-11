@@ -27,15 +27,11 @@ export async function openInvoicePrintWindow(invoice, invSettings = {}) {
   const storeNameEn = (invSettings?.store_name_english || '').trim() || 'Alnafar Store'
   const storeAddr = invSettings?.store_address || ''
   const storePhone = invSettings?.store_phone || ''
-  const storeEmail = invSettings?.store_email || ''
-  const storeWeb = invSettings?.store_website || ''
   const footerMsg = invSettings?.footer_message || 'شكراً لتسوقكم معنا'
   const showStoreInfo = !!Number(invSettings?.show_store_info ?? 1)
   const showFooter = !!Number(invSettings?.show_footer ?? 1)
 
   const origin = typeof window !== 'undefined' ? window.location.origin : ''
-  const logoUrl = `${origin}/invoice-header.png?v=${Date.now()}`
-  const logoFallback = `${origin}/logo.png`
 
   const fullNumber = String(invoice.invoice_number || '')
   const dailyNo = fullNumber.includes('-') ? String(parseInt(fullNumber.split('-')[1], 10)) : fullNumber
@@ -48,7 +44,6 @@ export async function openInvoicePrintWindow(invoice, invSettings = {}) {
   const logoW = paperMM <= 58 ? '42mm' : '48mm'
   const logoH = paperMM <= 58 ? '12mm' : '14mm'
 
-  // Fetch logo as data URL for better reliability
   let logoDataUrl = ''
   try {
     const res = await fetch(`${origin}/invoice-header.png?v=${Date.now()}`, { mode: 'cors' })
@@ -75,7 +70,6 @@ export async function openInvoicePrintWindow(invoice, invSettings = {}) {
     }
   } catch (_) { }
 
-  // Generate QR code data URL first
   let qrDataUrl = '';
   try {
     const qrcodeLib = await import('qrcode');
@@ -94,6 +88,15 @@ export async function openInvoicePrintWindow(invoice, invSettings = {}) {
   if (paidAmount <= 0) { statusText = 'غير مدفوع'; statusIcon = '○'; }
   else if (paidAmount >= finalTotal) { statusText = 'مدفوع بالكامل'; statusIcon = '●'; }
   else { statusText = 'مدفوع جزئياً'; statusIcon = '◐'; }
+
+  // تجميع الألعاب والخدمات
+  const games = items.filter(i => i.type !== 'service')
+  const services = items.filter(i => i.type === 'service')
+
+  const totalGames = games.length
+  const totalSizeGB = games.reduce((sum, g) => sum + (Number(g.size_gb) || 0), 0)
+  const gamesPrice = games.reduce((sum, g) => sum + (Number(g.price) || 0), 0)
+  const servicesPrice = services.reduce((sum, s) => sum + (Number(s.price) || 0), 0)
 
   const invoiceHTML = `
 <!DOCTYPE html>
@@ -168,6 +171,8 @@ export async function openInvoicePrintWindow(invoice, invSettings = {}) {
       margin: 1px 0;
       color: #222;
     }
+
+    /* ─── INVOICE META ─── */
     .invoice-meta {
       margin-top: 1.5mm;
       padding: 1.5mm;
@@ -222,37 +227,54 @@ export async function openInvoicePrintWindow(invoice, invSettings = {}) {
       font-size: calc(${fontSize} - 1px);
     }
 
-    /* ─── ITEMS ─── */
-    .items-header {
-      display: flex;
-      justify-content: space-between;
-      padding: 1mm 0;
-      border-bottom: 2px solid #000;
-      font-weight: 800;
-      font-size: calc(${fontSize} - 1px);
+    /* ─── GAMES SUMMARY ─── */
+    .summary-box {
+      padding: 2mm;
+      border: 2px solid #000;
+      border-radius: 2px;
+      margin-top: 2mm;
     }
-    .item-row {
+    .summary-title {
+      font-size: calc(${fontSize} + 1px);
+      font-weight: 900;
+      text-align: center;
+      margin-bottom: 1mm;
+      padding-bottom: 1mm;
+      border-bottom: 1px dashed #000;
+    }
+    .summary-row {
       display: flex;
       justify-content: space-between;
-      align-items: center;
+      margin: 0.8mm 0;
+      font-size: ${fontSize};
+    }
+    .summary-row.total {
+      font-size: calc(${fontSize} + 2px);
+      font-weight: 900;
+      padding-top: 1mm;
+      margin-top: 1mm;
+      border-top: 2px solid #000;
+    }
+    .summary-label { font-weight: 700; }
+    .summary-value { text-align: left; direction: ltr; font-weight: 700; }
+
+    /* ─── SERVICES LIST ─── */
+    .services-box {
+      margin-top: 2mm;
+      padding: 1.5mm;
+      border: 1px solid #999;
+      border-radius: 2px;
+    }
+    .service-row {
+      display: flex;
+      justify-content: space-between;
       padding: 1mm 0;
       border-bottom: 1px dotted #ccc;
-      gap: 4px;
+      font-size: ${fontSize};
     }
-    .item-row:last-child { border-bottom: none; }
-    .item-details { flex: 1; min-width: 0; text-align: right; }
-    .item-name { font-weight: 700; word-break: break-all; font-size: ${fontSize}; }
-    .item-meta { font-size: calc(${fontSize} - 2px); color: #555; margin-top: 0.3mm; }
-    .item-price { text-align: left; font-weight: 800; direction: ltr; flex-shrink: 0; font-size: ${fontSize}; }
-    .item-size {
-      display: inline-block;
-      padding: 0.2mm 1.5mm;
-      background: #eee;
-      border: 1px solid #ccc;
-      border-radius: 2px;
-      font-size: calc(${fontSize} - 2px);
-      color: #333;
-    }
+    .service-row:last-child { border-bottom: none; }
+    .service-name { font-weight: 700; }
+    .service-price { text-align: left; direction: ltr; font-weight: 700; }
 
     /* ─── TOTALS ─── */
     .totals-box {
@@ -385,7 +407,6 @@ export async function openInvoicePrintWindow(invoice, invSettings = {}) {
       <div class="customer-name">${invoice.customer_name || 'عميل نقدي'}</div>
       <div class="customer-info">
         <span>📞 ${invoice.customer_phone || '—'}</span>
-        ${invoice.customer_email ? `<span>✉ ${invoice.customer_email}</span>` : ''}
       </div>
     </div>
 
@@ -395,33 +416,48 @@ export async function openInvoicePrintWindow(invoice, invSettings = {}) {
       <div class="notes-text">${notes}</div>
     </div>` : ''}
 
-    <!-- ══════ ITEMS ══════ -->
-    <div class="section-header">المنتجات</div>
-    <div class="items-header">
-      <span>الصنف</span>
-      <span>السعر</span>
-    </div>
-    ${items.map(item => `
-    <div class="item-row">
-      <div class="item-details">
-        <div class="item-name">${item.name || item.game_name || ''}</div>
-        <div class="item-meta">
-          ${item.type === 'service' ? `<span class="item-size">خدمة</span>` : ''}
-          ${item.genre ? `<span class="item-size">${item.genre}</span>` : ''}
-          ${(item.size_gb || item.size) ? `<span class="item-size">${item.size_gb || item.size} GB</span>` : ''}
-          ${item.quantity && item.quantity > 1 ? `<span class="item-size">×${item.quantity}</span>` : ''}
-          ${item.type === 'service' && item.time_value && item.time_unit ? `<span class="item-size">${item.time_value} ${item.time_unit === 'month' ? 'شهر' : item.time_unit === 'year' ? 'سنة' : item.time_unit}</span>` : ''}
-        </div>
+    <!-- ══════ GAMES SUMMARY ══════ -->
+    ${totalGames > 0 ? `
+    <div class="summary-box">
+      <div class="summary-title">الألعاب (${totalGames} لعبة)</div>
+      <div class="summary-row">
+        <span class="summary-label">عدد الألعاب:</span>
+        <span class="summary-value">${totalGames}</span>
       </div>
-      <div class="item-price">${currency(item.price || 0)}</div>
-    </div>`).join('')}
+      ${totalSizeGB > 0 ? `
+      <div class="summary-row">
+        <span class="summary-label">إجمالي الحجم:</span>
+        <span class="summary-value">${totalSizeGB.toFixed(2)} GB</span>
+      </div>` : ''}
+      <div class="summary-row">
+        <span class="summary-label">إجمالي سعر الألعاب:</span>
+        <span class="summary-value">${currency(gamesPrice)}</span>
+      </div>
+    </div>` : ''}
+
+    <!-- ══════ SERVICES ══════ -->
+    ${services.length > 0 ? `
+    <div class="services-box">
+      <div class="section-header">الخدمات</div>
+      ${services.map(s => `
+      <div class="service-row">
+        <span class="service-name">${s.title || s.name || ''}</span>
+        <span class="service-price">${currency(s.price || 0)}</span>
+      </div>`).join('')}
+    </div>` : ''}
 
     <!-- ══════ TOTALS ══════ -->
     <div class="totals-box">
+      ${totalGames > 0 ? `
       <div class="total-row">
-        <span>الإجمالي</span>
-        <span>${currency(invoice.total || 0)}</span>
-      </div>
+        <span>إجمالي الألعاب (${totalGames})</span>
+        <span>${currency(gamesPrice)}</span>
+      </div>` : ''}
+      ${services.length > 0 ? `
+      <div class="total-row">
+        <span>الخدمات (${services.length})</span>
+        <span>${currency(servicesPrice)}</span>
+      </div>` : ''}
       ${invoice.discount > 0 ? `
       <div class="total-row">
         <span>الخصم</span>
