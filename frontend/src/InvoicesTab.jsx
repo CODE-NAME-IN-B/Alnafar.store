@@ -181,6 +181,37 @@ export default function InvoicesTab() {
     }
   }
 
+  const handleSaveEdit = async () => {
+    if (!editingInvoice || !editingInvoice.id) return
+    const items = editingInvoice.items || []
+    const total = items.reduce((s, i) => s + (Number(i.price) || 0), 0)
+    const discount = Number(editingInvoice.discount) || 0
+    try {
+      await api.put(`/invoices/${editingInvoice.id}`, {
+        customer_name: editingInvoice.customer_name,
+        customer_phone: editingInvoice.customer_phone,
+        customer_address: editingInvoice.customer_address || '',
+        customer_notes: editingInvoice.customer_notes || '',
+        items,
+        total,
+        discount,
+        status: editingInvoice.status
+      })
+      setEditingInvoice(null)
+      loadInvoices(pagination.page)
+      loadSummary()
+    } catch (err) {
+      alert(err?.response?.data?.message || 'فشل حفظ التعديلات')
+    }
+  }
+
+  const removeItemFromEdit = (index) => {
+    if (!editingInvoice) return
+    const items = [...(editingInvoice.items || [])]
+    items.splice(index, 1)
+    setEditingInvoice({ ...editingInvoice, items })
+  }
+
   if (loading) {
     return (
       <div className="p-8 text-center">
@@ -401,14 +432,13 @@ export default function InvoicesTab() {
                       ].filter(Boolean).join('\n');
                       alert(info);
                     }} className="py-2.5 bg-blue-600/20 text-blue-400 hover:bg-blue-600 hover:text-white rounded-lg transition-colors flex items-center justify-center text-lg" title="التفاصيل">👁️</button>
-                    <button onClick={() => {
-                        const data = {
-                          id: invoice.id, invoice_number: invoice.invoice_number,
-                          customer_name: invoice.customer_name, customer_phone: invoice.customer_phone,
-                          items: items, discount: invoice.discount || 0
-                        };
-                        window.dispatchEvent(new CustomEvent('edit-invoice', { detail: data }));
-                    }} className="py-2.5 bg-yellow-600/20 text-yellow-400 hover:bg-yellow-600 hover:text-white rounded-lg transition-colors flex items-center justify-center text-lg" title="تعديل">✏️</button>
+                    <button onClick={() => setEditingInvoice({
+                        id: invoice.id, invoice_number: invoice.invoice_number,
+                        customer_name: invoice.customer_name, customer_phone: invoice.customer_phone,
+                        customer_address: invoice.customer_address || '',
+                        customer_notes: invoice.customer_notes || '',
+                        items: items, discount: invoice.discount || 0, status: invoice.status
+                    })} className="py-2.5 bg-yellow-600/20 text-yellow-400 hover:bg-yellow-600 hover:text-white rounded-lg transition-colors flex items-center justify-center text-lg" title="تعديل">✏️</button>
                     <button onClick={() => deleteInvoice(invoice.id)} className="py-2.5 bg-red-600/20 text-red-400 hover:bg-red-600 hover:text-white rounded-lg transition-colors flex items-center justify-center text-lg" title="حذف">🗑️</button>
                     
                     {balance > 0 && (
@@ -491,14 +521,13 @@ export default function InvoicesTab() {
                           ].filter(Boolean).join('\n');
                           alert(info);
                         }} className="p-2 bg-gray-700 hover:bg-blue-600 text-white rounded-lg transition-colors" title="تفاصيل">👁️</button>
-                        <button onClick={() => {
-                          const data = {
-                            id: invoice.id, invoice_number: invoice.invoice_number,
-                            customer_name: invoice.customer_name, customer_phone: invoice.customer_phone,
-                            items: items, discount: invoice.discount || 0
-                          };
-                          window.dispatchEvent(new CustomEvent('edit-invoice', { detail: data }));
-                        }} className="p-2 bg-gray-700 hover:bg-yellow-600 text-white rounded-lg transition-colors" title="تعديل">✏️</button>
+                        <button onClick={() => setEditingInvoice({
+                          id: invoice.id, invoice_number: invoice.invoice_number,
+                          customer_name: invoice.customer_name, customer_phone: invoice.customer_phone,
+                          customer_address: invoice.customer_address || '',
+                          customer_notes: invoice.customer_notes || '',
+                          items: items, discount: invoice.discount || 0, status: invoice.status
+                        })} className="p-2 bg-gray-700 hover:bg-yellow-600 text-white rounded-lg transition-colors" title="تعديل">✏️</button>
                         <button onClick={() => deleteInvoice(invoice.id)} className="p-2 bg-gray-700 hover:bg-red-600 text-white rounded-lg transition-colors" title="حذف">🗑️</button>
                         {balance > 0 && (
                           <button onClick={() => payBalance(invoice)} className="px-3 py-2 bg-indigo-600/90 hover:bg-indigo-600 text-white rounded-lg text-xs font-bold transition-colors shadow-md">
@@ -525,6 +554,64 @@ export default function InvoicesTab() {
             <button disabled={pagination.page >= pagination.pages} onClick={() => loadInvoices(pagination.page + 1)} className="px-4 py-2 bg-gray-700 hover:bg-gray-600 disabled:opacity-50 disabled:cursor-not-allowed rounded-lg text-sm font-medium transition-colors">
               التالي
             </button>
+          </div>
+        </div>
+      )}
+
+      {/* modal تعديل الفاتورة */}
+      {editingInvoice && (
+        <div className="fixed inset-0 bg-black/60 flex items-end sm:items-center justify-center z-50 p-0 sm:p-4" onClick={() => setEditingInvoice(null)}>
+          <div className="bg-gray-800 rounded-t-2xl sm:rounded-xl border border-gray-700 max-w-lg w-full max-h-[90vh] overflow-y-auto shadow-xl" onClick={e => e.stopPropagation()}>
+            <div className="p-4 sm:p-5 border-b border-gray-700 flex justify-between items-center">
+              <h3 className="text-base sm:text-lg font-bold text-white">تعديل الفاتورة {editingInvoice.invoice_number}</h3>
+              <button onClick={() => setEditingInvoice(null)} className="text-gray-400 hover:text-white min-w-[44px] min-h-[44px] flex items-center justify-center text-xl">✕</button>
+            </div>
+            <div className="p-4 sm:p-5 space-y-3 sm:space-y-4">
+              <div>
+                <label className="block text-gray-400 text-sm mb-1">اسم العميل</label>
+                <input value={editingInvoice.customer_name || ''} onChange={e => setEditingInvoice({ ...editingInvoice, customer_name: e.target.value })} className="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-white" />
+              </div>
+              <div>
+                <label className="block text-gray-400 text-sm mb-1">الهاتف</label>
+                <input value={editingInvoice.customer_phone || ''} onChange={e => setEditingInvoice({ ...editingInvoice, customer_phone: e.target.value })} className="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-white" />
+              </div>
+              <div>
+                <label className="block text-gray-400 text-sm mb-1">العنوان</label>
+                <input value={editingInvoice.customer_address || ''} onChange={e => setEditingInvoice({ ...editingInvoice, customer_address: e.target.value })} className="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-white" />
+              </div>
+              <div>
+                <label className="block text-gray-400 text-sm mb-1">ملاحظات</label>
+                <input value={editingInvoice.customer_notes || ''} onChange={e => setEditingInvoice({ ...editingInvoice, customer_notes: e.target.value })} className="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-white" />
+              </div>
+              <div>
+                <label className="block text-gray-400 text-sm mb-1">الخصم (د.ل)</label>
+                <input type="number" step="0.001" value={editingInvoice.discount || 0} onChange={e => setEditingInvoice({ ...editingInvoice, discount: e.target.value })} className="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-white" />
+              </div>
+              <div>
+                <label className="block text-gray-400 text-sm mb-1">الحالة</label>
+                <select value={editingInvoice.status || 'pending'} onChange={e => setEditingInvoice({ ...editingInvoice, status: e.target.value })} className="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-white">
+                  <option value="pending">قيد الانتظار</option>
+                  <option value="processing">تجهيز</option>
+                  <option value="ready">جاهز</option>
+                  <option value="completed">مكتمل</option>
+                </select>
+              </div>
+              <div>
+                <label className="block text-gray-400 text-sm mb-1">العناصر (يمكن حذف عنصر فقط)</label>
+                <ul className="space-y-2">
+                  {(editingInvoice.items || []).map((item, i) => (
+                    <li key={i} className="flex justify-between items-center bg-gray-700 rounded-lg px-3 py-2">
+                      <span className="text-white text-sm">{item.title} — {currency(item.price)}</span>
+                      <button type="button" onClick={() => removeItemFromEdit(i)} className="text-red-400 hover:text-red-300 text-sm">حذف</button>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+              <div className="pt-2 flex gap-2">
+                <button onClick={handleSaveEdit} className="flex-1 px-4 py-2.5 min-h-[44px] bg-primary hover:bg-primary-dark text-white rounded-lg font-medium text-sm sm:text-base">حفظ التعديلات</button>
+                <button onClick={() => setEditingInvoice(null)} className="px-4 py-2.5 min-h-[44px] bg-gray-600 text-white rounded-lg font-medium text-sm sm:text-base">إلغاء</button>
+              </div>
+            </div>
           </div>
         </div>
       )}
