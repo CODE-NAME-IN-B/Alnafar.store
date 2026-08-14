@@ -212,6 +212,26 @@ export default function InvoicesTab() {
     setEditingInvoice({ ...editingInvoice, items })
   }
 
+  const updateItemPrice = (index, price) => {
+    if (!editingInvoice) return
+    const items = [...(editingInvoice.items || [])]
+    items[index] = { ...items[index], price: Number(price) || 0 }
+    setEditingInvoice({ ...editingInvoice, items })
+  }
+
+  const updateItemTitle = (index, title) => {
+    if (!editingInvoice) return
+    const items = [...(editingInvoice.items || [])]
+    items[index] = { ...items[index], title }
+    setEditingInvoice({ ...editingInvoice, items })
+  }
+
+  const addItemToEdit = () => {
+    if (!editingInvoice) return
+    const items = [...(editingInvoice.items || []), { title: 'عنصر جديد', price: 0, type: 'game' }]
+    setEditingInvoice({ ...editingInvoice, items })
+  }
+
   if (loading) {
     return (
       <div className="p-8 text-center">
@@ -560,56 +580,107 @@ export default function InvoicesTab() {
 
       {/* modal تعديل الفاتورة */}
       {editingInvoice && (
-        <div className="fixed inset-0 bg-black/60 flex items-end sm:items-center justify-center z-50 p-0 sm:p-4" onClick={() => setEditingInvoice(null)}>
-          <div className="bg-gray-800 rounded-t-2xl sm:rounded-xl border border-gray-700 max-w-lg w-full max-h-[90vh] overflow-y-auto shadow-xl" onClick={e => e.stopPropagation()}>
-            <div className="p-4 sm:p-5 border-b border-gray-700 flex justify-between items-center">
-              <h3 className="text-base sm:text-lg font-bold text-white">تعديل الفاتورة {editingInvoice.invoice_number}</h3>
-              <button onClick={() => setEditingInvoice(null)} className="text-gray-400 hover:text-white min-w-[44px] min-h-[44px] flex items-center justify-center text-xl">✕</button>
+        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-end sm:items-center justify-center z-50 p-0 sm:p-4" onClick={() => setEditingInvoice(null)}>
+          <div className="bg-gradient-to-b from-gray-800 to-gray-900 rounded-t-3xl sm:rounded-2xl border border-white/5 max-w-lg w-full max-h-[92vh] sm:max-h-[90vh] overflow-y-auto shadow-2xl" onClick={e => e.stopPropagation()}>
+            {/* Header */}
+            <div className="sticky top-0 z-10 bg-gradient-to-b from-gray-800/95 to-gray-800/80 backdrop-blur-md p-4 sm:p-5 border-b border-white/5 rounded-t-3xl sm:rounded-t-2xl">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 bg-yellow-500/20 rounded-xl flex items-center justify-center">
+                    <span className="text-lg">✏️</span>
+                  </div>
+                  <div>
+                    <h3 className="text-base sm:text-lg font-bold text-white">تعديل الفاتورة</h3>
+                    <p className="text-xs text-gray-400 mt-0.5">#{editingInvoice.invoice_number}</p>
+                  </div>
+                </div>
+                <button onClick={() => setEditingInvoice(null)} className="w-10 h-10 flex items-center justify-center text-gray-400 hover:text-white hover:bg-white/10 rounded-xl transition-all">✕</button>
+              </div>
             </div>
-            <div className="p-4 sm:p-5 space-y-3 sm:space-y-4">
-              <div>
-                <label className="block text-gray-400 text-sm mb-1">اسم العميل</label>
-                <input value={editingInvoice.customer_name || ''} onChange={e => setEditingInvoice({ ...editingInvoice, customer_name: e.target.value })} className="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-white" />
+
+            <div className="p-4 sm:p-5 space-y-5">
+              {/* معلومات العميل */}
+              <div className="space-y-3">
+                <h4 className="text-xs font-bold text-yellow-400 uppercase tracking-wider flex items-center gap-2">
+                  <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg>
+                  معلومات العميل
+                </h4>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-xs text-gray-400 mb-1.5">الاسم</label>
+                    <input value={editingInvoice.customer_name || ''} onChange={e => setEditingInvoice({ ...editingInvoice, customer_name: e.target.value })} className="w-full bg-gray-700/50 border border-white/5 rounded-xl px-3 py-2.5 text-white text-sm focus:outline-none focus:ring-2 focus:ring-yellow-500/50 transition-all" />
+                  </div>
+                  <div>
+                    <label className="block text-xs text-gray-400 mb-1.5">الهاتف</label>
+                    <input value={editingInvoice.customer_phone || ''} onChange={e => setEditingInvoice({ ...editingInvoice, customer_phone: e.target.value })} className="w-full bg-gray-700/50 border border-white/5 rounded-xl px-3 py-2.5 text-white text-sm focus:outline-none focus:ring-2 focus:ring-yellow-500/50 transition-all" />
+                  </div>
+                </div>
+                <div>
+                  <label className="block text-xs text-gray-400 mb-1.5">العنوان</label>
+                  <input value={editingInvoice.customer_address || ''} onChange={e => setEditingInvoice({ ...editingInvoice, customer_address: e.target.value })} className="w-full bg-gray-700/50 border border-white/5 rounded-xl px-3 py-2.5 text-white text-sm focus:outline-none focus:ring-2 focus:ring-yellow-500/50 transition-all" />
+                </div>
+                <div>
+                  <label className="block text-xs text-gray-400 mb-1.5">ملاحظات</label>
+                  <input value={editingInvoice.customer_notes || ''} onChange={e => setEditingInvoice({ ...editingInvoice, customer_notes: e.target.value })} className="w-full bg-gray-700/50 border border-white/5 rounded-xl px-3 py-2.5 text-white text-sm focus:outline-none focus:ring-2 focus:ring-yellow-500/50 transition-all" />
+                </div>
               </div>
-              <div>
-                <label className="block text-gray-400 text-sm mb-1">الهاتف</label>
-                <input value={editingInvoice.customer_phone || ''} onChange={e => setEditingInvoice({ ...editingInvoice, customer_phone: e.target.value })} className="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-white" />
+
+              {/* الخصم والstatus */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs text-gray-400 mb-1.5">الخصم (د.ل)</label>
+                  <input type="number" step="0.001" value={editingInvoice.discount || 0} onChange={e => setEditingInvoice({ ...editingInvoice, discount: e.target.value })} className="w-full bg-gray-700/50 border border-white/5 rounded-xl px-3 py-2.5 text-white text-sm focus:outline-none focus:ring-2 focus:ring-yellow-500/50 transition-all" />
+                </div>
+                <div>
+                  <label className="block text-xs text-gray-400 mb-1.5">الحالة</label>
+                  <select value={editingInvoice.status || 'pending'} onChange={e => setEditingInvoice({ ...editingInvoice, status: e.target.value })} className="w-full bg-gray-700/50 border border-white/5 rounded-xl px-3 py-2.5 text-white text-sm focus:outline-none focus:ring-2 focus:ring-yellow-500/50 transition-all">
+                    <option value="pending">⏳ قيد الانتظار</option>
+                    <option value="processing">⚙️ تجهيز</option>
+                    <option value="ready">✅ جاهز</option>
+                    <option value="completed">🏁 مكتمل</option>
+                  </select>
+                </div>
               </div>
-              <div>
-                <label className="block text-gray-400 text-sm mb-1">العنوان</label>
-                <input value={editingInvoice.customer_address || ''} onChange={e => setEditingInvoice({ ...editingInvoice, customer_address: e.target.value })} className="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-white" />
-              </div>
-              <div>
-                <label className="block text-gray-400 text-sm mb-1">ملاحظات</label>
-                <input value={editingInvoice.customer_notes || ''} onChange={e => setEditingInvoice({ ...editingInvoice, customer_notes: e.target.value })} className="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-white" />
-              </div>
-              <div>
-                <label className="block text-gray-400 text-sm mb-1">الخصم (د.ل)</label>
-                <input type="number" step="0.001" value={editingInvoice.discount || 0} onChange={e => setEditingInvoice({ ...editingInvoice, discount: e.target.value })} className="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-white" />
-              </div>
-              <div>
-                <label className="block text-gray-400 text-sm mb-1">الحالة</label>
-                <select value={editingInvoice.status || 'pending'} onChange={e => setEditingInvoice({ ...editingInvoice, status: e.target.value })} className="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-white">
-                  <option value="pending">قيد الانتظار</option>
-                  <option value="processing">تجهيز</option>
-                  <option value="ready">جاهز</option>
-                  <option value="completed">مكتمل</option>
-                </select>
-              </div>
-              <div>
-                <label className="block text-gray-400 text-sm mb-1">العناصر (يمكن حذف عنصر فقط)</label>
-                <ul className="space-y-2">
+
+              {/* العناصر */}
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <h4 className="text-xs font-bold text-yellow-400 uppercase tracking-wider flex items-center gap-2">
+                    <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" /></svg>
+                    العناصر ({(editingInvoice.items || []).length})
+                  </h4>
+                  <button onClick={addItemToEdit} className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-400 rounded-lg text-xs font-bold transition-colors">
+                    <span className="text-base leading-none">+</span> إضافة عنصر
+                  </button>
+                </div>
+                <div className="space-y-2">
                   {(editingInvoice.items || []).map((item, i) => (
-                    <li key={i} className="flex justify-between items-center bg-gray-700 rounded-lg px-3 py-2">
-                      <span className="text-white text-sm">{item.title} — {currency(item.price)}</span>
-                      <button type="button" onClick={() => removeItemFromEdit(i)} className="text-red-400 hover:text-red-300 text-sm">حذف</button>
-                    </li>
+                    <div key={i} className="bg-gray-700/50 border border-white/5 rounded-xl p-3 space-y-2">
+                      <div className="flex items-center gap-2">
+                        <input value={item.title || ''} onChange={e => updateItemTitle(i, e.target.value)} className="flex-1 bg-gray-800/50 border border-white/5 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:ring-1 focus:ring-yellow-500/50" placeholder="اسم العنصر" />
+                        <button onClick={() => removeItemFromEdit(i)} className="w-9 h-9 flex items-center justify-center bg-red-500/10 hover:bg-red-500/20 text-red-400 rounded-lg transition-colors text-sm flex-shrink-0">✕</button>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <input type="number" step="0.001" min="0" value={item.price || 0} onChange={e => updateItemPrice(i, e.target.value)} className="flex-1 bg-gray-800/50 border border-white/5 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:ring-1 focus:ring-yellow-500/50" placeholder="السعر" />
+                        <span className="text-xs text-gray-500 flex-shrink-0">د.ل</span>
+                      </div>
+                    </div>
                   ))}
-                </ul>
+                </div>
+                {(editingInvoice.items || []).length === 0 && (
+                  <div className="text-center py-4 text-gray-500 text-sm">لا توجد عناصر</div>
+                )}
+                {/* الإجمالي */}
+                <div className="flex justify-between items-center bg-gradient-to-l from-yellow-500/10 to-transparent p-3 rounded-xl">
+                  <span className="text-sm font-bold text-white">الإجمالي</span>
+                  <span className="text-lg font-black text-yellow-400">{currency((editingInvoice.items || []).reduce((s, i) => s + (Number(i.price) || 0), 0) - (Number(editingInvoice.discount) || 0))}</span>
+                </div>
               </div>
-              <div className="pt-2 flex gap-2">
-                <button onClick={handleSaveEdit} className="flex-1 px-4 py-2.5 min-h-[44px] bg-primary hover:bg-primary-dark text-white rounded-lg font-medium text-sm sm:text-base">حفظ التعديلات</button>
-                <button onClick={() => setEditingInvoice(null)} className="px-4 py-2.5 min-h-[44px] bg-gray-600 text-white rounded-lg font-medium text-sm sm:text-base">إلغاء</button>
+
+              {/* أزرار الحفظ */}
+              <div className="flex gap-3 pt-2 pb-4 sm:pb-0">
+                <button onClick={() => setEditingInvoice(null)} className="flex-1 px-4 py-3 min-h-[48px] border border-white/10 text-gray-300 rounded-xl hover:bg-white/5 transition-all font-medium text-sm">إلغاء</button>
+                <button onClick={handleSaveEdit} className="flex-1 px-4 py-3 min-h-[48px] bg-gradient-to-r from-yellow-500 to-amber-500 hover:from-yellow-400 hover:to-amber-400 text-white font-bold rounded-xl transition-all shadow-lg shadow-yellow-500/20 text-sm">حفظ التعديلات</button>
               </div>
             </div>
           </div>

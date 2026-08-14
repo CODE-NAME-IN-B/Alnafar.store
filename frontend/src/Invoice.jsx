@@ -291,9 +291,12 @@ export default function Invoice({ cart, total, totalSize = 0, onClose, onSuccess
                       placeholder="0.00"
                     />
                     <div className="flex gap-1">
-                      <button type="button" onClick={() => setPaidAmount(total - discount)} className="px-2.5 py-1.5 text-[11px] font-bold bg-purple-500/20 hover:bg-purple-500/30 text-purple-400 rounded-lg transition-colors">الكل</button>
-                      <button type="button" onClick={() => setPaidAmount((total - discount) / 2)} className="px-2.5 py-1.5 text-[11px] font-bold bg-gray-700/50 hover:bg-gray-700 text-gray-300 rounded-lg transition-colors">نصف</button>
-                      <button type="button" onClick={() => setPaidAmount(0)} className="px-2.5 py-1.5 text-[11px] font-bold bg-gray-700/50 hover:bg-gray-700 text-gray-300 rounded-lg transition-colors">آجل</button>
+                      <button type="button" onClick={() => setPaidAmount(total - discount)}
+                        className={`px-2.5 py-1.5 text-[11px] font-bold rounded-lg transition-all ${paidAmount === (total - discount) ? 'bg-emerald-500 text-white shadow-md shadow-emerald-500/30' : 'bg-gray-700/50 hover:bg-gray-700 text-gray-300'}`}>الكل</button>
+                      <button type="button" onClick={() => setPaidAmount((total - discount) / 2)}
+                        className={`px-2.5 py-1.5 text-[11px] font-bold rounded-lg transition-all ${paidAmount === (total - discount) / 2 && paidAmount > 0 ? 'bg-blue-500 text-white shadow-md shadow-blue-500/30' : 'bg-gray-700/50 hover:bg-gray-700 text-gray-300'}`}>نصف</button>
+                      <button type="button" onClick={() => setPaidAmount(0)}
+                        className={`px-2.5 py-1.5 text-[11px] font-bold rounded-lg transition-all ${paidAmount === 0 ? 'bg-orange-500 text-white shadow-md shadow-orange-500/30' : 'bg-gray-700/50 hover:bg-gray-700 text-gray-300'}`}>آجل</button>
                     </div>
                   </div>
                   {paidAmount < (total - discount) && paidAmount > 0 && (
