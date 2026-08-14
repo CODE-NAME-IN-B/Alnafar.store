@@ -235,6 +235,7 @@ export default function App() {
     const handleEditInvoice = (e) => {
       const data = e.detail
       if (data) {
+        localStorage.setItem('editing_invoice', JSON.stringify(data))
         setEditingInvoiceData(data)
         const gamesItems = (data.items || []).filter(it => it.type === 'game' || it.type === 'package' || (!it.type && it.size_gb !== undefined))
         const servicesItems = (data.items || []).filter(it => it.type === 'service' || (!it.type && it.size_gb === undefined))
