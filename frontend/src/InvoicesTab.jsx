@@ -22,6 +22,7 @@ export default function InvoicesTab() {
   const [showGamePicker, setShowGamePicker] = useState(false)
   const [showServicePicker, setShowServicePicker] = useState(false)
   const [gameSearch, setGameSearch] = useState('')
+  const [serviceSearch, setServiceSearch] = useState('')
   const [dateFrom, setDateFrom] = useState(() => {
     const d = new Date()
     d.setDate(1)
@@ -237,6 +238,12 @@ export default function InvoicesTab() {
     if (!q) return gamesList
     return gamesList.filter(g => String(g.title || '').toLowerCase().includes(q))
   }, [gamesList, gameSearch])
+
+  const filteredServices = useMemo(() => {
+    const q = serviceSearch.trim().toLowerCase()
+    if (!q) return servicesList
+    return servicesList.filter(s => String(s.title || '').toLowerCase().includes(q))
+  }, [servicesList, serviceSearch])
 
   if (loading) {
     return (
@@ -686,12 +693,15 @@ export default function InvoicesTab() {
       {showServicePicker && (
         <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-end sm:items-center justify-center z-[60] p-0 sm:p-4" onClick={() => setShowServicePicker(false)}>
           <div className="bg-gray-900 rounded-t-2xl sm:rounded-2xl border border-white/10 max-w-md w-full max-h-[60vh] overflow-hidden shadow-2xl flex flex-col" onClick={e => e.stopPropagation()}>
-            <div className="p-4 border-b border-white/10 flex items-center justify-between">
-              <h3 className="text-sm font-bold text-white">اختر خدمة</h3>
-              <button onClick={() => setShowServicePicker(false)} className="w-8 h-8 flex items-center justify-center text-gray-400 hover:text-white hover:bg-white/10 rounded-lg text-lg">✕</button>
+            <div className="p-4 border-b border-white/10">
+              <div className="flex items-center justify-between mb-3">
+                <h3 className="text-sm font-bold text-white">اختر خدمة</h3>
+                <button onClick={() => setShowServicePicker(false)} className="w-8 h-8 flex items-center justify-center text-gray-400 hover:text-white hover:bg-white/10 rounded-lg text-lg">✕</button>
+              </div>
+              <input autoFocus value={serviceSearch} onChange={e => setServiceSearch(e.target.value)} className="w-full bg-gray-800 border border-white/10 rounded-lg px-3 py-2.5 text-white text-sm outline-none focus:ring-1 focus:ring-blue-500/50" placeholder="ابحث عن خدمة..." />
             </div>
             <div className="flex-1 overflow-y-auto p-2">
-              {servicesList.map(service => (
+              {filteredServices.map(service => (
                 <button key={service.id} onClick={() => addServiceToInvoice(service)} className="w-full flex items-center gap-3 p-3 rounded-xl hover:bg-white/5 transition-colors text-right">
                   <div className="flex-1 min-w-0">
                     <p className="text-white text-sm font-medium truncate">{service.title}</p>
@@ -699,7 +709,7 @@ export default function InvoicesTab() {
                   <span className="text-blue-400 font-bold text-sm whitespace-nowrap">{currency(service.price)}</span>
                 </button>
               ))}
-              {servicesList.length === 0 && <div className="text-center py-8 text-gray-500 text-sm">لا توجد خدمات</div>}
+              {filteredServices.length === 0 && <div className="text-center py-8 text-gray-500 text-sm">لا توجد خدمات</div>}
             </div>
           </div>
         </div>
