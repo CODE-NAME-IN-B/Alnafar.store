@@ -48,23 +48,23 @@ export default function Admin() {
 
   if (!loggedIn) {
     return (
-      <div className="min-h-screen bg-gray-950 text-white flex flex-col items-center justify-center p-6 relative overflow-hidden">
-        {/* Animated background blobs */}
-        <div className="fixed inset-0 pointer-events-none opacity-20">
-          <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-blue-600 rounded-full blur-[120px] animate-pulse"></div>
-          <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-purple-600 rounded-full blur-[120px] animate-pulse" style={{ animationDelay: '1s' }}></div>
+      <div className="min-h-screen bg-gray-950 text-white flex flex-col items-center justify-center p-4 relative overflow-hidden">
+        <div className="fixed inset-0 pointer-events-none">
+          <div className="absolute top-[-20%] left-[-10%] w-[50%] h-[50%] bg-blue-600/20 rounded-full blur-[120px]"></div>
+          <div className="absolute bottom-[-20%] right-[-10%] w-[50%] h-[50%] bg-purple-600/20 rounded-full blur-[120px]"></div>
         </div>
         <div className="relative z-10 text-center max-w-sm w-full">
-          <div className="w-16 h-16 mx-auto mb-4 bg-white rounded-2xl shadow-xl overflow-hidden flex items-center justify-center">
+          <div className="w-16 h-16 mx-auto mb-5 bg-white rounded-2xl shadow-2xl overflow-hidden flex items-center justify-center">
             <img src={logo} alt="Alnafar" className="w-full h-full object-contain" />
           </div>
           <h1 className="text-2xl font-bold mb-1 bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent">لوحة التحكم</h1>
-          <p className="text-gray-400 mb-8 text-sm">متجر النفار — نظام الإدارة</p>
-          <form onSubmit={submitLogin} className="bg-gray-900/80 backdrop-blur-md border border-white/10 rounded-2xl p-6 space-y-4 shadow-2xl">
+          <p className="text-gray-500 mb-8 text-sm">متجر النفار — نظام الإدارة</p>
+          <form onSubmit={submitLogin} className="bg-gray-900/80 backdrop-blur-xl border border-white/10 rounded-2xl p-6 space-y-4 shadow-2xl">
             <div>
-              <label className="block text-sm font-medium text-gray-300 mb-2 text-right">اسم المستخدم</label>
+              <label htmlFor="username" className="block text-sm font-medium text-gray-300 mb-2 text-right">اسم المستخدم</label>
               <input
-                className="w-full border border-gray-700 bg-gray-800 text-white rounded-lg px-3 py-2.5 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-base transition-all"
+                id="username"
+                className="w-full border border-gray-700 bg-gray-800 text-white rounded-xl px-4 py-3 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/50 text-base transition-all min-h-[48px]"
                 placeholder="أدخل اسم المستخدم"
                 value={loginForm.username}
                 onChange={e => setLoginForm({ ...loginForm, username: e.target.value })}
@@ -72,9 +72,10 @@ export default function Admin() {
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-300 mb-2 text-right">كلمة المرور</label>
+              <label htmlFor="password" className="block text-sm font-medium text-gray-300 mb-2 text-right">كلمة المرور</label>
               <input
-                className="w-full border border-gray-700 bg-gray-800 text-white rounded-lg px-3 py-2.5 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-base transition-all"
+                id="password"
+                className="w-full border border-gray-700 bg-gray-800 text-white rounded-xl px-4 py-3 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/50 text-base transition-all min-h-[48px]"
                 placeholder="أدخل كلمة المرور"
                 type="password"
                 value={loginForm.password}
@@ -84,8 +85,9 @@ export default function Admin() {
             </div>
             <button
               type="submit"
-              className="w-full px-4 py-3 rounded-lg bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white font-bold flex items-center justify-center gap-2 transition-all shadow-lg hover:shadow-blue-500/25"
+              className="w-full px-4 py-3 rounded-xl bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-500 hover:to-purple-500 text-white font-bold flex items-center justify-center gap-2 transition-all shadow-lg shadow-blue-500/25 min-h-[48px]"
             >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0013.5 3h-6a2.25 2.25 0 00-2.25 2.25v13.5A2.25 2.25 0 007.5 21h6a2.25 2.25 0 002.25-2.25V15m3 0l3-3m0 0l-3-3m3 3H9" /></svg>
               تسجيل الدخول
             </button>
           </form>
@@ -96,101 +98,109 @@ export default function Admin() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 text-white safe-area-bottom">
-      {/* Header - محسّن للموبايل */}
-      <nav className="bg-gradient-to-r from-gray-800 to-gray-900 shadow-2xl border-b border-gray-700 safe-area-inset sticky top-0 z-50">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 py-4">
+      {/* Header */}
+      <nav className="bg-gray-900/80 backdrop-blur-xl border-b border-gray-800/50 sticky top-0 z-40" role="banner">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 py-3">
           <div className="flex items-center justify-between gap-3">
             <div className="flex items-center gap-3 min-w-0">
               {/* Mobile Menu Button */}
               <button
                 onClick={() => setIsMobileMenuOpen(true)}
-                className="md:hidden p-2 -ml-2 text-gray-300 hover:text-white focus:outline-none"
-                aria-label="القائمة"
+                className="md:hidden w-10 h-10 flex items-center justify-center text-gray-400 hover:text-white hover:bg-white/10 rounded-xl transition-colors"
+                aria-label="فتح القائمة"
               >
-                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
-                </svg>
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5" /></svg>
               </button>
 
-              <img src={logo} alt="شعار المتجر" className="w-9 h-9 sm:w-10 sm:h-10 flex-shrink-0 rounded-lg object-contain bg-white" />
-              <h1 className="text-lg sm:text-2xl md:text-3xl font-bold bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent truncate hidden sm:block">
-                لوحة تحكم المدير
-              </h1>
+              <div className="w-9 h-9 sm:w-10 sm:h-10 flex-shrink-0 bg-white rounded-xl overflow-hidden shadow-lg">
+                <img src={logo} alt="شعار المتجر" className="w-full h-full object-contain" />
+              </div>
+              <div className="hidden sm:block">
+                <h1 className="text-base sm:text-lg font-bold text-white leading-tight">لوحة التحكم</h1>
+                {currentUser && (
+                  <p className="text-[11px] text-gray-500">{currentUser.username} — {currentUser.role}</p>
+                )}
+              </div>
             </div>
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2">
               <button
                 onClick={() => window.location.hash = '#/'}
-                className="hidden sm:flex px-4 py-2 rounded-xl bg-blue-600/20 text-blue-400 border border-blue-500/30 hover:bg-blue-600/30 font-semibold text-sm transition-all duration-300 items-center gap-2"
+                className="hidden sm:flex w-10 h-10 items-center justify-center text-gray-400 hover:text-white hover:bg-white/10 rounded-xl transition-colors"
+                aria-label="المتجر الرئيسي"
               >
-                🏠 المتجر الرئيسي
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth={1.5} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M2.25 12l8.954-8.955c.44-.439 1.152-.439 1.591 0L21.75 12M4.5 9.75v10.125c0 .621.504 1.125 1.125 1.125H9.75v-4.875c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125V21h4.125c.621 0 1.125-.504 1.125-1.125V9.75M8.25 21h8.25" /></svg>
               </button>
               <button
                 onClick={logout}
-                className="px-4 py-2 sm:px-6 sm:py-2.5 rounded-xl bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white font-semibold text-sm sm:text-base transition-all duration-300 shadow-lg flex-shrink-0"
+                className="flex items-center gap-2 px-3 py-2 sm:px-4 sm:py-2 rounded-xl bg-red-500/10 text-red-400 hover:bg-red-500/20 border border-red-500/20 font-medium text-xs sm:text-sm transition-all min-h-[40px]"
+                aria-label="تسجيل الخروج"
               >
-                تسجيل الخروج
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={1.5} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0013.5 3h-6a2.25 2.25 0 00-2.25 2.25v13.5A2.25 2.25 0 007.5 21h6a2.25 2.25 0 002.25-2.25V15m3 0l3-3m0 0l-3-3m3 3H9" /></svg>
+                <span className="hidden sm:inline">خروج</span>
               </button>
             </div>
           </div>
         </div>
       </nav>
 
-      {/* Main Content - شبكة متجاوبة مع شريط جانبي */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 py-4 sm:py-8">
-        <div className="flex flex-col md:flex-row gap-4 sm:gap-6 relative items-start">
+      {/* Mobile Overlay */}
+      {isMobileMenuOpen && (
+        <div
+          className="fixed inset-0 bg-black/60 backdrop-blur-sm z-40 md:hidden transition-opacity"
+          onClick={() => setIsMobileMenuOpen(false)}
+          aria-hidden="true"
+        />
+      )}
 
-          {/* Mobile Overlay */}
-          {isMobileMenuOpen && (
-            <div
-              className="fixed inset-0 bg-black/50 z-40 md:hidden backdrop-blur-sm"
-              onClick={() => setIsMobileMenuOpen(false)}
-            />
-          )}
+      {/* Main Content */}
+      <div className="max-w-7xl mx-auto px-3 sm:px-6 py-3 sm:py-6">
+        <div className="flex flex-col md:flex-row gap-3 sm:gap-5 relative items-start">
 
-          {/* Sidebar */}
+          {/* Sidebar - Mobile Drawer */}
           <aside className={`
-            fixed md:sticky top-0 md:top-24 right-0 z-50 w-64 md:w-1/4 lg:w-1/5 h-screen md:h-auto
-            transform ${isMobileMenuOpen ? 'translate-x-0' : 'translate-x-full'} md:translate-x-0
-            transition-transform duration-200 ease-out border-l border-gray-700 md:border-none shadow-2xl md:shadow-none
+            fixed md:sticky top-0 md:top-24 right-0 z-50 w-72 md:w-60 lg:w-64 h-screen md:h-auto md:h-auto
+            transform transition-transform duration-300 ease-out md:translate-x-0
+            ${isMobileMenuOpen ? 'translate-x-0' : 'translate-x-full'}
+            border-l border-gray-700/50 md:border-none shadow-2xl md:shadow-none
             flex flex-col md:block
           `}>
-            <div className="bg-gray-800/95 md:bg-gray-800/60 md:backdrop-blur-sm rounded-none md:rounded-2xl border-0 md:border md:border-gray-700 p-4 h-full md:h-auto overflow-y-auto">
-              {/* Mobile Close Button & Header */}
-              <div className="flex items-center justify-between gap-3 mb-6 md:mb-4">
+            <div className="bg-gray-900/98 md:bg-gray-800/50 md:backdrop-blur-xl rounded-none md:rounded-2xl border-0 md:border md:border-gray-700/50 h-full md:h-auto overflow-y-auto md:overflow-visible">
+              {/* Mobile Header */}
+              <div className="flex items-center justify-between gap-3 p-4 pb-2 md:hidden border-b border-gray-700/50">
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 flex-shrink-0 bg-white rounded-lg overflow-hidden">
+                  <div className="w-10 h-10 flex-shrink-0 bg-white rounded-xl overflow-hidden shadow-lg">
                     <img src={logo} alt="شعار المتجر" className="w-full h-full object-contain" />
                   </div>
-                  <div className="min-w-0 flex-1">
+                  <div className="min-w-0">
                     <div className="font-bold text-white text-sm">لوحة التحكم</div>
                     {currentUser && (
-                      <div className="text-xs text-gray-400 truncate">{currentUser.username} — {currentUser.role}</div>
+                      <div className="text-[11px] text-gray-400 truncate">{currentUser.username}</div>
                     )}
                   </div>
                 </div>
                 <button
                   onClick={() => setIsMobileMenuOpen(false)}
-                  className="md:hidden p-2 text-gray-400 hover:text-white"
+                  className="w-10 h-10 flex items-center justify-center text-gray-400 hover:text-white hover:bg-white/10 rounded-xl transition-colors"
+                  aria-label="إغلاق القائمة"
                 >
-                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                  </svg>
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
                 </button>
               </div>
 
-              <div className="space-y-1">
+              {/* Navigation */}
+              <nav className="p-2 md:p-3 space-y-0.5" role="navigation" aria-label="القائمة الرئيسية">
                 {[
-                  { id: 'games', label: 'الألعاب', icon: '🎮' },
-                  { id: 'categories', label: 'التصنيفات', icon: '📂' },
-                  { id: 'genres', label: 'الأنواع والسلاسل', icon: '🏷️' },
-                  { id: 'packages', label: 'الباقات', icon: '📦' },
-                  { id: 'invoices', label: 'الفواتير', icon: '🧾' },
-                  { id: 'daily-report', label: 'الجرد اليومي', icon: '📈' },
-                  { id: 'invoice-settings', label: 'إعدادات الفاتورة', icon: '🖨️' },
-                  { id: 'services', label: 'الخدمات', icon: '🔧' },
-                  { id: 'stats', label: 'الإحصائيات', icon: '📊' },
-                  { id: 'store-home', label: 'الرئيسية (POS)', icon: '🏠', action: () => window.location.hash = '#/' },
-                  ...(currentUser?.role === 'admin' ? [{ id: 'users', label: 'الإدمن', icon: '🛡️' }] : [])
+                  { id: 'games', label: 'الألعاب', icon: <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth={1.5} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M14.25 6.087c0-.355.186-.676.401-.959.221-.29.349-.634.349-1.003 0-1.036-1.007-1.875-2.25-1.875s-2.25.84-2.25 1.875c0 .369.128.713.349 1.003.215.283.401.604.401.959V6a2 2 0 00-2-2H5.5a2 2 0 00-2 2v5.5c0 .355.186.676.401.959.221.29.349.634.349 1.003 0 1.036 1.007 1.875 2.25 1.875s2.25-.84 2.25-1.875c0-.369-.128-.713-.349-1.003A1.65 1.65 0 015.5 11.5V6" /><path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /></svg> },
+                  { id: 'categories', label: 'التصنيفات', icon: <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth={1.5} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6A2.25 2.25 0 016 3.75h2.25A2.25 2.25 0 0110.5 6v2.25a2.25 2.25 0 01-2.25 2.25H6a2.25 2.25 0 01-2.25-2.25V6zM3.75 15.75A2.25 2.25 0 016 13.5h2.25a2.25 2.25 0 012.25 2.25V18a2.25 2.25 0 01-2.25 2.25H6A2.25 2.25 0 013.75 18v-2.25zM13.5 6a2.25 2.25 0 012.25-2.25H18A2.25 2.25 0 0120.25 6v2.25A2.25 2.25 0 0118 10.5h-2.25a2.25 2.25 0 01-2.25-2.25V6zM13.5 15.75a2.25 2.25 0 012.25-2.25H18a2.25 2.25 0 012.25 2.25V18A2.25 2.25 0 0118 20.25h-2.25A2.25 2.25 0 0113.5 18v-2.25z" /></svg> },
+                  { id: 'genres', label: 'الأنواع والسلاسل', icon: <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth={1.5} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M9.568 3H5.25A2.25 2.25 0 003 5.25v4.318c0 .597.237 1.17.659 1.591l9.581 9.581c.699.699 1.78.872 2.607.33a18.095 18.095 0 005.223-5.223c.542-.827.369-1.908-.33-2.607L11.16 3.66A2.25 2.25 0 009.568 3z" /><path strokeLinecap="round" strokeLinejoin="round" d="M6 6h.008v.008H6V6z" /></svg> },
+                  { id: 'packages', label: 'الباقات', icon: <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth={1.5} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M21 7.5l-9-5.25L3 7.5m18 0l-9 5.25m9-5.25v9l-9 5.25M3 7.5l9 5.25M3 7.5v9l9 5.25m0-9v9" /></svg> },
+                  { id: 'invoices', label: 'الفواتير', icon: <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth={1.5} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z" /></svg> },
+                  { id: 'daily-report', label: 'الجرد اليومي', icon: <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth={1.5} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v6.75C7.5 20.496 6.996 21 6.375 21h-2.25A1.125 1.125 0 013 19.875v-6.75zM9.75 8.625c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v11.25c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V8.625zM16.5 4.125c0-.621.504-1.125 1.125-1.125h2.25C20.496 3 21 3.504 21 4.125v15.75c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V4.125z" /></svg> },
+                  { id: 'invoice-settings', label: 'إعدادات الفاتورة', icon: <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth={1.5} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M6.72 13.829c-.24.03-.48.062-.72.096m.72-.096a42.415 42.415 0 0110.56 0m-10.56 0L6.34 18m10.94-4.171c.24.03.48.062.72.096m-.72-.096L17.66 18m0 0l.229 2.523a1.125 1.125 0 01-1.12 1.227H7.231c-.662 0-1.18-.568-1.12-1.227L6.34 18m11.318 0h1.091A2.25 2.25 0 0021 15.75V9.456c0-1.081-.768-2.015-1.837-2.175a48.055 48.055 0 00-1.913-.247M6.34 18H5.25A2.25 2.25 0 013 15.75V9.456c0-1.081.768-2.015 1.837-2.175a48.041 48.041 0 011.913-.247m10.5 0a48.536 48.536 0 00-10.5 0m10.5 0V3.375c0-.621-.504-1.125-1.125-1.125h-8.25c-.621 0-1.125.504-1.125 1.125v3.659M18 10.5h.008v.008H18V10.5zm-3 0h.008v.008H15V10.5z" /></svg> },
+                  { id: 'services', label: 'الخدمات', icon: <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth={1.5} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M11.42 15.17l-5.1-5.1m0 0L11.42 4.97m-5.1 5.1H21M3 3v18" /></svg> },
+                  { id: 'stats', label: 'الإحصائيات', icon: <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth={1.5} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v6.75C7.5 20.496 6.996 21 6.375 21h-2.25A1.125 1.125 0 013 19.875v-6.75zM9.75 8.625c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v11.25c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V8.625zM16.5 4.125c0-.621.504-1.125 1.125-1.125h2.25C20.496 3 21 3.504 21 4.125v15.75c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V4.125z" /></svg> },
+                  { id: 'store-home', label: 'الرئيسية (POS)', icon: <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth={1.5} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M2.25 12l8.954-8.955c.44-.439 1.152-.439 1.591 0L21.75 12M4.5 9.75v10.125c0 .621.504 1.125 1.125 1.125H9.75v-4.875c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125V21h4.125c.621 0 1.125-.504 1.125-1.125V9.75M8.25 21h8.25" /></svg> },
+                  ...(currentUser?.role === 'admin' ? [{ id: 'users', label: 'الإدمن', icon: <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth={1.5} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75m-3-7.036A11.959 11.959 0 013.598 6 11.99 11.99 0 003 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285z" /></svg> }]
                 ].map(({ id, label, icon, action }) => (
                   <button
                     key={id}
@@ -198,21 +208,22 @@ export default function Admin() {
                       if (action) action();
                       else { setTab(id); setIsMobileMenuOpen(false); }
                     }}
-                    className={`w-full text-right px-4 py-3 rounded-xl font-semibold transition-all duration-200 min-h-[48px] flex items-center justify-start gap-3 ${tab === id
-                      ? 'bg-gradient-to-r from-blue-500 to-purple-600 text-white shadow-lg'
-                      : 'bg-transparent text-gray-300 hover:bg-gray-700/50 hover:text-white'
+                    className={`w-full text-right px-3 py-2.5 rounded-xl font-medium transition-all duration-200 min-h-[44px] flex items-center justify-start gap-3 text-sm ${tab === id
+                      ? 'bg-gradient-to-r from-blue-600 to-purple-600 text-white shadow-lg shadow-blue-500/20'
+                      : 'text-gray-400 hover:bg-white/5 hover:text-white'
                       }`}
+                    aria-current={tab === id ? 'page' : undefined}
                   >
-                    <span className="text-xl w-6 text-center">{icon}</span>
-                    <span>{label}</span>
+                    <span className={`w-5 h-5 flex-shrink-0 ${tab === id ? 'text-white' : 'text-gray-500'}`}>{icon}</span>
+                    <span className="truncate">{label}</span>
                   </button>
                 ))}
-              </div>
+              </nav>
             </div>
           </aside>
 
-          <section className="flex-1 min-w-0 md:w-3/4 lg:w-4/5">
-            <div className="bg-gray-800/30 backdrop-blur-sm rounded-2xl border border-gray-700 shadow-2xl">
+          <main className="flex-1 min-w-0 md:w-3/4 lg:w-4/5" role="main">
+            <div className="bg-gray-900/50 backdrop-blur-sm rounded-2xl border border-gray-800/50 shadow-xl overflow-hidden">
               {tab === 'games' && <GamesTabNew />}
               {tab === 'categories' && <CategoriesTab />}
               {tab === 'genres' && <GenreSeriesManager />}
@@ -224,7 +235,7 @@ export default function Admin() {
               {tab === 'stats' && <StatsTab />}
               {tab === 'users' && currentUser?.role === 'admin' && <UsersTab />}
             </div>
-          </section>
+          </main>
         </div>
       </div>
     </div>
