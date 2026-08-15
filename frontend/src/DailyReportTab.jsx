@@ -324,36 +324,40 @@ export default function DailyReportTab() {
 
       {/* نطاق التقارير */}
       {range && (
-        <div className="mt-6 bg-gray-800/50 backdrop-blur-sm p-5 rounded-2xl border border-gray-700/50 shadow-xl">
-          <h3 className="text-lg font-bold text-white mb-4">تقارير من {range.start} إلى {range.end}</h3>
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-4">
-            <div className="bg-gradient-to-br from-blue-600 to-blue-700 p-3 sm:p-4 rounded-2xl text-white border border-blue-400/20 shadow-lg">
-              <div className="flex items-center gap-1.5 mb-1.5">
-                <svg className="w-4 h-4 text-blue-200" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
-                <span className="text-[10px] sm:text-xs font-medium text-blue-100">عدد الفواتير</span>
+        <div className="mt-6 bg-gray-900/50 backdrop-blur-xl p-6 rounded-3xl border border-white/10 shadow-2xl">
+          <h3 className="text-xl font-bold text-white mb-6">تقارير من {range.start} إلى {range.end}</h3>
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+            <div className="relative overflow-hidden bg-gradient-to-br from-blue-500 to-indigo-600 p-4 rounded-2xl text-white shadow-lg shadow-blue-500/20">
+              <div className="absolute top-0 right-0 w-16 h-16 bg-white/10 rounded-full blur-xl"></div>
+              <div className="relative z-10">
+                <svg className="w-8 h-8 text-white/80 mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
+                <p className="text-xs font-medium text-white/70 mb-1">عدد الفواتير</p>
+                <p className="text-3xl font-black">{range.totals?.total_invoices ?? 0}</p>
               </div>
-              <div className="text-2xl sm:text-3xl font-black">{range.totals?.total_invoices ?? 0}</div>
             </div>
-            <div className="bg-gradient-to-br from-green-600 to-green-700 p-3 sm:p-4 rounded-2xl text-white border border-green-400/20 shadow-lg">
-              <div className="flex items-center gap-1.5 mb-1.5">
-                <svg className="w-4 h-4 text-green-200" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" /></svg>
-                <span className="text-[10px] sm:text-xs font-medium text-green-100">إجمالي المبيعات</span>
+            <div className="relative overflow-hidden bg-gradient-to-br from-emerald-500 to-green-600 p-4 rounded-2xl text-white shadow-lg shadow-emerald-500/20">
+              <div className="absolute top-0 right-0 w-16 h-16 bg-white/10 rounded-full blur-xl"></div>
+              <div className="relative z-10">
+                <svg className="w-8 h-8 text-white/80 mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" /></svg>
+                <p className="text-xs font-medium text-white/70 mb-1">إجمالي المبيعات</p>
+                <p className="text-xl font-black break-all leading-tight">{currency(range.totals?.total_revenue ?? 0)}</p>
               </div>
-              <div className="text-xl sm:text-2xl font-black">{currency(range.totals?.total_revenue ?? 0)}</div>
             </div>
-            <div className="bg-gradient-to-br from-red-500 to-red-600 p-3 sm:p-4 rounded-2xl text-white border border-red-400/20 shadow-lg">
-              <div className="flex items-center gap-1.5 mb-1.5">
-                <svg className="w-4 h-4 text-red-200" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 14l-7 7m0 0l-7-7m7 7V3" /></svg>
-                <span className="text-[10px] sm:text-xs font-medium text-red-100">إجمالي الخصومات</span>
+            <div className="relative overflow-hidden bg-gradient-to-br from-red-500 to-rose-600 p-4 rounded-2xl text-white shadow-lg shadow-red-500/20">
+              <div className="absolute top-0 right-0 w-16 h-16 bg-white/10 rounded-full blur-xl"></div>
+              <div className="relative z-10">
+                <svg className="w-8 h-8 text-white/80 mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 14l-7 7m0 0l-7-7m7 7V3" /></svg>
+                <p className="text-xs font-medium text-white/70 mb-1">إجمالي الخصومات</p>
+                <p className="text-xl font-black break-all leading-tight">{currency(range.totals?.total_discount ?? 0)}</p>
               </div>
-              <div className="text-xl sm:text-2xl font-black">{currency(range.totals?.total_discount ?? 0)}</div>
             </div>
-            <div className="bg-gradient-to-br from-emerald-500 to-emerald-600 p-3 sm:p-4 rounded-2xl text-white border border-emerald-400/20 shadow-lg">
-              <div className="flex items-center gap-1.5 mb-1.5">
-                <svg className="w-4 h-4 text-emerald-200" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-                <span className="text-[10px] sm:text-xs font-medium text-emerald-100">الصافي</span>
+            <div className="relative overflow-hidden bg-gradient-to-br from-purple-500 to-pink-600 p-4 rounded-2xl text-white shadow-lg shadow-purple-500/20">
+              <div className="absolute top-0 right-0 w-16 h-16 bg-white/10 rounded-full blur-xl"></div>
+              <div className="relative z-10">
+                <svg className="w-8 h-8 text-white/80 mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                <p className="text-xs font-medium text-white/70 mb-1">الصافي</p>
+                <p className="text-xl font-black break-all leading-tight">{currency(range.totals?.net_revenue ?? 0)}</p>
               </div>
-              <div className="text-xl sm:text-2xl font-black">{currency(range.totals?.net_revenue ?? 0)}</div>
             </div>
           </div>
           <div className="overflow-x-auto">
