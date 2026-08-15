@@ -146,12 +146,10 @@ export async function openInvoicePrintWindow(invoice, invSettings = {}) {
     .customer-name { font-size: calc(${fontSize} + 1px); font-weight: 900; text-align: center; }
     .customer-phone { text-align: center; font-size: calc(${fontSize} - 1px); color: #333; }
 
-    .items-box { margin-top: 1.5mm; border: 1.5px solid #000; border-radius: 2px; padding: 1mm; }
-    .items-title { font-weight: 900; font-size: calc(${fontSize} + 1px); text-align: center; margin-bottom: 1mm; padding-bottom: 0.5mm; border-bottom: 1px dashed #000; }
-    .item-row { display: flex; justify-content: space-between; font-size: calc(${fontSize} - 1px); padding: 0.4mm 0; border-bottom: 1px dotted #eee; }
-    .item-row:last-child { border-bottom: none; }
-    .item-name { font-weight: 600; flex: 1; }
-    .item-price { font-weight: 700; white-space: nowrap; }
+    .summary-box { margin-top: 1.5mm; border: 1.5px solid #000; border-radius: 2px; padding: 1.5mm; text-align: center; }
+    .summary-title { font-weight: 900; font-size: calc(${fontSize} + 1px); margin-bottom: 1mm; }
+    .summary-row { display: flex; justify-content: space-between; font-size: ${fontSize}; padding: 0.3mm 0; }
+    .summary-value { font-weight: 800; }
 
     .totals { margin-top: 1.5mm; border: 1.5px solid #000; border-radius: 2px; padding: 1mm; }
     .total-row { display: flex; justify-content: space-between; margin: 0.3mm 0; font-size: ${fontSize}; }
@@ -198,10 +196,14 @@ export async function openInvoicePrintWindow(invoice, invSettings = {}) {
 
     ${notes ? `<div class="notes"><b>ملاحظات:</b> ${notes}</div>` : ''}
 
-    <div class="items-box">
-      <div class="items-title">${totalGames > 0 ? `الألعاب (${totalGames})` : 'العناصر'} ${totalSizeGB > 0 ? `- ${totalSizeGB.toFixed(1)} GB` : ''}</div>
-      ${games.map(g => `<div class="item-row"><span class="item-name">${g.title}</span><span class="item-price">${currency(g.price)}</span></div>`).join('')}
-      ${services.map(s => `<div class="item-row"><span class="item-name">${s.title || s.name}</span><span class="item-price">${currency(s.price)}</span></div>`).join('')}
+    <div class="summary-box">
+      <div class="summary-title">ملخص الطلب</div>
+      ${totalGames > 0 ? `
+      <div class="summary-row"><span>عدد الألعاب</span><span class="summary-value">${totalGames} لعبة</span></div>
+      ${totalSizeGB > 0 ? `<div class="summary-row"><span>إجمالي الحجم</span><span class="summary-value">${totalSizeGB.toFixed(1)} GB</span></div>` : ''}
+      <div class="summary-row"><span>سعر الألعاب</span><span class="summary-value">${currency(gamesPrice)}</span></div>
+      ` : ''}
+      ${services.length > 0 ? `<div class="summary-row"><span>الخدمات (${services.length})</span><span class="summary-value">${currency(servicesPrice)}</span></div>` : ''}
     </div>
 
     <div class="totals">

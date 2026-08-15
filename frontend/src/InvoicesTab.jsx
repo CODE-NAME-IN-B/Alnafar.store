@@ -19,9 +19,11 @@ export default function InvoicesTab() {
   const [pageLimit, setPageLimit] = useState(50)
   const [gamesList, setGamesList] = useState([])
   const [servicesList, setServicesList] = useState([])
+  const [categories, setCategories] = useState([])
   const [showGamePicker, setShowGamePicker] = useState(false)
   const [showServicePicker, setShowServicePicker] = useState(false)
   const [gameSearch, setGameSearch] = useState('')
+  const [gameCategory, setGameCategory] = useState('')
   const [serviceSearch, setServiceSearch] = useState('')
   const [dateFrom, setDateFrom] = useState(() => {
     const d = new Date()
@@ -35,6 +37,7 @@ export default function InvoicesTab() {
     loadSummary()
     api.get('/games').then(({ data }) => setGamesList(Array.isArray(data) ? data : [])).catch(() => {})
     api.get('/services?active=false').then(({ data }) => setServicesList(Array.isArray(data) ? data : [])).catch(() => {})
+    api.get('/categories').then(({ data }) => setCategories(Array.isArray(data) ? data : [])).catch(() => {})
 
     // الاستماع للتحديثات الفورية
     socket.on('invoice_created', (data) => {
@@ -234,10 +237,14 @@ export default function InvoicesTab() {
   }
 
   const filteredGames = useMemo(() => {
+    let list = gamesList
+    if (gameCategory) {
+      list = list.filter(g => g.category_id === Number(gameCategory))
+    }
     const q = gameSearch.trim().toLowerCase()
-    if (!q) return gamesList
-    return gamesList.filter(g => String(g.title || '').toLowerCase().includes(q))
-  }, [gamesList, gameSearch])
+    if (!q) return list
+    return list.filter(g => String(g.title || '').toLowerCase().includes(q))
+  }, [gamesList, gameSearch, gameCategory])
 
   const filteredServices = useMemo(() => {
     const q = serviceSearch.trim().toLowerCase()
@@ -664,12 +671,19 @@ export default function InvoicesTab() {
 
       {/* مودال اختيار لعبة */}
       {showGamePicker && (
-        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-end sm:items-center justify-center z-[60] p-0 sm:p-4" onClick={() => setShowGamePicker(false)}>
-          <div className="bg-gray-900 rounded-t-2xl sm:rounded-2xl border border-white/10 max-w-md w-full max-h-[70vh] overflow-hidden shadow-2xl flex flex-col" onClick={e => e.stopPropagation()}>
+        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-end sm:items-center justify-center z-[60] p-0 sm:p-4" onClick={() => { setShowGamePicker(false); setGameCategory(''); setGameSearch('') }}>
+          <div className="bg-gray-900 rounded-t-2xl sm:rounded-2xl border border-white/10 max-w-md w-full max-h-[75vh] overflow-hidden shadow-2xl flex flex-col" onClick={e => e.stopPropagation()}>
             <div className="p-4 border-b border-white/10">
               <div className="flex items-center justify-between mb-3">
                 <h3 className="text-sm font-bold text-white">اختر لعبة</h3>
-                <button onClick={() => setShowGamePicker(false)} className="w-8 h-8 flex items-center justify-center text-gray-400 hover:text-white hover:bg-white/10 rounded-lg text-lg">✕</button>
+                <button onClick={() => { setShowGamePicker(false); setGameCategory(''); setGameSearch('') }} className="w-8 h-8 flex items-center justify-center text-gray-400 hover:text-white hover:bg-white/10 rounded-lg text-lg">✕</button>
+              </div>
+              {/* فلتر الفئات */}
+              <div className="flex gap-1.5 overflow-x-auto pb-2 mb-2 scrollbar-hide">
+                <button onClick={() => setGameCategory('')} className={`px-3 py-1.5 rounded-lg text-[11px] font-bold whitespace-nowrap transition-all ${!gameCategory ? 'bg-emerald-500 text-white' : 'bg-gray-800 text-gray-400 hover:text-white'}`}>الكل</button>
+                {categories.map(c => (
+                  <button key={c.id} onClick={() => setGameCategory(String(c.id))} className={`px-3 py-1.5 rounded-lg text-[11px] font-bold whitespace-nowrap transition-all ${gameCategory === String(c.id) ? 'bg-emerald-500 text-white' : 'bg-gray-800 text-gray-400 hover:text-white'}`}>{c.name}</button>
+                ))}
               </div>
               <input autoFocus value={gameSearch} onChange={e => setGameSearch(e.target.value)} className="w-full bg-gray-800 border border-white/10 rounded-lg px-3 py-2.5 text-white text-sm outline-none focus:ring-1 focus:ring-emerald-500/50" placeholder="ابحث عن لعبة..." />
             </div>
