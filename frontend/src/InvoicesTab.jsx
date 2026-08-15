@@ -348,48 +348,78 @@ export default function InvoicesTab() {
         <div className="space-y-4 mb-8">
           {dateFrom && dateTo && (summary.rangeInvoices !== undefined || summary.rangeRevenue !== undefined) && (
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
-              <div className="bg-gradient-to-br from-teal-600 to-teal-700 p-4 sm:p-6 rounded-xl text-white border-2 border-teal-400 overflow-hidden">
-                <div className="text-xs sm:text-sm opacity-90 mb-1 truncate">فواتير الفترة المحددة</div>
-                <div className="text-2xl sm:text-3xl font-bold truncate">{Number(summary.rangeInvoices) ?? 0}</div>
-                <div className="text-[10px] sm:text-xs opacity-80 mt-1 truncate">من {dateFrom} إلى {dateTo}</div>
+              <div className="bg-gradient-to-br from-teal-600 to-teal-700 p-4 sm:p-5 rounded-2xl text-white border border-teal-400/30 shadow-lg shadow-teal-900/20">
+                <div className="flex items-center gap-2 mb-2">
+                  <svg className="w-5 h-5 text-teal-200" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
+                  <span className="text-xs sm:text-sm font-medium text-teal-100">فواتير الفترة</span>
+                </div>
+                <div className="text-3xl sm:text-4xl font-black tracking-tight">{Number(summary.rangeInvoices) ?? 0}</div>
+                <div className="text-[11px] text-teal-200/70 mt-1">من {dateFrom} إلى {dateTo}</div>
               </div>
-              <div className="bg-gradient-to-br from-emerald-600 to-emerald-700 p-4 sm:p-6 rounded-xl text-white border-2 border-emerald-400 overflow-hidden">
-                <div className="text-xs sm:text-sm opacity-90 mb-1 truncate">إيرادات الفترة المحددة</div>
-                <div className="text-xl sm:text-2xl font-bold truncate">{currency(Number(summary.rangeRevenue) || 0)}</div>
-                <div className="text-[10px] sm:text-xs opacity-80 mt-1 truncate">من {dateFrom} إلى {dateTo}</div>
+              <div className="bg-gradient-to-br from-emerald-600 to-emerald-700 p-4 sm:p-5 rounded-2xl text-white border border-emerald-400/30 shadow-lg shadow-emerald-900/20">
+                <div className="flex items-center gap-2 mb-2">
+                  <svg className="w-5 h-5 text-emerald-200" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                  <span className="text-xs sm:text-sm font-medium text-emerald-100">إيرادات الفترة</span>
+                </div>
+                <div className="text-2xl sm:text-3xl font-black tracking-tight">{currency(Number(summary.rangeRevenue) || 0)}</div>
+                <div className="text-[11px] text-emerald-200/70 mt-1">من {dateFrom} إلى {dateTo}</div>
               </div>
             </div>
           )}
 
           {dateFrom && dateTo && (summary.rangeCollectedRevenue !== undefined) && (
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 mt-4">
-              <div className="bg-gradient-to-br from-indigo-600 to-indigo-700 p-4 sm:p-6 rounded-xl text-white border-2 border-indigo-400 opacity-90 overflow-hidden">
-                <div className="text-xs sm:text-sm opacity-90 mb-1 truncate">الكاش المحصّل فعلياً (بدون الآجل)</div>
-                <div className="text-xl sm:text-2xl font-bold truncate">{currency(Number(summary.rangeCollectedRevenue) || 0)}</div>
-                <div className="text-[10px] sm:text-xs opacity-80 mt-1 truncate">عن الفترة المحددة</div>
+              <div className="bg-gradient-to-br from-indigo-600 to-indigo-700 p-4 sm:p-5 rounded-2xl text-white border border-indigo-400/30 shadow-lg shadow-indigo-900/20">
+                <div className="flex items-center gap-2 mb-2">
+                  <svg className="w-5 h-5 text-indigo-200" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z" /></svg>
+                  <span className="text-xs sm:text-sm font-medium text-indigo-100">الكاش المحصّل (بدون الآجل)</span>
+                </div>
+                <div className="text-2xl sm:text-3xl font-black tracking-tight">{currency(Number(summary.rangeCollectedRevenue) || 0)}</div>
+                <div className="text-[11px] text-indigo-200/70 mt-1">عن الفترة المحددة</div>
               </div>
             </div>
           )}
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-2 sm:gap-3 md:gap-4">
-            <div className="bg-gradient-to-br from-blue-600 to-blue-700 p-3 sm:p-4 md:p-6 rounded-xl text-white overflow-hidden">
-              <div className="text-[10px] sm:text-xs md:text-sm opacity-90 mb-1 truncate">إجمالي الفواتير</div>
-              <div className="text-xl sm:text-2xl md:text-3xl font-bold truncate">{summary.totalInvoices}</div>
+
+          {/* Main Stats Row */}
+          <div className="grid grid-cols-2 lg:grid-cols-5 gap-2 sm:gap-3">
+            <div className="bg-gradient-to-br from-blue-600 to-blue-700 p-3 sm:p-4 rounded-2xl text-white border border-blue-400/20 shadow-lg shadow-blue-900/20">
+              <div className="flex items-center gap-1.5 mb-1.5">
+                <svg className="w-4 h-4 text-blue-200" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
+                <span className="text-[10px] sm:text-xs font-medium text-blue-100">إجمالي الفواتير</span>
+              </div>
+              <div className="text-2xl sm:text-3xl font-black">{summary.totalInvoices}</div>
             </div>
-            <div className="bg-gradient-to-br from-indigo-600 to-indigo-700 p-3 sm:p-4 md:p-6 rounded-xl text-white opacity-80 overflow-hidden">
-              <div className="text-[10px] sm:text-xs md:text-sm opacity-90 mb-1 truncate">إجمالي المبيعات</div>
-              <div className="text-lg sm:text-xl md:text-2xl font-bold truncate">{currency(Number(summary.totalRevenue) || 0)}</div>
+            
+            <div className="bg-gradient-to-br from-indigo-600 to-indigo-700 p-3 sm:p-4 rounded-2xl text-white border border-indigo-400/20 shadow-lg shadow-indigo-900/20">
+              <div className="flex items-center gap-1.5 mb-1.5">
+                <svg className="w-4 h-4 text-indigo-200" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" /></svg>
+                <span className="text-[10px] sm:text-xs font-medium text-indigo-100">إجمالي المبيعات</span>
+              </div>
+              <div className="text-xl sm:text-2xl font-black">{currency(Number(summary.totalRevenue) || 0)}</div>
             </div>
-            <div className="bg-gradient-to-br from-green-600 to-green-700 p-3 sm:p-4 md:p-6 rounded-xl text-white overflow-hidden">
-              <div className="text-[10px] sm:text-xs md:text-sm opacity-90 mb-1 truncate">الكاش المحصّل كلياً</div>
-              <div className="text-lg sm:text-xl md:text-2xl font-bold truncate">{currency(Number(summary.collectedRevenue) || 0)}</div>
+            
+            <div className="bg-gradient-to-br from-green-600 to-green-700 p-3 sm:p-4 rounded-2xl text-white border border-green-400/20 shadow-lg shadow-green-900/20">
+              <div className="flex items-center gap-1.5 mb-1.5">
+                <svg className="w-4 h-4 text-green-200" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z" /></svg>
+                <span className="text-[10px] sm:text-xs font-medium text-green-100">الكاش المحصّل كلياً</span>
+              </div>
+              <div className="text-xl sm:text-2xl font-black">{currency(Number(summary.collectedRevenue) || 0)}</div>
             </div>
-            <div className="bg-gradient-to-br from-purple-600 to-purple-700 p-3 sm:p-4 md:p-6 rounded-xl text-white overflow-hidden">
-              <div className="text-[10px] sm:text-xs md:text-sm opacity-90 mb-1 truncate">فواتير اليوم</div>
-              <div className="text-xl sm:text-2xl md:text-3xl font-bold truncate">{summary.todayInvoices}</div>
+            
+            <div className="bg-gradient-to-br from-purple-600 to-purple-700 p-3 sm:p-4 rounded-2xl text-white border border-purple-400/20 shadow-lg shadow-purple-900/20">
+              <div className="flex items-center gap-1.5 mb-1.5">
+                <svg className="w-4 h-4 text-purple-200" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
+                <span className="text-[10px] sm:text-xs font-medium text-purple-100">فواتير اليوم</span>
+              </div>
+              <div className="text-2xl sm:text-3xl font-black">{summary.todayInvoices}</div>
             </div>
-            <div className="bg-gradient-to-br from-orange-600 to-orange-700 p-3 sm:p-4 md:p-6 rounded-xl text-white overflow-hidden">
-              <div className="text-[10px] sm:text-xs md:text-sm opacity-90 mb-1 truncate">كاش اليوم الفعلي</div>
-              <div className="text-lg sm:text-xl md:text-2xl font-bold truncate">{currency(Number(summary.todayCollectedRevenue) || 0)}</div>
+            
+            <div className="bg-gradient-to-br from-orange-500 to-orange-600 p-3 sm:p-4 rounded-2xl text-white border border-orange-400/20 shadow-lg shadow-orange-900/20">
+              <div className="flex items-center gap-1.5 mb-1.5">
+                <svg className="w-4 h-4 text-orange-200" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                <span className="text-[10px] sm:text-xs font-medium text-orange-100">كاش اليوم الفعلي</span>
+              </div>
+              <div className="text-xl sm:text-2xl font-black">{currency(Number(summary.todayCollectedRevenue) || 0)}</div>
             </div>
           </div>
         </div>
