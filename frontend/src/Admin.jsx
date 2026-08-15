@@ -108,7 +108,7 @@ export default function Admin() {
             >
               {isLoggingIn ? (
                 <>
-                  <div className="loading-spinner !w-5 !h-5 !border-2 !border-white/30 !border-t-white"></div>
+                  <div className="loading-spinner !w-5 !h-5"></div>
                   <span>جاري الدخول...</span>
                 </>
               ) : (
@@ -220,7 +220,10 @@ export default function Admin() {
                 {navItems.map(({ id, label, icon }) => (
                   <button
                     key={id}
-                    onClick={() => { setTab(id); setIsMobileMenuOpen(false); }}
+                    onClick={() => { 
+                      if (id === 'store-home') { window.location.hash = '#/'; return; }
+                      setTab(id); setIsMobileMenuOpen(false); 
+                    }}
                     className={`w-full text-right px-2.5 py-2 rounded-lg font-medium transition-all duration-200 min-h-[36px] flex items-center justify-start gap-2 text-xs ${tab === id
                       ? 'bg-gradient-to-r from-blue-600 to-purple-600 text-white shadow-lg shadow-blue-500/20'
                       : 'text-gray-400 hover:bg-white/5 hover:text-white'

@@ -278,7 +278,11 @@ export default function App() {
     api.get('/categories').then(r => {
       const data = Array.isArray(r.data) ? r.data : []
       setCategories(data);
-      if (!activeCategory && data.length) setActiveCategory(String(data[0].id))
+      if (!activeCategory && data.length) {
+        // Auto-select PS4 category if exists, otherwise first category
+        const ps4Category = data.find(c => (c.name || '').toLowerCase().includes('ps4'))
+        setActiveCategory(String(ps4Category?.id || data[0].id))
+      }
     })
   }, [])
 
