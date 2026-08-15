@@ -180,7 +180,7 @@ export async function openInvoicePrintWindow(invoice, invSettings = {}) {
       ${logoDataUrl ? `<div class="logo"><img src="${logoDataUrl}" alt="شعار المتجر" /></div>` : ''}
       <div class="store-name-ar">${storeName}</div>
       <div class="store-name-en">${storeNameEn}</div>
-      ${showStoreInfo ? `<div class="store-contact">${storeAddr ? `📍 ${storeAddr}` : ''} ${storePhone ? `📞 ${storePhone}` : ''}</div>` : ''}
+      ${showStoreInfo ? `<div class="store-contact">${storeAddr ? storeAddr : ''} ${storePhone ? storePhone : ''}</div>` : ''}
     </div>
 
     <div class="meta">
@@ -191,7 +191,7 @@ export async function openInvoicePrintWindow(invoice, invSettings = {}) {
 
     <div class="customer">
       <div class="customer-name">${invoice.customer_name || 'عميل نقدي'}</div>
-      <div class="customer-phone">📞 ${invoice.customer_phone || '—'}</div>
+      <div class="customer-phone">${invoice.customer_phone || '—'}</div>
     </div>
 
     ${notes ? `<div class="notes"><b>ملاحظات:</b> ${notes}</div>` : ''}
@@ -217,7 +217,7 @@ export async function openInvoicePrintWindow(invoice, invSettings = {}) {
 
     ${showFooter && footerMsg ? `<div class="footer"><div class="footer-msg">${footerMsg}</div></div>` : ''}
 
-    <div class="cut-line"><span class="cut-label">✂ قص هنا ✂</span></div>
+    <div class="cut-line"><span class="cut-label">قص هنا</span></div>
     <div class="qr-section">
       <div class="qr-order">رقم الطلب: ${dailyNo}</div>
       ${qrDataUrl ? `<img src="${qrDataUrl}" alt="QR" /><div class="qr-hint">امسح لتفاصيل الطلب</div>` : ''}

@@ -1043,7 +1043,7 @@ export default function App() {
                 <div className="absolute -top-24 -right-24 w-48 h-48 bg-purple-500/10 rounded-full blur-3xl pointer-events-none"></div>
                 
                 <div className="flex items-center gap-2 mb-4 relative z-10">
-                  <span className="text-2xl animate-bounce duration-[3000ms]">📦</span>
+                  <svg className="w-6 h-6 text-purple-400 animate-bounce duration-[3000ms]" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" /></svg>
                   <h3 className="text-base sm:text-lg font-bold text-white tracking-wide">الباقات الخاصة</h3>
                   <span className="text-[10px] font-bold text-purple-200 bg-purple-600/50 px-2.5 py-1 rounded-full animate-pulse border border-purple-400/30 shadow-sm shadow-purple-900/50">
                     {packages.length} باقة

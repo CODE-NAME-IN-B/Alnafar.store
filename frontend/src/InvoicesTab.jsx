@@ -347,49 +347,49 @@ export default function InvoicesTab() {
       {summary && (
         <div className="space-y-4 mb-8">
           {dateFrom && dateTo && (summary.rangeInvoices !== undefined || summary.rangeRevenue !== undefined) && (
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div className="bg-gradient-to-br from-teal-600 to-teal-700 p-6 rounded-xl text-white border-2 border-teal-400">
-                <div className="text-sm opacity-90 mb-1">فواتير الفترة المحددة</div>
-                <div className="text-3xl font-bold">{Number(summary.rangeInvoices) ?? 0}</div>
-                <div className="text-xs opacity-80 mt-1">من {dateFrom} إلى {dateTo}</div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
+              <div className="bg-gradient-to-br from-teal-600 to-teal-700 p-4 sm:p-6 rounded-xl text-white border-2 border-teal-400 overflow-hidden">
+                <div className="text-xs sm:text-sm opacity-90 mb-1 truncate">فواتير الفترة المحددة</div>
+                <div className="text-2xl sm:text-3xl font-bold truncate">{Number(summary.rangeInvoices) ?? 0}</div>
+                <div className="text-[10px] sm:text-xs opacity-80 mt-1 truncate">من {dateFrom} إلى {dateTo}</div>
               </div>
-              <div className="bg-gradient-to-br from-emerald-600 to-emerald-700 p-6 rounded-xl text-white border-2 border-emerald-400">
-                <div className="text-sm opacity-90 mb-1">إيرادات الفترة المحددة</div>
-                <div className="text-2xl font-bold">{currency(Number(summary.rangeRevenue) || 0)}</div>
-                <div className="text-xs opacity-80 mt-1">من {dateFrom} إلى {dateTo}</div>
+              <div className="bg-gradient-to-br from-emerald-600 to-emerald-700 p-4 sm:p-6 rounded-xl text-white border-2 border-emerald-400 overflow-hidden">
+                <div className="text-xs sm:text-sm opacity-90 mb-1 truncate">إيرادات الفترة المحددة</div>
+                <div className="text-xl sm:text-2xl font-bold truncate">{currency(Number(summary.rangeRevenue) || 0)}</div>
+                <div className="text-[10px] sm:text-xs opacity-80 mt-1 truncate">من {dateFrom} إلى {dateTo}</div>
               </div>
             </div>
           )}
 
           {dateFrom && dateTo && (summary.rangeCollectedRevenue !== undefined) && (
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-4">
-              <div className="bg-gradient-to-br from-indigo-600 to-indigo-700 p-6 rounded-xl text-white border-2 border-indigo-400 opacity-90">
-                <div className="text-sm opacity-90 mb-1">الكاش المحصّل فعلياً (بدون الآجل)</div>
-                <div className="text-2xl font-bold">{currency(Number(summary.rangeCollectedRevenue) || 0)}</div>
-                <div className="text-xs opacity-80 mt-1">عن الفترة المحددة</div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 mt-4">
+              <div className="bg-gradient-to-br from-indigo-600 to-indigo-700 p-4 sm:p-6 rounded-xl text-white border-2 border-indigo-400 opacity-90 overflow-hidden">
+                <div className="text-xs sm:text-sm opacity-90 mb-1 truncate">الكاش المحصّل فعلياً (بدون الآجل)</div>
+                <div className="text-xl sm:text-2xl font-bold truncate">{currency(Number(summary.rangeCollectedRevenue) || 0)}</div>
+                <div className="text-[10px] sm:text-xs opacity-80 mt-1 truncate">عن الفترة المحددة</div>
               </div>
             </div>
           )}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
-            <div className="bg-gradient-to-br from-blue-600 to-blue-700 p-6 rounded-xl text-white">
-              <div className="text-sm opacity-90 mb-1">إجمالي الفواتير</div>
-              <div className="text-3xl font-bold">{summary.totalInvoices}</div>
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-2 sm:gap-3 md:gap-4">
+            <div className="bg-gradient-to-br from-blue-600 to-blue-700 p-3 sm:p-4 md:p-6 rounded-xl text-white overflow-hidden">
+              <div className="text-[10px] sm:text-xs md:text-sm opacity-90 mb-1 truncate">إجمالي الفواتير</div>
+              <div className="text-xl sm:text-2xl md:text-3xl font-bold truncate">{summary.totalInvoices}</div>
             </div>
-            <div className="bg-gradient-to-br from-indigo-600 to-indigo-700 p-6 rounded-xl text-white opacity-80">
-              <div className="text-sm opacity-90 mb-1">إجمالي المبيعات</div>
-              <div className="text-2xl font-bold">{currency(Number(summary.totalRevenue) || 0)}</div>
+            <div className="bg-gradient-to-br from-indigo-600 to-indigo-700 p-3 sm:p-4 md:p-6 rounded-xl text-white opacity-80 overflow-hidden">
+              <div className="text-[10px] sm:text-xs md:text-sm opacity-90 mb-1 truncate">إجمالي المبيعات</div>
+              <div className="text-lg sm:text-xl md:text-2xl font-bold truncate">{currency(Number(summary.totalRevenue) || 0)}</div>
             </div>
-            <div className="bg-gradient-to-br from-green-600 to-green-700 p-6 rounded-xl text-white">
-              <div className="text-sm opacity-90 mb-1">الكاش المحصّل كلياً</div>
-              <div className="text-2xl font-bold">{currency(Number(summary.collectedRevenue) || 0)}</div>
+            <div className="bg-gradient-to-br from-green-600 to-green-700 p-3 sm:p-4 md:p-6 rounded-xl text-white overflow-hidden">
+              <div className="text-[10px] sm:text-xs md:text-sm opacity-90 mb-1 truncate">الكاش المحصّل كلياً</div>
+              <div className="text-lg sm:text-xl md:text-2xl font-bold truncate">{currency(Number(summary.collectedRevenue) || 0)}</div>
             </div>
-            <div className="bg-gradient-to-br from-purple-600 to-purple-700 p-6 rounded-xl text-white">
-              <div className="text-sm opacity-90 mb-1">فواتير اليوم</div>
-              <div className="text-3xl font-bold">{summary.todayInvoices}</div>
+            <div className="bg-gradient-to-br from-purple-600 to-purple-700 p-3 sm:p-4 md:p-6 rounded-xl text-white overflow-hidden">
+              <div className="text-[10px] sm:text-xs md:text-sm opacity-90 mb-1 truncate">فواتير اليوم</div>
+              <div className="text-xl sm:text-2xl md:text-3xl font-bold truncate">{summary.todayInvoices}</div>
             </div>
-            <div className="bg-gradient-to-br from-orange-600 to-orange-700 p-6 rounded-xl text-white">
-              <div className="text-sm opacity-90 mb-1">كاش اليوم الفعلي</div>
-              <div className="text-2xl font-bold">{currency(Number(summary.todayCollectedRevenue) || 0)}</div>
+            <div className="bg-gradient-to-br from-orange-600 to-orange-700 p-3 sm:p-4 md:p-6 rounded-xl text-white overflow-hidden">
+              <div className="text-[10px] sm:text-xs md:text-sm opacity-90 mb-1 truncate">كاش اليوم الفعلي</div>
+              <div className="text-lg sm:text-xl md:text-2xl font-bold truncate">{currency(Number(summary.todayCollectedRevenue) || 0)}</div>
             </div>
           </div>
         </div>

@@ -326,11 +326,11 @@ export default function DailyReportTab() {
       {range && (
         <div className="mt-6 bg-gray-800 p-5 rounded-xl border border-gray-700">
           <h3 className="text-lg font-bold text-white mb-4">تقارير من {range.start} إلى {range.end}</h3>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 mb-4">
-            <div className="p-3 bg-gray-700 rounded-lg"><div className="text-gray-400 text-xs">عدد الفواتير</div><div className="text-xl font-bold text-white">{range.totals?.total_invoices ?? 0}</div></div>
-            <div className="p-3 bg-gray-700 rounded-lg"><div className="text-gray-400 text-xs">إجمالي المبيعات</div><div className="font-bold text-green-400">{currency(range.totals?.total_revenue ?? 0)}</div></div>
-            <div className="p-3 bg-gray-700 rounded-lg"><div className="text-gray-400 text-xs">إجمالي الخصومات</div><div className="font-bold text-red-400">{currency(range.totals?.total_discount ?? 0)}</div></div>
-            <div className="p-3 bg-gray-700 rounded-lg"><div className="text-gray-400 text-xs">الصافي</div><div className="font-bold text-white">{currency(range.totals?.net_revenue ?? 0)}</div></div>
+          <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-3 mb-4">
+            <div className="p-2 sm:p-3 bg-gray-700 rounded-lg overflow-hidden"><div className="text-gray-400 text-[10px] sm:text-xs truncate">عدد الفواتير</div><div className="text-lg sm:text-xl font-bold text-white truncate">{range.totals?.total_invoices ?? 0}</div></div>
+            <div className="p-2 sm:p-3 bg-gray-700 rounded-lg overflow-hidden"><div className="text-gray-400 text-[10px] sm:text-xs truncate">إجمالي المبيعات</div><div className="text-base sm:text-lg font-bold text-green-400 truncate">{currency(range.totals?.total_revenue ?? 0)}</div></div>
+            <div className="p-2 sm:p-3 bg-gray-700 rounded-lg overflow-hidden"><div className="text-gray-400 text-[10px] sm:text-xs truncate">إجمالي الخصومات</div><div className="text-base sm:text-lg font-bold text-red-400 truncate">{currency(range.totals?.total_discount ?? 0)}</div></div>
+            <div className="p-2 sm:p-3 bg-gray-700 rounded-lg overflow-hidden"><div className="text-gray-400 text-[10px] sm:text-xs truncate">الصافي</div><div className="text-base sm:text-lg font-bold text-white truncate">{currency(range.totals?.net_revenue ?? 0)}</div></div>
           </div>
           <div className="overflow-x-auto">
             <table className="w-full text-white text-sm">

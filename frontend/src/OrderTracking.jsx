@@ -392,8 +392,12 @@ export default function OrderTracking({ orderId }) {
                                 ) : (
                                     <div className="flex justify-between items-center text-gray-200 mt-3 pt-3 border-t border-white/5">
                                         <span className="text-sm">حالة الدفع:</span>
-                                        <span className={`px-2 py-0.5 rounded text-[11px] font-bold ${order.status === 'pending' ? 'bg-red-500/20 text-red-400 border border-red-500/20' : 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/20'}`}>
-                                            {order.status === 'pending' ? '🔴 غير مدفوع' : '🟢 مدفوع (خالص)'}
+                                        <span className="px-2 py-0.5 rounded text-[11px] font-bold flex items-center gap-1">
+                                            {order.status === 'pending' ? (
+                                                <><svg className="w-3 h-3 text-red-400" fill="currentColor" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/></svg> غير مدفوع</>
+                                            ) : (
+                                                <><svg className="w-3 h-3 text-emerald-400" fill="currentColor" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/></svg> مدفوع (خالص)</>
+                                            )}
                                         </span>
                                     </div>
                                 )}
@@ -404,10 +408,10 @@ export default function OrderTracking({ orderId }) {
                     {/* Store Contact Footer */}
                     <div className="bg-gray-900/40 backdrop-blur-sm border border-white/5 rounded-2xl p-5 text-center">
                         <p className="text-sm font-bold text-primary mb-2">{storeInfo.store_name || 'متجر النفار'}</p>
-                        {storeInfo.store_address && <p className="text-xs text-gray-400 mb-1">📍 {storeInfo.store_address}</p>}
-                        {storeInfo.store_phone && <p className="text-xs text-gray-400 mb-1">📞 <a href={`tel:${storeInfo.store_phone}`} className="hover:text-primary transition-colors">{storeInfo.store_phone}</a></p>}
-                        {storeInfo.store_email && <p className="text-xs text-gray-400 mb-1">✉️ {storeInfo.store_email}</p>}
-                        {storeInfo.store_website && <p className="text-xs text-gray-400 mb-1">🌐 {storeInfo.store_website}</p>}
+                        {storeInfo.store_address && <p className="text-xs text-gray-400 mb-1 flex items-center justify-center gap-1"><svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" /></svg> {storeInfo.store_address}</p>}
+                        {storeInfo.store_phone && <p className="text-xs text-gray-400 mb-1 flex items-center justify-center gap-1"><svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" /></svg> <a href={`tel:${storeInfo.store_phone}`} className="hover:text-primary transition-colors">{storeInfo.store_phone}</a></p>}
+                        {storeInfo.store_email && <p className="text-xs text-gray-400 mb-1 flex items-center justify-center gap-1"><svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" /></svg> {storeInfo.store_email}</p>}
+                        {storeInfo.store_website && <p className="text-xs text-gray-400 mb-1 flex items-center justify-center gap-1"><svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9" /></svg> {storeInfo.store_website}</p>}
                         {storeInfo.footer_message && <p className="text-xs text-gray-500 mt-3 italic">{storeInfo.footer_message}</p>}
                     </div>
                 </main>
