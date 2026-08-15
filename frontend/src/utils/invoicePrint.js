@@ -71,14 +71,19 @@ export async function openInvoicePrintWindow(invoice, invSettings = {}) {
   } catch (_) { }
 
   let qrDataUrl = '';
+  const trackingUrl = `${origin}/#/track/${encodeURIComponent(fullNumber)}`;
   try {
     const qrcodeLib = await import('qrcode');
     const qrCanvas = document.createElement('canvas');
-    const trackingUrl = `${origin}/#/track/${encodeURIComponent(fullNumber)}`;
-    await qrcodeLib.toCanvas(qrCanvas, trackingUrl, { width: 100, margin: 1 });
-    qrDataUrl = qrCanvas.toDataURL();
+    await qrcodeLib.toCanvas(qrCanvas, trackingUrl, { width: 100, margin: 1, errorCorrectionLevel: 'M' });
+    qrDataUrl = qrCanvas.toDataURL('image/png');
   } catch (e) {
-    console.error('QR generation error:', e);
+    // Fallback: use QR server API
+    try {
+      qrDataUrl = `https://api.qrserver.com/v1/create-qr-code/?size=100x100&data=${encodeURIComponent(trackingUrl)}&format=png`;
+    } catch (_) {
+      console.error('QR generation failed completely:', e);
+    }
   }
 
   const finalTotal = (invoice.total || 0) - (invoice.discount || 0);
@@ -107,7 +112,6 @@ export async function openInvoicePrintWindow(invoice, invSettings = {}) {
   <title>فاتورة ${dailyNo}</title>
   <style>
     @import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800;900&display=swap');
-
     * { margin: 0; padding: 0; box-sizing: border-box; }
     html, body {
       width: ${paperMM}mm;
@@ -117,394 +121,112 @@ export async function openInvoicePrintWindow(invoice, invSettings = {}) {
       background: #fff;
       color: #000;
       font-size: ${fontSize};
-      line-height: 1.3;
+      line-height: 1.25;
       direction: rtl;
-      -webkit-font-smoothing: antialiased;
     }
-    @page {
-      size: ${paperMM}mm auto;
-      margin: 2mm;
-    }
+    @page { size: ${paperMM}mm auto; margin: 1.5mm; }
+    .receipt { width: 100%; padding: 1.5mm; }
 
-    .receipt {
-      width: 100%;
-      max-width: ${paperMM}mm;
-      margin: 0 auto;
-      padding: 2mm;
-      background: #fff;
-    }
+    .header { text-align: center; padding-bottom: 1.5mm; border-bottom: 1.5px solid #000; margin-bottom: 1.5mm; }
+    .logo { text-align: center; margin-bottom: 0.5mm; }
+    .logo img { display: block; margin: 0 auto; max-width: ${logoW}; max-height: ${logoH}; object-fit: contain; }
+    .store-name-ar { font-size: ${titleSize}; font-weight: 900; }
+    .store-name-en { font-size: calc(${fontSize} - 1px); font-weight: 600; color: #333; }
+    .store-contact { font-size: calc(${fontSize} - 1px); color: #222; margin: 0.5px 0; }
 
-    /* ─── HEADER ─── */
-    .header {
-      text-align: center;
-      padding-bottom: 2mm;
-      border-bottom: 2px solid #000;
-      margin-bottom: 2mm;
-    }
-    .logo { text-align: center; margin-bottom: 1mm; }
-    .logo img {
-      display: block;
-      margin: 0 auto;
-      max-width: ${logoW};
-      max-height: ${logoH};
-      width: auto;
-      height: auto;
-      object-fit: contain;
-    }
-    .store-name-ar {
-      font-size: ${titleSize};
-      font-weight: 900;
-      text-align: center;
-      margin: 0;
-      letter-spacing: -0.3px;
-    }
-    .store-name-en {
-      font-size: calc(${fontSize} - 1px);
-      font-weight: 600;
-      text-align: center;
-      margin: 0 0 1px 0;
-      color: #333;
-    }
-    .store-contact {
-      font-size: calc(${fontSize} - 1px);
-      font-weight: 600;
-      margin: 1px 0;
-      color: #222;
-    }
-
-    /* ─── INVOICE META ─── */
-    .invoice-meta {
-      margin-top: 1.5mm;
-      padding: 1.5mm;
-      background: #f5f5f5;
-      border: 1px solid #ddd;
-      border-radius: 2px;
-    }
-    .meta-row {
-      display: flex;
-      justify-content: space-between;
-      margin: 0.5px 0;
-      font-size: ${fontSize};
-    }
+    .meta { margin-top: 1mm; padding: 1mm; background: #f5f5f5; border: 1px solid #ddd; border-radius: 2px; }
+    .meta-row { display: flex; justify-content: space-between; font-size: ${fontSize}; margin: 0.3mm 0; }
     .meta-label { font-weight: 700; }
-    .meta-value { text-align: left; direction: ltr; }
-    .status-badge {
-      display: inline-block;
-      padding: 0.5mm 2mm;
-      border-radius: 2px;
-      font-weight: 800;
-      font-size: calc(${fontSize} - 1px);
-      border: 1px solid #000;
-    }
+    .status-badge { display: inline-block; padding: 0.3mm 1.5mm; border-radius: 2px; font-weight: 800; font-size: calc(${fontSize} - 1px); border: 1px solid #000; }
     .status-paid { background: #e0ffe0; }
     .status-partial { background: #fff3cd; }
     .status-unpaid { background: #ffe0e0; }
 
-    /* ─── CUSTOMER ─── */
-    .section-header {
-      font-size: ${fontSize};
-      font-weight: 800;
-      margin: 2mm 0 1mm 0;
-      padding-bottom: 0.5mm;
-      border-bottom: 1px dashed #999;
-    }
-    .customer-box {
-      padding: 1.5mm;
-      border: 1px solid #ccc;
-      border-radius: 2px;
-      background: #fafafa;
-      margin-bottom: 1mm;
-    }
-    .customer-name {
-      font-size: calc(${fontSize} + 2px);
-      font-weight: 900;
-      text-align: center;
-      margin-bottom: 0.5mm;
-    }
-    .customer-info {
-      display: flex;
-      justify-content: space-between;
-      font-size: calc(${fontSize} - 1px);
-    }
+    .customer { margin-top: 1mm; padding: 1mm; border: 1px solid #ccc; border-radius: 2px; background: #fafafa; }
+    .customer-name { font-size: calc(${fontSize} + 1px); font-weight: 900; text-align: center; }
+    .customer-phone { text-align: center; font-size: calc(${fontSize} - 1px); color: #333; }
 
-    /* ─── GAMES SUMMARY ─── */
-    .summary-box {
-      padding: 2mm;
-      border: 2px solid #000;
-      border-radius: 2px;
-      margin-top: 2mm;
-    }
-    .summary-title {
-      font-size: calc(${fontSize} + 1px);
-      font-weight: 900;
-      text-align: center;
-      margin-bottom: 1mm;
-      padding-bottom: 1mm;
-      border-bottom: 1px dashed #000;
-    }
-    .summary-row {
-      display: flex;
-      justify-content: space-between;
-      margin: 0.8mm 0;
-      font-size: ${fontSize};
-    }
-    .summary-row.total {
-      font-size: calc(${fontSize} + 2px);
-      font-weight: 900;
-      padding-top: 1mm;
-      margin-top: 1mm;
-      border-top: 2px solid #000;
-    }
-    .summary-label { font-weight: 700; }
-    .summary-value { text-align: left; direction: ltr; font-weight: 700; }
+    .items-box { margin-top: 1.5mm; border: 1.5px solid #000; border-radius: 2px; padding: 1mm; }
+    .items-title { font-weight: 900; font-size: calc(${fontSize} + 1px); text-align: center; margin-bottom: 1mm; padding-bottom: 0.5mm; border-bottom: 1px dashed #000; }
+    .item-row { display: flex; justify-content: space-between; font-size: calc(${fontSize} - 1px); padding: 0.4mm 0; border-bottom: 1px dotted #eee; }
+    .item-row:last-child { border-bottom: none; }
+    .item-name { font-weight: 600; flex: 1; }
+    .item-price { font-weight: 700; white-space: nowrap; }
 
-    /* ─── SERVICES LIST ─── */
-    .services-box {
-      margin-top: 2mm;
-      padding: 1.5mm;
-      border: 1px solid #999;
-      border-radius: 2px;
-    }
-    .service-row {
-      display: flex;
-      justify-content: space-between;
-      padding: 1mm 0;
-      border-bottom: 1px dotted #ccc;
-      font-size: ${fontSize};
-    }
-    .service-row:last-child { border-bottom: none; }
-    .service-name { font-weight: 700; }
-    .service-price { text-align: left; direction: ltr; font-weight: 700; }
-
-    /* ─── TOTALS ─── */
-    .totals-box {
-      margin-top: 2mm;
-      padding: 1.5mm;
-      border: 2px solid #000;
-      border-radius: 2px;
-    }
-    .total-row {
-      display: flex;
-      justify-content: space-between;
-      margin: 0.5mm 0;
-      font-size: ${fontSize};
-    }
-    .total-row.final {
-      font-size: calc(${fontSize} + 2px);
-      font-weight: 900;
-      padding-top: 1mm;
-      margin-top: 1mm;
-      border-top: 2px solid #000;
-    }
-    .payment-row {
-      display: flex;
-      justify-content: space-between;
-      margin: 0.5mm 0;
-      font-size: calc(${fontSize} - 1px);
-    }
+    .totals { margin-top: 1.5mm; border: 1.5px solid #000; border-radius: 2px; padding: 1mm; }
+    .total-row { display: flex; justify-content: space-between; margin: 0.3mm 0; font-size: ${fontSize}; }
+    .total-row.final { font-size: calc(${fontSize} + 1px); font-weight: 900; padding-top: 0.8mm; margin-top: 0.8mm; border-top: 1.5px solid #000; }
+    .payment-row { font-size: calc(${fontSize} - 1px); }
     .payment-row.paid { color: #006600; }
     .payment-row.remaining { color: #990000; font-weight: 700; }
 
-    /* ─── NOTES ─── */
-    .notes-box {
-      margin-top: 2mm;
-      padding: 1.5mm;
-      border: 1px dashed #999;
-      border-radius: 2px;
-    }
-    .notes-title { font-weight: 700; margin-bottom: 0.5mm; font-size: calc(${fontSize} - 1px); }
-    .notes-text { font-size: calc(${fontSize} - 1px); color: #333; }
+    .notes { margin-top: 1mm; padding: 1mm; border: 1px dashed #999; border-radius: 2px; font-size: calc(${fontSize} - 1px); }
 
-    /* ─── QR SECTION ─── */
-    .cut-line {
-      border-top: 2px dashed #000;
-      margin: 3mm 0 2mm 0;
-      text-align: center;
-      position: relative;
-    }
-    .cut-label {
-      background: #fff;
-      padding: 0 3mm;
-      position: relative;
-      top: -8px;
-      font-size: ${fontSize};
-      font-weight: 700;
-      color: #333;
-    }
-    .qr-section {
-      text-align: center;
-      padding: 2mm 0;
-    }
-    .qr-order-number {
-      font-size: calc(${fontSize} + 3px);
-      font-weight: 900;
-      margin-bottom: 1mm;
-    }
-    .qr-section img {
-      max-width: 35mm;
-      display: inline-block;
-    }
-    .qr-hint {
-      font-size: calc(${fontSize} - 2px);
-      margin-top: 0.5mm;
-      color: #555;
-      font-weight: 600;
-    }
+    .cut-line { border-top: 1.5px dashed #000; margin: 2mm 0 1.5mm 0; text-align: center; position: relative; }
+    .cut-label { background: #fff; padding: 0 2mm; position: relative; top: -7px; font-size: calc(${fontSize} - 1px); font-weight: 700; }
 
-    /* ─── FOOTER ─── */
-    .footer {
-      margin-top: 3mm;
-      padding-top: 2mm;
-      border-top: 1px dashed #999;
-      text-align: center;
-      font-size: calc(${fontSize} - 2px);
-      color: #555;
-      line-height: 1.3;
-    }
-    .footer-msg { font-weight: 700; margin-bottom: 0.5mm; }
-    .footer-info { font-size: calc(${fontSize} - 3px); color: #888; }
+    .qr-section { text-align: center; padding: 1.5mm 0; }
+    .qr-order { font-size: calc(${fontSize} + 2px); font-weight: 900; margin-bottom: 0.5mm; }
+    .qr-section img { max-width: 30mm; display: inline-block; }
+    .qr-hint { font-size: calc(${fontSize} - 2px); color: #555; font-weight: 600; }
 
-    @media print {
-      body { margin: 0; padding: 0; }
-      .no-print { display: none !important; }
-    }
+    .footer { margin-top: 2mm; padding-top: 1.5mm; border-top: 1px dashed #999; text-align: center; font-size: calc(${fontSize} - 2px); color: #555; }
+    .footer-msg { font-weight: 700; }
+
+    @media print { body { margin: 0; padding: 0; } }
   </style>
 </head>
 <body>
   <div class="receipt">
-    <!-- ══════ HEADER ══════ -->
     <div class="header">
-      <div class="logo">
-        ${logoDataUrl ? `<img src="${logoDataUrl}" alt="شعار المتجر" />` : ''}
-      </div>
+      ${logoDataUrl ? `<div class="logo"><img src="${logoDataUrl}" alt="شعار المتجر" /></div>` : ''}
       <div class="store-name-ar">${storeName}</div>
       <div class="store-name-en">${storeNameEn}</div>
-      ${showStoreInfo ? `
-      <div class="store-contact">${storeAddr ? `📍 ${storeAddr}` : ''}</div>
-      <div class="store-contact">${storePhone ? `📞 ${storePhone}` : ''}</div>
-      ` : ''}
+      ${showStoreInfo ? `<div class="store-contact">${storeAddr ? `📍 ${storeAddr}` : ''} ${storePhone ? `📞 ${storePhone}` : ''}</div>` : ''}
     </div>
 
-    <!-- ══════ INVOICE META ══════ -->
-    <div class="invoice-meta">
-      <div class="meta-row">
-        <span class="meta-label">رقم الفاتورة:</span>
-        <span class="meta-value">${dailyNo}</span>
-      </div>
-      <div class="meta-row">
-        <span class="meta-label">التاريخ:</span>
-        <span class="meta-value">${new Date(invoice.created_at).toLocaleString('ar-LY')}</span>
-      </div>
-      <div class="meta-row">
-        <span class="meta-label">الحالة:</span>
-        <span class="status-badge ${paidAmount >= finalTotal ? 'status-paid' : paidAmount > 0 ? 'status-partial' : 'status-unpaid'}">${statusIcon} ${statusText}</span>
-      </div>
+    <div class="meta">
+      <div class="meta-row"><span class="meta-label">رقم:</span><span>${dailyNo}</span></div>
+      <div class="meta-row"><span class="meta-label">التاريخ:</span><span>${new Date(invoice.created_at).toLocaleString('ar-LY')}</span></div>
+      <div class="meta-row"><span class="meta-label">الحالة:</span><span class="status-badge ${paidAmount >= finalTotal ? 'status-paid' : paidAmount > 0 ? 'status-partial' : 'status-unpaid'}">${statusIcon} ${statusText}</span></div>
     </div>
 
-    <!-- ══════ CUSTOMER ══════ -->
-    <div class="section-header">بيانات العميل</div>
-    <div class="customer-box">
+    <div class="customer">
       <div class="customer-name">${invoice.customer_name || 'عميل نقدي'}</div>
-      <div class="customer-info">
-        <span>📞 ${invoice.customer_phone || '—'}</span>
-      </div>
+      <div class="customer-phone">📞 ${invoice.customer_phone || '—'}</div>
     </div>
 
-    ${notes ? `
-    <div class="notes-box">
-      <div class="notes-title">ملاحظات:</div>
-      <div class="notes-text">${notes}</div>
-    </div>` : ''}
+    ${notes ? `<div class="notes"><b>ملاحظات:</b> ${notes}</div>` : ''}
 
-    <!-- ══════ GAMES SUMMARY ══════ -->
-    ${totalGames > 0 ? `
-    <div class="summary-box">
-      <div class="summary-title">الألعاب (${totalGames} لعبة)</div>
-      <div class="summary-row">
-        <span class="summary-label">عدد الألعاب:</span>
-        <span class="summary-value">${totalGames}</span>
-      </div>
-      ${totalSizeGB > 0 ? `
-      <div class="summary-row">
-        <span class="summary-label">إجمالي الحجم:</span>
-        <span class="summary-value">${totalSizeGB.toFixed(2)} GB</span>
-      </div>` : ''}
-      <div class="summary-row">
-        <span class="summary-label">إجمالي سعر الألعاب:</span>
-        <span class="summary-value">${currency(gamesPrice)}</span>
-      </div>
-    </div>` : ''}
-
-    <!-- ══════ SERVICES ══════ -->
-    ${services.length > 0 ? `
-    <div class="services-box">
-      <div class="section-header">الخدمات</div>
-      ${services.map(s => `
-      <div class="service-row">
-        <span class="service-name">${s.title || s.name || ''}</span>
-        <span class="service-price">${currency(s.price || 0)}</span>
-      </div>`).join('')}
-    </div>` : ''}
-
-    <!-- ══════ TOTALS ══════ -->
-    <div class="totals-box">
-      ${totalGames > 0 ? `
-      <div class="total-row">
-        <span>إجمالي الألعاب (${totalGames})</span>
-        <span>${currency(gamesPrice)}</span>
-      </div>` : ''}
-      ${services.length > 0 ? `
-      <div class="total-row">
-        <span>الخدمات (${services.length})</span>
-        <span>${currency(servicesPrice)}</span>
-      </div>` : ''}
-      ${invoice.discount > 0 ? `
-      <div class="total-row">
-        <span>الخصم</span>
-        <span>-${currency(invoice.discount)}</span>
-      </div>` : ''}
-      <div class="total-row final">
-        <span>الإجمالي النهائي</span>
-        <span>${currency(finalTotal)}</span>
-      </div>
-      <div class="total-row payment-row paid">
-        <span>المدفوع</span>
-        <span>${currency(paidAmount)}</span>
-      </div>
-      ${remaining > 0 ? `
-      <div class="total-row payment-row remaining">
-        <span>المتبقي</span>
-        <span>${currency(remaining)}</span>
-      </div>` : ''}
+    <div class="items-box">
+      <div class="items-title">${totalGames > 0 ? `الألعاب (${totalGames})` : 'العناصر'} ${totalSizeGB > 0 ? `- ${totalSizeGB.toFixed(1)} GB` : ''}</div>
+      ${games.map(g => `<div class="item-row"><span class="item-name">${g.title}</span><span class="item-price">${currency(g.price)}</span></div>`).join('')}
+      ${services.map(s => `<div class="item-row"><span class="item-name">${s.title || s.name}</span><span class="item-price">${currency(s.price)}</span></div>`).join('')}
     </div>
 
-    ${showFooter && footerMsg ? `
-    <div class="footer">
-      <div class="footer-msg">${footerMsg}</div>
-      ${storeNameEn ? `<div class="footer-info">${storeNameEn}</div>` : ''}
-    </div>` : ''}
-
-    <!-- ══════ QR SECTION ══════ -->
-    <div class="cut-line">
-      <span class="cut-label">✂ قص هنا ✂</span>
+    <div class="totals">
+      ${totalGames > 0 ? `<div class="total-row"><span>الألعاب (${totalGames})</span><span>${currency(gamesPrice)}</span></div>` : ''}
+      ${services.length > 0 ? `<div class="total-row"><span>الخدمات (${services.length})</span><span>${currency(servicesPrice)}</span></div>` : ''}
+      ${invoice.discount > 0 ? `<div class="total-row"><span>الخصم</span><span>-${currency(invoice.discount)}</span></div>` : ''}
+      <div class="total-row final"><span>الإجمالي</span><span>${currency(finalTotal)}</span></div>
+      <div class="total-row payment-row paid"><span>المدفوع</span><span>${currency(paidAmount)}</span></div>
+      ${remaining > 0 ? `<div class="total-row payment-row remaining"><span>المتبقي</span><span>${currency(remaining)}</span></div>` : ''}
     </div>
 
+    ${showFooter && footerMsg ? `<div class="footer"><div class="footer-msg">${footerMsg}</div></div>` : ''}
+
+    <div class="cut-line"><span class="cut-label">✂ قص هنا ✂</span></div>
     <div class="qr-section">
-      <div class="qr-order-number">رقم الطلب: ${dailyNo}</div>
-      ${qrDataUrl ? `
-      <img src="${qrDataUrl}" alt="تتبع الطلب" />
-      <div class="qr-hint">امسح الكود لتفاصيل الطلب</div>` : ''}
+      <div class="qr-order">رقم الطلب: ${dailyNo}</div>
+      ${qrDataUrl ? `<img src="${qrDataUrl}" alt="QR" /><div class="qr-hint">امسح لتفاصيل الطلب</div>` : ''}
     </div>
   </div>
   <script>
     (function(){
       function doPrint(){ try { window.print(); } catch(e) {} }
       const imgs = Array.from(document.images || [])
-      const waitImgs = imgs.length
-        ? Promise.all(imgs.map(img => img.complete ? Promise.resolve() : new Promise(res => { img.onload = img.onerror = res })))
-        : Promise.resolve()
-      const timeout = new Promise(r => setTimeout(r, 2000))
-      Promise.race([waitImgs, timeout]).then(() => setTimeout(doPrint, 150))
+      const waitImgs = imgs.length ? Promise.all(imgs.map(img => img.complete ? Promise.resolve() : new Promise(r => { img.onload = img.onerror = r }))) : Promise.resolve()
+      Promise.race([waitImgs, new Promise(r => setTimeout(r, 2000))]).then(() => setTimeout(doPrint, 100))
     })();
   </script>
 </body>

@@ -17,6 +17,11 @@ export default function InvoicesTab() {
   const [editingInvoice, setEditingInvoice] = useState(null)
   const [search, setSearch] = useState('')
   const [pageLimit, setPageLimit] = useState(50)
+  const [gamesList, setGamesList] = useState([])
+  const [servicesList, setServicesList] = useState([])
+  const [showGamePicker, setShowGamePicker] = useState(false)
+  const [showServicePicker, setShowServicePicker] = useState(false)
+  const [gameSearch, setGameSearch] = useState('')
   const [dateFrom, setDateFrom] = useState(() => {
     const d = new Date()
     d.setDate(1)
@@ -27,6 +32,8 @@ export default function InvoicesTab() {
   useEffect(() => {
     loadInvoices()
     loadSummary()
+    api.get('/games').then(({ data }) => setGamesList(Array.isArray(data) ? data : [])).catch(() => {})
+    api.get('/services?active=false').then(({ data }) => setServicesList(Array.isArray(data) ? data : [])).catch(() => {})
 
     // الاستماع للتحديثات الفورية
     socket.on('invoice_created', (data) => {
@@ -190,8 +197,6 @@ export default function InvoicesTab() {
       await api.put(`/invoices/${editingInvoice.id}`, {
         customer_name: editingInvoice.customer_name,
         customer_phone: editingInvoice.customer_phone,
-        customer_address: editingInvoice.customer_address || '',
-        customer_notes: editingInvoice.customer_notes || '',
         items,
         total,
         discount,
@@ -212,25 +217,26 @@ export default function InvoicesTab() {
     setEditingInvoice({ ...editingInvoice, items })
   }
 
-  const updateItemPrice = (index, price) => {
+  const addGameToInvoice = (game) => {
     if (!editingInvoice) return
-    const items = [...(editingInvoice.items || [])]
-    items[index] = { ...items[index], price: Number(price) || 0 }
+    const items = [...(editingInvoice.items || []), { title: game.title, price: game.price, size_gb: game.size_gb, type: 'game' }]
     setEditingInvoice({ ...editingInvoice, items })
+    setShowGamePicker(false)
+    setGameSearch('')
   }
 
-  const updateItemTitle = (index, title) => {
+  const addServiceToInvoice = (service) => {
     if (!editingInvoice) return
-    const items = [...(editingInvoice.items || [])]
-    items[index] = { ...items[index], title }
+    const items = [...(editingInvoice.items || []), { title: service.title, price: service.price, type: 'service' }]
     setEditingInvoice({ ...editingInvoice, items })
+    setShowServicePicker(false)
   }
 
-  const addItemToEdit = () => {
-    if (!editingInvoice) return
-    const items = [...(editingInvoice.items || []), { title: 'عنصر جديد', price: 0, type: 'game' }]
-    setEditingInvoice({ ...editingInvoice, items })
-  }
+  const filteredGames = useMemo(() => {
+    const q = gameSearch.trim().toLowerCase()
+    if (!q) return gamesList
+    return gamesList.filter(g => String(g.title || '').toLowerCase().includes(q))
+  }, [gamesList, gameSearch])
 
   if (loading) {
     return (
@@ -578,110 +584,122 @@ export default function InvoicesTab() {
         </div>
       )}
 
-      {/* modal تعديل الفاتورة */}
+      {/* modal تعديل الفاتورة - بسيط وخفيف */}
       {editingInvoice && (
         <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-end sm:items-center justify-center z-50 p-0 sm:p-4" onClick={() => setEditingInvoice(null)}>
-          <div className="bg-gradient-to-b from-gray-800 to-gray-900 rounded-t-3xl sm:rounded-2xl border border-white/5 max-w-lg w-full max-h-[92vh] sm:max-h-[90vh] overflow-y-auto shadow-2xl" onClick={e => e.stopPropagation()}>
+          <div className="bg-gray-900 rounded-t-2xl sm:rounded-2xl border border-white/10 max-w-md w-full max-h-[85vh] overflow-y-auto shadow-2xl" onClick={e => e.stopPropagation()}>
             {/* Header */}
-            <div className="sticky top-0 z-10 bg-gradient-to-b from-gray-800/95 to-gray-800/80 backdrop-blur-md p-4 sm:p-5 border-b border-white/5 rounded-t-3xl sm:rounded-t-2xl">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 bg-yellow-500/20 rounded-xl flex items-center justify-center">
-                    <span className="text-lg">✏️</span>
-                  </div>
-                  <div>
-                    <h3 className="text-base sm:text-lg font-bold text-white">تعديل الفاتورة</h3>
-                    <p className="text-xs text-gray-400 mt-0.5">#{editingInvoice.invoice_number}</p>
-                  </div>
-                </div>
-                <button onClick={() => setEditingInvoice(null)} className="w-10 h-10 flex items-center justify-center text-gray-400 hover:text-white hover:bg-white/10 rounded-xl transition-all">✕</button>
+            <div className="sticky top-0 z-10 bg-gray-900 border-b border-white/10 p-4 flex items-center justify-between">
+              <div>
+                <h3 className="text-sm font-bold text-white">تعديل الفاتورة</h3>
+                <p className="text-xs text-gray-500">#{editingInvoice.invoice_number}</p>
               </div>
+              <button onClick={() => setEditingInvoice(null)} className="w-8 h-8 flex items-center justify-center text-gray-400 hover:text-white hover:bg-white/10 rounded-lg transition-all text-lg">✕</button>
             </div>
 
-            <div className="p-4 sm:p-5 space-y-5">
-              {/* معلومات العميل */}
-              <div className="space-y-3">
-                <h4 className="text-xs font-bold text-yellow-400 uppercase tracking-wider flex items-center gap-2">
-                  <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg>
-                  معلومات العميل
-                </h4>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  <div>
-                    <label className="block text-xs text-gray-400 mb-1.5">الاسم</label>
-                    <input value={editingInvoice.customer_name || ''} onChange={e => setEditingInvoice({ ...editingInvoice, customer_name: e.target.value })} className="w-full bg-gray-700/50 border border-white/5 rounded-xl px-3 py-2.5 text-white text-sm focus:outline-none focus:ring-2 focus:ring-yellow-500/50 transition-all" />
-                  </div>
-                  <div>
-                    <label className="block text-xs text-gray-400 mb-1.5">الهاتف</label>
-                    <input value={editingInvoice.customer_phone || ''} onChange={e => setEditingInvoice({ ...editingInvoice, customer_phone: e.target.value })} className="w-full bg-gray-700/50 border border-white/5 rounded-xl px-3 py-2.5 text-white text-sm focus:outline-none focus:ring-2 focus:ring-yellow-500/50 transition-all" />
-                  </div>
-                </div>
-                <div>
-                  <label className="block text-xs text-gray-400 mb-1.5">العنوان</label>
-                  <input value={editingInvoice.customer_address || ''} onChange={e => setEditingInvoice({ ...editingInvoice, customer_address: e.target.value })} className="w-full bg-gray-700/50 border border-white/5 rounded-xl px-3 py-2.5 text-white text-sm focus:outline-none focus:ring-2 focus:ring-yellow-500/50 transition-all" />
-                </div>
-                <div>
-                  <label className="block text-xs text-gray-400 mb-1.5">ملاحظات</label>
-                  <input value={editingInvoice.customer_notes || ''} onChange={e => setEditingInvoice({ ...editingInvoice, customer_notes: e.target.value })} className="w-full bg-gray-700/50 border border-white/5 rounded-xl px-3 py-2.5 text-white text-sm focus:outline-none focus:ring-2 focus:ring-yellow-500/50 transition-all" />
-                </div>
+            <div className="p-4 space-y-4">
+              {/* بيانات العميل */}
+              <div className="grid grid-cols-2 gap-2">
+                <input value={editingInvoice.customer_name || ''} onChange={e => setEditingInvoice({ ...editingInvoice, customer_name: e.target.value })} className="bg-gray-800 border border-white/10 rounded-lg px-3 py-2.5 text-white text-sm" placeholder="الاسم" />
+                <input value={editingInvoice.customer_phone || ''} onChange={e => setEditingInvoice({ ...editingInvoice, customer_phone: e.target.value })} className="bg-gray-800 border border-white/10 rounded-lg px-3 py-2.5 text-white text-sm" placeholder="الهاتف" />
               </div>
 
-              {/* الخصم والstatus */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-xs text-gray-400 mb-1.5">الخصم (د.ل)</label>
-                  <input type="number" step="0.001" value={editingInvoice.discount || 0} onChange={e => setEditingInvoice({ ...editingInvoice, discount: e.target.value })} className="w-full bg-gray-700/50 border border-white/5 rounded-xl px-3 py-2.5 text-white text-sm focus:outline-none focus:ring-2 focus:ring-yellow-500/50 transition-all" />
+              {/* الخصم + الحالة */}
+              <div className="grid grid-cols-2 gap-2">
+                <div className="flex items-center gap-2 bg-gray-800 border border-white/10 rounded-lg px-3 py-2.5">
+                  <input type="number" step="0.001" min="0" value={editingInvoice.discount || 0} onChange={e => setEditingInvoice({ ...editingInvoice, discount: e.target.value })} className="flex-1 bg-transparent text-white text-sm w-full outline-none" placeholder="الخصم" />
+                  <span className="text-xs text-gray-500">د.ل</span>
                 </div>
-                <div>
-                  <label className="block text-xs text-gray-400 mb-1.5">الحالة</label>
-                  <select value={editingInvoice.status || 'pending'} onChange={e => setEditingInvoice({ ...editingInvoice, status: e.target.value })} className="w-full bg-gray-700/50 border border-white/5 rounded-xl px-3 py-2.5 text-white text-sm focus:outline-none focus:ring-2 focus:ring-yellow-500/50 transition-all">
-                    <option value="pending">⏳ قيد الانتظار</option>
-                    <option value="processing">⚙️ تجهيز</option>
-                    <option value="ready">✅ جاهز</option>
-                    <option value="completed">🏁 مكتمل</option>
-                  </select>
-                </div>
+                <select value={editingInvoice.status || 'pending'} onChange={e => setEditingInvoice({ ...editingInvoice, status: e.target.value })} className="bg-gray-800 border border-white/10 rounded-lg px-3 py-2.5 text-white text-sm">
+                  <option value="pending">⏳ قيد الانتظار</option>
+                  <option value="processing">⚙️ تجهيز</option>
+                  <option value="ready">✅ جاهز</option>
+                  <option value="completed">🏁 مكتمل</option>
+                </select>
               </div>
 
               {/* العناصر */}
-              <div className="space-y-3">
-                <div className="flex items-center justify-between">
-                  <h4 className="text-xs font-bold text-yellow-400 uppercase tracking-wider flex items-center gap-2">
-                    <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" /></svg>
-                    العناصر ({(editingInvoice.items || []).length})
-                  </h4>
-                  <button onClick={addItemToEdit} className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-400 rounded-lg text-xs font-bold transition-colors">
-                    <span className="text-base leading-none">+</span> إضافة عنصر
-                  </button>
+              <div>
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-xs text-gray-400 font-bold">العناصر ({(editingInvoice.items || []).length})</span>
+                  <div className="flex gap-1">
+                    <button onClick={() => { setShowGamePicker(true); setGameSearch('') }} className="px-2.5 py-1 bg-emerald-500/20 text-emerald-400 rounded-md text-[11px] font-bold hover:bg-emerald-500/30 transition-colors">+ لعبة</button>
+                    <button onClick={() => setShowServicePicker(true)} className="px-2.5 py-1 bg-blue-500/20 text-blue-400 rounded-md text-[11px] font-bold hover:bg-blue-500/30 transition-colors">+ خدمة</button>
+                  </div>
                 </div>
-                <div className="space-y-2">
+                <div className="space-y-1.5 max-h-48 overflow-y-auto">
                   {(editingInvoice.items || []).map((item, i) => (
-                    <div key={i} className="bg-gray-700/50 border border-white/5 rounded-xl p-3 space-y-2">
-                      <div className="flex items-center gap-2">
-                        <input value={item.title || ''} onChange={e => updateItemTitle(i, e.target.value)} className="flex-1 bg-gray-800/50 border border-white/5 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:ring-1 focus:ring-yellow-500/50" placeholder="اسم العنصر" />
-                        <button onClick={() => removeItemFromEdit(i)} className="w-9 h-9 flex items-center justify-center bg-red-500/10 hover:bg-red-500/20 text-red-400 rounded-lg transition-colors text-sm flex-shrink-0">✕</button>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <input type="number" step="0.001" min="0" value={item.price || 0} onChange={e => updateItemPrice(i, e.target.value)} className="flex-1 bg-gray-800/50 border border-white/5 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:ring-1 focus:ring-yellow-500/50" placeholder="السعر" />
-                        <span className="text-xs text-gray-500 flex-shrink-0">د.ل</span>
-                      </div>
+                    <div key={i} className="flex items-center gap-2 bg-gray-800 rounded-lg px-3 py-2">
+                      <span className={`w-2 h-2 rounded-full flex-shrink-0 ${item.type === 'service' ? 'bg-blue-400' : 'bg-emerald-400'}`}></span>
+                      <span className="flex-1 text-white text-sm truncate">{item.title}</span>
+                      <span className="text-xs text-gray-400">{currency(item.price)}</span>
+                      <button onClick={() => removeItemFromEdit(i)} className="text-red-400 hover:text-red-300 text-xs px-1">✕</button>
                     </div>
                   ))}
                 </div>
-                {(editingInvoice.items || []).length === 0 && (
-                  <div className="text-center py-4 text-gray-500 text-sm">لا توجد عناصر</div>
-                )}
-                {/* الإجمالي */}
-                <div className="flex justify-between items-center bg-gradient-to-l from-yellow-500/10 to-transparent p-3 rounded-xl">
-                  <span className="text-sm font-bold text-white">الإجمالي</span>
-                  <span className="text-lg font-black text-yellow-400">{currency((editingInvoice.items || []).reduce((s, i) => s + (Number(i.price) || 0), 0) - (Number(editingInvoice.discount) || 0))}</span>
-                </div>
               </div>
 
-              {/* أزرار الحفظ */}
-              <div className="flex gap-3 pt-2 pb-4 sm:pb-0">
-                <button onClick={() => setEditingInvoice(null)} className="flex-1 px-4 py-3 min-h-[48px] border border-white/10 text-gray-300 rounded-xl hover:bg-white/5 transition-all font-medium text-sm">إلغاء</button>
-                <button onClick={handleSaveEdit} className="flex-1 px-4 py-3 min-h-[48px] bg-gradient-to-r from-yellow-500 to-amber-500 hover:from-yellow-400 hover:to-amber-400 text-white font-bold rounded-xl transition-all shadow-lg shadow-yellow-500/20 text-sm">حفظ التعديلات</button>
+              {/* الإجمالي */}
+              <div className="flex justify-between items-center bg-gray-800 rounded-lg px-4 py-3">
+                <span className="text-sm text-gray-400">الإجمالي</span>
+                <span className="text-lg font-black text-white">{currency((editingInvoice.items || []).reduce((s, i) => s + (Number(i.price) || 0), 0) - (Number(editingInvoice.discount) || 0))}</span>
               </div>
+
+              {/* أزرار */}
+              <div className="flex gap-2">
+                <button onClick={() => setEditingInvoice(null)} className="flex-1 py-3 border border-white/10 text-gray-300 rounded-xl font-medium text-sm hover:bg-white/5 transition-all">إلغاء</button>
+                <button onClick={handleSaveEdit} className="flex-1 py-3 bg-yellow-500 hover:bg-yellow-400 text-black font-bold rounded-xl text-sm transition-all">حفظ</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* مودال اختيار لعبة */}
+      {showGamePicker && (
+        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-end sm:items-center justify-center z-[60] p-0 sm:p-4" onClick={() => setShowGamePicker(false)}>
+          <div className="bg-gray-900 rounded-t-2xl sm:rounded-2xl border border-white/10 max-w-md w-full max-h-[70vh] overflow-hidden shadow-2xl flex flex-col" onClick={e => e.stopPropagation()}>
+            <div className="p-4 border-b border-white/10">
+              <div className="flex items-center justify-between mb-3">
+                <h3 className="text-sm font-bold text-white">اختر لعبة</h3>
+                <button onClick={() => setShowGamePicker(false)} className="w-8 h-8 flex items-center justify-center text-gray-400 hover:text-white hover:bg-white/10 rounded-lg text-lg">✕</button>
+              </div>
+              <input autoFocus value={gameSearch} onChange={e => setGameSearch(e.target.value)} className="w-full bg-gray-800 border border-white/10 rounded-lg px-3 py-2.5 text-white text-sm outline-none focus:ring-1 focus:ring-emerald-500/50" placeholder="ابحث عن لعبة..." />
+            </div>
+            <div className="flex-1 overflow-y-auto p-2">
+              {filteredGames.map(game => (
+                <button key={game.id} onClick={() => addGameToInvoice(game)} className="w-full flex items-center gap-3 p-3 rounded-xl hover:bg-white/5 transition-colors text-right">
+                  <div className="flex-1 min-w-0">
+                    <p className="text-white text-sm font-medium truncate">{game.title}</p>
+                    <p className="text-gray-500 text-xs">{game.size_gb > 0 ? `${game.size_gb} GB` : ''}</p>
+                  </div>
+                  <span className="text-emerald-400 font-bold text-sm whitespace-nowrap">{currency(game.price)}</span>
+                </button>
+              ))}
+              {filteredGames.length === 0 && <div className="text-center py-8 text-gray-500 text-sm">لا توجد نتائج</div>}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* مودال اختيار خدمة */}
+      {showServicePicker && (
+        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-end sm:items-center justify-center z-[60] p-0 sm:p-4" onClick={() => setShowServicePicker(false)}>
+          <div className="bg-gray-900 rounded-t-2xl sm:rounded-2xl border border-white/10 max-w-md w-full max-h-[60vh] overflow-hidden shadow-2xl flex flex-col" onClick={e => e.stopPropagation()}>
+            <div className="p-4 border-b border-white/10 flex items-center justify-between">
+              <h3 className="text-sm font-bold text-white">اختر خدمة</h3>
+              <button onClick={() => setShowServicePicker(false)} className="w-8 h-8 flex items-center justify-center text-gray-400 hover:text-white hover:bg-white/10 rounded-lg text-lg">✕</button>
+            </div>
+            <div className="flex-1 overflow-y-auto p-2">
+              {servicesList.map(service => (
+                <button key={service.id} onClick={() => addServiceToInvoice(service)} className="w-full flex items-center gap-3 p-3 rounded-xl hover:bg-white/5 transition-colors text-right">
+                  <div className="flex-1 min-w-0">
+                    <p className="text-white text-sm font-medium truncate">{service.title}</p>
+                  </div>
+                  <span className="text-blue-400 font-bold text-sm whitespace-nowrap">{currency(service.price)}</span>
+                </button>
+              ))}
+              {servicesList.length === 0 && <div className="text-center py-8 text-gray-500 text-sm">لا توجد خدمات</div>}
             </div>
           </div>
         </div>
