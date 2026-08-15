@@ -951,3 +951,47 @@ select optgroup {
 .custom-scrollbar::-webkit-scrollbar-thumb:hover {
     background: rgba(124, 58, 237, 0.5);
 }
+
+/* Tab content fade-in animation */
+@keyframes fadeInUp {
+    from {
+        opacity: 0;
+        transform: translateY(8px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.tab-fade-in {
+    animation: fadeInUp 0.25s ease-out;
+}
+
+/* Mobile sidebar slide animation */
+@keyframes slideInRight {
+    from {
+        transform: translateX(100%);
+    }
+    to {
+        transform: translateX(0);
+    }
+}
+
+.sidebar-slide-in {
+    animation: slideInRight 0.3s ease-out;
+}
+
+/* Loading spinner */
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}
+
+.loading-spinner {
+    width: 32px;
+    height: 32px;
+    border: 3px solid rgba(99, 102, 241, 0.2);
+    border-top-color: #6366f1;
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+}

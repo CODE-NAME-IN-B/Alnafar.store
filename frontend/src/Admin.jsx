@@ -19,6 +19,7 @@ export default function Admin() {
   const [loginForm, setLoginForm] = useState({ username: '', password: '' })
   const [currentUser, setCurrentUser] = useState(null)
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
+  const [isLoggingIn, setIsLoggingIn] = useState(false)
 
   useEffect(() => {
     loadAuthFromStorage();
@@ -30,12 +31,15 @@ export default function Admin() {
   async function submitLogin(e) {
     e.preventDefault()
     try {
+      setIsLoggingIn(true)
       const { data } = await api.post('/auth/login', loginForm)
       setAuthToken(data.token)
       setLoggedIn(true)
       try { const r = await api.get('/auth/me'); setCurrentUser(r.data?.user || null) } catch { }
     } catch {
       alert('Invalid credentials')
+    } finally {
+      setIsLoggingIn(false)
     }
   }
 
@@ -64,10 +68,10 @@ export default function Admin() {
     return (
       <div className="min-h-screen bg-gray-950 text-white flex flex-col items-center justify-center p-4 relative overflow-hidden">
         <div className="fixed inset-0 pointer-events-none">
-          <div className="absolute top-[-20%] left-[-10%] w-[50%] h-[50%] bg-blue-600/20 rounded-full blur-[120px]"></div>
-          <div className="absolute bottom-[-20%] right-[-10%] w-[50%] h-[50%] bg-purple-600/20 rounded-full blur-[120px]"></div>
+          <div className="absolute top-[-20%] left-[-10%] w-[50%] h-[50%] bg-blue-600/20 rounded-full blur-[120px] animate-pulse"></div>
+          <div className="absolute bottom-[-20%] right-[-10%] w-[50%] h-[50%] bg-purple-600/20 rounded-full blur-[120px] animate-pulse" style={{animationDelay: '1s'}}></div>
         </div>
-        <div className="relative z-10 text-center max-w-sm w-full">
+        <div className="relative z-10 text-center max-w-sm w-full tab-fade-in">
           <div className="w-16 h-16 mx-auto mb-5 bg-white rounded-2xl shadow-2xl overflow-hidden flex items-center justify-center">
             <img src={logo} alt="Alnafar" className="w-full h-full object-contain" />
           </div>
@@ -99,10 +103,20 @@ export default function Admin() {
             </div>
             <button
               type="submit"
-              className="w-full px-4 py-3 rounded-xl bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-500 hover:to-purple-500 text-white font-bold flex items-center justify-center gap-2 transition-all shadow-lg shadow-blue-500/25 min-h-[48px]"
+              disabled={isLoggingIn}
+              className="w-full px-4 py-3 rounded-xl bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-500 hover:to-purple-500 text-white font-bold flex items-center justify-center gap-2 transition-all shadow-lg shadow-blue-500/25 min-h-[48px] disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0013.5 3h-6a2.25 2.25 0 00-2.25 2.25v13.5A2.25 2.25 0 007.5 21h6a2.25 2.25 0 002.25-2.25V15m3 0l3-3m0 0l-3-3m3 3H9" /></svg>
-              تسجيل الدخول
+              {isLoggingIn ? (
+                <>
+                  <div className="loading-spinner !w-5 !h-5 !border-2 !border-white/30 !border-t-white"></div>
+                  <span>جاري الدخول...</span>
+                </>
+              ) : (
+                <>
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0013.5 3h-6a2.25 2.25 0 00-2.25 2.25v13.5A2.25 2.25 0 007.5 21h6a2.25 2.25 0 002.25-2.25V15m3 0l3-3m0 0l-3-3m3 3H9" /></svg>
+                  <span>تسجيل الدخول</span>
+                </>
+              )}
             </button>
           </form>
         </div>
@@ -173,8 +187,8 @@ export default function Admin() {
           {/* Sidebar - Mobile Drawer */}
           <aside className={`
             fixed md:sticky top-0 md:top-24 right-0 z-50 w-72 md:w-60 lg:w-64 h-screen md:h-auto md:h-auto
-            transform transition-transform duration-300 ease-out md:translate-x-0
-            ${isMobileMenuOpen ? 'translate-x-0' : 'translate-x-full'}
+            transition-all duration-300 ease-out md:translate-x-0
+            ${isMobileMenuOpen ? 'translate-x-0 sidebar-slide-in' : 'translate-x-full md:translate-x-0'}
             border-l border-gray-700/50 md:border-none shadow-2xl md:shadow-none
             flex flex-col md:block
           `}>
@@ -206,10 +220,7 @@ export default function Admin() {
                 {navItems.map(({ id, label, icon }) => (
                   <button
                     key={id}
-                    onClick={() => {
-                      if (action) action();
-                      else { setTab(id); setIsMobileMenuOpen(false); }
-                    }}
+                    onClick={() => { setTab(id); setIsMobileMenuOpen(false); }}
                     className={`w-full text-right px-2.5 py-2 rounded-lg font-medium transition-all duration-200 min-h-[36px] flex items-center justify-start gap-2 text-xs ${tab === id
                       ? 'bg-gradient-to-r from-blue-600 to-purple-600 text-white shadow-lg shadow-blue-500/20'
                       : 'text-gray-400 hover:bg-white/5 hover:text-white'
@@ -225,7 +236,7 @@ export default function Admin() {
           </aside>
 
           <main className="flex-1 min-w-0 md:w-3/4 lg:w-4/5" role="main">
-            <div className="bg-gray-900/50 backdrop-blur-sm rounded-2xl border border-gray-800/50 shadow-xl overflow-hidden">
+            <div key={tab} className="bg-gray-900/50 backdrop-blur-sm rounded-2xl border border-gray-800/50 shadow-xl overflow-hidden tab-fade-in">
               {tab === 'games' && <GamesTabNew />}
               {tab === 'categories' && <CategoriesTab />}
               {tab === 'genres' && <GenreSeriesManager />}
