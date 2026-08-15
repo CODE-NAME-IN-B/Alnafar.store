@@ -86,7 +86,7 @@ export default function DailyReportTab() {
   }
 
   const deleteAllInvoicesAllDays = async () => {
-    if (!confirm('⚠️ تحذير: سيتم حذف جميع الفواتير لكل الأيام. هل أنت متأكد؟')) return
+    if (!confirm('تحذير: سيتم حذف جميع الفواتير لكل الأيام. هل أنت متأكد؟')) return
     if (!confirm('تأكيد نهائي: هذا الإجراء لا يمكن التراجع عنه.')) return
     try {
       const { data } = await api.delete('/invoices')
@@ -298,14 +298,14 @@ export default function DailyReportTab() {
                                 className="p-2 sm:px-2 sm:py-1.5 bg-green-600 hover:bg-green-700 disabled:opacity-50 text-white rounded-lg text-xs font-medium transition-colors"
                                 title="إعادة طباعة"
                               >
-                                {reprinting === inv.id ? '...' : '🖨️ طباعة'}
+                                {reprinting === inv.id ? '...' : 'طباعة'}
                               </button>
                               <button
                                 onClick={() => setEditInvoice({ ...inv })}
                                 className="p-2 sm:px-2 sm:py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-medium transition-colors"
                                 title="تعديل الفاتورة"
                               >
-                                ✏️ تعديل
+                                تعديل
                               </button>
                             </div>
                           </td>

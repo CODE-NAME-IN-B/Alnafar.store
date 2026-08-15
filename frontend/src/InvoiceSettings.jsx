@@ -82,9 +82,9 @@ export default function InvoiceSettings() {
       link.remove()
       window.URL.revokeObjectURL(url)
       
-      alert('✅ تم تحميل النسخة الاحتياطية بنجاح!')
+      alert('تم تحميل النسخة الاحتياطية بنجاح!')
     } catch (error) {
-      alert('❌ حدث خطأ في إنشاء النسخة الاحتياطية')
+      alert('حدث خطأ في إنشاء النسخة الاحتياطية')
       console.error(error)
     } finally {
       setBackingUp(false)
@@ -92,7 +92,7 @@ export default function InvoiceSettings() {
   }
 
   const handleRestoreDatabase = async () => {
-    if (!confirm('⚠️ تحذير: سيتم استبدال قاعدة البيانات الحالية. هل أنت متأكد؟')) return
+    if (!confirm('تحذير: سيتم استبدال قاعدة البيانات الحالية. هل أنت متأكد؟')) return
     
     const input = document.createElement('input')
     input.type = 'file'
@@ -116,11 +116,11 @@ export default function InvoiceSettings() {
             })
             
             if (data.success) {
-              alert('✅ تم استعادة قاعدة البيانات بنجاح! سيتم إعادة تحميل الصفحة...')
+              alert('تم استعادة قاعدة البيانات بنجاح! سيتم إعادة تحميل الصفحة...')
               setTimeout(() => window.location.reload(), 1500)
             }
           } catch (error) {
-            alert('❌ حدث خطأ في استعادة قاعدة البيانات')
+            alert('حدث خطأ في استعادة قاعدة البيانات')
             console.error(error)
           } finally {
             setRestoring(false)
@@ -129,7 +129,7 @@ export default function InvoiceSettings() {
         
         reader.readAsDataURL(file)
       } catch (error) {
-        alert('❌ حدث خطأ في قراءة الملف')
+        alert('حدث خطأ في قراءة الملف')
         console.error(error)
         setRestoring(false)
       }
@@ -279,7 +279,7 @@ export default function InvoiceSettings() {
 
         {/* قسم النسخ الاحتياطي */}
         <div className="mt-6 sm:mt-8 pt-6 sm:pt-8 border-t border-gray-700">
-          <h3 className="text-lg sm:text-xl font-bold text-white mb-3 sm:mb-4">💾 النسخ الاحتياطي واستعادة البيانات</h3>
+          <h3 className="text-lg sm:text-xl font-bold text-white mb-3 sm:mb-4">النسخ الاحتياطي واستعادة البيانات</h3>
           <p className="text-gray-400 mb-4 sm:mb-6 text-sm">احفظ نسخة احتياطية من قاعدة البيانات أو استعد نسخة سابقة</p>
           
           <div className="flex flex-wrap gap-3">
@@ -299,7 +299,7 @@ export default function InvoiceSettings() {
                 </>
               ) : (
                 <>
-                  📥 تحميل نسخة احتياطية
+                  تحميل نسخة احتياطية
                 </>
               )}
             </button>
@@ -320,7 +320,7 @@ export default function InvoiceSettings() {
                 </>
               ) : (
                 <>
-                  📤 استعادة من نسخة احتياطية
+                  استعادة من نسخة احتياطية
                 </>
               )}
             </button>
@@ -328,7 +328,7 @@ export default function InvoiceSettings() {
           
           <div className="mt-4 bg-yellow-900/20 border border-yellow-600/30 rounded-lg p-3 sm:p-4">
             <div className="flex items-start gap-3">
-              <span className="text-xl sm:text-2xl shrink-0">⚠️</span>
+              <svg className="w-5 h-5 sm:w-6 sm:h-6 text-yellow-500 shrink-0" fill="none" stroke="currentColor" strokeWidth={1.5} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" /></svg>
               <div className="text-xs sm:text-sm text-yellow-200">
                 <p className="font-semibold mb-1">تنبيه هام:</p>
                 <ul className="list-disc list-inside space-y-1 text-yellow-300/90">

@@ -25,11 +25,7 @@ export default function InvoicesTab() {
   const [gameSearch, setGameSearch] = useState('')
   const [gameCategory, setGameCategory] = useState('')
   const [serviceSearch, setServiceSearch] = useState('')
-  const [dateFrom, setDateFrom] = useState(() => {
-    const d = new Date()
-    d.setDate(1)
-    return d.toISOString().split('T')[0]
-  })
+  const [dateFrom, setDateFrom] = useState(() => new Date().toISOString().split('T')[0])
   const [dateTo, setDateTo] = useState(() => new Date().toISOString().split('T')[0])
 
   useEffect(() => {
@@ -273,7 +269,7 @@ export default function InvoicesTab() {
             onClick={deleteAllInvoices}
             className="flex-1 sm:flex-none px-4 py-2.5 bg-red-600/20 text-red-400 hover:bg-red-600 hover:text-white border border-red-600/30 rounded-lg font-medium transition-all flex justify-center items-center gap-2"
           >
-            <span>🗑️</span> <span className="text-sm">حذف فواتير اليوم</span>
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={1.5} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0" /></svg> <span className="text-sm">حذف فواتير اليوم</span>
           </button>
         </div>
       </div>
@@ -302,19 +298,31 @@ export default function InvoicesTab() {
               />
             </div>
           </div>
-          <button
-            onClick={() => loadInvoices(1)}
-            className="w-full sm:w-auto px-6 py-2.5 bg-primary hover:bg-primary-dark text-white rounded-lg font-medium transition-all shadow-lg shadow-primary/20 text-sm"
-          >
-            بحث بالتاريخ
-          </button>
+          <div className="flex gap-2">
+            <button
+              onClick={() => {
+                const today = new Date().toISOString().split('T')[0]
+                setDateFrom(today)
+                setDateTo(today)
+              }}
+              className="px-4 py-2.5 bg-emerald-600/20 text-emerald-400 hover:bg-emerald-600 hover:text-white border border-emerald-600/30 rounded-lg font-medium transition-all text-sm"
+            >
+              اليوم
+            </button>
+            <button
+              onClick={() => loadInvoices(1)}
+              className="w-full sm:w-auto px-6 py-2.5 bg-primary hover:bg-primary-dark text-white rounded-lg font-medium transition-all shadow-lg shadow-primary/20 text-sm"
+            >
+              بحث بالتاريخ
+            </button>
+          </div>
         </div>
 
         {/* Search & Limit */}
         <div className="flex flex-col sm:flex-row flex-wrap items-stretch sm:items-center gap-3 pt-2 sm:pt-0 sm:border-t-0 border-t border-gray-700/50">
           <div className="relative flex-1">
             <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
-              <span className="text-gray-400 text-sm">🔍</span>
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={1.5} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" /></svg>
             </div>
             <input
               value={search}
@@ -389,7 +397,9 @@ export default function InvoicesTab() {
 
       {invoices.length === 0 ? (
         <div className="bg-gray-800/40 p-8 sm:p-12 rounded-2xl border border-gray-700/50 text-center shadow-lg">
-          <div className="text-4xl mb-4 opacity-50">🧾</div>
+          <div className="text-4xl mb-4 opacity-50">
+            <svg className="w-16 h-16 mx-auto" fill="none" stroke="currentColor" strokeWidth={1} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z" /></svg>
+          </div>
           <h3 className="text-xl font-bold text-white mb-2">لا توجد فواتير</h3>
           <p className="text-gray-400 text-sm">لم يتم العثور على أي فواتير في هذه الفترة</p>
         </div>
@@ -422,8 +432,8 @@ export default function InvoicesTab() {
                     >
                       <option value="pending">⏳ قيد الانتظار</option>
                       <option value="processing">⚙️ التجهيز</option>
-                      <option value="ready">✅ جاهز</option>
-                      <option value="completed">🏁 مكتمل</option>
+                      <option value="ready">جاهز</option>
+                      <option value="completed">مكتمل</option>
                     </select>
                   </div>
 
@@ -457,7 +467,7 @@ export default function InvoicesTab() {
 
                   {/* Actions */}
                   <div className="grid grid-cols-4 gap-2 mt-2 pt-3 border-t border-gray-700">
-                    <button onClick={() => reprintInvoice(invoice)} className="py-2.5 bg-green-600/20 text-green-400 hover:bg-green-600 hover:text-white rounded-lg transition-colors flex items-center justify-center text-lg" title="طباعة">🖨️</button>
+                    <button onClick={() => reprintInvoice(invoice)} className="py-2.5 bg-green-600/20 text-green-400 hover:bg-green-600 hover:text-white rounded-lg transition-colors flex items-center justify-center" title="طباعة"><svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth={1.5} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M6.72 13.829c-.24.03-.48.062-.72.096m.72-.096a42.415 42.415 0 0110.56 0m-10.56 0L6.34 18m10.94-4.171c.24.03.48.062.72.096m-.72-.096L17.66 18m0 0l.229 2.523a1.125 1.125 0 01-1.12 1.227H7.231c-.662 0-1.18-.568-1.12-1.227L6.34 18m11.318 0h1.091A2.25 2.25 0 0021 15.75V9.456c0-1.081-.768-2.015-1.837-2.175a48.055 48.055 0 00-1.913-.247M6.34 18H5.25A2.25 2.25 0 013 15.75V9.456c0-1.081.768-2.015 1.837-2.175a48.041 48.041 0 011.913-.247m10.5 0a48.536 48.536 0 00-10.5 0m10.5 0V3.375c0-.621-.504-1.125-1.125-1.125h-8.25c-.621 0-1.125.504-1.125 1.125v3.659M18 10.5h.008v.008H18V10.5zm-3 0h.008v.008H15V10.5z" /></svg></button>
                     <button onClick={() => {
                       const info = [
                         `رقم: ${invoice.invoice_number}`,
@@ -471,19 +481,19 @@ export default function InvoicesTab() {
                         `\nالعناصر:\n` + items.map((it, i) => `${i + 1}. ${it.title} — ${currency(it.price)}`).join('\n')
                       ].filter(Boolean).join('\n');
                       alert(info);
-                    }} className="py-2.5 bg-blue-600/20 text-blue-400 hover:bg-blue-600 hover:text-white rounded-lg transition-colors flex items-center justify-center text-lg" title="التفاصيل">👁️</button>
+                    }} className="py-2.5 bg-blue-600/20 text-blue-400 hover:bg-blue-600 hover:text-white rounded-lg transition-colors flex items-center justify-center" title="التفاصيل"><svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth={1.5} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M2.036 12.322a1.012 1.012 0 010-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178z" /><path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /></svg></button>
                     <button onClick={() => setEditingInvoice({
                         id: invoice.id, invoice_number: invoice.invoice_number,
                         customer_name: invoice.customer_name, customer_phone: invoice.customer_phone,
                         customer_address: invoice.customer_address || '',
                         customer_notes: invoice.customer_notes || '',
                         items: items, discount: invoice.discount || 0, status: invoice.status
-                    })} className="py-2.5 bg-yellow-600/20 text-yellow-400 hover:bg-yellow-600 hover:text-white rounded-lg transition-colors flex items-center justify-center text-lg" title="تعديل">✏️</button>
-                    <button onClick={() => deleteInvoice(invoice.id)} className="py-2.5 bg-red-600/20 text-red-400 hover:bg-red-600 hover:text-white rounded-lg transition-colors flex items-center justify-center text-lg" title="حذف">🗑️</button>
+                    })} className="py-2.5 bg-yellow-600/20 text-yellow-400 hover:bg-yellow-600 hover:text-white rounded-lg transition-colors flex items-center justify-center" title="تعديل"><svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth={1.5} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0115.75 21H5.25A2.25 2.25 0 013 18.75V8.25A2.25 2.25 0 015.25 6H10" /></svg></button>
+                    <button onClick={() => deleteInvoice(invoice.id)} className="py-2.5 bg-red-600/20 text-red-400 hover:bg-red-600 hover:text-white rounded-lg transition-colors flex items-center justify-center" title="حذف"><svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth={1.5} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0" /></svg></button>
                     
                     {balance > 0 && (
                       <button onClick={() => payBalance(invoice)} className="col-span-4 mt-1 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-lg text-sm transition-colors shadow-lg">
-                        💰 تسديد الباقي ({currency(balance)})
+                        تسديد الباقي ({currency(balance)})
                       </button>
                     )}
                   </div>
@@ -546,7 +556,7 @@ export default function InvoicesTab() {
                     </td>
                     <td className="py-3 px-4 text-center">
                       <div className="flex flex-wrap gap-2 justify-center">
-                        <button onClick={() => reprintInvoice(invoice)} className="p-2 bg-gray-700 hover:bg-green-600 text-white rounded-lg transition-colors" title="طباعة">🖨️</button>
+                        <button onClick={() => reprintInvoice(invoice)} className="p-2 bg-gray-700 hover:bg-green-600 text-white rounded-lg transition-colors" title="طباعة"><svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={1.5} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M6.72 13.829c-.24.03-.48.062-.72.096m.72-.096a42.415 42.415 0 0110.56 0m-10.56 0L6.34 18m10.94-4.171c.24.03.48.062.72.096m-.72-.096L17.66 18m0 0l.229 2.523a1.125 1.125 0 01-1.12 1.227H7.231c-.662 0-1.18-.568-1.12-1.227L6.34 18m11.318 0h1.091A2.25 2.25 0 0021 15.75V9.456c0-1.081-.768-2.015-1.837-2.175a48.055 48.055 0 00-1.913-.247M6.34 18H5.25A2.25 2.25 0 013 15.75V9.456c0-1.081.768-2.015 1.837-2.175a48.041 48.041 0 011.913-.247m10.5 0a48.536 48.536 0 00-10.5 0m10.5 0V3.375c0-.621-.504-1.125-1.125-1.125h-8.25c-.621 0-1.125.504-1.125 1.125v3.659M18 10.5h.008v.008H18V10.5zm-3 0h.008v.008H15V10.5z" /></svg></button>
                         <button onClick={() => {
                           const info = [
                             `رقم: ${invoice.invoice_number}`,
@@ -560,18 +570,18 @@ export default function InvoicesTab() {
                             `\nالعناصر:\n` + items.map((it, i) => `${i + 1}. ${it.title} — ${currency(it.price)}`).join('\n')
                           ].filter(Boolean).join('\n');
                           alert(info);
-                        }} className="p-2 bg-gray-700 hover:bg-blue-600 text-white rounded-lg transition-colors" title="تفاصيل">👁️</button>
+                        }} className="p-2 bg-gray-700 hover:bg-blue-600 text-white rounded-lg transition-colors" title="تفاصيل"><svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={1.5} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M2.036 12.322a1.012 1.012 0 010-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178z" /><path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /></svg></button>
                         <button onClick={() => setEditingInvoice({
                           id: invoice.id, invoice_number: invoice.invoice_number,
                           customer_name: invoice.customer_name, customer_phone: invoice.customer_phone,
                           customer_address: invoice.customer_address || '',
                           customer_notes: invoice.customer_notes || '',
                           items: items, discount: invoice.discount || 0, status: invoice.status
-                        })} className="p-2 bg-gray-700 hover:bg-yellow-600 text-white rounded-lg transition-colors" title="تعديل">✏️</button>
-                        <button onClick={() => deleteInvoice(invoice.id)} className="p-2 bg-gray-700 hover:bg-red-600 text-white rounded-lg transition-colors" title="حذف">🗑️</button>
+                        })} className="p-2 bg-gray-700 hover:bg-yellow-600 text-white rounded-lg transition-colors" title="تعديل"><svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={1.5} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0115.75 21H5.25A2.25 2.25 0 013 18.75V8.25A2.25 2.25 0 015.25 6H10" /></svg></button>
+                        <button onClick={() => deleteInvoice(invoice.id)} className="p-2 bg-gray-700 hover:bg-red-600 text-white rounded-lg transition-colors" title="حذف"><svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={1.5} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0" /></svg></button>
                         {balance > 0 && (
                           <button onClick={() => payBalance(invoice)} className="px-3 py-2 bg-indigo-600/90 hover:bg-indigo-600 text-white rounded-lg text-xs font-bold transition-colors shadow-md">
-                            💰 تسديد
+                            تسديد
                           </button>
                         )}
                       </div>
@@ -625,10 +635,10 @@ export default function InvoicesTab() {
                   <span className="text-xs text-gray-500">د.ل</span>
                 </div>
                 <select value={editingInvoice.status || 'pending'} onChange={e => setEditingInvoice({ ...editingInvoice, status: e.target.value })} className="bg-gray-800 border border-white/10 rounded-lg px-3 py-2.5 text-white text-sm">
-                  <option value="pending">⏳ قيد الانتظار</option>
-                  <option value="processing">⚙️ تجهيز</option>
-                  <option value="ready">✅ جاهز</option>
-                  <option value="completed">🏁 مكتمل</option>
+                  <option value="pending">قيد الانتظار</option>
+                  <option value="processing">تجهيز</option>
+                  <option value="ready">جاهز</option>
+                  <option value="completed">مكتمل</option>
                 </select>
               </div>
 

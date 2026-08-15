@@ -70,7 +70,6 @@ const GamePickerModal = ({ games, selectedIds, onToggle, onClose, categoryId }) 
       <div className="flex-1 overflow-y-auto p-3 space-y-2" style={{ touchAction: 'pan-y' }}>
         {filtered.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-40 text-gray-500">
-            <span className="text-3xl mb-2">🔍</span>
             <p className="text-sm">لا توجد نتائج مطابقة</p>
           </div>
         ) : (
@@ -257,7 +256,7 @@ const PackagesTab = () => {
         <div className="flex flex-col sm:flex-row items-center justify-between gap-4 bg-gray-900/40 p-4 sm:p-6 rounded-2xl border border-white/5 backdrop-blur-md shadow-xl">
           <div>
             <h2 className="text-xl sm:text-2xl font-bold text-white flex items-center gap-2">
-              <span className="text-purple-500 text-3xl">📦</span> إدارة الباقات
+              <span className="text-purple-500 text-3xl">إدارة الباقات</span>
             </h2>
             <p className="text-gray-400 mt-1 text-xs sm:text-sm">تجميع الألعاب في باقات مخفضة للبيع السريع</p>
           </div>
@@ -277,7 +276,7 @@ const PackagesTab = () => {
           <form onSubmit={save} className="bg-gray-900/60 backdrop-blur-xl border border-purple-500/30 rounded-2xl p-4 sm:p-6 lg:p-8 space-y-6 shadow-2xl relative overflow-hidden">
             <div className="absolute top-0 right-0 w-32 h-32 bg-purple-500/10 rounded-full blur-3xl pointer-events-none"></div>
             <h3 className="text-lg font-bold text-white flex items-center gap-2 border-b border-white/10 pb-4">
-              {editingId ? '✏️ تعديل باقة' : '✨ إضافة باقة جديدة'}
+              {editingId ? 'تعديل باقة' : 'إضافة باقة جديدة'}
             </h3>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -344,7 +343,7 @@ const PackagesTab = () => {
                     onClick={() => setShowGamePicker(true)}
                     className="flex items-center gap-2 px-4 py-2 bg-purple-600/20 hover:bg-purple-600 border border-purple-500/40 text-purple-300 hover:text-white rounded-xl text-sm font-bold transition-all active:scale-95"
                   >
-                    <span>🎮</span>
+                    <span>اختر الألعاب</span>
                     <span>اختيار الألعاب</span>
                   </button>
                 </div>
@@ -372,7 +371,7 @@ const PackagesTab = () => {
                     onClick={() => setShowGamePicker(true)}
                     className="w-full py-8 border-2 border-dashed border-gray-700/60 rounded-2xl text-gray-500 hover:border-purple-500/50 hover:text-purple-400 transition-all text-sm flex flex-col items-center gap-2"
                   >
-                    <span className="text-3xl">🎮</span>
+                    <svg className="w-8 h-8" fill="none" stroke="currentColor" strokeWidth={1.5} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M14.25 6.087c0-.355.186-.676.401-.959.221-.29.349-.634.349-1.003 0-1.036-1.007-1.875-2.25-1.875s-2.25.84-2.25 1.875c0 .369.128.713.349 1.003.215.283.401.604.401.959V6a2 2 0 00-2-2H5.5a2 2 0 00-2 2v5.5c0 .355.186.676.401.959.221.29.349.634.349 1.003 0 1.036 1.007 1.875 2.25 1.875s2.25-.84 2.25-1.875c0-.369-.128-.713-.349-1.003A1.65 1.65 0 015.5 11.5V6" /><path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
                     <span>اضغط لاختيار الألعاب</span>
                   </button>
                 )}
@@ -384,7 +383,7 @@ const PackagesTab = () => {
                 type="submit"
                 className="flex-1 py-3 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white rounded-xl font-bold shadow-lg shadow-purple-900/40 transition-all active:scale-95"
               >
-                🚀 {editingId ? 'تحديث الباقة' : 'تأكيد وحفظ الباقة'}
+                {editingId ? 'تحديث الباقة' : 'تأكيد وحفظ الباقة'}
               </button>
               <button
                 type="button"
@@ -399,8 +398,8 @@ const PackagesTab = () => {
 
         {/* ── Packages List ── */}
         {packages.length === 0 ? (
-          <div className="text-center py-20 bg-gray-900/40 rounded-2xl border border-white/5 backdrop-blur-md">
-            <div className="text-6xl mb-4 opacity-20">📦</div>
+            <div className="text-center py-20 bg-gray-900/40 rounded-2xl border border-white/5 backdrop-blur-md">
+            <svg className="w-16 h-16 mx-auto mb-4 opacity-20" fill="none" stroke="currentColor" strokeWidth={1} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M21 7.5l-9-5.25L3 7.5m18 0l-9 5.25m9-5.25v9l-9 5.25M3 7.5l9 5.25M3 7.5v9l9 5.25m0-9v9" /></svg>
             <p className="text-gray-400 font-bold">لم يتم إنشاء أي باقات بعد</p>
             <button onClick={() => setShowForm(true)} className="mt-4 text-purple-400 hover:underline">أنشئ أول باقة الآن</button>
           </div>
@@ -467,14 +466,14 @@ const PackagesTab = () => {
                       onClick={() => startEdit(p)}
                       className="flex-1 py-2.5 bg-white/5 hover:bg-purple-600 hover:text-white rounded-xl text-sm font-bold transition-all border border-white/5 flex items-center justify-center gap-2"
                     >
-                      ✏️ تعديل
+                      تعديل
                     </button>
                     <button
                       onClick={() => remove(p.id)}
                       className="px-4 py-2.5 bg-white/5 hover:bg-red-600 hover:text-white rounded-xl transition-all border border-white/5"
                       title="حذف"
                     >
-                      🗑️
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={1.5} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0" /></svg>
                     </button>
                     <button
                       onClick={() => toggleStatus(p.id)}

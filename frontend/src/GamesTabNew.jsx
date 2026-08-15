@@ -253,7 +253,7 @@ export default function GamesTab() {
               className="px-4 py-3 bg-gradient-to-r from-purple-600 to-violet-600 hover:from-purple-700 hover:to-violet-700 text-white rounded-xl font-bold transition-all shadow-lg"
               title="تصنيف حسب النوع والسلسلة"
             >
-              🏷️ تصنيف حسب النوع والسلسلة
+              تصنيف حسب النوع والسلسلة
             </button>
           </div>
         </div>
@@ -275,7 +275,7 @@ export default function GamesTab() {
                   loading="lazy"
                   decoding="async"
                   className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
-                  onError={(e) => { e.target.src = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="200" height="200"%3E%3Crect fill="%23374151" width="200" height="200"/%3E%3Ctext x="50%25" y="50%25" dominant-baseline="middle" text-anchor="middle" fill="%239ca3af" font-size="60"%3E🎮%3C/text%3E%3C/svg%3E' }}
+                  onError={(e) => { e.target.src = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="200" height="200"%3E%3Crect fill="%23374151" width="200" height="200"/%3E%3Cpath d="M70 80h60v40H70z M100 70v-20M80 90a10 10 0 1020 0" stroke="%239ca3af" stroke-width="4" fill="none"/%3E%3C/svg%3E' }}
                 />
               </div>
               <div className="p-2 sm:p-3">

@@ -97,7 +97,7 @@ export default function UsersTab() {
         <form onSubmit={createUser} className="bg-gradient-to-br from-gray-800 to-gray-900 p-4 sm:p-6 lg:p-8 rounded-2xl border border-gray-700 shadow-2xl space-y-4 sm:space-y-6">
           <div className="flex items-center mb-2">
             <div className="w-10 h-10 sm:w-12 sm:h-12 bg-gradient-to-r from-blue-500 to-blue-600 rounded-xl flex items-center justify-center mr-3 sm:mr-4">
-              <span className="text-xl sm:text-2xl">➕</span>
+              <svg className="w-5 h-5 sm:w-6 sm:h-6 text-white" fill="none" stroke="currentColor" strokeWidth={1.5} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" /></svg>
             </div>
             <h3 className="text-lg sm:text-xl lg:text-2xl font-bold text-white">إضافة مستخدم جديد</h3>
           </div>
@@ -129,7 +129,7 @@ export default function UsersTab() {
         <form onSubmit={updateUser} className="bg-gradient-to-br from-gray-800 to-gray-900 p-4 sm:p-6 lg:p-8 rounded-2xl border border-gray-700 shadow-2xl space-y-4 sm:space-y-6">
           <div className="flex items-center mb-2">
             <div className="w-10 h-10 sm:w-12 sm:h-12 bg-gradient-to-r from-purple-500 to-purple-600 rounded-xl flex items-center justify-center mr-3 sm:mr-4">
-              <span className="text-xl sm:text-2xl">✏️</span>
+              <svg className="w-5 h-5 sm:w-6 sm:h-6 text-white" fill="none" stroke="currentColor" strokeWidth={1.5} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0115.75 21H5.25A2.25 2.25 0 013 18.75V8.25A2.25 2.25 0 015.25 6H10" /></svg>
             </div>
             <h3 className="text-lg sm:text-xl lg:text-2xl font-bold text-white">تعديل مستخدم</h3>
           </div>
