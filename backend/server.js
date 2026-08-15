@@ -1144,6 +1144,58 @@ app.get('/api/notifications/vapid-public-key', (req, res) => {
   res.json({ success: true, publicKey: VAPID_PUBLIC_KEY });
 });
 
+// تحديث حالة الطلب (للإدمن)
+app.put('/api/orders/:id/status', authMiddleware, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { status } = req.body;
+    
+    const validStatuses = ['pending', 'paid', 'processing', 'ready', 'completed', 'cancelled'];
+    if (!validStatuses.includes(status)) {
+      return res.status(400).json({ success: false, message: 'حالة غير صالحة' });
+    }
+
+    const order = await get('SELECT id FROM invoices WHERE id = ? OR invoice_number = ?', [id, id]);
+    if (!order) {
+      return res.status(404).json({ success: false, message: 'الطلب غير موجود' });
+    }
+
+    run('UPDATE invoices SET status = ? WHERE id = ?', [status, order.id]);
+    res.json({ success: true, message: 'تم تحديث الحالة بنجاح' });
+  } catch (error) {
+    console.error('Update order status error:', error);
+    res.status(500).json({ success: false, message: 'حدث خطأ في تحديث الحالة' });
+  }
+});
+
+// تحديث حالة تثبيت اللعبة (للإدمن)
+app.put('/api/orders/:id/items/:itemIdx/installed', authMiddleware, async (req, res) => {
+  try {
+    const { id, itemIdx } = req.params;
+    const { installed } = req.body;
+
+    const order = await get('SELECT id, items FROM invoices WHERE id = ? OR invoice_number = ?', [id, id]);
+    if (!order) {
+      return res.status(404).json({ success: false, message: 'الطلب غير موجود' });
+    }
+
+    let items = [];
+    try { items = JSON.parse(order.items); } catch (_) { items = []; }
+
+    const idx = parseInt(itemIdx);
+    if (idx < 0 || idx >= items.length) {
+      return res.status(400).json({ success: false, message: 'رقم العنصر غير صالح' });
+    }
+
+    items[idx].installed = installed;
+    run('UPDATE invoices SET items = ? WHERE id = ?', [JSON.stringify(items), order.id]);
+    res.json({ success: true, message: 'تم تحديث حالة التثبيت' });
+  } catch (error) {
+    console.error('Update game install status error:', error);
+    res.status(500).json({ success: false, message: 'حدث خطأ في تحديث الحالة' });
+  }
+});
+
 // جلب طلب للتتبع (عام)
 app.get('/api/orders/:id', async (req, res) => {
   try {
@@ -1164,7 +1216,7 @@ app.get('/api/orders/:id', async (req, res) => {
       order: {
         invoice_number: order.invoice_number,
         status: order.status,
-        items: itemsParsed.map(it => ({ title: it.title, price: it.price })),
+        items: itemsParsed.map(it => ({ title: it.title, price: it.price, type: it.type, size_gb: it.size_gb, installed: it.installed || false })),
         total: order.total,
         discount: order.discount,
         final_total: order.final_total,
