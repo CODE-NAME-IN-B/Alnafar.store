@@ -174,7 +174,7 @@ export default function Admin() {
       {/* Mobile Overlay */}
       {isMobileMenuOpen && (
         <div
-          className="fixed inset-0 bg-black/60 backdrop-blur-sm z-40 md:hidden transition-opacity"
+          className="fixed inset-0 bg-black/80 backdrop-blur-md z-40 md:hidden transition-opacity"
           onClick={() => setIsMobileMenuOpen(false)}
           aria-hidden="true"
         />
@@ -192,7 +192,7 @@ export default function Admin() {
             border-l border-gray-700/50 md:border-none shadow-2xl md:shadow-none
             flex flex-col md:block
           `}>
-            <div className="bg-gray-900/98 md:bg-gray-800/50 md:backdrop-blur-xl rounded-none md:rounded-2xl border-0 md:border md:border-gray-700/50 h-full md:max-h-[calc(100vh-8rem)] overflow-y-auto md:overflow-y-auto">
+            <div className="bg-gray-900 md:bg-gray-800/50 md:backdrop-blur-xl rounded-none md:rounded-2xl border-0 md:border md:border-gray-700/50 h-full md:max-h-[calc(100vh-8rem)] overflow-y-auto md:overflow-y-auto">
               {/* Mobile Header */}
               <div className="flex items-center justify-between gap-3 p-4 pb-2 md:hidden border-b border-gray-700/50">
                 <div className="flex items-center gap-3">
@@ -216,7 +216,7 @@ export default function Admin() {
               </div>
 
               {/* Navigation */}
-              <nav className="p-2 md:p-2 space-y-0.5" role="navigation" aria-label="القائمة الرئيسية">
+              <nav className="p-3 md:p-2 space-y-1" role="navigation" aria-label="القائمة الرئيسية">
                 {navItems.map(({ id, label, icon }) => (
                   <button
                     key={id}
@@ -224,13 +224,13 @@ export default function Admin() {
                       if (id === 'store-home') { window.location.hash = '#/'; return; }
                       setTab(id); setIsMobileMenuOpen(false); 
                     }}
-                    className={`w-full text-right px-2.5 py-2 rounded-lg font-medium transition-all duration-200 min-h-[36px] flex items-center justify-start gap-2 text-xs ${tab === id
-                      ? 'bg-gradient-to-r from-blue-600 to-purple-600 text-white shadow-lg shadow-blue-500/20'
-                      : 'text-gray-400 hover:bg-white/5 hover:text-white'
+                    className={`w-full text-right px-3 py-2.5 rounded-xl font-medium transition-all duration-200 min-h-[44px] flex items-center justify-start gap-3 text-sm ${tab === id
+                      ? 'bg-gradient-to-r from-blue-600 to-purple-600 text-white shadow-lg shadow-blue-500/30'
+                      : 'text-gray-300 hover:bg-white/10 hover:text-white'
                       }`}
                     aria-current={tab === id ? 'page' : undefined}
                   >
-                    <span className={`w-4 h-4 flex-shrink-0 ${tab === id ? 'text-white' : 'text-gray-500'}`}>{icon}</span>
+                    <span className={`w-5 h-5 flex-shrink-0 ${tab === id ? 'text-white' : 'text-gray-400'}`}>{icon}</span>
                     <span className="truncate">{label}</span>
                   </button>
                 ))}
