@@ -4,6 +4,17 @@ import axios from 'axios'
 const API_BASE = import.meta?.env?.VITE_API_BASE || '/api'
 export const api = axios.create({ baseURL: API_BASE })
 
+api.interceptors.response.use(
+  response => response,
+  error => {
+    if (error.response?.status === 401) {
+      setAuthToken(null)
+      window.location.hash = '#/admin'
+    }
+    return Promise.reject(error)
+  }
+)
+
 export function setAuthToken(token) {
   if (token) {
     api.defaults.headers.common['Authorization'] = `Bearer ${token}`

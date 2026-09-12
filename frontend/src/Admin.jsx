@@ -33,8 +33,15 @@ export default function Admin() {
   useEffect(() => {
     loadAuthFromStorage();
     const has = !!localStorage.getItem('token');
-    setLoggedIn(has)
-    if (has) { api.get('/auth/me').then(r => setCurrentUser(r.data?.user || null)).catch(() => { }) }
+    if (has) {
+      api.get('/auth/me').then(r => {
+        setCurrentUser(r.data?.user || null)
+        setLoggedIn(true)
+      }).catch(() => {
+        setAuthToken(null)
+        setLoggedIn(false)
+      })
+    }
   }, [])
 
   async function submitLogin(e) {
