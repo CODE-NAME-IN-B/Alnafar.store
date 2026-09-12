@@ -11,3 +11,4 @@ backend/data/database.sqlite
 backend/data/*.sqlite
 backend/data/uploads/
 !backend/data/uploads/.gitkeep
+.vercel

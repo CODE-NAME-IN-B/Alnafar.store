@@ -236,6 +236,7 @@ if (!process.env.VERCEL) {
 
 // Database functions - now using db-adapter
 let all, get, run, exec;
+let dbReady = false;
 
 async function initDb() {
   const { all: _all, get: _get, run: _run, exec: _exec } = await dbAdapter.initDatabase();
@@ -244,6 +245,24 @@ async function initDb() {
   run = _run;
   exec = _exec;
   console.log(`✅ Database initialized (${dbAdapter.getDbType()})`);
+}
+
+// Vercel serverless guard: wait for DB to be ready before handling requests
+function dbReadyGuard(req, res, next) {
+  if (dbReady) return next();
+  initDb()
+    .then(() => {
+      cloudinaryStorage.initStorage();
+      return initializeDatabase();
+    })
+    .then(() => {
+      dbReady = true;
+      next();
+    })
+    .catch(err => {
+      console.error('[DB] Init failed on request:', err.message);
+      res.status(503).json({ message: 'Service initializing, please retry' });
+    });
 }
 
 async function initializeDatabase() {
@@ -844,6 +863,10 @@ app.use((req, res, next) => {
   res.removeHeader('X-Powered-By');
   next();
 });
+
+// DB ready guard: ensures database is initialized before API routes handle requests
+// Critical for Vercel cold starts where module.exports fires before start()
+app.use('/api', dbReadyGuard);
 
 // serve uploaded files
 app.use('/uploads', express.static(UPLOADS_DIR));
@@ -3842,6 +3865,7 @@ async function start() {
   cloudinaryStorage.initStorage();
 
   await initializeDatabase();
+  dbReady = true;
 
   // Optional: enable automatic seeding only if explicitly requested
   if (String(process.env.AUTO_SEED_ON_START || '').toLowerCase() === 'true') {

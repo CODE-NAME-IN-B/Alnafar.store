@@ -692,12 +692,12 @@ function DashboardHome() {
       </div>
 
       {/* KPI Cards */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-6">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-3 mb-4 sm:mb-6">
         {kpis.map((kpi, i) => (
-          <div key={i} className={`bg-gradient-to-br ${kpi.color} rounded-xl p-4 sm:p-5 text-white shadow-lg`}>
-            <div className="text-2xl mb-2">{kpi.icon}</div>
-            <div className="text-2xl sm:text-3xl font-bold">{kpi.value}</div>
-            <div className="text-white/70 text-xs sm:text-sm mt-1">{kpi.label}</div>
+          <div key={i} className={`bg-gradient-to-br ${kpi.color} rounded-xl p-3 sm:p-4 text-white shadow-lg`}>
+            <div className="text-base sm:text-xl mb-1">{kpi.icon}</div>
+            <div className="text-xl sm:text-2xl font-bold leading-tight">{kpi.value}</div>
+            <div className="text-white/70 text-[11px] sm:text-xs mt-0.5">{kpi.label}</div>
           </div>
         ))}
       </div>
