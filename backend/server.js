@@ -584,8 +584,12 @@ async function initializeDatabase() {
   const userRow = await get('SELECT COUNT(*) as count FROM users');
   const userCount = userRow ? userRow.count : 0;
   if (userCount === 0) {
-    const username = process.env.ADMIN_USERNAME || 'admin';
-    const password = process.env.ADMIN_PASSWORD || 'admin123';
+    const username = process.env.ADMIN_USERNAME;
+    const password = process.env.ADMIN_PASSWORD;
+    if (!username || !password) {
+      console.error('❌ ADMIN_USERNAME and ADMIN_PASSWORD must be set for initial seed');
+      throw new Error('ADMIN_USERNAME and ADMIN_PASSWORD environment variables are required');
+    }
     const hashed = bcrypt.hashSync(password, 10);
     await run('INSERT INTO users (username, password, role) VALUES (?, ?, ?)', [username, hashed, 'admin']);
     console.log('Seeded admin user:', username);
@@ -2507,9 +2511,17 @@ app.post('/api/send-telegram', async (req, res) => {
   }
 });
 
-// Stats - Updated to use invoices table
+// Stats - Updated to use invoices table with in-memory cache
+let statsCache = { data: null, timestamp: 0 };
+const STATS_CACHE_TTL = 5 * 60 * 1000; // 5 minutes
+
 app.get('/api/stats', async (req, res) => {
   try {
+    const now = Date.now();
+    if (statsCache.data && (now - statsCache.timestamp) < STATS_CACHE_TTL) {
+      return res.json(statsCache.data);
+    }
+
     const totals = await get('SELECT COUNT(*) as totalOrders FROM invoices');
     const invoices = await all('SELECT items FROM invoices');
     const counts = new Map();
@@ -2519,7 +2531,6 @@ app.get('/api/stats', async (req, res) => {
         const items = JSON.parse(invoice.items);
         for (const item of items) {
           const id = item.id;
-          // تجاهل العناصر التي ليس لها معرف (مثل الخدمات القديمة) أو التي ليست من نوع "لعبة"
           if (id && (item.type === 'game' || !item.type)) {
             counts.set(id, (counts.get(id) || 0) + 1);
           }
@@ -2534,13 +2545,20 @@ app.get('/api/stats', async (req, res) => {
       .sort((a, b) => b.count - a.count)
       .slice(0, 10);
 
-    console.log('📊 Stats generated:', { totalOrders: totals?.totalOrders || 0, topGames: top });
-    res.json({ totalOrders: totals?.totalOrders || 0, topGames: top });
+    const result = { totalOrders: totals?.totalOrders || 0, topGames: top };
+    statsCache = { data: result, timestamp: now };
+    console.log('📊 Stats generated (cached for 5min):', { totalOrders: result.totalOrders, topGames: top.length });
+    res.json(result);
   } catch (error) {
     console.error('Error fetching stats:', error);
     res.status(500).json({ error: 'Failed to fetch stats' });
   }
 });
+
+// Invalidate stats cache when a new invoice is created
+function invalidateStatsCache() {
+  statsCache = { data: null, timestamp: 0 };
+}
 
 // إنشاء طابعة Sunmi
 const printer = new SunmiPrinter();
@@ -2703,6 +2721,7 @@ app.post('/api/invoices', publicOrderRateLimit, async (req, res) => {
       invoice: savedInvoice,
       dailyNumber
     });
+    invalidateStatsCache();
 
   } catch (error) {
     console.error('خطأ في إنشاء الفاتورة:', error);

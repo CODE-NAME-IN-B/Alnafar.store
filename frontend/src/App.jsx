@@ -182,6 +182,7 @@ export default function App() {
   const [categories, setCategories] = useState([])
   const [games, setGames] = useState([])
   const [query, setQuery] = useState('')
+  const [debouncedQuery, setDebouncedQuery] = useState('')
   const [activeCategory, setActiveCategory] = useState('')
   const [minPrice, setMinPrice] = useState('')
   const [maxPrice, setMaxPrice] = useState('')
@@ -192,11 +193,12 @@ export default function App() {
   // UI filters
   const [genreFilter, setGenreFilter] = useState('')
   const [seriesFilter, setSeriesFilter] = useState('')
-  const [splitOnly, setSplitOnly] = useState(false) // kept for logic compatibility, UI removed below
+  const [splitOnly, setSplitOnly] = useState(false)
   const [letterFilter, setLetterFilter] = useState('')
   const [customerPhone, setCustomerPhone] = useState('')
   const [customerName, setCustomerName] = useState('')
   const [paymentType, setPaymentType] = useState('cash')
+  const [visibleGameCount, setVisibleGameCount] = useState(24)
   const [showLogin, setShowLogin] = useState(false)
   const [loginForm, setLoginForm] = useState({ username: '', password: '' })
   const [loginLoading, setLoginLoading] = useState(false)
@@ -298,13 +300,23 @@ export default function App() {
   }, [])
 
   useEffect(() => {
+    const timer = setTimeout(() => setDebouncedQuery(query), 350)
+    return () => clearTimeout(timer)
+  }, [query])
+
+  // Reset visible count when filters change
+  useEffect(() => {
+    setVisibleGameCount(24)
+  }, [debouncedQuery, activeCategory, genreFilter, seriesFilter, letterFilter, minPrice, maxPrice])
+
+  useEffect(() => {
     const params = {}
-    if (query) params.q = query
+    if (debouncedQuery) params.q = debouncedQuery
     if (activeCategory) params.category = activeCategory
     if (minPrice) params.minPrice = minPrice
     if (maxPrice) params.maxPrice = maxPrice
     api.get('/games', { params }).then(r => setGames(Array.isArray(r.data) ? r.data : []))
-  }, [query, activeCategory, minPrice, maxPrice])
+  }, [debouncedQuery, activeCategory, minPrice, maxPrice])
 
   useEffect(() => {
     if (activeCategory) {
@@ -1131,7 +1143,7 @@ export default function App() {
                   لا توجد نتائج مطابقة للفلاتر الحالية.
                 </div>
               )}
-              {displayedGames.map(game => {
+              {displayedGames.slice(0, visibleGameCount).map(game => {
                 const categoryName = (categories || []).find(c => c.id === game.category_id)?.name || 'PS4'
                 return (
                   <div key={game.id} className="game-card game-card-store group rounded-2xl overflow-hidden border border-white/5 bg-gradient-to-b from-gray-800/80 to-gray-900/90 hover:border-purple-500/50 hover:shadow-[0_0_30px_rgba(124,58,237,0.25)] transition-all duration-300 hover:-translate-y-1" data-game-id={game.id}>
@@ -1206,6 +1218,16 @@ export default function App() {
                   </div>
                 )
               })}
+              {displayedGames.length > visibleGameCount && (
+                <div className="col-span-full text-center py-4">
+                  <button
+                    onClick={() => setVisibleGameCount(prev => prev + 24)}
+                    className="px-6 py-3 rounded-xl bg-white/10 hover:bg-white/20 text-white font-medium transition-all text-sm border border-white/10"
+                  >
+                    تحميل المزيد ({displayedGames.length - visibleGameCount} لعبة متبقية)
+                  </button>
+                </div>
+              )}
             </div>
           </section>
 

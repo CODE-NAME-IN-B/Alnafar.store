@@ -27,6 +27,7 @@ export default function GamesTab() {
   const [searchTerm, setSearchTerm] = useState('')
   const [selectedCategory, setSelectedCategory] = useState('')
   const [showModal, setShowModal] = useState(false)
+  const [visibleCount, setVisibleCount] = useState(24)
 
   async function load() {
     const [g, c, s, genresRes] = await Promise.all([
@@ -55,6 +56,8 @@ export default function GamesTab() {
       return matchCategory && matchSearch
     })
     .sort((a, b) => a.title.localeCompare(b.title, 'ar', { sensitivity: 'base' }))
+
+  useEffect(() => { setVisibleCount(24) }, [searchTerm, selectedCategory])
 
   async function save(e) {
     if (e) e.preventDefault() // منع إعادة تحميل الصفحة
@@ -266,7 +269,7 @@ export default function GamesTab() {
         </div>
 
         <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-2 sm:gap-3">
-          {filteredItems.map(game => (
+          {filteredItems.slice(0, visibleCount).map(game => (
             <div key={game.id} className="bg-gray-700/50 rounded-xl overflow-hidden border border-gray-600 hover:border-blue-500 transition-all group">
               <div className="aspect-[3/4] sm:aspect-square relative overflow-hidden bg-gray-800">
                 <img
@@ -312,6 +315,17 @@ export default function GamesTab() {
             </div>
           ))}
         </div>
+
+        {filteredItems.length > visibleCount && (
+          <div className="text-center py-4 mt-3">
+            <button
+              onClick={() => setVisibleCount(prev => prev + 24)}
+              className="px-5 py-2.5 rounded-lg bg-gray-600 hover:bg-gray-500 text-white font-medium text-sm transition-colors"
+            >
+              تحميل المزيد ({filteredItems.length - visibleCount} متبقية)
+            </button>
+          </div>
+        )}
 
         {filteredItems.length === 0 && (
           <div className="text-center py-12 text-gray-400">
