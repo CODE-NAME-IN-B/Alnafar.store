@@ -187,9 +187,10 @@ class SunmiPrinter {
 
 
     // Tracking URL (رابط التتبع)
+    const storeUrl = process.env.STORE_URL || process.env.VERCEL_URL || 'alnafar-store.vercel.app';
     content.push(this.createSeparatorLine('-'));
     content.push(this.centerText('لتتبع حالة طلبك:'));
-    content.push(this.centerText(`alnafar-store.onrender.com/#/track/${invoiceNumber}`));
+    content.push(this.centerText(`${storeUrl}/#/track/${invoiceNumber}`));
     content.push(this.createSeparatorLine('-'));
     content.push('');
 

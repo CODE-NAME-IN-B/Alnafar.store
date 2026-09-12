@@ -11,20 +11,27 @@ const { createServer } = require('http');
 const dbAdapter = require('./db-adapter');
 const cloudinaryStorage = require('./cloudinary-storage');
 const bcrypt = require('bcryptjs');
-const jwt = require('jsonwebtoken');
 const axios = require('axios');
 const { GoogleGenerativeAI } = require('@google/generative-ai');
 const SunmiPrinter = require('./sunmi-printer');
 const webpush = require('web-push');
+const { authMiddleware, requireAdmin, requireRole, signToken, JWT_SECRET_ACTIVE } = require('./middleware/auth');
+const { loginRateLimit, apiWriteRateLimit, publicOrderRateLimit, uploadRateLimit, aiRateLimit } = require('./middleware/rateLimit');
+const { initAudit, auditLog } = require('./middleware/audit');
 
-// Web Push setup
-const VAPID_PUBLIC_KEY = process.env.VAPID_PUBLIC_KEY || 'BCFpwkNzw5p9Pr-q4GyZo5NEa8CBtK_gvAmt443xnQXFfW2YuQwOTiDgdtb25eK2jvR6yqtO2os2TOAjWzLovYg';
-const VAPID_PRIVATE_KEY = process.env.VAPID_PRIVATE_KEY || 'Zw53FEh01HIFVgJQpIdo4ILTOHfCEpPv5vjljOcfjPA';
-webpush.setVapidDetails(
-  'mailto:info@alnafar.store',
-  VAPID_PUBLIC_KEY,
-  VAPID_PRIVATE_KEY
-);
+// Web Push setup - VAPID keys MUST come from environment variables
+const VAPID_PUBLIC_KEY = process.env.VAPID_PUBLIC_KEY;
+const VAPID_PRIVATE_KEY = process.env.VAPID_PRIVATE_KEY;
+if (VAPID_PUBLIC_KEY && VAPID_PRIVATE_KEY) {
+  webpush.setVapidDetails(
+    'mailto:info@alnafar.store',
+    VAPID_PUBLIC_KEY,
+    VAPID_PRIVATE_KEY
+  );
+  console.log('[Push] ✅ Web Push initialized');
+} else {
+  console.warn('[Push] ⚠️ VAPID keys not set. Push notifications disabled.');
+}
 
 // Initialize Gemini AI (بعد تحميل .env)
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY || '';
@@ -37,7 +44,6 @@ if (GEMINI_API_KEY) {
 }
 
 const PORT = process.env.PORT || 5000;
-const JWT_SECRET = process.env.JWT_SECRET || 'dev_secret_change_me';
 
 // دالة للعثور على منفذ متاح
 function findAvailablePort(startPort) {
@@ -510,6 +516,51 @@ async function initializeDatabase() {
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP
     );`);
 
+  // --- Audit Logs Table ---
+  await exec(`CREATE TABLE IF NOT EXISTS audit_logs (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      user_id INTEGER,
+      username TEXT,
+      action TEXT NOT NULL,
+      entity_type TEXT,
+      entity_id TEXT,
+      old_value TEXT,
+      new_value TEXT,
+      ip_address TEXT,
+      user_agent TEXT,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    );`);
+
+  // --- Schema Migrations Tracking ---
+  await exec(`CREATE TABLE IF NOT EXISTS schema_migrations (
+      version INTEGER PRIMARY KEY,
+      name TEXT NOT NULL,
+      applied_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    );`);
+
+  // --- Database Indexes for performance ---
+  const indexes = [
+    'CREATE INDEX IF NOT EXISTS idx_games_category ON games(category_id)',
+    'CREATE INDEX IF NOT EXISTS idx_games_price ON games(price)',
+    'CREATE INDEX IF NOT EXISTS idx_orders_customer_phone ON orders(customer_phone)',
+    'CREATE INDEX IF NOT EXISTS idx_orders_created_at ON orders(created_at)',
+    'CREATE INDEX IF NOT EXISTS idx_invoices_status ON invoices(status)',
+    'CREATE INDEX IF NOT EXISTS idx_invoices_created_at ON invoices(created_at)',
+    'CREATE INDEX IF NOT EXISTS idx_invoices_customer_phone ON invoices(customer_phone)',
+    'CREATE INDEX IF NOT EXISTS idx_daily_invoices_date ON daily_invoices(date)',
+    'CREATE INDEX IF NOT EXISTS idx_audit_logs_user_id ON audit_logs(user_id)',
+    'CREATE INDEX IF NOT EXISTS idx_audit_logs_action ON audit_logs(action)',
+    'CREATE INDEX IF NOT EXISTS idx_audit_logs_entity ON audit_logs(entity_type, entity_id)',
+    'CREATE INDEX IF NOT EXISTS idx_audit_logs_created_at ON audit_logs(created_at)',
+    'CREATE INDEX IF NOT EXISTS idx_users_username ON users(username)',
+    'CREATE INDEX IF NOT EXISTS idx_package_games_package ON package_games(package_id)',
+    'CREATE INDEX IF NOT EXISTS idx_package_games_game ON package_games(game_id)',
+  ];
+  for (const idx of indexes) {
+    try { await exec(idx); } catch (e) { /* index may already exist */ }
+  }
+  console.log('[DB] ✅ Indexes verified');
+
   // Seed admin user if none
   const userRow = await get('SELECT COUNT(*) as count FROM users');
   const userCount = userRow ? userRow.count : 0;
@@ -539,6 +590,7 @@ async function ensureDb() {
   if (!isDbInitialized) {
     await initDb();
     await initializeDatabase();
+    initAudit(run);
     isDbInitialized = true;
   }
 }
@@ -646,36 +698,61 @@ async function checkDatabaseHealth() {
   }
 }
 
-// دالة للحصول على رقم الفاتورة اليومي التسلسلي (ذرية بدون معاملات يدوية)
+// Invoice numbering mutex to prevent race conditions
+let invoiceNumberLock = false;
+const invoiceNumberQueue = [];
+
+async function acquireInvoiceLock() {
+  return new Promise((resolve) => {
+    const tryAcquire = () => {
+      if (!invoiceNumberLock) {
+        invoiceNumberLock = true;
+        resolve();
+      } else {
+        setTimeout(tryAcquire, 5);
+      }
+    };
+    tryAcquire();
+  });
+}
+
+function releaseInvoiceLock() {
+  invoiceNumberLock = false;
+}
+
+// دالة للحصول على رقم الفاتورة اليومي التسلسلي (ذري وآمن)
 async function getDailyInvoiceNumber() {
-  const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
-  const todayNoDash = today.replace(/-/g, '');
-
-  // تأكد من وجود سجل اليوم
-  // Check if daily_invoices entry exists for today
-  const existingDaily = await get('SELECT id FROM daily_invoices WHERE date = ?', [today]);
-  if (!existingDaily || !existingDaily.id) {
-    await run('INSERT INTO daily_invoices (date, last_invoice_number, total_invoices) VALUES (?, 0, 0)', [today]);
-  }
-
-  // احصل على آخر رقم فعلي في فواتير اليوم (لأغراض السجل فقط)
-  const lastRow = await get(
-    `SELECT MAX(CAST(substr(invoice_number, instr(invoice_number, '-') + 1) AS INTEGER)) AS last
-     FROM invoices WHERE DATE(created_at) = ?`,
-    [today]
-  );
-  const lastFromInvoices = lastRow && lastRow.last ? parseInt(lastRow.last, 10) : 0;
-
-  // نعتمد فقط على آخر فاتورة فعلية لليوم لضمان البدء من 1 بعد الحذف حتى لو كان عداد daily_invoices قديماً
-  const nextNumber = (lastFromInvoices || 0) + 1;
+  await acquireInvoiceLock();
   try {
-    await run('UPDATE daily_invoices SET last_invoice_number = ?, updated_at = CURRENT_TIMESTAMP WHERE date = ?', [nextNumber, today]);
-  } catch (_) { /* ignore */ }
+    const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
+    const todayNoDash = today.replace(/-/g, '');
 
-  const formattedNumber = String(nextNumber).padStart(3, '0');
-  const fullNumber = `${todayNoDash}-${formattedNumber}`;
-  console.log(`✅ ترقيم اليوم ${today}: invoices=${lastFromInvoices} => النهائي ${fullNumber}`);
-  return { dailyNumber: nextNumber, fullNumber };
+    // تأكد من وجود سجل اليوم
+    const existingDaily = await get('SELECT id FROM daily_invoices WHERE date = ?', [today]);
+    if (!existingDaily || !existingDaily.id) {
+      await run('INSERT INTO daily_invoices (date, last_invoice_number, total_invoices) VALUES (?, 0, 0)', [today]);
+    }
+
+    // احصل على آخر رقم فعلي في فواتير اليوم
+    const lastRow = await get(
+      `SELECT MAX(CAST(substr(invoice_number, instr(invoice_number, '-') + 1) AS INTEGER)) AS last
+       FROM invoices WHERE DATE(created_at) = ?`,
+      [today]
+    );
+    const lastFromInvoices = lastRow && lastRow.last ? parseInt(lastRow.last, 10) : 0;
+
+    const nextNumber = (lastFromInvoices || 0) + 1;
+    try {
+      await run('UPDATE daily_invoices SET last_invoice_number = ?, updated_at = CURRENT_TIMESTAMP WHERE date = ?', [nextNumber, today]);
+    } catch (_) { /* ignore */ }
+
+    const formattedNumber = String(nextNumber).padStart(3, '0');
+    const fullNumber = `${todayNoDash}-${formattedNumber}`;
+    console.log(`✅ ترقيم اليوم ${today}: invoices=${lastFromInvoices} => النهائي ${fullNumber}`);
+    return { dailyNumber: nextNumber, fullNumber };
+  } finally {
+    releaseInvoiceLock();
+  }
 }
 
 // دالة لتحديث إحصائيات اليوم
@@ -727,9 +804,32 @@ function recomputeDailyStats(dateStr) {
   }
 }
 
-app.use(cors());
-app.use(express.json({ limit: '50mb' }));
-app.use(express.urlencoded({ extended: true, limit: '50mb' }));
+// CORS configuration - restrict origins in production
+const ALLOWED_ORIGINS = process.env.ALLOWED_ORIGINS
+  ? process.env.ALLOWED_ORIGINS.split(',').map(s => s.trim())
+  : ['http://localhost:5000', 'http://localhost:5173', 'http://192.168.8.104:5000'];
+
+app.use(cors({
+  origin: function (origin, callback) {
+    // Allow requests with no origin (mobile apps, curl, etc.)
+    if (!origin) return callback(null, true);
+    if (ALLOWED_ORIGINS.includes(origin) || ALLOWED_ORIGINS.includes('*')) {
+      return callback(null, true);
+    }
+    // In development, allow all origins
+    if (process.env.NODE_ENV !== 'production') {
+      return callback(null, true);
+    }
+    return callback(new Error('Not allowed by CORS'));
+  },
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization']
+}));
+
+// Reduce body size limit for security
+app.use(express.json({ limit: '5mb' }));
+app.use(express.urlencoded({ extended: true, limit: '5mb' }));
 
 // Security headers
 app.use((req, res, next) => {
@@ -737,26 +837,13 @@ app.use((req, res, next) => {
   res.setHeader('X-Frame-Options', 'DENY');
   res.setHeader('X-XSS-Protection', '1; mode=block');
   res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
+  res.setHeader('Permissions-Policy', 'camera=(), microphone=(), geolocation=()');
+  if (process.env.NODE_ENV === 'production') {
+    res.setHeader('Strict-Transport-Security', 'max-age=31536000; includeSubDomains');
+  }
   res.removeHeader('X-Powered-By');
   next();
 });
-
-// Simple in-memory rate limiter for login (no npm dependency needed)
-const loginAttempts = new Map();
-function loginRateLimit(req, res, next) {
-  const ip = req.ip || req.connection?.remoteAddress || 'unknown';
-  const now = Date.now();
-  const windowMs = 15 * 60 * 1000;
-  const maxAttempts = 15;
-  const attempts = loginAttempts.get(ip) || [];
-  const recent = attempts.filter(t => now - t < windowMs);
-  if (recent.length >= maxAttempts) {
-    return res.status(429).json({ message: 'Too many login attempts, please try again in 15 minutes' });
-  }
-  recent.push(now);
-  loginAttempts.set(ip, recent);
-  next();
-}
 
 // serve uploaded files
 app.use('/uploads', express.static(UPLOADS_DIR));
@@ -764,7 +851,7 @@ app.use('/uploads', express.static(UPLOADS_DIR));
 // axios is already required above; use it to fetch descriptions
 
 // Accept base64 uploads: { filename, data }
-app.post('/api/uploads', authMiddleware, async (req, res) => {
+app.post('/api/uploads', authMiddleware, uploadRateLimit, async (req, res) => {
   const { filename, data } = req.body || {}
   if (!filename || !data) return res.status(400).json({ message: 'Missing file data' })
   try {
@@ -967,6 +1054,30 @@ app.get('/api/debug/db-schema', authMiddleware, requireAdmin, async (req, res) =
   }
 });
 
+// Audit Logs API - ADMIN ONLY
+app.get('/api/audit-logs', authMiddleware, requireAdmin, async (req, res) => {
+  try {
+    const { page = 1, limit = 50, action, entity_type, user_id, start_date, end_date } = req.query;
+    const offset = (Math.max(1, parseInt(page)) - 1) * parseInt(limit);
+    const pageSize = Math.min(100, Math.max(1, parseInt(limit)));
+    const conditions = [];
+    const params = [];
+    if (action) { conditions.push('action = ?'); params.push(action); }
+    if (entity_type) { conditions.push('entity_type = ?'); params.push(entity_type); }
+    if (user_id) { conditions.push('user_id = ?'); params.push(user_id); }
+    if (start_date) { conditions.push('created_at >= ?'); params.push(start_date); }
+    if (end_date) { conditions.push('created_at <= ?'); params.push(end_date + ' 23:59:59'); }
+    const where = conditions.length ? `WHERE ${conditions.join(' AND ')}` : '';
+    const countRow = await get(`SELECT COUNT(*) as total FROM audit_logs ${where}`, params);
+    const total = countRow?.total || 0;
+    const rows = await all(`SELECT * FROM audit_logs ${where} ORDER BY created_at DESC LIMIT ? OFFSET ?`, [...params, pageSize, offset]);
+    res.json({ logs: rows, total, page: parseInt(page), limit: pageSize });
+  } catch (error) {
+    console.error('[Audit] Fetch error:', error.message);
+    res.status(500).json({ message: 'Failed to fetch audit logs', error: error.message });
+  }
+});
+
 
 // Create a new package
 app.post('/api/packages', authMiddleware, async (req, res) => {
@@ -1027,7 +1138,7 @@ app.put('/api/packages/:id/toggle', authMiddleware, async (req, res) => {
 });
 
 // Delete a package
-app.delete('/api/packages/:id', authMiddleware, async (req, res) => {
+app.delete('/api/packages/:id', authMiddleware, requireAdmin, apiWriteRateLimit, async (req, res) => {
   try {
     await run('DELETE FROM package_games WHERE package_id = ?', [req.params.id]);
     await run('DELETE FROM packages WHERE id = ?', [req.params.id]);
@@ -1038,7 +1149,7 @@ app.delete('/api/packages/:id', authMiddleware, async (req, res) => {
 });
 
 // Arabic genre detection endpoints
-app.post('/api/analyze-game-genre', authMiddleware, async (req, res) => {
+app.post('/api/analyze-game-genre', authMiddleware, aiRateLimit, async (req, res) => {
   try {
     const { title } = req.body || {};
     if (!title || String(title).trim().length < 2) {
@@ -1086,15 +1197,19 @@ app.put('/api/invoices/:id/status', authMiddleware, async (req, res) => {
 
     if (!status) return res.status(400).json({ success: false, message: 'الحالة مطلوبة' });
 
+    const oldInvoice = await get('SELECT status FROM invoices WHERE id = ?', [id]);
     await run('UPDATE invoices SET status = ? WHERE id = ?', [status, id]);
     const updated = await get('SELECT * FROM invoices WHERE id = ?', [id]);
+
+    await auditLog(req, 'invoice_status_changed', 'invoice', id, 
+      { status: oldInvoice?.status }, { status });
 
     // إذا أصبحت الحالة "جاهزة"، نرسل إشعار دفع
     if (status === 'ready' && updated && updated.invoice_number) {
       const subs = await all('SELECT subscription_data FROM push_subscriptions WHERE order_id = ?', [updated.invoice_number]);
 
       const payload = JSON.stringify({
-        title: 'طلبك جاهز! 🎉',
+        title: 'طلبك جاهز!',
         body: `فاتورتك رقم ${updated.invoice_number} أصبحت جاهزة للاستلام.`,
         icon: '/favicon.svg',
         url: `/#/track/${encodeURIComponent(updated.invoice_number)}`
@@ -1144,24 +1259,48 @@ app.get('/api/notifications/vapid-public-key', (req, res) => {
   res.json({ success: true, publicKey: VAPID_PUBLIC_KEY });
 });
 
+// Order status transitions - enforced
+const VALID_ORDER_STATUSES = ['pending', 'confirmed', 'processing', 'ready', 'completed', 'cancelled', 'refunded'];
+const ALLOWED_TRANSITIONS = {
+  pending: ['confirmed', 'cancelled'],
+  confirmed: ['processing', 'cancelled'],
+  processing: ['ready', 'cancelled'],
+  ready: ['completed'],
+  completed: ['refunded'],
+  cancelled: [],
+  refunded: []
+};
+
 // تحديث حالة الطلب (للإدمن)
 app.put('/api/orders/:id/status', authMiddleware, async (req, res) => {
   try {
     const { id } = req.params;
     const { status } = req.body;
     
-    const validStatuses = ['pending', 'paid', 'processing', 'ready', 'completed', 'cancelled'];
-    if (!validStatuses.includes(status)) {
+    if (!VALID_ORDER_STATUSES.includes(status)) {
       return res.status(400).json({ success: false, message: 'حالة غير صالحة' });
     }
 
-    const order = await get('SELECT id FROM invoices WHERE id = ? OR invoice_number = ?', [id, id]);
+    const order = await get('SELECT id, status FROM invoices WHERE id = ? OR invoice_number = ?', [id, id]);
     if (!order) {
       return res.status(404).json({ success: false, message: 'الطلب غير موجود' });
     }
 
+    const currentStatus = order.status || 'pending';
+    const allowed = ALLOWED_TRANSITIONS[currentStatus] || [];
+    if (!allowed.includes(status)) {
+      return res.status(400).json({ 
+        success: false, 
+        message: `لا يمكن التحديل من ${currentStatus} إلى ${status}`,
+        currentStatus,
+        allowedTransitions: allowed
+      });
+    }
+
+    const oldValue = { status: currentStatus };
     run('UPDATE invoices SET status = ? WHERE id = ?', [status, order.id]);
-    res.json({ success: true, message: 'تم تحديث الحالة بنجاح' });
+    await auditLog(req, 'order_status_changed', 'invoice', order.id, oldValue, { status });
+    res.json({ success: true, message: 'تم تحديث الحالة بنجاح', previousStatus: currentStatus, newStatus: status });
   } catch (error) {
     console.error('Update order status error:', error);
     res.status(500).json({ success: false, message: 'حدث خطأ في تحديث الحالة' });
@@ -1235,7 +1374,7 @@ app.get('/api/orders/:id', async (req, res) => {
 });
 
 // Batch analyze all games for Arabic genres
-app.post('/api/batch-analyze-genres', authMiddleware, async (req, res) => {
+app.post('/api/batch-analyze-genres', authMiddleware, aiRateLimit, async (req, res) => {
   try {
     const games = all('SELECT id, title FROM games');
     if (games.length === 0) {
@@ -1327,7 +1466,7 @@ app.post('/api/genres', authMiddleware, async (req, res) => {
   }
 });
 
-app.delete('/api/genres/:genre', authMiddleware, async (req, res) => {
+app.delete('/api/genres/:genre', authMiddleware, requireAdmin, apiWriteRateLimit, async (req, res) => {
   try {
     const genre = decodeURIComponent(req.params.genre);
 
@@ -1404,7 +1543,7 @@ app.post('/api/series', authMiddleware, async (req, res) => {
   }
 });
 
-app.delete('/api/series/:series', authMiddleware, async (req, res) => {
+app.delete('/api/series/:series', authMiddleware, requireAdmin, apiWriteRateLimit, async (req, res) => {
   try {
     const series = decodeURIComponent(req.params.series);
 
@@ -1425,7 +1564,7 @@ app.delete('/api/series/:series', authMiddleware, async (req, res) => {
 });
 
 // Clear all genre/series/features from all games (admin only)
-app.post('/api/clear-classifications', authMiddleware, async (req, res) => {
+app.post('/api/clear-classifications', authMiddleware, requireAdmin, apiWriteRateLimit, async (req, res) => {
   try {
     // Get count before clearing
     const before = await all('SELECT COUNT(*) as count FROM games WHERE genre IS NOT NULL OR series IS NOT NULL OR features IS NOT NULL');
@@ -1438,7 +1577,7 @@ app.post('/api/clear-classifications', authMiddleware, async (req, res) => {
 });
 
 // Classify by title using Wikipedia summary (no auth)
-app.post('/api/classify-by-title', authMiddleware, async (req, res) => {
+app.post('/api/classify-by-title', authMiddleware, aiRateLimit, async (req, res) => {
   try {
     const { title } = req.body || {};
     if (!title || String(title).trim().length < 2) return res.status(400).json({ error: 'title required' });
@@ -1531,26 +1670,6 @@ app.post('/api/classify-by-title', authMiddleware, async (req, res) => {
   }
 });
 
-function authMiddleware(req, res, next) {
-  const header = req.headers.authorization || '';
-  const token = header.startsWith('Bearer ') ? header.slice(7) : null;
-  if (!token) return res.status(401).json({ message: 'Missing token' });
-  try {
-    const decoded = jwt.verify(token, JWT_SECRET);
-    req.user = decoded;
-    next();
-  } catch (e) {
-    return res.status(401).json({ message: 'Invalid token' });
-  }
-}
-
-function requireAdmin(req, res, next) {
-  if (!req.user || req.user.role !== 'admin') {
-    return res.status(403).json({ message: 'Forbidden' });
-  }
-  next();
-}
-
 // Auth - with rate limiting + input validation
 app.post('/api/auth/login', loginRateLimit, async (req, res) => {
   try {
@@ -1559,10 +1678,17 @@ app.post('/api/auth/login', loginRateLimit, async (req, res) => {
     if (typeof username !== 'string' || typeof password !== 'string') return res.status(400).json({ message: 'Invalid input' });
     if (username.length > 50 || password.length > 128) return res.status(400).json({ message: 'Input too long' });
     const user = await get('SELECT * FROM users WHERE username = ?', [username.trim()]);
-    if (!user || !user.id || !user.password) return res.status(401).json({ message: 'Invalid credentials' });
+    if (!user || !user.id || !user.password) {
+      await auditLog(req, 'login_failed', 'user', username, null, { reason: 'invalid_credentials' });
+      return res.status(401).json({ message: 'Invalid credentials' });
+    }
     const ok = bcrypt.compareSync(password, user.password);
-    if (!ok) return res.status(401).json({ message: 'Invalid credentials' });
-    const token = jwt.sign({ id: user.id, username: user.username, role: user.role || 'admin' }, JWT_SECRET, { expiresIn: '7d' });
+    if (!ok) {
+      await auditLog({ ...req, user: { id: user.id, username: user.username } }, 'login_failed', 'user', user.id, null, { reason: 'wrong_password' });
+      return res.status(401).json({ message: 'Invalid credentials' });
+    }
+    const token = signToken(user);
+    await auditLog({ ...req, user: { id: user.id, username: user.username } }, 'login_success', 'user', user.id, null, null);
     res.json({ token });
   } catch (error) {
     console.error('Login error:', error.message);
@@ -1716,7 +1842,7 @@ app.put('/api/services/:id', authMiddleware, async (req, res) => {
     res.status(500).json({ error: 'Failed to update service' });
   }
 });
-app.delete('/api/services/:id', authMiddleware, async (req, res) => {
+app.delete('/api/services/:id', authMiddleware, requireAdmin, apiWriteRateLimit, async (req, res) => {
   try {
     const { id } = req.params;
     await run('DELETE FROM services WHERE id = ?', [id]);
@@ -1959,7 +2085,7 @@ app.post('/api/mapping', authMiddleware, (req, res) => {
   res.status(500).json({ ok: false });
 });
 
-app.delete('/api/mapping/:file', authMiddleware, (req, res) => {
+app.delete('/api/mapping/:file', authMiddleware, requireAdmin, apiWriteRateLimit, (req, res) => {
   const f = req.params.file;
   const m = loadMapping();
   if (m[f]) delete m[f];
@@ -1975,7 +2101,7 @@ app.put('/api/categories/:id', authMiddleware, (req, res) => {
   res.json({ updated: ch.changes });
 });
 
-app.delete('/api/categories/:id', authMiddleware, (req, res) => {
+app.delete('/api/categories/:id', authMiddleware, requireAdmin, apiWriteRateLimit, (req, res) => {
   const { id } = req.params;
   run('DELETE FROM categories WHERE id = ?', [id]);
   const ch = get('SELECT changes() as changes');
@@ -2091,6 +2217,7 @@ app.post('/api/games', authMiddleware, async (req, res) => {
     });
 
     console.log('[POST /api/games] ✅ Game added:', { id: newGame.id, title, category_id: newGame.category_id, genre, series, features, size_gb: newGame.size_gb });
+    await auditLog(req, 'game_created', 'game', newGame.id, null, { title, price, category_id });
     res.status(201).json(newGame);
   } catch (error) {
     console.error('[POST /api/games] ❌ Error:', error);
@@ -2151,6 +2278,7 @@ app.put('/api/games/:id', authMiddleware, async (req, res) => {
     }
 
     console.log('[PUT /api/games/:id] ✅ Game updated:', { id, title, genre, series, features, size_gb, changes: ch.changes });
+    await auditLog(req, 'game_updated', 'game', id, null, { title, price, category_id, genre, series });
     res.json({ updated: ch.changes });
   } catch (error) {
     console.error('[PUT /api/games/:id] ❌ Error:', error);
@@ -2158,11 +2286,13 @@ app.put('/api/games/:id', authMiddleware, async (req, res) => {
   }
 });
 
-app.delete('/api/games/:id', authMiddleware, async (req, res) => {
+app.delete('/api/games/:id', authMiddleware, requireAdmin, apiWriteRateLimit, async (req, res) => {
   try {
+    const game = await get('SELECT * FROM games WHERE id = ?', [req.params.id]);
     await run('DELETE FROM games WHERE id = ?', [req.params.id]);
     const ch = await get('SELECT changes() as changes');
     console.log('[DELETE /api/games/:id] ✅ Game deleted:', { id: req.params.id, changes: ch.changes });
+    await auditLog(req, 'game_deleted', 'game', req.params.id, game ? { title: game.title, price: game.price } : null, null);
     res.json({ deleted: ch.changes });
   } catch (error) {
     console.error('[DELETE /api/games/:id] ❌ Error:', error);
@@ -2176,7 +2306,7 @@ app.get('/api/orders', authMiddleware, (req, res) => {
   res.json(rows);
 });
 
-app.post('/api/orders', (req, res) => {
+app.post('/api/orders', publicOrderRateLimit, (req, res) => {
   const { games, customer_name, customer_phone } = req.body;
   if (!Array.isArray(games) || games.length === 0) {
     return res.status(400).json({ message: 'No games in order' });
@@ -2191,8 +2321,21 @@ app.post('/api/orders', (req, res) => {
   res.status(201).json({ id: row.id });
 });
 
-// Settings
+// Settings - public endpoint returns only safe data
 app.get('/api/settings', (req, res) => {
+  const row = get('SELECT * FROM settings ORDER BY id DESC LIMIT 1');
+  // Return only public-safe fields
+  const safeSettings = {
+    whatsapp_number: row?.whatsapp_number || '',
+    telegram_username: row?.telegram_username || '',
+    telegram_enabled: row?.telegram_enabled || false,
+    communication_method: row?.communication_method || 'telegram'
+  };
+  res.json(safeSettings);
+});
+
+// Settings - admin only for full access including sensitive data
+app.get('/api/settings/admin', authMiddleware, requireAdmin, (req, res) => {
   const row = get('SELECT * FROM settings ORDER BY id DESC LIMIT 1');
   res.json(row || {
     whatsapp_number: '',
@@ -2204,24 +2347,26 @@ app.get('/api/settings', (req, res) => {
   });
 });
 
-app.put('/api/settings', authMiddleware, (req, res) => {
+app.put('/api/settings', authMiddleware, requireAdmin, apiWriteRateLimit, async (req, res) => {
   const { whatsapp_number, default_message, telegram_bot_token, telegram_chat_id, telegram_username, telegram_enabled, communication_method } = req.body;
   const existing = get('SELECT id FROM settings ORDER BY id DESC LIMIT 1');
   if (existing) {
     run('UPDATE settings SET whatsapp_number = ?, default_message = ?, telegram_bot_token = ?, telegram_chat_id = ?, telegram_username = ?, telegram_enabled = ?, communication_method = ? WHERE id = ?',
       [whatsapp_number || '', default_message || '', telegram_bot_token || '', telegram_chat_id || '', telegram_username || '', telegram_enabled || false, communication_method || 'telegram', existing.id]);
     const ch = get('SELECT changes() as changes');
+    await auditLog(req, 'settings_updated', 'settings', existing.id, null, { whatsapp_number, telegram_username, communication_method });
     res.json({ updated: ch.changes });
   } else {
     run('INSERT INTO settings (whatsapp_number, default_message, telegram_bot_token, telegram_chat_id, telegram_username, telegram_enabled, communication_method) VALUES (?, ?, ?, ?, ?, ?, ?)',
       [whatsapp_number || '', default_message || '', telegram_bot_token || '', telegram_chat_id || '', telegram_username || '', telegram_enabled || false, communication_method || 'telegram']);
     const row = get('SELECT last_insert_rowid() as id');
+    await auditLog(req, 'settings_created', 'settings', row.id, null, { whatsapp_number, telegram_username, communication_method });
     res.status(201).json({ id: row.id });
   }
 });
 
 // Game recognition endpoint - استخدام Gemini Vision API (بدون authentication للتبسيط)
-app.post('/api/recognize-game', authMiddleware, async (req, res) => {
+app.post('/api/recognize-game', authMiddleware, aiRateLimit, async (req, res) => {
   try {
     const { imageUrl, imagePath, imageBase64 } = req.body;
 
@@ -2367,7 +2512,7 @@ app.get('/api/stats', async (req, res) => {
 const printer = new SunmiPrinter();
 
 // إنشاء فاتورة جديدة
-app.post('/api/invoices', async (req, res) => {
+app.post('/api/invoices', publicOrderRateLimit, async (req, res) => {
   try {
     const {
       customerInfo,
@@ -2754,8 +2899,8 @@ app.put('/api/invoices/:id', authMiddleware, async (req, res) => {
   }
 });
 
-// حذف فواتير اليوم فقط (يجب أن يأتي قبل /api/invoices/:id)
-app.delete('/api/invoices/today', authMiddleware, async (req, res) => {
+// حذف فواتير اليوم فقط (يجب أن يأتي قبل /api/invoices/:id) - admin only
+app.delete('/api/invoices/today', authMiddleware, requireAdmin, apiWriteRateLimit, async (req, res) => {
   try {
     const today = new Date().toISOString().split('T')[0];
     const result = await get('SELECT COUNT(*) as count FROM invoices WHERE DATE(created_at) = ?', [today]);
@@ -2797,6 +2942,8 @@ app.put('/api/invoices/:id/payment', authMiddleware, async (req, res) => {
       return res.status(404).json({ success: false, message: 'الفاتورة غير موجودة' });
     }
 
+    const oldPaidAmount = invoice.paid_amount || 0;
+
     // إضافة الدفعة إلى الفاتورة
     await run('UPDATE invoices SET paid_amount = paid_amount + ? WHERE id = ?', [payment, id]);
 
@@ -2808,6 +2955,9 @@ app.put('/api/invoices/:id/payment', authMiddleware, async (req, res) => {
     if (newStatus !== updatedInvoiceForStatus.status) {
       await run('UPDATE invoices SET status = ? WHERE id = ?', [newStatus, id]);
     }
+
+    await auditLog(req, 'payment_recorded', 'invoice', id, 
+      { paid_amount: oldPaidAmount }, { paid_amount: newPaidAmount, payment_amount: payment });
 
     // إضافة القيمة كإيراد محصل لليوم الحالي (يوم تفعيل الدفعة وليس يوم إنشاء الفاتورة)
     const today = new Date().toISOString().split('T')[0];
@@ -2844,8 +2994,8 @@ app.put('/api/invoices/:id/payment', authMiddleware, async (req, res) => {
   }
 });
 
-// حذف فاتورة
-app.delete('/api/invoices/:id', authMiddleware, async (req, res) => {
+// حذف فاتورة - admin only (يجب أن يستخدم soft delete في الإنتاج)
+app.delete('/api/invoices/:id', authMiddleware, requireAdmin, apiWriteRateLimit, async (req, res) => {
   try {
     const { id } = req.params;
 
@@ -2877,8 +3027,8 @@ app.delete('/api/invoices/:id', authMiddleware, async (req, res) => {
 });
 
 
-// حذف جميع الفواتير
-app.delete('/api/invoices', authMiddleware, async (req, res) => {
+// حذف جميع الفواتير - admin only (خطير!)
+app.delete('/api/invoices', authMiddleware, requireAdmin, apiWriteRateLimit, async (req, res) => {
   try {
     const countResult = await get('SELECT COUNT(*) as count FROM invoices');
     const count = countResult?.count || 0;
@@ -3145,8 +3295,8 @@ app.post('/api/printer-settings', authMiddleware, (req, res) => {
   }
 });
 
-// إنشاء نسخة احتياطية من قاعدة البيانات
-app.get('/api/backup-database', authMiddleware, (req, res) => {
+// إنشاء نسخة احتياطية من قاعدة البيانات (admin only)
+app.get('/api/backup-database', authMiddleware, requireAdmin, apiWriteRateLimit, (req, res) => {
   try {
     // حفظ قاعدة البيانات الحالية
     persistDb();
@@ -3176,8 +3326,8 @@ app.get('/api/backup-database', authMiddleware, (req, res) => {
   }
 });
 
-// استعادة قاعدة البيانات من نسخة احتياطية
-app.post('/api/restore-database', authMiddleware, async (req, res) => {
+// استعادة قاعدة البيانات من نسخة احتياطية (admin only)
+app.post('/api/restore-database', authMiddleware, requireAdmin, apiWriteRateLimit, async (req, res) => {
   try {
     const { backupData } = req.body;
 

@@ -1,12 +1,13 @@
-import React, { useEffect, useMemo, useState } from 'react'
+import React, { lazy, Suspense, useEffect, useMemo, useState } from 'react'
 import { api, loadAuthFromStorage } from './api'
 import socket from './socket'
-import Admin from './Admin'
-import Invoice from './Invoice'
 import OrderTracking from './OrderTracking'
 import logo from '../assites/logo.png'
 import cover from '../assites/cover.png'
 import cover2 from '../assites/cover2.jpg'
+
+const Admin = lazy(() => import('./Admin'))
+const Invoice = lazy(() => import('./Invoice'))
 
 function ImageSlider() {
   const images = [
@@ -53,6 +54,15 @@ function ImageSlider() {
 
 function currency(num) {
   return new Intl.NumberFormat('ar-LY', { style: 'currency', currency: 'LYD' }).format(num)
+}
+
+function showToast(message, type = 'info') {
+  const toast = document.createElement('div')
+  toast.className = `toast toast-${type}`
+  toast.textContent = message
+  document.body.appendChild(toast)
+  setTimeout(() => { toast.style.opacity = '0'; toast.style.transform = 'translateX(-50%) translateY(1rem)' }, 3000)
+  setTimeout(() => toast.remove(), 3500)
 }
 
 function TopList({ onAdd }) {
@@ -124,6 +134,7 @@ function TopList({ onAdd }) {
           <img
             src={g.image || cover}
             alt={g.title}
+            loading="lazy"
             className="w-11 h-11 object-cover rounded-lg flex-shrink-0 border border-white/10 group-hover:border-purple-500/30 transition-colors"
             referrerPolicy="no-referrer"
             onError={(e) => { e.currentTarget.onerror = null; e.currentTarget.src = cover; }}
@@ -604,7 +615,7 @@ export default function App() {
   function removeFromServicesCart(index) { setServicesCart(prev => prev.filter((_, i) => i !== index)) }
 
   async function sendOrder() {
-    if (cart.length === 0 && servicesCart.length === 0) return alert('السلة فارغة')
+    if (cart.length === 0 && servicesCart.length === 0) return showToast('السلة فارغة', 'error')
     if (!hasToken || isGuestMode) {
       // Guest: send via WhatsApp
       sendWhatsAppOrder()
@@ -684,13 +695,13 @@ export default function App() {
       setShowLogin(false)
       // البقاء في واجهة المتجر بعد تسجيل الدخول بدلاً من التوجيه للوحة التحكم
     } catch {
-      alert('بيانات الدخول غير صحيحة')
+      showToast('بيانات الدخول غير صحيحة', 'error')
     } finally {
       setLoginLoading(false)
     }
   }
 
-  if (route.startsWith('#/admin')) return <Admin />
+  if (route.startsWith('#/admin')) return <Suspense fallback={<div className="min-h-screen bg-gray-950 flex items-center justify-center"><div className="loading-spinner"></div></div>}><Admin /></Suspense>
 
   if (route.startsWith('#/track/')) {
     const orderIdPattern = route.replace('#/track/', '').split('?')[0]
@@ -1061,6 +1072,7 @@ export default function App() {
                               key={g.id}
                               src={g.image}
                               alt=""
+                              loading="lazy"
                               className={`w-7 h-7 sm:w-8 sm:h-8 object-cover rounded shadow-sm border border-gray-600 flex-shrink-0 ${i > 0 ? '-mr-2' : ''}`}
                               style={{ zIndex: 10 - i }}
                               referrerPolicy="no-referrer"
@@ -1491,13 +1503,15 @@ export default function App() {
 
       {/* Invoice Modal */}
       {showInvoice && (
-        <Invoice
-          cart={combinedCartForInvoice}
-          total={total}
-          totalSize={totalSize}
-          onClose={handleInvoiceClose}
-          onSuccess={handleInvoiceSuccess}
-        />
+        <Suspense fallback={<div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50"><div className="loading-spinner"></div></div>}>
+          <Invoice
+            cart={combinedCartForInvoice}
+            total={total}
+            totalSize={totalSize}
+            onClose={handleInvoiceClose}
+            onSuccess={handleInvoiceSuccess}
+          />
+        </Suspense>
       )}
       {viewingPackage && (
         <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4" onClick={() => setViewingPackage(null)}>
@@ -1518,6 +1532,7 @@ export default function App() {
                   <img 
                     src={g.image || cover} 
                     alt={g.title} 
+                    loading="lazy"
                     className="w-12 h-12 object-cover rounded-md flex-shrink-0" 
                     referrerPolicy="no-referrer"
                     onError={(e) => { e.currentTarget.onerror = null; e.currentTarget.src = cover; }}

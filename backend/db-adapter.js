@@ -10,6 +10,11 @@ async function initDatabase() {
   const tursoUrl = process.env.TURSO_DATABASE_URL;
   const tursoToken = process.env.TURSO_AUTH_TOKEN;
 
+  // On Vercel, Turso is required (local SQLite won't work on read-only filesystem)
+  if (process.env.VERCEL && (!tursoUrl || !tursoToken)) {
+    throw new Error('TURSO_DATABASE_URL and TURSO_AUTH_TOKEN are required on Vercel. Set them in your Vercel project settings.');
+  }
+
   if (tursoUrl && tursoToken) {
     // استخدام Turso في الإنتاج
     console.log('🌐 Connecting to Turso cloud database...');
