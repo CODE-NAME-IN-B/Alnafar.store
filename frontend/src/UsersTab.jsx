@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react'
 import { api } from './api'
+import Loader from './Loader'
 
 export default function UsersTab() {
   const [users, setUsers] = useState([])
@@ -79,7 +80,7 @@ export default function UsersTab() {
   if (loading) {
     return (
       <div className="p-8 text-center">
-        <div className="animate-spin w-8 h-8 border-4 border-primary border-t-transparent rounded-full mx-auto mb-4"></div>
+        <Loader />
         <p className="text-gray-400">جاري تحميل المستخدمين...</p>
       </div>
     )

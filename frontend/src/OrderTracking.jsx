@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { api, loadAuthFromStorage } from './api';
 import logo from '../assites/logo.png';
+import Loader from './Loader';
 
 const statusMap = {
     'pending': { label: 'قيد الانتظار', step: 1, color: 'text-amber-400', bg: 'bg-amber-400', glow: 'shadow-amber-500/30', isPaid: false },
@@ -167,10 +168,7 @@ export default function OrderTracking({ orderId }) {
     if (loading && !order) {
         return (
             <div className="min-h-screen bg-gray-950 text-white flex flex-col items-center justify-center p-4">
-                <div className="relative">
-                    <div className="w-16 h-16 border-4 border-indigo-500/20 rounded-full"></div>
-                    <div className="absolute top-0 left-0 w-16 h-16 border-4 border-transparent border-t-indigo-500 rounded-full animate-spin"></div>
-                </div>
+                <Loader size="lg" />
                 <p className="text-gray-400 mt-6 font-medium">جاري تحميل بيانات الطلب...</p>
             </div>
         );
@@ -337,9 +335,7 @@ export default function OrderTracking({ orderId }) {
                             
                             {currentStep === 2 && order.estimated_minutes > 0 && (
                                 <div className="inline-flex items-center gap-2 text-sm text-indigo-300 bg-indigo-500/20 px-5 py-2.5 rounded-full border border-indigo-500/30">
-                                    <svg className="w-5 h-5 animate-spin" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                                    </svg>
+                                    <Loader size="sm" variant="dots" />
                                     الوقت المتبقي تقريباً: {order.estimated_minutes} دقيقة
                                 </div>
                             )}

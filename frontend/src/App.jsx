@@ -2,6 +2,8 @@ import React, { lazy, Suspense, useEffect, useMemo, useState } from 'react'
 import { api, loadAuthFromStorage } from './api'
 import socket from './socket'
 import OrderTracking from './OrderTracking'
+import { preloadLogo } from './utils/logoCache'
+import Loader from './Loader'
 import logo from '../assites/logo.png'
 import cover from '../assites/cover.png'
 import cover2 from '../assites/cover2.jpg'
@@ -181,6 +183,7 @@ export default function App() {
   const [route, setRoute] = useState(window.location.hash || '#/')
   const [categories, setCategories] = useState([])
   const [games, setGames] = useState([])
+  const [gamesLoading, setGamesLoading] = useState(true)
   const [query, setQuery] = useState('')
   const [debouncedQuery, setDebouncedQuery] = useState('')
   const [activeCategory, setActiveCategory] = useState('')
@@ -210,6 +213,9 @@ export default function App() {
 
   // Load auth token from storage on mount
   useEffect(() => { loadAuthFromStorage() }, [])
+
+  // Preload invoice logo for instant print
+  useEffect(() => { preloadLogo(window.location.origin) }, [])
 
   const [editingInvoiceData, setEditingInvoiceData] = useState(null)
 
@@ -315,7 +321,10 @@ export default function App() {
     if (activeCategory) params.category = activeCategory
     if (minPrice) params.minPrice = minPrice
     if (maxPrice) params.maxPrice = maxPrice
-    api.get('/games', { params }).then(r => setGames(Array.isArray(r.data) ? r.data : []))
+    setGamesLoading(true)
+    api.get('/games', { params })
+      .then(r => setGames(Array.isArray(r.data) ? r.data : []))
+      .finally(() => setGamesLoading(false))
   }, [debouncedQuery, activeCategory, minPrice, maxPrice])
 
   useEffect(() => {
@@ -1138,7 +1147,12 @@ export default function App() {
             )}
 
             <div className="games-grid">
-              {displayedGames.length === 0 && (
+              {gamesLoading && (
+                <div className="col-span-full py-12">
+                  <Loader />
+                </div>
+              )}
+              {!gamesLoading && displayedGames.length === 0 && (
                 <div className="col-span-full text-gray-300 bg-white/5 border border-white/10 rounded-xl p-6 text-center">
                   لا توجد نتائج مطابقة للفلاتر الحالية.
                 </div>

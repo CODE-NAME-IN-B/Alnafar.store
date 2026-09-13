@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { api } from './api';
+import Loader from './Loader';
 
 // ─── Full-screen Game Picker Modal ──────────────────────────────────────────
 const GamePickerModal = ({ games, selectedIds, onToggle, onClose, categoryId }) => {
@@ -232,7 +233,7 @@ const PackagesTab = () => {
   if (loading) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[400px] gap-4">
-        <div className="w-12 h-12 border-4 border-purple-500 border-t-transparent rounded-full animate-spin"></div>
+        <Loader variant="dots" size="lg" />
         <p className="text-gray-400 font-bold animate-pulse">جارٍ تحميل البيانات...</p>
       </div>
     );

@@ -44,6 +44,8 @@ export async function openInvoicePrintWindow(invoice, invSettings = {}) {
   const logoW = paperMM <= 58 ? '42mm' : '48mm'
   const logoH = paperMM <= 58 ? '12mm' : '14mm'
 
+  const { getCachedLogo } = await import('./logoCache')
+  const cachedLogo = getCachedLogo()
   const logoPrimaryUrl = `${origin}/invoice-header.png?v=${Date.now()}`
   const logoFallbackUrl = `${origin}/logo.png?v=${Date.now()}`
 
@@ -154,7 +156,10 @@ export async function openInvoicePrintWindow(invoice, invSettings = {}) {
 <body>
   <div class="receipt">
     <div class="header">
-      <div class="logo"><img src="${logoPrimaryUrl}" onerror="this.onerror=null;this.src='${logoFallbackUrl}';this.onerror=function(){this.style.display='none'}" alt="شعار المتجر" /></div>
+      ${cachedLogo
+        ? `<div class="logo"><img src="${cachedLogo}" alt="شعار المتجر" /></div>`
+        : `<div class="logo"><img src="${logoPrimaryUrl}" onerror="this.onerror=null;this.src='${logoFallbackUrl}';this.onerror=function(){this.style.display='none'}" alt="شعار المتجر" /></div>`
+      }
       <div class="store-name-ar">${storeName}</div>
       <div class="store-name-en">${storeNameEn}</div>
       ${showStoreInfo ? `<div class="store-contact">${storeAddr ? storeAddr : ''} ${storePhone ? storePhone : ''}</div>` : ''}

@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react'
 import { api } from './api'
 import socket from './socket'
 import { reprintInvoice, getInvoiceSettings } from './utils/invoicePrint'
+import Loader from './Loader'
 
 function currency(num) {
   return new Intl.NumberFormat('ar-LY', { style: 'currency', currency: 'LYD' }).format(num)
@@ -161,7 +162,7 @@ export default function DailyReportTab() {
   if (loading) {
     return (
       <div className="p-8 text-center">
-        <div className="animate-spin w-8 h-8 border-4 border-primary border-t-transparent rounded-full mx-auto mb-4"></div>
+        <Loader />
         <p className="text-gray-400">جاري تحميل الجرد اليومي...</p>
       </div>
     )
