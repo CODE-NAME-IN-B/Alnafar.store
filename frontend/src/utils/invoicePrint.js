@@ -44,31 +44,8 @@ export async function openInvoicePrintWindow(invoice, invSettings = {}) {
   const logoW = paperMM <= 58 ? '42mm' : '48mm'
   const logoH = paperMM <= 58 ? '12mm' : '14mm'
 
-  let logoDataUrl = ''
-  try {
-    const res = await fetch(`${origin}/invoice-header.png?v=${Date.now()}`, { mode: 'cors' })
-    if (res.ok) {
-      const blob = await res.blob()
-      logoDataUrl = await new Promise((resolve, reject) => {
-        const r = new FileReader()
-        r.onload = () => resolve(r.result)
-        r.onerror = reject
-        r.readAsDataURL(blob)
-      })
-    }
-    if (!logoDataUrl) {
-      const res2 = await fetch(`${origin}/logo.png?v=${Date.now()}`, { mode: 'cors' })
-      if (res2.ok) {
-        const blob2 = await res2.blob()
-        logoDataUrl = await new Promise((resolve, reject) => {
-          const r = new FileReader()
-          r.onload = () => resolve(r.result)
-          r.onerror = reject
-          r.readAsDataURL(blob2)
-        })
-      }
-    }
-  } catch (_) { }
+  const logoPrimaryUrl = `${origin}/invoice-header.png?v=${Date.now()}`
+  const logoFallbackUrl = `${origin}/logo.png?v=${Date.now()}`
 
   let qrDataUrl = '';
   const trackingUrl = `${origin}/#/track/${encodeURIComponent(fullNumber)}`;
@@ -177,7 +154,7 @@ export async function openInvoicePrintWindow(invoice, invSettings = {}) {
 <body>
   <div class="receipt">
     <div class="header">
-      ${logoDataUrl ? `<div class="logo"><img src="${logoDataUrl}" alt="شعار المتجر" /></div>` : ''}
+      <div class="logo"><img src="${logoPrimaryUrl}" onerror="this.onerror=null;this.src='${logoFallbackUrl}';this.onerror=function(){this.style.display='none'}" alt="شعار المتجر" /></div>
       <div class="store-name-ar">${storeName}</div>
       <div class="store-name-en">${storeNameEn}</div>
       ${showStoreInfo ? `<div class="store-contact">${storeAddr ? storeAddr : ''} ${storePhone ? storePhone : ''}</div>` : ''}

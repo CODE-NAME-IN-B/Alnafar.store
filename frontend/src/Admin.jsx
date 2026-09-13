@@ -202,7 +202,7 @@ export default function Admin() {
 
       {/* Main Content */}
       <div className="max-w-7xl mx-auto px-3 sm:px-6 py-3 sm:py-6">
-        <div className="flex flex-col md:flex-row gap-3 sm:gap-5 relative items-start">
+        <div className="flex flex-col md:flex-row gap-3 sm:gap-5 relative md:items-start">
 
           {/* Sidebar - Mobile Drawer */}
           <aside className={`
@@ -259,7 +259,7 @@ export default function Admin() {
             </div>
           </aside>
 
-          <main className="flex-1 min-w-0 md:w-3/4 lg:w-4/5" role="main">
+          <main className="flex-1 min-w-0 w-full md:w-3/4 lg:w-4/5" role="main">
             <div key={tab} className="backdrop-blur-sm rounded-2xl shadow-xl overflow-hidden tab-fade-in" style={{background: 'var(--surface)', border: '1px solid var(--border)'}}>
               {tab === 'dashboard' && <DashboardHome />}
               {tab === 'games' && <GamesTabNew />}
