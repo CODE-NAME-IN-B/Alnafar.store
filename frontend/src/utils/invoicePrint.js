@@ -88,6 +88,9 @@ export async function openInvoicePrintWindow(invoice, invSettings = {}) {
   const paidAmount = Number(invoice.paid_amount) || 0
   const remaining = finalTotal - paidAmount
 
+  const paidLabel = remaining <= 0 ? 'مدفوع بالكامل' : `المتبقي: ${currency(remaining)}`
+  const paidClass = remaining <= 0 ? 'p' : 'd'
+
   const invoiceHTML = `
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
@@ -109,18 +112,14 @@ export async function openInvoicePrintWindow(invoice, invSettings = {}) {
     .ci{margin:0.5mm 0}
     .cn{font-size:calc(${fontSize} + 1px);font-weight:800}
     .cp{font-size:${fontSize};color:#444}
-    .pb{margin:1mm 0;padding:1mm;border:1px solid #222;border-radius:1mm}
-    .pr{display:flex;justify-content:space-between;padding:0.2mm 0;font-size:${fontSize}}
-    .pr.t{font-size:calc(${fontSize} + 1px);font-weight:900;border-top:1px solid #222;margin-top:0.5mm;padding-top:0.5mm}
-    .pr.p{color:#16a34a;font-weight:700}
-    .pr.d{color:#dc2626;font-weight:800}
-    .pl{font-weight:600}
-    .pv{font-weight:800}
+    .total{font-size:calc(${fontSize} + 4px);font-weight:900;margin:1mm 0;padding:1mm;border:1.5px solid #222;border-radius:1mm}
+    .status{font-size:calc(${fontSize} + 1px);font-weight:800;margin:0.5mm 0}
+    .status.ok{color:#16a34a}
+    .status.due{color:#dc2626}
     .qr{padding:1mm 0}
     .qr img{max-width:24mm;display:inline-block}
     .qh{font-size:calc(${fontSize} - 2px);color:#888;font-weight:600;margin-top:0.3mm}
     .ft{padding-top:0.5mm;border-top:1px dashed #ccc;font-size:calc(${fontSize} - 1px);color:#666}
-    .fr{margin:0.2mm 0}
     @media print{body{margin:0;padding:0}}
   </style>
 </head>
@@ -140,21 +139,13 @@ export async function openInvoicePrintWindow(invoice, invSettings = {}) {
       <div class="cn">${invoice.customer_name || 'عميل نقدي'}</div>
       ${invoice.customer_phone ? `<div class="cp">${invoice.customer_phone}</div>` : ''}
     </div>
-    <div class="pb">
-      ${items.length > 0 ? `<div class="pr"><span class="pl">المنتجات (${items.length})</span><span class="pv">${currency(totalPrice)}</span></div>` : ''}
-      ${discount > 0 ? `<div class="pr"><span class="pl">الخصم</span><span class="pv">-${currency(discount)}</span></div>` : ''}
-      <div class="pr t"><span class="pl">الإجمالي</span><span class="pv">${currency(finalTotal)}</span></div>
-      <div class="pr p"><span class="pl">المدفوع</span><span class="pv">${currency(paidAmount)}</span></div>
-      ${remaining > 0 ? `<div class="pr d"><span class="pl">المتبقي</span><span class="pv">${currency(remaining)}</span></div>` : ''}
-    </div>
+    <div class="total">${currency(finalTotal)}</div>
+    <div class="status ${paidClass}">${paidLabel}</div>
     <div class="qr">
       ${qrDataUrl ? `<img src="${qrDataUrl}" alt="QR" />` : ''}
       <div class="qh">امسح لتفاصيل الطلب</div>
     </div>
-    <div class="ft">
-      ${storePhone ? `<div class="fr">📞 ${storePhone}</div>` : ''}
-      ${origin ? `<div class="fr">🌐 ${origin}</div>` : ''}
-    </div>
+    ${storePhone ? `<div class="ft">📞 ${storePhone}</div>` : ''}
   </div>
   <script>
     (function(){
