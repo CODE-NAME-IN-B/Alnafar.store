@@ -316,15 +316,18 @@ export default function App() {
   }, [debouncedQuery, activeCategory, genreFilter, seriesFilter, letterFilter, minPrice, maxPrice])
 
   useEffect(() => {
+    const controller = new AbortController()
     const params = {}
     if (debouncedQuery) params.q = debouncedQuery
     if (activeCategory) params.category = activeCategory
     if (minPrice) params.minPrice = minPrice
     if (maxPrice) params.maxPrice = maxPrice
     setGamesLoading(true)
-    api.get('/games', { params })
+    api.get('/games', { params, signal: controller.signal })
       .then(r => setGames(Array.isArray(r.data) ? r.data : []))
+      .catch(e => { if (e?.name !== 'CanceledError' && e?.code !== 'ERR_CANCELED') setGames([]) })
       .finally(() => setGamesLoading(false))
+    return () => controller.abort()
   }, [debouncedQuery, activeCategory, minPrice, maxPrice])
 
   useEffect(() => {
@@ -908,19 +911,23 @@ export default function App() {
 
           {/* Navigation - تمرير أفقي على الهاتف */}
           <div className="pb-2 -mx-3 px-3 sm:mx-0 sm:px-0 overflow-x-auto scrollbar-hide nav-scroll">
-            <nav className="flex items-center gap-2 sm:gap-4 md:gap-6 min-w-max py-0.5">
-              {(categories || []).map((c) => (
-                <button
-                  key={c.id}
-                  onClick={() => setActiveCategory(c.id)}
-                  className={`pb-2 border-b-2 -mb-px whitespace-nowrap px-3 py-1 text-sm sm:text-base font-bold transition-colors ${activeCategory === String(c.id)
-                    ? 'border-primary bg-primary/20 text-white'
-                    : 'border-transparent text-white bg-gray-600/80 hover:bg-gray-500/80 hover:border-white/30 md:bg-gray-600 md:hover:bg-gray-500'
+            <nav className="flex items-center gap-2 sm:gap-3 min-w-max py-0.5">
+              {(categories || []).map((c) => {
+                const isActive = String(activeCategory) === String(c.id)
+                return (
+                  <button
+                    key={c.id}
+                    onClick={() => setActiveCategory(c.id)}
+                    className={`whitespace-nowrap px-4 py-2 text-sm sm:text-base font-bold rounded-xl transition-all duration-200 ${
+                      isActive
+                        ? 'bg-gradient-to-r from-purple-600 to-indigo-600 text-white shadow-lg shadow-purple-500/25 scale-105'
+                        : 'bg-white/5 text-gray-300 hover:bg-white/10 hover:text-white border border-white/10'
                     }`}
-                >
-                  {c.name}
-                </button>
-              ))}
+                  >
+                    {c.name}
+                  </button>
+                )
+              })}
             </nav>
           </div>
         </div>
