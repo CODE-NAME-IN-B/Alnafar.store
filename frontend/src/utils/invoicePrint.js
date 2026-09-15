@@ -14,21 +14,28 @@ export async function fetchFullInvoice(invoiceNumber) {
   return data
 }
 
-function fetchLogoAsDataUrl(origin) {
-  return new Promise((resolve) => {
-    const img = new Image()
-    img.crossOrigin = 'anonymous'
-    img.onload = () => {
-      try {
-        const canvas = document.createElement('canvas')
-        canvas.width = img.naturalWidth
-        canvas.height = img.naturalHeight
-        canvas.getContext('2d').drawImage(img, 0, 0)
-        resolve(canvas.toDataURL('image/png'))
-      } catch (_) { resolve(null) }
+async function fetchLogoAsDataUrl(origin) {
+  try {
+    const res = await fetch(`${origin}/invoice-header.png?t=${Date.now()}`)
+    if (!res.ok) {
+      const res2 = await fetch(`${origin}/logo.png?t=${Date.now()}`)
+      if (!res2.ok) return null
+      const blob = await res2.blob()
+      return await blobToDataUrl(blob)
     }
-    img.onerror = () => resolve(null)
-    img.src = `${origin}/invoice-header.png?t=${Date.now()}`
+    const blob = await res.blob()
+    return await blobToDataUrl(blob)
+  } catch (_) {
+    return null
+  }
+}
+
+function blobToDataUrl(blob) {
+  return new Promise((resolve) => {
+    const r = new FileReader()
+    r.onload = () => resolve(r.result)
+    r.onerror = () => resolve(null)
+    r.readAsDataURL(blob)
   })
 }
 
@@ -51,8 +58,8 @@ export async function openInvoicePrintWindow(invoice, invSettings = {}) {
   const fullNumber = String(invoice.invoice_number || '')
   const dailyNo = fullNumber.includes('-') ? String(parseInt(fullNumber.split('-')[1], 10)) : fullNumber
 
-  const logoW = paperMM <= 58 ? '44mm' : '50mm'
-  const logoH = paperMM <= 58 ? '13mm' : '15mm'
+  const logoW = paperMM <= 58 ? '38mm' : '42mm'
+  const logoH = paperMM <= 58 ? '10mm' : '12mm'
 
   // Fetch logo as base64 BEFORE opening window
   const logoDataUrl = await fetchLogoAsDataUrl(origin)
@@ -63,11 +70,11 @@ export async function openInvoicePrintWindow(invoice, invSettings = {}) {
   try {
     const qrcodeLib = await import('qrcode')
     const qrCanvas = document.createElement('canvas')
-    await qrcodeLib.toCanvas(qrCanvas, trackingUrl, { width: 120, margin: 1, errorCorrectionLevel: 'M' })
+    await qrcodeLib.toCanvas(qrCanvas, trackingUrl, { width: 100, margin: 1, errorCorrectionLevel: 'M' })
     qrDataUrl = qrCanvas.toDataURL('image/png')
   } catch (e) {
     try {
-      qrDataUrl = `https://api.qrserver.com/v1/create-qr-code/?size=120x120&data=${encodeURIComponent(trackingUrl)}&format=png`
+      qrDataUrl = `https://api.qrserver.com/v1/create-qr-code/?size=100x100&data=${encodeURIComponent(trackingUrl)}&format=png`
     } catch (_) {}
   }
 
@@ -89,79 +96,32 @@ export async function openInvoicePrintWindow(invoice, invSettings = {}) {
   <title>فاتورة ${dailyNo}</title>
   <style>
     @import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800;900&display=swap');
-    * { margin: 0; padding: 0; box-sizing: border-box; }
-    html, body {
-      width: ${paperMM}mm;
-      max-width: ${paperMM}mm;
-      overflow-x: hidden;
-      font-family: 'Cairo', Tahoma, Arial, sans-serif;
-      background: #fff;
-      color: #1a1a1a;
-      font-size: ${fontSize};
-      line-height: 1.35;
-      direction: rtl;
-    }
-    @page { size: ${paperMM}mm auto; margin: 1.5mm; }
-    .r { width: 100%; padding: 2mm 2.5mm; text-align: center; }
-
-    .logo { margin-bottom: 1.5mm; }
-    .logo img { display: block; margin: 0 auto; max-width: ${logoW}; max-height: ${logoH}; object-fit: contain; }
-
-    .brand-name { font-size: ${titleSize}; font-weight: 900; letter-spacing: -0.3px; color: #111; }
-    .brand-en { font-size: calc(${fontSize} - 1px); font-weight: 600; color: #555; margin-top: 0.3mm; margin-bottom: 1.5mm; }
-
-    .sep { border: none; border-top: 1.5px dashed #bbb; margin: 1.5mm 0; }
-
-    .order-num {
-      font-size: calc(${fontSize} + 4px);
-      font-weight: 900;
-      color: #000;
-      padding: 1.5mm 0;
-      letter-spacing: 1px;
-    }
-
-    .cust { margin: 1.5mm 0; }
-    .cust-name { font-size: calc(${fontSize} + 1px); font-weight: 800; }
-    .cust-phone { font-size: ${fontSize}; color: #444; margin-top: 0.3mm; }
-
-    .price-box {
-      margin: 2mm 0;
-      padding: 1.5mm;
-      border: 1.5px solid #222;
-      border-radius: 2mm;
-    }
-    .price-row {
-      display: flex;
-      justify-content: space-between;
-      padding: 0.4mm 0;
-      font-size: ${fontSize};
-    }
-    .price-row.total {
-      font-size: calc(${fontSize} + 2px);
-      font-weight: 900;
-      border-top: 1.5px solid #222;
-      margin-top: 0.8mm;
-      padding-top: 0.8mm;
-    }
-    .price-row.paid { color: #16a34a; font-weight: 700; }
-    .price-row.due { color: #dc2626; font-weight: 800; }
-    .price-label { font-weight: 600; }
-    .price-val { font-weight: 800; font-family: 'Cairo', monospace; }
-
-    .qr { padding: 2mm 0; }
-    .qr img { max-width: 28mm; display: inline-block; }
-    .qr-hint { font-size: calc(${fontSize} - 2px); color: #888; font-weight: 600; margin-top: 0.5mm; }
-
-    .foot {
-      margin-top: 1.5mm;
-      padding-top: 1mm;
-      border-top: 1px dashed #ccc;
-      font-size: calc(${fontSize} - 1px);
-      color: #666;
-    }
-    .foot-row { margin: 0.3mm 0; }
-
-    @media print { body { margin: 0; padding: 0; } }
+    *{margin:0;padding:0;box-sizing:border-box}
+    html,body{width:${paperMM}mm;max-width:${paperMM}mm;overflow-x:hidden;font-family:'Cairo',Tahoma,Arial,sans-serif;background:#fff;color:#111;font-size:${fontSize};line-height:1.25;direction:rtl}
+    @page{size:${paperMM}mm auto;margin:1mm}
+    .r{width:100%;padding:1.5mm 2mm;text-align:center}
+    .logo{margin-bottom:0.8mm}
+    .logo img{display:block;margin:0 auto;max-width:${logoW};max-height:${logoH};object-fit:contain}
+    .bn{font-size:${titleSize};font-weight:900;color:#111}
+    .be{font-size:calc(${fontSize} - 1px);font-weight:600;color:#555;margin-bottom:0.8mm}
+    .sep{border:none;border-top:1px dashed #bbb;margin:0.8mm 0}
+    .on{font-size:calc(${fontSize} + 2px);font-weight:900;padding:0.5mm 0}
+    .ci{margin:0.5mm 0}
+    .cn{font-size:calc(${fontSize} + 1px);font-weight:800}
+    .cp{font-size:${fontSize};color:#444}
+    .pb{margin:1mm 0;padding:1mm;border:1px solid #222;border-radius:1mm}
+    .pr{display:flex;justify-content:space-between;padding:0.2mm 0;font-size:${fontSize}}
+    .pr.t{font-size:calc(${fontSize} + 1px);font-weight:900;border-top:1px solid #222;margin-top:0.5mm;padding-top:0.5mm}
+    .pr.p{color:#16a34a;font-weight:700}
+    .pr.d{color:#dc2626;font-weight:800}
+    .pl{font-weight:600}
+    .pv{font-weight:800}
+    .qr{padding:1mm 0}
+    .qr img{max-width:24mm;display:inline-block}
+    .qh{font-size:calc(${fontSize} - 2px);color:#888;font-weight:600;margin-top:0.3mm}
+    .ft{padding-top:0.5mm;border-top:1px dashed #ccc;font-size:calc(${fontSize} - 1px);color:#666}
+    .fr{margin:0.2mm 0}
+    @media print{body{margin:0;padding:0}}
   </style>
 </head>
 <body>
@@ -172,44 +132,36 @@ export async function openInvoicePrintWindow(invoice, invSettings = {}) {
         : `<img src="${origin}/invoice-header.png" onerror="this.onerror=null;this.src='${origin}/logo.png';this.onerror=function(){this.style.display='none'}" alt="شعار" />`
       }
     </div>
-    <div class="brand-name">${storeName}</div>
-    <div class="brand-en">${storeNameEn}</div>
-
+    <div class="bn">${storeName}</div>
+    <div class="be">${storeNameEn}</div>
     <hr class="sep" />
-
-    <div class="order-num">#${dailyNo}</div>
-
-    <div class="cust">
-      <div class="cust-name">${invoice.customer_name || 'عميل نقدي'}</div>
-      ${invoice.customer_phone ? `<div class="cust-phone">${invoice.customer_phone}</div>` : ''}
+    <div class="on">#${dailyNo}</div>
+    <div class="ci">
+      <div class="cn">${invoice.customer_name || 'عميل نقدي'}</div>
+      ${invoice.customer_phone ? `<div class="cp">${invoice.customer_phone}</div>` : ''}
     </div>
-
-    <div class="price-box">
-      ${items.length > 0 ? `
-      <div class="price-row"><span class="price-label">المنتجات (${items.length})</span><span class="price-val">${currency(totalPrice)}</span></div>
-      ` : ''}
-      ${discount > 0 ? `<div class="price-row"><span class="price-label">الخصم</span><span class="price-val">-${currency(discount)}</span></div>` : ''}
-      <div class="price-row total"><span class="price-label">الإجمالي</span><span class="price-val">${currency(finalTotal)}</span></div>
-      <div class="price-row paid"><span class="price-label">المدفوع</span><span class="price-val">${currency(paidAmount)}</span></div>
-      ${remaining > 0 ? `<div class="price-row due"><span class="price-label">المتبقي</span><span class="price-val">${currency(remaining)}</span></div>` : ''}
+    <div class="pb">
+      ${items.length > 0 ? `<div class="pr"><span class="pl">المنتجات (${items.length})</span><span class="pv">${currency(totalPrice)}</span></div>` : ''}
+      ${discount > 0 ? `<div class="pr"><span class="pl">الخصم</span><span class="pv">-${currency(discount)}</span></div>` : ''}
+      <div class="pr t"><span class="pl">الإجمالي</span><span class="pv">${currency(finalTotal)}</span></div>
+      <div class="pr p"><span class="pl">المدفوع</span><span class="pv">${currency(paidAmount)}</span></div>
+      ${remaining > 0 ? `<div class="pr d"><span class="pl">المتبقي</span><span class="pv">${currency(remaining)}</span></div>` : ''}
     </div>
-
     <div class="qr">
       ${qrDataUrl ? `<img src="${qrDataUrl}" alt="QR" />` : ''}
-      <div class="qr-hint">امسح لتفاصيل الطلب</div>
+      <div class="qh">امسح لتفاصيل الطلب</div>
     </div>
-
-    <div class="foot">
-      ${storePhone ? `<div class="foot-row">📞 ${storePhone}</div>` : ''}
-      ${origin ? `<div class="foot-row">🌐 ${origin}</div>` : ''}
+    <div class="ft">
+      ${storePhone ? `<div class="fr">📞 ${storePhone}</div>` : ''}
+      ${origin ? `<div class="fr">🌐 ${origin}</div>` : ''}
     </div>
   </div>
   <script>
     (function(){
-      function doPrint(){ try { window.print(); } catch(e) {} }
-      var imgs = Array.from(document.images || []);
-      var wait = imgs.length ? Promise.all(imgs.map(function(i){ return i.complete ? Promise.resolve() : new Promise(function(r){ i.onload=i.onerror=r }) })) : Promise.resolve();
-      Promise.race([wait, new Promise(function(r){ setTimeout(r, 4000) })]).then(function(){ setTimeout(doPrint, 300) });
+      function doPrint(){try{window.print()}catch(e){}}
+      var imgs=Array.from(document.images||[]);
+      var w=imgs.length?Promise.all(imgs.map(function(i){return i.complete?Promise.resolve():new Promise(function(r){i.onload=i.onerror=r})})):Promise.resolve();
+      Promise.race([w,new Promise(function(r){setTimeout(r,4000)})]).then(function(){setTimeout(doPrint,200)});
     })();
   </script>
 </body>
