@@ -661,38 +661,47 @@ export default function InvoicesTab() {
         </div>
       )}
 
-      {/* modal تعديل الفاتورة - بسيط وخفيف */}
+      {/* modal تعديل الفاتورة */}
       {editingInvoice && (
         <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-end sm:items-center justify-center z-50 p-0 sm:p-4" onClick={() => setEditingInvoice(null)}>
           <div className="bg-gray-900 rounded-t-2xl sm:rounded-2xl border border-white/10 max-w-md w-full max-h-[85vh] overflow-y-auto shadow-2xl" onClick={e => e.stopPropagation()}>
             {/* Header */}
-            <div className="sticky top-0 z-10 bg-gray-900 border-b border-white/10 p-4 flex items-center justify-between">
+            <div className="sticky top-0 z-10 bg-gradient-to-l from-yellow-600 to-orange-500 p-4 flex items-center justify-between">
               <div>
                 <h3 className="text-sm font-bold text-white">تعديل الفاتورة</h3>
-                <p className="text-xs text-gray-500">#{editingInvoice.invoice_number}</p>
+                <p className="text-xs text-white/70">#{editingInvoice.invoice_number}</p>
               </div>
-              <button onClick={() => setEditingInvoice(null)} className="w-8 h-8 flex items-center justify-center text-gray-400 hover:text-white hover:bg-white/10 rounded-lg transition-all text-lg">✕</button>
+              <button onClick={() => setEditingInvoice(null)} className="w-8 h-8 flex items-center justify-center text-white/70 hover:text-white hover:bg-white/20 rounded-lg transition-all text-lg">✕</button>
             </div>
 
-            <div className="p-4 space-y-4">
+            <div className="p-4 space-y-3">
               {/* بيانات العميل */}
-              <div className="grid grid-cols-2 gap-2">
-                <input value={editingInvoice.customer_name || ''} onChange={e => setEditingInvoice({ ...editingInvoice, customer_name: e.target.value })} className="bg-gray-800 border border-white/10 rounded-lg px-3 py-2.5 text-white text-sm" placeholder="الاسم" />
-                <input value={editingInvoice.customer_phone || ''} onChange={e => setEditingInvoice({ ...editingInvoice, customer_phone: e.target.value })} className="bg-gray-800 border border-white/10 rounded-lg px-3 py-2.5 text-white text-sm" placeholder="الهاتف" />
+              <div>
+                <label className="text-xs text-gray-400 font-bold mb-1 block">بيانات العميل</label>
+                <div className="grid grid-cols-2 gap-2">
+                  <input value={editingInvoice.customer_name || ''} onChange={e => setEditingInvoice({ ...editingInvoice, customer_name: e.target.value })} className="bg-gray-800 border border-white/10 rounded-lg px-3 py-2.5 text-white text-sm focus:outline-none focus:ring-1 focus:ring-yellow-500/50" placeholder="الاسم" />
+                  <input value={editingInvoice.customer_phone || ''} onChange={e => setEditingInvoice({ ...editingInvoice, customer_phone: e.target.value })} className="bg-gray-800 border border-white/10 rounded-lg px-3 py-2.5 text-white text-sm focus:outline-none focus:ring-1 focus:ring-yellow-500/50" placeholder="الهاتف" />
+                </div>
               </div>
 
               {/* الخصم + الحالة */}
               <div className="grid grid-cols-2 gap-2">
-                <div className="flex items-center gap-2 bg-gray-800 border border-white/10 rounded-lg px-3 py-2.5">
-                  <input type="number" step="0.001" min="0" value={editingInvoice.discount || 0} onChange={e => setEditingInvoice({ ...editingInvoice, discount: e.target.value })} className="flex-1 bg-transparent text-white text-sm w-full outline-none" placeholder="الخصم" />
-                  <span className="text-xs text-gray-500">د.ل</span>
+                <div>
+                  <label className="text-xs text-gray-400 font-bold mb-1 block">الخصم</label>
+                  <div className="flex items-center gap-2 bg-gray-800 border border-white/10 rounded-lg px-3 py-2.5 focus-within:ring-1 focus-within:ring-yellow-500/50">
+                    <input type="number" step="0.001" min="0" value={editingInvoice.discount || ''} onChange={e => setEditingInvoice({ ...editingInvoice, discount: e.target.value })} className="flex-1 bg-transparent text-white text-sm w-full outline-none" placeholder="0" />
+                    <span className="text-xs text-gray-500">د.ل</span>
+                  </div>
                 </div>
-                <select value={editingInvoice.status || 'pending'} onChange={e => setEditingInvoice({ ...editingInvoice, status: e.target.value })} className="bg-gray-800 border border-white/10 rounded-lg px-3 py-2.5 text-white text-sm">
-                  <option value="pending">قيد الانتظار</option>
-                  <option value="processing">تجهيز</option>
-                  <option value="ready">جاهز</option>
-                  <option value="completed">مكتمل</option>
-                </select>
+                <div>
+                  <label className="text-xs text-gray-400 font-bold mb-1 block">الحالة</label>
+                  <select value={editingInvoice.status || 'pending'} onChange={e => setEditingInvoice({ ...editingInvoice, status: e.target.value })} className="w-full bg-gray-800 border border-white/10 rounded-lg px-3 py-2.5 text-white text-sm focus:outline-none focus:ring-1 focus:ring-yellow-500/50">
+                    <option value="pending">⏳ قيد الانتظار</option>
+                    <option value="processing">⚙️ تجهيز</option>
+                    <option value="ready">✅ جاهز</option>
+                    <option value="completed">🏁 مكتمل</option>
+                  </select>
+                </div>
               </div>
 
               {/* العناصر */}
@@ -704,28 +713,33 @@ export default function InvoicesTab() {
                     <button onClick={() => setShowServicePicker(true)} className="px-2.5 py-1 bg-blue-500/20 text-blue-400 rounded-md text-[11px] font-bold hover:bg-blue-500/30 transition-colors">+ خدمة</button>
                   </div>
                 </div>
-                <div className="space-y-1.5 max-h-48 overflow-y-auto">
+                <div className="space-y-1.5 max-h-40 overflow-y-auto">
                   {(editingInvoice.items || []).map((item, i) => (
-                    <div key={i} className="flex items-center gap-2 bg-gray-800 rounded-lg px-3 py-2">
+                    <div key={i} className="flex items-center gap-2 bg-gray-800/80 rounded-lg px-3 py-2 border border-white/5">
                       <span className={`w-2 h-2 rounded-full flex-shrink-0 ${item.type === 'service' ? 'bg-blue-400' : 'bg-emerald-400'}`}></span>
                       <span className="flex-1 text-white text-sm truncate">{item.title}</span>
-                      <span className="text-xs text-gray-400">{currency(item.price)}</span>
-                      <button onClick={() => removeItemFromEdit(i)} className="text-red-400 hover:text-red-300 text-xs px-1">✕</button>
+                      <span className="text-xs text-gray-400 font-mono">{currency(item.price)}</span>
+                      <button onClick={() => removeItemFromEdit(i)} className="w-6 h-6 flex items-center justify-center text-red-400 hover:text-red-300 hover:bg-red-500/10 rounded-md text-xs transition-colors">✕</button>
                     </div>
                   ))}
+                  {(editingInvoice.items || []).length === 0 && (
+                    <div className="text-center text-gray-500 text-xs py-4">لا توجد عناصر</div>
+                  )}
                 </div>
               </div>
 
               {/* الإجمالي */}
-              <div className="flex justify-between items-center bg-gray-800 rounded-lg px-4 py-3">
-                <span className="text-sm text-gray-400">الإجمالي</span>
-                <span className="text-lg font-black text-white">{currency((editingInvoice.items || []).reduce((s, i) => s + (Number(i.price) || 0), 0) - (Number(editingInvoice.discount) || 0))}</span>
+              <div className="bg-gradient-to-l from-yellow-500/10 to-transparent rounded-xl p-3 border border-yellow-500/20">
+                <div className="flex justify-between items-center">
+                  <span className="text-sm text-gray-300 font-bold">الإجمالي</span>
+                  <span className="text-lg font-black text-yellow-400">{currency((editingInvoice.items || []).reduce((s, i) => s + (Number(i.price) || 0), 0) - (Number(editingInvoice.discount) || 0))}</span>
+                </div>
               </div>
 
               {/* أزرار */}
-              <div className="flex gap-2">
+              <div className="flex gap-2 pt-1">
                 <button onClick={() => setEditingInvoice(null)} className="flex-1 py-3 border border-white/10 text-gray-300 rounded-xl font-medium text-sm hover:bg-white/5 transition-all">إلغاء</button>
-                <button onClick={handleSaveEdit} className="flex-1 py-3 bg-yellow-500 hover:bg-yellow-400 text-black font-bold rounded-xl text-sm transition-all">حفظ</button>
+                <button onClick={handleSaveEdit} className="flex-1 py-3 bg-gradient-to-l from-yellow-500 to-orange-500 hover:from-yellow-400 hover:to-orange-400 text-black font-bold rounded-xl text-sm transition-all shadow-lg shadow-yellow-500/20">حفظ</button>
               </div>
             </div>
           </div>

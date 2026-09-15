@@ -2150,6 +2150,7 @@ app.delete('/api/categories/:id', authMiddleware, requireAdmin, apiWriteRateLimi
 app.get('/api/games', async (req, res) => {
   try {
     const { q, category, minPrice, maxPrice } = req.query;
+    const limit = Math.min(parseInt(req.query.limit) || 500, 1000);
     const clauses = [];
     const params = [];
     if (q) { clauses.push('title LIKE ?'); params.push(`%${q}%`); }
@@ -2157,7 +2158,7 @@ app.get('/api/games', async (req, res) => {
     if (minPrice) { clauses.push('price >= ?'); params.push(minPrice); }
     if (maxPrice) { clauses.push('price <= ?'); params.push(maxPrice); }
     const where = clauses.length ? `WHERE ${clauses.join(' AND ')}` : '';
-    const rows = await all(`SELECT * FROM games ${where} ORDER BY id DESC`, params);
+    const rows = await all(`SELECT * FROM games ${where} ORDER BY id DESC LIMIT ?`, [...params, limit]);
     res.json(rows);
   } catch (error) {
     console.error('Error fetching games:', error);

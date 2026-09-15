@@ -61,12 +61,10 @@ export async function openInvoicePrintWindow(invoice, invSettings = {}) {
   const paidAmount = Number(invoice.paid_amount) || 0
   const remaining = finalTotal - paidAmount
 
-  // Status logic: only show remaining when partially paid
+  // Status logic
   const isFullyPaid = paidAmount >= finalTotal && finalTotal > 0
-  const hasPartialPayment = paidAmount > 0 && !isFullyPaid
-  const hasDiscount = discount > 0
-  const showRemaining = !isFullyPaid && (hasPartialPayment || hasDiscount || paidAmount === 0) && remaining > 0
-  const statusText = isFullyPaid ? 'مدفوع بالكامل' : (hasPartialPayment ? `المتبقي: ${currency(remaining)}` : '')
+  const isPartialPayment = paidAmount > 0 && !isFullyPaid
+  const statusText = isFullyPaid ? 'مدفوع بالكامل' : (isPartialPayment ? `المتبقي: ${currency(remaining)}` : 'غير مدفوع')
   const statusClass = isFullyPaid ? 'ok' : 'due'
 
   const storeAddr = (invSettings?.store_address || '').trim()
@@ -89,16 +87,16 @@ export async function openInvoicePrintWindow(invoice, invSettings = {}) {
     .be{font-size:calc(${fontSize} - 1px);font-weight:600;color:#555;margin-bottom:0.3mm}
     .addr{font-size:calc(${fontSize} - 2px);color:#777;margin-bottom:0.5mm}
     .sep{border:none;border-top:1px dashed #bbb;margin:0.8mm 0}
-    .on{font-size:calc(${fontSize} + 2px);font-weight:900;padding:0.5mm 0}
+    .on{font-size:calc(${fontSize} - 1px);font-weight:700;padding:0.5mm 0;color:#333}
     .ci{margin:0.5mm 0}
     .cn{font-size:calc(${fontSize} + 1px);font-weight:800}
     .cp{font-size:${fontSize};color:#444}
-    .total{font-size:calc(${fontSize} + 4px);font-weight:900;margin:1mm 0;padding:1mm;border:1.5px solid #222;border-radius:1mm}
-    .status{font-size:calc(${fontSize} + 1px);font-weight:800;margin:0.5mm 0}
-    .status.ok{color:#16a34a}
-    .status.due{color:#dc2626}
-    .qr{padding:1mm 0}
-    .qr img{max-width:24mm;display:inline-block}
+    .total{font-size:calc(${fontSize} + 3px);font-weight:900;margin:1mm 0;padding:0.8mm;border:1.5px solid #222;border-radius:1mm}
+    .status{font-size:calc(${fontSize} - 1px);font-weight:700;margin:0.5mm 0;padding:0.3mm 1mm;border-radius:1mm;display:inline-block}
+    .status.ok{color:#16a34a;background:#f0fdf4;border:1px solid #bbf7d0}
+    .status.due{color:#dc2626;background:#fef2f2;border:1px solid #fecaca}
+    .qr{padding:0.8mm 0}
+    .qr img{max-width:20mm;display:inline-block}
     .qh{font-size:calc(${fontSize} - 2px);color:#888;font-weight:600;margin-top:0.3mm}
     .ft{padding-top:0.5mm;border-top:1px dashed #ccc;font-size:calc(${fontSize} - 1px);color:#666}
     @media print{body{margin:0;padding:0}}
@@ -119,7 +117,7 @@ export async function openInvoicePrintWindow(invoice, invSettings = {}) {
       ${invoice.customer_phone ? `<div class="cp">${invoice.customer_phone}</div>` : ''}
     </div>
     <div class="total">${currency(finalTotal)}</div>
-    ${statusText ? `<div class="status ${statusClass}">${statusText}</div>` : ''}
+    <div class="status ${statusClass}">${statusText}</div>
     <div class="qr">
       ${qrDataUrl ? `<img src="${qrDataUrl}" alt="QR" />` : ''}
       <div class="qh">امسح لتفاصيل الطلب</div>
