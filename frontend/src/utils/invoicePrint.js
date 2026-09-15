@@ -14,11 +14,34 @@ export async function fetchFullInvoice(invoiceNumber) {
   return data
 }
 
+function fetchLogoAsDataUrl(origin) {
+  return new Promise((resolve) => {
+    const img = new Image()
+    img.crossOrigin = 'anonymous'
+    img.onload = () => {
+      try {
+        const canvas = document.createElement('canvas')
+        canvas.width = img.naturalWidth
+        canvas.height = img.naturalHeight
+        canvas.getContext('2d').drawImage(img, 0, 0)
+        resolve(canvas.toDataURL('image/png'))
+      } catch (_) { resolve(null) }
+    }
+    img.onerror = () => resolve(null)
+    img.src = `${origin}/invoice-header.png?t=${Date.now()}`
+  })
+}
+
+function currency(num) {
+  const n = Number(num) || 0
+  return new Intl.NumberFormat('ar-LY', { style: 'currency', currency: 'LYD' }).format(n)
+}
+
 export async function openInvoicePrintWindow(invoice, invSettings = {}) {
   const paperMM = Number(invSettings?.paper_width) || 58
   const fs = String(invSettings?.font_size || 'normal').toLowerCase()
   const fontSize = paperMM <= 58 ? '11px' : (fs === 'large' ? '12px' : fs === 'small' ? '10px' : '11px')
-  const titleSize = paperMM <= 58 ? '14px' : (fs === 'large' ? '16px' : fs === 'small' ? '13px' : '14px')
+  const titleSize = paperMM <= 58 ? '15px' : (fs === 'large' ? '17px' : fs === 'small' ? '14px' : '15px')
   const storeName = (invSettings?.store_name || '').trim() || 'الشارده للإلكترونيات'
   const storeNameEn = (invSettings?.store_name_english || '').trim() || 'Alnafar Store'
   const storePhone = invSettings?.store_phone || ''
@@ -28,33 +51,41 @@ export async function openInvoicePrintWindow(invoice, invSettings = {}) {
   const fullNumber = String(invoice.invoice_number || '')
   const dailyNo = fullNumber.includes('-') ? String(parseInt(fullNumber.split('-')[1], 10)) : fullNumber
 
-  const logoW = paperMM <= 58 ? '42mm' : '48mm'
-  const logoH = paperMM <= 58 ? '12mm' : '14mm'
+  const logoW = paperMM <= 58 ? '44mm' : '50mm'
+  const logoH = paperMM <= 58 ? '13mm' : '15mm'
 
-  const logoPrimaryUrl = `${origin}/invoice-header.png?v=${Date.now()}`
-  const logoFallbackUrl = `${origin}/logo.png?v=${Date.now()}`
+  // Fetch logo as base64 BEFORE opening window
+  const logoDataUrl = await fetchLogoAsDataUrl(origin)
 
-  let qrDataUrl = '';
-  const trackingUrl = `${origin}/#/track/${encodeURIComponent(fullNumber)}`;
+  // Generate QR
+  let qrDataUrl = ''
+  const trackingUrl = `${origin}/#/track/${encodeURIComponent(fullNumber)}`
   try {
-    const qrcodeLib = await import('qrcode');
-    const qrCanvas = document.createElement('canvas');
-    await qrcodeLib.toCanvas(qrCanvas, trackingUrl, { width: 100, margin: 1, errorCorrectionLevel: 'M' });
-    qrDataUrl = qrCanvas.toDataURL('image/png');
+    const qrcodeLib = await import('qrcode')
+    const qrCanvas = document.createElement('canvas')
+    await qrcodeLib.toCanvas(qrCanvas, trackingUrl, { width: 120, margin: 1, errorCorrectionLevel: 'M' })
+    qrDataUrl = qrCanvas.toDataURL('image/png')
   } catch (e) {
     try {
-      qrDataUrl = `https://api.qrserver.com/v1/create-qr-code/?size=100x100&data=${encodeURIComponent(trackingUrl)}&format=png`;
-    } catch (_) {
-      console.error('QR generation failed completely:', e);
-    }
+      qrDataUrl = `https://api.qrserver.com/v1/create-qr-code/?size=120x120&data=${encodeURIComponent(trackingUrl)}&format=png`
+    } catch (_) {}
   }
+
+  // Calculate prices
+  const items = Array.isArray(invoice.items) ? invoice.items : (() => {
+    try { return JSON.parse(invoice.items || '[]') } catch { return [] }
+  })()
+  const totalPrice = items.reduce((sum, i) => sum + (Number(i.price) || 0), 0)
+  const discount = Number(invoice.discount) || 0
+  const finalTotal = totalPrice - discount
+  const paidAmount = Number(invoice.paid_amount) || 0
+  const remaining = finalTotal - paidAmount
 
   const invoiceHTML = `
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>فاتورة ${dailyNo}</title>
   <style>
     @import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800;900&display=swap');
@@ -65,80 +96,129 @@ export async function openInvoicePrintWindow(invoice, invSettings = {}) {
       overflow-x: hidden;
       font-family: 'Cairo', Tahoma, Arial, sans-serif;
       background: #fff;
-      color: #000;
+      color: #1a1a1a;
       font-size: ${fontSize};
-      line-height: 1.3;
+      line-height: 1.35;
       direction: rtl;
     }
     @page { size: ${paperMM}mm auto; margin: 1.5mm; }
-    .receipt { width: 100%; padding: 2mm; text-align: center; }
+    .r { width: 100%; padding: 2mm 2.5mm; text-align: center; }
 
-    .logo { margin-bottom: 1mm; }
+    .logo { margin-bottom: 1.5mm; }
     .logo img { display: block; margin: 0 auto; max-width: ${logoW}; max-height: ${logoH}; object-fit: contain; }
 
-    .store-name { font-size: ${titleSize}; font-weight: 900; margin-bottom: 0.5mm; }
-    .store-en { font-size: calc(${fontSize} - 1px); font-weight: 600; color: #444; margin-bottom: 1mm; }
+    .brand-name { font-size: ${titleSize}; font-weight: 900; letter-spacing: -0.3px; color: #111; }
+    .brand-en { font-size: calc(${fontSize} - 1px); font-weight: 600; color: #555; margin-top: 0.3mm; margin-bottom: 1.5mm; }
 
-    .divider { border-top: 1.5px dashed #000; margin: 1.5mm 0; }
+    .sep { border: none; border-top: 1.5px dashed #bbb; margin: 1.5mm 0; }
 
-    .order-number { font-size: calc(${fontSize} + 3px); font-weight: 900; margin: 1mm 0; }
+    .order-num {
+      font-size: calc(${fontSize} + 4px);
+      font-weight: 900;
+      color: #000;
+      padding: 1.5mm 0;
+      letter-spacing: 1px;
+    }
 
-    .customer-info { margin: 1mm 0; }
-    .customer-name { font-size: calc(${fontSize} + 1px); font-weight: 800; }
-    .customer-phone { font-size: ${fontSize}; color: #333; margin-top: 0.5mm; }
+    .cust { margin: 1.5mm 0; }
+    .cust-name { font-size: calc(${fontSize} + 1px); font-weight: 800; }
+    .cust-phone { font-size: ${fontSize}; color: #444; margin-top: 0.3mm; }
 
-    .qr-section { text-align: center; padding: 1.5mm 0; }
-    .qr-section img { max-width: 28mm; display: inline-block; }
-    .qr-hint { font-size: calc(${fontSize} - 2px); color: #666; font-weight: 600; margin-top: 0.5mm; }
+    .price-box {
+      margin: 2mm 0;
+      padding: 1.5mm;
+      border: 1.5px solid #222;
+      border-radius: 2mm;
+    }
+    .price-row {
+      display: flex;
+      justify-content: space-between;
+      padding: 0.4mm 0;
+      font-size: ${fontSize};
+    }
+    .price-row.total {
+      font-size: calc(${fontSize} + 2px);
+      font-weight: 900;
+      border-top: 1.5px solid #222;
+      margin-top: 0.8mm;
+      padding-top: 0.8mm;
+    }
+    .price-row.paid { color: #16a34a; font-weight: 700; }
+    .price-row.due { color: #dc2626; font-weight: 800; }
+    .price-label { font-weight: 600; }
+    .price-val { font-weight: 800; font-family: 'Cairo', monospace; }
 
-    .contact { margin-top: 1.5mm; padding-top: 1mm; border-top: 1px dashed #999; font-size: calc(${fontSize} - 1px); color: #555; }
-    .contact-row { margin: 0.3mm 0; }
+    .qr { padding: 2mm 0; }
+    .qr img { max-width: 28mm; display: inline-block; }
+    .qr-hint { font-size: calc(${fontSize} - 2px); color: #888; font-weight: 600; margin-top: 0.5mm; }
+
+    .foot {
+      margin-top: 1.5mm;
+      padding-top: 1mm;
+      border-top: 1px dashed #ccc;
+      font-size: calc(${fontSize} - 1px);
+      color: #666;
+    }
+    .foot-row { margin: 0.3mm 0; }
 
     @media print { body { margin: 0; padding: 0; } }
   </style>
 </head>
 <body>
-  <div class="receipt">
-    <div class="logo" id="logo-container">
-      <img src="${logoPrimaryUrl}" onerror="this.onerror=null;this.src='${logoFallbackUrl}';this.onerror=function(){this.style.display='none'}" alt="شعار المتجر" />
+  <div class="r">
+    <div class="logo">
+      ${logoDataUrl
+        ? `<img src="${logoDataUrl}" alt="شعار" />`
+        : `<img src="${origin}/invoice-header.png" onerror="this.onerror=null;this.src='${origin}/logo.png';this.onerror=function(){this.style.display='none'}" alt="شعار" />`
+      }
     </div>
-    <div class="store-name">${storeName}</div>
-    <div class="store-en">${storeNameEn}</div>
+    <div class="brand-name">${storeName}</div>
+    <div class="brand-en">${storeNameEn}</div>
 
-    <div class="divider"></div>
+    <hr class="sep" />
 
-    <div class="order-number">رقم الطلب: ${dailyNo}</div>
+    <div class="order-num">#${dailyNo}</div>
 
-    <div class="customer-info">
-      <div class="customer-name">${invoice.customer_name || 'عميل نقدي'}</div>
-      ${invoice.customer_phone ? `<div class="customer-phone">${invoice.customer_phone}</div>` : ''}
+    <div class="cust">
+      <div class="cust-name">${invoice.customer_name || 'عميل نقدي'}</div>
+      ${invoice.customer_phone ? `<div class="cust-phone">${invoice.customer_phone}</div>` : ''}
     </div>
 
-    <div class="qr-section">
+    <div class="price-box">
+      ${items.length > 0 ? `
+      <div class="price-row"><span class="price-label">المنتجات (${items.length})</span><span class="price-val">${currency(totalPrice)}</span></div>
+      ` : ''}
+      ${discount > 0 ? `<div class="price-row"><span class="price-label">الخصم</span><span class="price-val">-${currency(discount)}</span></div>` : ''}
+      <div class="price-row total"><span class="price-label">الإجمالي</span><span class="price-val">${currency(finalTotal)}</span></div>
+      <div class="price-row paid"><span class="price-label">المدفوع</span><span class="price-val">${currency(paidAmount)}</span></div>
+      ${remaining > 0 ? `<div class="price-row due"><span class="price-label">المتبقي</span><span class="price-val">${currency(remaining)}</span></div>` : ''}
+    </div>
+
+    <div class="qr">
       ${qrDataUrl ? `<img src="${qrDataUrl}" alt="QR" />` : ''}
       <div class="qr-hint">امسح لتفاصيل الطلب</div>
     </div>
 
-    <div class="contact">
-      ${storePhone ? `<div class="contact-row">الهاتف: ${storePhone}</div>` : ''}
-      ${origin ? `<div class="contact-row">الموقع: ${origin}</div>` : ''}
+    <div class="foot">
+      ${storePhone ? `<div class="foot-row">📞 ${storePhone}</div>` : ''}
+      ${origin ? `<div class="foot-row">🌐 ${origin}</div>` : ''}
     </div>
   </div>
   <script>
     (function(){
       function doPrint(){ try { window.print(); } catch(e) {} }
-      const imgs = Array.from(document.images || [])
-      const waitImgs = imgs.length ? Promise.all(imgs.map(img => img.complete ? Promise.resolve() : new Promise(r => { img.onload = img.onerror = r }))) : Promise.resolve()
-      Promise.race([waitImgs, new Promise(r => setTimeout(r, 3000))]).then(() => setTimeout(doPrint, 200))
+      var imgs = Array.from(document.images || []);
+      var wait = imgs.length ? Promise.all(imgs.map(function(i){ return i.complete ? Promise.resolve() : new Promise(function(r){ i.onload=i.onerror=r }) })) : Promise.resolve();
+      Promise.race([wait, new Promise(function(r){ setTimeout(r, 4000) })]).then(function(){ setTimeout(doPrint, 300) });
     })();
   </script>
 </body>
-</html>`;
+</html>`
 
-  const printWindow = window.open('', '_blank', 'width=400,height=700');
+  const printWindow = window.open('', '_blank', 'width=400,height=700')
   if (printWindow) {
-    printWindow.document.write(invoiceHTML);
-    printWindow.document.close();
+    printWindow.document.write(invoiceHTML)
+    printWindow.document.close()
   }
 }
 
