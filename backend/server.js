@@ -2872,6 +2872,10 @@ app.put('/api/invoices/:id', authMiddleware, async (req, res) => {
     const { id } = req.params;
     const {
       customerInfo,
+      customer_name,
+      customer_phone,
+      customer_address,
+      customer_notes,
       items,
       total,
       totalSize,
@@ -2902,10 +2906,10 @@ app.put('/api/invoices/:id', authMiddleware, async (req, res) => {
       paid_amount = ?,
       status = ?
       WHERE id = ?`, [
-      customerInfo?.name || invoice.customer_name,
-      customerInfo?.phone || invoice.customer_phone,
-      customerInfo?.address || invoice.customer_address || '',
-      customerInfo?.notes || invoice.customer_notes || '',
+      customerInfo?.name || customer_name || invoice.customer_name,
+      customerInfo?.phone || customer_phone || invoice.customer_phone,
+      customerInfo?.address || customer_address || invoice.customer_address || '',
+      customerInfo?.notes || customer_notes || invoice.customer_notes || '',
       items ? JSON.stringify(items) : invoice.items,
       total || invoice.total,
       totalSize !== undefined ? totalSize : invoice.total_size_gb,
