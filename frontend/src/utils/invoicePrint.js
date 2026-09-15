@@ -1,4 +1,5 @@
 import { api } from '../api'
+import logoBase64 from './logoBase64'
 
 export async function getInvoiceSettings() {
   try {
@@ -12,31 +13,6 @@ export async function getInvoiceSettings() {
 export async function fetchFullInvoice(invoiceNumber) {
   const { data } = await api.get(`/invoices/${encodeURIComponent(invoiceNumber)}`)
   return data
-}
-
-async function fetchLogoAsDataUrl(origin) {
-  try {
-    const res = await fetch(`${origin}/invoice-header.png?t=${Date.now()}`)
-    if (!res.ok) {
-      const res2 = await fetch(`${origin}/logo.png?t=${Date.now()}`)
-      if (!res2.ok) return null
-      const blob = await res2.blob()
-      return await blobToDataUrl(blob)
-    }
-    const blob = await res.blob()
-    return await blobToDataUrl(blob)
-  } catch (_) {
-    return null
-  }
-}
-
-function blobToDataUrl(blob) {
-  return new Promise((resolve) => {
-    const r = new FileReader()
-    r.onload = () => resolve(r.result)
-    r.onerror = () => resolve(null)
-    r.readAsDataURL(blob)
-  })
 }
 
 function currency(num) {
@@ -60,9 +36,6 @@ export async function openInvoicePrintWindow(invoice, invSettings = {}) {
 
   const logoW = paperMM <= 58 ? '38mm' : '42mm'
   const logoH = paperMM <= 58 ? '10mm' : '12mm'
-
-  // Fetch logo as base64 BEFORE opening window
-  const logoDataUrl = await fetchLogoAsDataUrl(origin)
 
   // Generate QR
   let qrDataUrl = ''
@@ -88,8 +61,15 @@ export async function openInvoicePrintWindow(invoice, invSettings = {}) {
   const paidAmount = Number(invoice.paid_amount) || 0
   const remaining = finalTotal - paidAmount
 
-  const paidLabel = remaining <= 0 ? 'مدفوع بالكامل' : `المتبقي: ${currency(remaining)}`
-  const paidClass = remaining <= 0 ? 'p' : 'd'
+  // Status logic: only show remaining when partially paid
+  const isFullyPaid = paidAmount >= finalTotal && finalTotal > 0
+  const hasPartialPayment = paidAmount > 0 && !isFullyPaid
+  const hasDiscount = discount > 0
+  const showRemaining = !isFullyPaid && (hasPartialPayment || hasDiscount || paidAmount === 0) && remaining > 0
+  const statusText = isFullyPaid ? 'مدفوع بالكامل' : (hasPartialPayment ? `المتبقي: ${currency(remaining)}` : '')
+  const statusClass = isFullyPaid ? 'ok' : 'due'
+
+  const storeAddr = (invSettings?.store_address || '').trim()
 
   const invoiceHTML = `
 <!DOCTYPE html>
@@ -106,7 +86,8 @@ export async function openInvoicePrintWindow(invoice, invSettings = {}) {
     .logo{margin-bottom:0.8mm}
     .logo img{display:block;margin:0 auto;max-width:${logoW};max-height:${logoH};object-fit:contain}
     .bn{font-size:${titleSize};font-weight:900;color:#111}
-    .be{font-size:calc(${fontSize} - 1px);font-weight:600;color:#555;margin-bottom:0.8mm}
+    .be{font-size:calc(${fontSize} - 1px);font-weight:600;color:#555;margin-bottom:0.3mm}
+    .addr{font-size:calc(${fontSize} - 2px);color:#777;margin-bottom:0.5mm}
     .sep{border:none;border-top:1px dashed #bbb;margin:0.8mm 0}
     .on{font-size:calc(${fontSize} + 2px);font-weight:900;padding:0.5mm 0}
     .ci{margin:0.5mm 0}
@@ -126,13 +107,11 @@ export async function openInvoicePrintWindow(invoice, invSettings = {}) {
 <body>
   <div class="r">
     <div class="logo">
-      ${logoDataUrl
-        ? `<img src="${logoDataUrl}" alt="شعار" />`
-        : `<img src="${origin}/invoice-header.png" onerror="this.onerror=null;this.src='${origin}/logo.png';this.onerror=function(){this.style.display='none'}" alt="شعار" />`
-      }
+      <img src="${logoBase64}" alt="شعار" />
     </div>
     <div class="bn">${storeName}</div>
     <div class="be">${storeNameEn}</div>
+    ${storeAddr ? `<div class="addr">${storeAddr}</div>` : ''}
     <hr class="sep" />
     <div class="on">#${dailyNo}</div>
     <div class="ci">
@@ -140,7 +119,7 @@ export async function openInvoicePrintWindow(invoice, invSettings = {}) {
       ${invoice.customer_phone ? `<div class="cp">${invoice.customer_phone}</div>` : ''}
     </div>
     <div class="total">${currency(finalTotal)}</div>
-    <div class="status ${paidClass}">${paidLabel}</div>
+    ${statusText ? `<div class="status ${statusClass}">${statusText}</div>` : ''}
     <div class="qr">
       ${qrDataUrl ? `<img src="${qrDataUrl}" alt="QR" />` : ''}
       <div class="qh">امسح لتفاصيل الطلب</div>
