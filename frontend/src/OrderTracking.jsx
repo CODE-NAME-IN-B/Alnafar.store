@@ -147,7 +147,9 @@ export default function OrderTracking({ orderId }) {
             await api.put(`/orders/${orderId}/status`, { status: newStatus });
             setOrder(prev => ({ ...prev, status: newStatus }));
         } catch (err) {
-            alert('فشل تحديث الحالة');
+            const serverMsg = err?.response?.data?.message;
+            const allowed = err?.response?.data?.allowedTransitions;
+            alert(serverMsg ? `${serverMsg}${allowed?.length ? `\nالمسموح: ${allowed.join('، ')}` : ''}` : 'فشل تحديث الحالة');
         } finally {
             setUpdatingStatus(false);
         }

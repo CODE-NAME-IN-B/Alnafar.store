@@ -36,7 +36,7 @@ export default function DailyReportTab() {
   const loadDailyReport = async (date) => {
     try {
       setLoading(true)
-      const { data } = await api.get(`/daily-report/${date}`)
+      const { data } = await api.get(`/daily-report/${date}`, { params: { includeUnpaid: 1 } })
       setReport(data.report || null)
     } catch (error) {
       console.error('خطأ في تحميل الجرد اليومي:', error)
@@ -319,6 +319,28 @@ export default function DailyReportTab() {
                 <div className="text-center py-8 text-gray-400">لا توجد فواتير لهذا التاريخ</div>
               )}
             </div>
+            {report.carriedInvoices && report.carriedInvoices.length > 0 && (
+              <div className="bg-amber-500/5 p-5 rounded-xl border border-amber-500/20 mt-4">
+                <h3 className="text-sm font-bold text-amber-300 mb-3">آجل مستحق من أيام سابقة ({report.carriedInvoices.length}) — يُرحّل لليوم</h3>
+                <div className="space-y-2">
+                  {report.carriedInvoices.map((inv) => {
+                    const balance = (inv.total || 0) - (inv.discount || 0) - (inv.paid_amount || 0);
+                    return (
+                      <div key={inv.id} className="flex items-center justify-between gap-2 bg-gray-800/80 rounded-lg px-3 py-2 border border-amber-500/10">
+                        <div className="min-w-0">
+                          <div className="font-mono text-primary text-sm font-bold">{inv.invoice_number}</div>
+                          <div className="text-white text-xs truncate">{inv.customer_name || 'عميل نقدي'}</div>
+                        </div>
+                        <div className="text-left flex-shrink-0">
+                          <div className="text-red-400 font-bold text-sm">{currency(balance)}</div>
+                          <div className="text-gray-500 text-[10px]">متبقي</div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
           </div>
         </div>
       )}

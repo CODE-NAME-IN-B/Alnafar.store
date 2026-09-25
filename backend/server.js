@@ -1297,13 +1297,14 @@ app.get('/api/notifications/vapid-public-key', (req, res) => {
   res.json({ success: true, publicKey: VAPID_PUBLIC_KEY });
 });
 
-// Order status transitions - enforced
-const VALID_ORDER_STATUSES = ['pending', 'confirmed', 'processing', 'ready', 'completed', 'cancelled', 'refunded'];
+// Order status transitions - enforced (permissive: allow skipping steps forward + paid)
+const VALID_ORDER_STATUSES = ['pending', 'paid', 'confirmed', 'processing', 'ready', 'completed', 'cancelled', 'refunded'];
 const ALLOWED_TRANSITIONS = {
-  pending: ['confirmed', 'cancelled'],
-  confirmed: ['processing', 'cancelled'],
-  processing: ['ready', 'cancelled'],
-  ready: ['completed'],
+  pending: ['paid', 'confirmed', 'processing', 'ready', 'cancelled'],
+  paid: ['processing', 'ready', 'completed', 'cancelled'],
+  confirmed: ['paid', 'processing', 'ready', 'cancelled'],
+  processing: ['paid', 'ready', 'completed', 'cancelled'],
+  ready: ['paid', 'completed'],
   completed: ['refunded'],
   cancelled: [],
   refunded: []
@@ -2531,10 +2532,16 @@ app.get('/api/stats', async (req, res) => {
       try {
         const items = JSON.parse(invoice.items);
         for (const item of items) {
-          const id = item.id;
-          if (id && (item.type === 'game' || !item.type)) {
-            counts.set(id, (counts.get(id) || 0) + 1);
-          }
+          if (item.type === 'service' || item.type === 'package') continue;
+          const rawId = item.id;
+          const title = (item.title || '').trim();
+          // Prefer numeric game id; fall back to title key for legacy invoices
+          const key = (rawId !== undefined && rawId !== null && String(rawId).trim() !== '' && !String(rawId).startsWith('pkg_'))
+            ? `id:${rawId}`
+            : (title ? `title:${title.toLowerCase()}` : null);
+          if (!key) continue;
+          if (!item.type && !rawId && !title) continue;
+          counts.set(key, (counts.get(key) || 0) + 1);
         }
       } catch (e) {
         console.error('Error parsing invoice items:', e);
@@ -2542,9 +2549,26 @@ app.get('/api/stats', async (req, res) => {
     }
 
     const top = Array.from(counts.entries())
-      .map(([gameId, count]) => ({ gameId: parseInt(gameId), count }))
+      .map(([key, count]) => {
+        if (key.startsWith('id:')) {
+          const raw = key.slice(3);
+          const num = parseInt(raw, 10);
+          return { gameId: Number.isFinite(num) ? num : raw, count };
+        }
+        return { gameId: null, title: key.slice(6), count };
+      })
       .sort((a, b) => b.count - a.count)
       .slice(0, 10);
+
+    // Resolve title-only keys to real game ids for batch fetching on frontend
+    for (const entry of top) {
+      if ((entry.gameId === null || entry.gameId === undefined) && entry.title) {
+        try {
+          const row = await get('SELECT id FROM games WHERE LOWER(title) = LOWER(?) LIMIT 1', [entry.title]);
+          if (row && row.id) entry.gameId = row.id;
+        } catch (_) {}
+      }
+    }
 
     const result = { totalOrders: totals?.totalOrders || 0, topGames: top };
     statsCache = { data: result, timestamp: now };
@@ -2801,23 +2825,49 @@ app.get('/api/invoices', authMiddleware, async (req, res) => {
     const date = req.query.date;
     const dateFrom = req.query.dateFrom;
     const dateTo = req.query.dateTo;
+    const includeUnpaid = req.query.includeUnpaid === '1' || req.query.includeUnpaid === 'true';
+    const unpaidOnly = req.query.unpaidOnly === '1' || req.query.unpaidOnly === 'true';
+    const UNPAID_CLAUSE = '((COALESCE(total,0)-COALESCE(discount,0)-COALESCE(paid_amount,0)) > 0)';
 
     let whereClause = '';
     let params = [limit, offset];
     let countParams = [];
 
-    if (dateFrom && dateTo) {
-      whereClause = 'WHERE DATE(created_at) >= ? AND DATE(created_at) <= ?';
-      params = [dateFrom, dateTo, limit, offset];
-      countParams = [dateFrom, dateTo];
+    if (unpaidOnly) {
+      whereClause = `WHERE ${UNPAID_CLAUSE}`;
+      params = [limit, offset];
+      countParams = [];
+    } else if (dateFrom && dateTo) {
+      if (includeUnpaid) {
+        whereClause = `WHERE ((DATE(created_at) >= ? AND DATE(created_at) <= ?) OR (${UNPAID_CLAUSE} AND DATE(created_at) < ?))`;
+        params = [dateFrom, dateTo, dateFrom, limit, offset];
+        countParams = [dateFrom, dateTo, dateFrom];
+      } else {
+        whereClause = 'WHERE DATE(created_at) >= ? AND DATE(created_at) <= ?';
+        params = [dateFrom, dateTo, limit, offset];
+        countParams = [dateFrom, dateTo];
+      }
     } else if (date) {
-      whereClause = 'WHERE DATE(created_at) = ?';
-      params = [date, limit, offset];
-      countParams = [date];
+      if (includeUnpaid) {
+        whereClause = `WHERE (DATE(created_at) = ? OR (${UNPAID_CLAUSE} AND DATE(created_at) < ?))`;
+        params = [date, date, limit, offset];
+        countParams = [date, date];
+      } else {
+        whereClause = 'WHERE DATE(created_at) = ?';
+        params = [date, limit, offset];
+        countParams = [date];
+      }
+    } else if (includeUnpaid) {
+      // no date filter but flag present: return all (paginated) — isCarried computed below
+      whereClause = '';
+      params = [limit, offset];
+      countParams = [];
     }
 
     const invoices = await all(`
-      SELECT * FROM invoices 
+      SELECT *,
+        CASE WHEN ${UNPAID_CLAUSE} THEN 1 ELSE 0 END as has_balance
+      FROM invoices 
       ${whereClause}
       ORDER BY created_at DESC 
       LIMIT ? OFFSET ?
@@ -2827,11 +2877,22 @@ app.get('/api/invoices', authMiddleware, async (req, res) => {
     const totalResult = await get(totalQuery, countParams);
     const total = totalResult.count || 0;
 
+    const rangeStart = dateFrom || date || null;
     res.json({
-      invoices: invoices.map(invoice => ({
-        ...invoice,
-        items: JSON.parse(invoice.items)
-      })),
+      invoices: invoices.map(invoice => {
+        let isCarried = 0;
+        try {
+          if (invoice.has_balance && rangeStart) {
+            const createdDay = String(invoice.created_at || '').slice(0, 10);
+            if (createdDay && createdDay < rangeStart) isCarried = 1;
+          }
+        } catch (_) {}
+        return {
+          ...invoice,
+          isCarried,
+          items: JSON.parse(invoice.items)
+        };
+      }),
       pagination: {
         page,
         limit,
@@ -2946,6 +3007,7 @@ app.put('/api/invoices/:id', authMiddleware, async (req, res) => {
       message: 'تم تحديث الفاتورة بنجاح',
       invoice: { ...updated, items: JSON.parse(updated.items) }
     });
+    invalidateStatsCache();
 
   } catch (error) {
     console.error('خطأ في تعديل الفاتورة:', error);
@@ -3041,6 +3103,7 @@ app.put('/api/invoices/:id/payment', authMiddleware, async (req, res) => {
       message: 'تم تسجيل الدفعة بنجاح',
       invoice: updatedInvoice
     });
+    invalidateStatsCache();
 
   } catch (error) {
     console.error('خطأ في تسجيل الدفعة:', error);
@@ -3073,6 +3136,7 @@ app.delete('/api/invoices/:id', authMiddleware, requireAdmin, apiWriteRateLimit,
       success: true,
       message: 'تم حذف الفاتورة بنجاح'
     });
+    invalidateStatsCache();
 
   } catch (error) {
     console.error('خطأ في حذف الفاتورة:', error);
@@ -3117,6 +3181,8 @@ app.delete('/api/invoices', authMiddleware, requireAdmin, apiWriteRateLimit, asy
 app.get('/api/daily-report/:date?', authMiddleware, async (req, res) => {
   try {
     const date = req.params.date || new Date().toISOString().split('T')[0];
+    const includeUnpaid = req.query.includeUnpaid === '1' || req.query.includeUnpaid === 'true';
+    const UNPAID_CLAUSE = '((COALESCE(total,0)-COALESCE(discount,0)-COALESCE(paid_amount,0)) > 0)';
 
     // الحصول على بيانات اليوم
     const dailyRecord = await get('SELECT * FROM daily_invoices WHERE date = ?', [date]);
@@ -3132,7 +3198,8 @@ app.get('/api/daily-report/:date?', authMiddleware, async (req, res) => {
           netRevenue: 0,
           lastInvoiceNumber: 0,
           isClosed: false,
-          invoices: []
+          invoices: [],
+          carriedInvoices: []
         }
       });
     }
@@ -3144,6 +3211,16 @@ app.get('/api/daily-report/:date?', authMiddleware, async (req, res) => {
             ORDER BY created_at ASC
             `, [date]);
 
+    // فواتير آجلة مرحّلة من أيام سابقة (لا تُحتسب ضمن إيراد اليوم)
+    let carriedInvoices = [];
+    if (includeUnpaid) {
+      carriedInvoices = await all(`
+        SELECT * FROM invoices
+        WHERE ${UNPAID_CLAUSE} AND DATE(created_at) < ?
+        ORDER BY created_at ASC
+      `, [date]);
+    }
+
     res.json({
       success: true,
       report: {
@@ -3151,7 +3228,14 @@ app.get('/api/daily-report/:date?', authMiddleware, async (req, res) => {
         invoices: invoices.map(invoice => ({
           ...invoice,
           items: JSON.parse(invoice.items)
-        }))
+        })),
+        carriedInvoices: carriedInvoices.map(invoice => {
+          try {
+            return { ...invoice, isCarried: 1, items: JSON.parse(invoice.items) };
+          } catch (_) {
+            return { ...invoice, isCarried: 1, items: [] };
+          }
+        })
       }
     });
 

@@ -52,7 +52,7 @@ export default function Invoice({ cart, total, totalSize = 0, onClose, onSuccess
       const finalTotal = total - discount;
       const invoiceData = {
         customerInfo,
-        items: cart.map(({ title, price, size_gb, type, items }) => ({ title, price, size_gb, ...(type && { type }), ...(items && { items }) })),
+        items: cart.map(({ id, title, price, size_gb, type, items }) => ({ ...(id !== undefined && { id }), title, price, size_gb, ...(type && { type }), ...(items && { items }) })),
         total,
         totalSize,
         estimatedMinutes,

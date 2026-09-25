@@ -74,7 +74,7 @@ export default function InvoicesTab() {
   const loadInvoices = async (page = 1) => {
     try {
       setLoading(true)
-      const params = { page, limit: pageLimit }
+      const params = { page, limit: pageLimit, includeUnpaid: 1 }
       if (dateFrom && dateTo) {
         params.dateFrom = dateFrom
         params.dateTo = dateTo
@@ -156,7 +156,7 @@ export default function InvoicesTab() {
       }
     } catch (error) {
       console.error('Update status error:', error)
-      alert('فشل تحديث الحالة')
+      alert(error?.response?.data?.message || 'فشل تحديث الحالة')
     }
   }
 
@@ -471,6 +471,9 @@ export default function InvoicesTab() {
                   <div className="flex justify-between items-start pb-3 border-b border-gray-700">
                     <div className="flex flex-col gap-1">
                       <span className="font-mono text-primary font-bold text-sm">{invoice.invoice_number}</span>
+                      {invoice.isCarried ? (
+                        <span className="text-[10px] font-bold text-amber-300 bg-amber-500/15 border border-amber-500/30 rounded-full px-2 py-0.5 w-fit">آجل مرحّل</span>
+                      ) : null}
                       <span className="text-white text-sm font-medium">{invoice.customer_name || 'عميل نقدي'}</span>
                     </div>
                     <select
@@ -577,7 +580,7 @@ export default function InvoicesTab() {
                   const items = Array.isArray(invoice.items) ? invoice.items : (() => { try { return JSON.parse(invoice.items) } catch { return [] } })();
                   return (
                   <tr key={invoice.id} className="border-b border-gray-700 hover:bg-gray-700/50 transition-colors">
-                    <td className="py-3 px-4 font-mono text-primary font-bold">{invoice.invoice_number}</td>
+                    <td className="py-3 px-4 font-mono text-primary font-bold">{invoice.invoice_number}{invoice.isCarried ? <span className="block text-[10px] font-bold text-amber-300 bg-amber-500/15 border border-amber-500/30 rounded-full px-2 py-0.5 w-fit mt-1">آجل مرحّل</span> : null}</td>
                     <td className="py-3 px-4">
                       <div className="font-medium">{invoice.customer_name || 'نقدي'}</div>
                       {invoice.customer_phone && <div className="text-xs text-gray-400 mt-0.5">{invoice.customer_phone}</div>}

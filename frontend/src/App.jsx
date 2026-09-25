@@ -80,25 +80,32 @@ function TopList({ onAdd }) {
         setTop(topGames)
         if (!topGames.length) { setDetails([]); return }
         // fetch game details in one request (batch) preserving order
-        const ids = topGames.map(t => t.gameId).join(',')
+        // entries may be id-based or title-only (legacy invoices)
+        const idList = topGames.map(t => t.gameId).filter(v => v !== null && v !== undefined && String(v).trim() !== '' && !Number.isNaN(Number(v)));
+        const ids = idList.join(',')
         let rows = []
         try {
-          const res = await api.get('/games/batch', { params: { ids } })
-          rows = Array.isArray(res.data) ? res.data : []
+          if (ids) {
+            const res = await api.get('/games/batch', { params: { ids } })
+            rows = Array.isArray(res.data) ? res.data : []
+          }
         } catch (_) { rows = [] }
         const map = new Map(rows.map(g => [Number(g.id), g]))
+        const byTitle = new Map(rows.map(g => [String(g.title || '').toLowerCase(), g]))
         const resolved = topGames
           .map(t => {
-            const g = map.get(Number(t.gameId)) || {}
+            const g = (t.gameId !== null && t.gameId !== undefined && String(t.gameId).trim() !== '')
+              ? (map.get(Number(t.gameId)) || byTitle.get(String(t.title || '').toLowerCase()) || {})
+              : (byTitle.get(String(t.title || '').toLowerCase()) || {});
             return {
-              id: g.id || t.gameId,
-              title: g.title || (t.gameId ? `لعبة #${t.gameId}` : null),
+              id: g.id ?? t.gameId ?? t.title,
+              title: g.title || t.title || (t.gameId ? `لعبة #${t.gameId}` : null),
               image: g.image || '',
               price: typeof g.price === 'number' ? g.price : 0,
               count: t.count
             }
           })
-          .filter(g => g.id !== null && g.id !== undefined && g.title !== null)
+          .filter(g => g.id !== null && g.id !== undefined && String(g.id).trim() !== '' && g.title !== null)
 
         if (!cancelled) setDetails(resolved)
       } catch (e) {
@@ -902,10 +909,13 @@ export default function App() {
           {/* Mobile Search Bar */}
           <div className="pb-3 md:hidden">
             <input
+              type="search"
+              enterKeyHint="search"
+              aria-label="ابحث عن لعبة"
               value={query}
               onChange={e => setQuery(e.target.value)}
               placeholder="ابحث عن لعبة..."
-              className="w-full bg-white/5 border border-white/10 text-white placeholder:text-gray-300 rounded-lg px-3 py-2.5 text-base"
+              className="w-full bg-white/5 border border-white/10 text-white placeholder:text-gray-300 rounded-lg px-3 py-2.5 min-h-[44px] text-base focus:ring-2 focus:ring-purple-500/60 focus:border-purple-500/60 focus:outline-none"
             />
           </div>
 
@@ -1155,13 +1165,23 @@ export default function App() {
 
             <div className="games-grid">
               {gamesLoading && (
-                <div className="col-span-full py-12">
-                  <Loader />
+                <div className="col-span-full grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-4 gap-3" aria-busy="true" aria-live="polite">
+                  {[1, 2, 3, 4, 5, 6, 7, 8].map(i => (
+                    <div key={i} className="skeleton-card h-64 rounded-2xl" aria-hidden="true" />
+                  ))}
+                  <span className="sr-only">جاري تحميل الألعاب…</span>
                 </div>
               )}
               {!gamesLoading && displayedGames.length === 0 && (
-                <div className="col-span-full text-gray-300 bg-white/5 border border-white/10 rounded-xl p-6 text-center">
-                  لا توجد نتائج مطابقة للفلاتر الحالية.
+                <div className="col-span-full text-gray-300 bg-white/[0.03] border border-white/10 rounded-2xl p-6 text-center py-12">
+                  <p className="font-bold text-white mb-1">لا توجد نتائج مطابقة</p>
+                  <p className="text-sm text-gray-400 mb-4">جرّب مسح الفلاتر أو البحث باسم آخر</p>
+                  <button
+                    onClick={() => { setQuery(''); setGenreFilter(''); setSeriesFilter(''); setLetterFilter(''); setMinPrice(''); setMaxPrice(''); setSplitOnly(false); }}
+                    className="px-5 py-2.5 min-h-[44px] rounded-xl bg-purple-600 hover:bg-purple-500 text-white font-bold cursor-pointer transition-colors duration-200"
+                  >
+                    مسح الفلاتر
+                  </button>
                 </div>
               )}
               {displayedGames.slice(0, visibleGameCount).map(game => {

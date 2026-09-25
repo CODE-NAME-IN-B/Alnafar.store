@@ -1,12 +1,12 @@
 export default function Loader({ size = 'md', variant = 'dots' }) {
-  if (variant === 'bar') return <div className="loader-bar" />
+  if (variant === 'bar') return <div className="loader-bar" role="status" aria-label="جاري التحميل" />
 
-  const dotSize = size === 'sm' ? 'w-2 h-2' : size === 'lg' ? 'w-4 h-4' : 'w-3 h-3'
+  const dotPx = size === 'sm' ? '8px' : size === 'lg' ? '16px' : '12px'
   return (
-    <div className="loader-dots">
-      <span className={dotSize}></span>
-      <span className={dotSize}></span>
-      <span className={dotSize}></span>
+    <div className="loader-dots" style={{ '--dot': dotPx }} role="status" aria-live="polite" aria-label="جاري التحميل">
+      <span></span>
+      <span></span>
+      <span></span>
     </div>
   )
 }
