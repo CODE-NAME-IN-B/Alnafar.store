@@ -11,8 +11,8 @@ self.addEventListener('push', function (event) {
 
     const options = {
         body: data.body,
-        icon: '/favicon.svg',
-        badge: '/favicon.svg',
+        icon: '/icon-192x192.png',
+        badge: '/icon-192x192.png',
         vibrate: [200, 100, 200, 100, 200],
         requireInteraction: true,
         tag: 'order-status-' + (data.url ? data.url.split('/').pop() : 'update'),
@@ -40,8 +40,21 @@ self.addEventListener('notificationclick', function (event) {
         }).then(function (clientList) {
             for (let i = 0; i < clientList.length; i++) {
                 let client = clientList[i];
-                if (client.url === urlToOpen && 'focus' in client)
-                    return client.focus();
+                try {
+                    // Hash routes: compare only the hash part (e.g. #/track/5)
+                    const targetHash = String(urlToOpen || '').includes('#')
+                        ? urlToOpen.slice(urlToOpen.indexOf('#'))
+                        : urlToOpen;
+                    const clientHash = String(client.url || '').includes('#')
+                        ? client.url.slice(client.url.indexOf('#'))
+                        : client.url;
+                    if ((targetHash && clientHash === targetHash) || client.url === urlToOpen) {
+                        if ('focus' in client) return client.focus();
+                    }
+                } catch (_) {
+                    if (client.url === urlToOpen && 'focus' in client)
+                        return client.focus();
+                }
             }
             if (clients.openWindow)
                 return clients.openWindow(urlToOpen);

@@ -2864,20 +2864,22 @@ app.get('/api/invoices', authMiddleware, async (req, res) => {
       countParams = [];
     }
 
+    const rangeStart = dateFrom || date || null;
+    const selectParams = [rangeStart, ...params];
     const invoices = await all(`
       SELECT *,
-        CASE WHEN ${UNPAID_CLAUSE} THEN 1 ELSE 0 END as has_balance
+        CASE WHEN ${UNPAID_CLAUSE} THEN 1 ELSE 0 END as has_balance,
+        CASE WHEN ${UNPAID_CLAUSE} AND DATE(created_at) < COALESCE(?, DATE(created_at)) THEN 1 ELSE 0 END as is_carried_row
       FROM invoices 
       ${whereClause}
-      ORDER BY created_at DESC 
+      ORDER BY is_carried_row DESC, created_at DESC 
       LIMIT ? OFFSET ?
-    `, params);
+    `, selectParams);
 
     const totalQuery = `SELECT COUNT(*) as count FROM invoices ${whereClause}`;
     const totalResult = await get(totalQuery, countParams);
     const total = totalResult.count || 0;
 
-    const rangeStart = dateFrom || date || null;
     res.json({
       invoices: invoices.map(invoice => {
         let isCarried = 0;
@@ -2885,12 +2887,21 @@ app.get('/api/invoices', authMiddleware, async (req, res) => {
           if (invoice.has_balance && rangeStart) {
             const createdDay = String(invoice.created_at || '').slice(0, 10);
             if (createdDay && createdDay < rangeStart) isCarried = 1;
+          } else if (invoice.is_carried_row) {
+            isCarried = 1;
           }
         } catch (_) {}
+        let items = [];
+        try {
+          items = JSON.parse(invoice.items);
+        } catch (_) {
+          items = [];
+        }
+        const { is_carried_row, ...rest } = invoice;
         return {
-          ...invoice,
+          ...rest,
           isCarried,
-          items: JSON.parse(invoice.items)
+          items
         };
       }),
       pagination: {
@@ -3187,6 +3198,17 @@ app.get('/api/daily-report/:date?', authMiddleware, async (req, res) => {
     // الحصول على بيانات اليوم
     const dailyRecord = await get('SELECT * FROM daily_invoices WHERE date = ?', [date]);
 
+    // فواتير آجلة مرحّلة من أيام سابقة — تُجلب دائماً قبل أي early-return
+    // حتى لو اليوم الجديد فارغ (لا سجل daily_invoices بعد)، تظهر الفواتير القديمة غير المدفوعة
+    let carriedInvoices = [];
+    if (includeUnpaid) {
+      carriedInvoices = await all(`
+        SELECT * FROM invoices
+        WHERE ${UNPAID_CLAUSE} AND DATE(created_at) < ?
+        ORDER BY created_at ASC
+      `, [date]);
+    }
+
     if (!dailyRecord) {
       return res.json({
         success: true,
@@ -3199,7 +3221,13 @@ app.get('/api/daily-report/:date?', authMiddleware, async (req, res) => {
           lastInvoiceNumber: 0,
           isClosed: false,
           invoices: [],
-          carriedInvoices: []
+          carriedInvoices: carriedInvoices.map(invoice => {
+            try {
+              return { ...invoice, isCarried: 1, items: JSON.parse(invoice.items) };
+            } catch (_) {
+              return { ...invoice, isCarried: 1, items: [] };
+            }
+          })
         }
       });
     }
@@ -3210,16 +3238,6 @@ app.get('/api/daily-report/:date?', authMiddleware, async (req, res) => {
       WHERE DATE(created_at) = ?
             ORDER BY created_at ASC
             `, [date]);
-
-    // فواتير آجلة مرحّلة من أيام سابقة (لا تُحتسب ضمن إيراد اليوم)
-    let carriedInvoices = [];
-    if (includeUnpaid) {
-      carriedInvoices = await all(`
-        SELECT * FROM invoices
-        WHERE ${UNPAID_CLAUSE} AND DATE(created_at) < ?
-        ORDER BY created_at ASC
-      `, [date]);
-    }
 
     res.json({
       success: true,

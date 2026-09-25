@@ -179,13 +179,25 @@ export default function InvoicesTab() {
     try {
       const { data } = await api.put(`/invoices/${invoice.id}/payment`, { amount: payment });
       if (data.success) {
-        alert('تم تسجيل الدفعة بنجاح');
-        loadInvoices(pagination.page);
-        loadSummary();
+        const updated = data.invoice || {};
+        const newPaid = updated.paid_amount ?? (paidAmount + payment);
+        const newStatus = updated.status ?? (newPaid >= finalTotal ? 'completed' : invoice.status);
+        const stillOwes = (finalTotal - newPaid) > 0;
+        setInvoices(prev => prev.map(inv => inv.id === invoice.id
+          ? { ...inv, paid_amount: newPaid, status: newStatus, has_balance: stillOwes ? 1 : 0, isCarried: stillOwes ? inv.isCarried : 0 }
+          : inv));
+        setSummary(prev => {
+          if (!prev) return prev;
+          const next = { ...prev };
+          for (const k of ['collectedRevenue', 'rangeCollectedRevenue', 'todayCollectedRevenue', 'totalCollected', 'collected']) {
+            if (next[k] !== undefined) next[k] = Number(next[k] || 0) + payment;
+          }
+          return next;
+        });
       }
     } catch (error) {
       console.error('فشل في تسجيل الدفعة:', error);
-      alert('فشل في تسجيل الدفعة');
+      alert(error?.response?.data?.message || 'فشل في تسجيل الدفعة');
     }
   }
 

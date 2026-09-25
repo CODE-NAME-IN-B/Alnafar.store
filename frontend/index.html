@@ -91,24 +91,38 @@
       });
     }
 
-    // PWA Install Prompt — لا تظهر في صفحة التتبع
+    // PWA Install Prompt — لا تظهر في صفحة التتبع أو عند التثبيت مسبقاً
     let deferredPrompt;
+    function isAppInstalled() {
+      try {
+        if (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches) return true;
+        if (window.navigator.standalone === true) return true; // iOS
+        if (localStorage.getItem('pwa-dismissed-at')) {
+          const dismissedAt = parseInt(localStorage.getItem('pwa-dismissed-at'), 10);
+          if (!Number.isNaN(dismissedAt) && Date.now() - dismissedAt < 14 * 24 * 60 * 60 * 1000) return true;
+        }
+      } catch (_) {}
+      return false;
+    }
     window.addEventListener('beforeinstallprompt', (e) => {
       e.preventDefault();
       deferredPrompt = e;
-      // لا تظهر في صفحة التتبع
+      // لا تظهر في صفحة التتبع أو إذا مثبت مسبقاً
       if (window.location.hash && window.location.hash.startsWith('#/track/')) return;
+      if (isAppInstalled()) return;
       showInstallPromotion();
     });
 
     function showInstallPromotion() {
       if (document.getElementById('install-button')) return;
+      if (isAppInstalled()) return;
       const installButton = document.createElement('button');
       installButton.id = 'install-button';
-      installButton.innerHTML = '📱 تثبيت التطبيق';
+      installButton.setAttribute('aria-label', 'تثبيت التطبيق');
+      installButton.textContent = 'تثبيت التطبيق';
       installButton.style.cssText = `
           position: fixed;
-          bottom: 20px;
+          bottom: calc(20px + env(safe-area-inset-bottom));
           right: 20px;
           background: #14b8a6;
           color: white;
@@ -131,6 +145,7 @@
           deferredPrompt = null;
           installButton.remove();
         }
+        try { localStorage.setItem('pwa-dismissed-at', String(Date.now())); } catch (_) {}
       });
 
       document.body.appendChild(installButton);
@@ -155,7 +170,7 @@
 
       // Show success message
       const successMsg = document.createElement('div');
-      successMsg.innerHTML = '✅ تم تثبيت التطبيق بنجاح!';
+      successMsg.textContent = 'تم تثبيت التطبيق بنجاح!';
       successMsg.style.cssText = `
           position: fixed;
           top: 20px;
