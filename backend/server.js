@@ -1121,13 +1121,17 @@ app.get('/api/audit-logs', authMiddleware, requireAdmin, async (req, res) => {
 app.post('/api/packages', authMiddleware, async (req, res) => {
   try {
     const { name, price, category_id, game_ids, is_active } = req.body;
-    await run(
-      'INSERT INTO packages (name, price, category_id, is_active) VALUES (?, ?, ?, ?)',
+    // INSERT ... RETURNING id — works on SQLite 3.35+ and Turso/libSQL.
+    // last_insert_rowid() عبر استعلام منفصل غير موثوق مع Turso HTTP (كل طلب جلسة مستقلة).
+    const created = await get(
+      'INSERT INTO packages (name, price, category_id, is_active) VALUES (?, ?, ?, ?) RETURNING id',
       [name, price, category_id, is_active]
     );
-    const result = await get('SELECT last_insert_rowid() AS id');
-    const newPackageId = result ? result.id : null;
-    
+    const newPackageId = created ? created.id : null;
+    if (!newPackageId) {
+      return res.status(500).json({ success: false, message: 'فشل إنشاء الباقة (لم يتم الحصول على المعرف)' });
+    }
+
     if (game_ids && game_ids.length > 0) {
       for (const gameId of game_ids) {
         await run('INSERT INTO package_games (package_id, game_id) VALUES (?, ?)', [newPackageId, gameId]);
@@ -1135,6 +1139,7 @@ app.post('/api/packages', authMiddleware, async (req, res) => {
     }
     res.json({ success: true, message: 'Package created successfully', id: newPackageId });
   } catch (error) {
+    console.error('[API] Create package error:', error);
     res.status(500).json({ success: false, message: 'Failed to create package', error: error.message });
   }
 });
@@ -2204,8 +2209,16 @@ app.post('/api/games', authMiddleware, async (req, res) => {
       return res.status(400).json({ message: 'Missing fields' });
     }
 
-    await run('INSERT INTO games (title, image, description, price, size_gb, category_id, genre, series, features) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
-      [title, image, description || '', price, size_gb ? Number(size_gb) : 0, category_id || null, genre || null, series || null, features || null]);
+    // INSERT ... RETURNING id — يعيد معرف اللعبة مباشرة وبنفس الجلسة.
+    // last_insert_rowid() عبر استعلام منفصل خطأ هنا: (1) إضافات genres/series اللاحقة تتسرّب إليه، (2) غير موثوق مع Turso HTTP.
+    const inserted = await get(
+      'INSERT INTO games (title, image, description, price, size_gb, category_id, genre, series, features) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?) RETURNING id',
+      [title, image, description || '', price, size_gb ? Number(size_gb) : 0, category_id || null, genre || null, series || null, features || null]
+    );
+    const newGameId = inserted ? inserted.id : null;
+    if (!newGameId) {
+      return res.status(500).json({ message: 'فشل إنشاء اللعبة (لم يتم الحصول على المعرف)' });
+    }
 
     // Add genre to available_genres if it's new
     if (genre && genre.trim()) {
@@ -2235,10 +2248,8 @@ app.post('/api/games', authMiddleware, async (req, res) => {
       }
     }
 
-    const row = await get('SELECT last_insert_rowid() as id');
-
     const newGame = {
-      id: row.id,
+      id: newGameId,
       title,
       image,
       description: description || '',
@@ -2524,23 +2535,61 @@ app.get('/api/stats', async (req, res) => {
       return res.json(statsCache.data);
     }
 
-    const totals = await get('SELECT COUNT(*) as totalOrders FROM invoices');
-    const invoices = await all('SELECT items FROM invoices');
-    const counts = new Map();
+    // استبعاد الفواتير الملغاة من عدّ المبيعات
+    const totals = await get(`SELECT COUNT(*) as totalOrders FROM invoices WHERE COALESCE(status,'') != 'cancelled'`);
+    const invoices = await all(`SELECT items FROM invoices WHERE COALESCE(status,'') != 'cancelled'`);
 
+    // خريطة العناوين المُطبَّعة → معرف اللعبة (لدمج الفواتير القديمة بالجديدة)
+    const normalizeTitle = (t) => String(t || '').trim().replace(/\s+/g, ' ').toLowerCase();
+    const gamesRows = await all('SELECT id, title FROM games');
+    const titleToId = new Map();
+    for (const g of gamesRows || []) {
+      const n = normalizeTitle(g.title);
+      if (n && !titleToId.has(n)) titleToId.set(n, g.id);
+    }
+    // أطول العناوين أولاً حتى تتطابق أولاوية "GTA V" قبل "GTA V Libya"
+    const titleKeys = Array.from(titleToId.keys()).sort((a, b) => b.length - a.length);
+
+    const resolveToId = (rawTitle) => {
+      const n = normalizeTitle(rawTitle);
+      if (!n) return null;
+      // تطابق تام بعد التطبيع
+      if (titleToId.has(n)) return titleToId.get(n);
+      // تطابق بالبادئة: "GTA V Libya" → "GTA V" (الباقي كلمات قصيرة فقط)
+      for (const key of titleKeys) {
+        if (n === key) return titleToId.get(key);
+        if (n.startsWith(key + ' ') || n.endsWith(' ' + key)) {
+          const rest = n.startsWith(key + ' ') ? n.slice(key.length + 1) : n.slice(0, n.length - key.length - 1);
+          // الباقي كلمات فقط، أو منصة معروفة (مثل ps5 التي تحوي رقماً)،
+          // حتى لا يخطئ "FIFA" ليمتص "FIFA 2024"
+          const isKnownPlatform = /^(ps[3-5]|pc|pp|ppsspp|xbox|x360|xone|seriesx|switch|deck|steam)$/i.test(rest);
+          const restIsSafe = rest.length <= 12 && (!/\d/.test(rest) || isKnownPlatform);
+          if (restIsSafe) return titleToId.get(key);
+        }
+      }
+      return null;
+    };
+
+    const counts = new Map(); // key: `id:<gameId>` أو `title:<normalized>` — مُدمَجة عبر معرف موحّد
     for (const invoice of invoices || []) {
       try {
         const items = JSON.parse(invoice.items);
         for (const item of items) {
           if (item.type === 'service' || item.type === 'package') continue;
           const rawId = item.id;
-          const title = (item.title || '').trim();
-          // Prefer numeric game id; fall back to title key for legacy invoices
-          const key = (rawId !== undefined && rawId !== null && String(rawId).trim() !== '' && !String(rawId).startsWith('pkg_'))
-            ? `id:${rawId}`
-            : (title ? `title:${title.toLowerCase()}` : null);
+          const hasId = rawId !== undefined && rawId !== null && String(rawId).trim() !== '' && !String(rawId).startsWith('pkg_');
+          let key = null;
+          if (hasId) {
+            const num = parseInt(rawId, 10);
+            key = Number.isFinite(num) ? `id:${num}` : null;
+          }
+          if (!key) {
+            const title = String(item.title || '').trim();
+            if (!title) continue;
+            const resolvedId = resolveToId(title);
+            key = resolvedId ? `id:${resolvedId}` : `title:${normalizeTitle(title)}`;
+          }
           if (!key) continue;
-          if (!item.type && !rawId && !title) continue;
           counts.set(key, (counts.get(key) || 0) + 1);
         }
       } catch (e) {
@@ -2550,23 +2599,17 @@ app.get('/api/stats', async (req, res) => {
 
     const top = Array.from(counts.entries())
       .map(([key, count]) => {
-        if (key.startsWith('id:')) {
-          const raw = key.slice(3);
-          const num = parseInt(raw, 10);
-          return { gameId: Number.isFinite(num) ? num : raw, count };
-        }
+        if (key.startsWith('id:')) return { gameId: Number(key.slice(3)), count };
         return { gameId: null, title: key.slice(6), count };
       })
       .sort((a, b) => b.count - a.count)
       .slice(0, 10);
 
-    // Resolve title-only keys to real game ids for batch fetching on frontend
+    // إرفاق العناوين غير المُحلّة بأسمائها الحقيقية للعرض
     for (const entry of top) {
-      if ((entry.gameId === null || entry.gameId === undefined) && entry.title) {
-        try {
-          const row = await get('SELECT id FROM games WHERE LOWER(title) = LOWER(?) LIMIT 1', [entry.title]);
-          if (row && row.id) entry.gameId = row.id;
-        } catch (_) {}
+      if (entry.gameId === null && entry.title) {
+        const resolvedId = resolveToId(entry.title);
+        if (resolvedId) entry.gameId = resolvedId;
       }
     }
 
@@ -3041,6 +3084,7 @@ app.delete('/api/invoices/today', authMiddleware, requireAdmin, apiWriteRateLimi
     await run('DELETE FROM daily_invoices WHERE date = ?', [today]);
     // إعادة احتساب الجرد لليوم
     recomputeDailyStats(today);
+    invalidateStatsCache();
     res.json({
       success: true,
       message: `تم حذف ${count} من فواتير اليوم(${today}) بنجاح`,
@@ -3171,6 +3215,7 @@ app.delete('/api/invoices', authMiddleware, requireAdmin, apiWriteRateLimit, asy
     // Clear daily reports as well since invoices are wiped
     await run('DELETE FROM daily_invoices');
     await run("DELETE FROM sqlite_sequence WHERE name='daily_invoices'");
+    invalidateStatsCache();
 
     res.json({
       success: true,

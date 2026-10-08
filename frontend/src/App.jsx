@@ -602,7 +602,11 @@ export default function App() {
   )
   const combinedCartForInvoice = useMemo(() =>
     [
-      ...cart.map(g => ({ title: g.title, price: Number(g.price) || 0, size_gb: Number(g.size_gb) || 0, type: g.type || 'game', items: g.packageGames })),
+      // يشمل معرّف اللعبة الرقمي فقط (يتجاهل معرّفات الباقات pkg_*) حتى تُحتسب المبيعات في الإحصائيات
+      ...cart.map(g => ({
+        ...(g.id !== undefined && g.id !== null && String(g.id).trim() !== '' && !String(g.id).startsWith('pkg_') ? { id: g.id } : {}),
+        title: g.title, price: Number(g.price) || 0, size_gb: Number(g.size_gb) || 0, type: g.type || 'game', items: g.packageGames
+      })),
       ...servicesCart.map(s => ({ title: s.title, price: Number(s.price) || 0, type: 'service' }))
     ],
     [cart, servicesCart]

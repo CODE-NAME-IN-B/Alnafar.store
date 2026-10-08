@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import { createPortal } from 'react-dom'
 import { api } from './api'
+import { exportGamesToExcel } from './utils/exportGamesExcel'
 
 // معالج الأخطاء العام
 window.addEventListener('error', (event) => {
@@ -132,13 +133,26 @@ export default function GamesTab() {
           <h2 className="text-2xl sm:text-3xl font-bold text-white mb-2">إدارة الألعاب</h2>
           <p className="text-gray-400 text-sm sm:text-base">إضافة وتعديل وحذف الألعاب في المتجر</p>
         </div>
-        <button
-          onClick={openAddModal}
-          className="w-full sm:w-auto px-6 py-3 bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white font-bold rounded-xl transition-all duration-300 shadow-lg flex items-center justify-center gap-2 min-h-[48px]"
-        >
-          <span className="text-xl">+</span>
-          إضافة لعبة جديدة
-        </button>
+        <div className="w-full sm:w-auto flex flex-col sm:flex-row gap-2">
+          <button
+            onClick={() => {
+              if (!items.length) { alert('لا توجد ألعاب للتصدير'); return; }
+              exportGamesToExcel(items, categories);
+            }}
+            className="w-full sm:w-auto px-4 py-3 bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-600 hover:to-orange-700 text-white font-bold rounded-xl transition-all duration-300 shadow-lg flex items-center justify-center gap-2 min-h-[48px]"
+            title="تصدير كل الألعاب إلى Excel مقسّمة حسب التصنيف وحجم التخزين"
+          >
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
+            تصدير Excel
+          </button>
+          <button
+            onClick={openAddModal}
+            className="w-full sm:w-auto px-6 py-3 bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white font-bold rounded-xl transition-all duration-300 shadow-lg flex items-center justify-center gap-2 min-h-[48px]"
+          >
+            <span className="text-xl">+</span>
+            إضافة لعبة جديدة
+          </button>
+        </div>
       </div>
 
       {/* Filter & Actions Bar */}
