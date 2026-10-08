@@ -253,8 +253,10 @@ function isSuperAdmin(user) {
   return !!(user && user.role === 'admin' && Number(user.branch_id || 1) === 1);
 }
 
-// يحدد نطاق الفرع لطلب: الأدمن الرئيسي يتحكم بـ ?branchId= (أو "all")، والبقية مقيّدة بفرعهم
+// يحدد نطاق الفرع لطلب: الأدمن الرئيسي يتحكم بـ ?branchId= (أو "all")، ومستخدم الفرع مقيّد بفرعه، والزائر يرى الكل
 function branchScopeFor(user, queryBranchId) {
+  // زائر غير مسجّل (المتجر العام): إحصاء كل الفروع — الألعاب مشتركة
+  if (!user) return { branchId: null, isSuper: false };
   if (isSuperAdmin(user)) {
     if (queryBranchId === undefined || queryBranchId === null || queryBranchId === '' || queryBranchId === 'all') {
       return { branchId: null, isSuper: true }; // كل الفروع
@@ -263,7 +265,7 @@ function branchScopeFor(user, queryBranchId) {
     return { branchId: Number.isFinite(n) ? n : null, isSuper: true };
   }
   // مستخدم فرع: مقيّد دائماً بفرعه مهما أرسل
-  return { branchId: Number(user && user.branch_id) || 1, isSuper: false };
+  return { branchId: Number(user.branch_id) || 1, isSuper: false };
 }
 
 // Vercel serverless guard: wait for DB to be ready before handling requests
@@ -2730,7 +2732,10 @@ const STATS_CACHE_TTL = 5 * 60 * 1000; // 5 minutes
 app.get('/api/stats', optionalAuthMiddleware, async (req, res) => {
   try {
     // نطاق الفرع: الزائر يرى كل الفروع (الألعاب مشتركة)، والأدمن يرى فرعه أو يختار ?branchId=
-    const scope = branchScopeFor(req.user, req.query.branchId);
+    // public=1 يجبر الإحصاء العام (لواجهة المتجر حتى لو كان الطالب مسجّلاً)
+    const scope = (req.query.public === '1' || req.query.public === 'true')
+      ? { branchId: null, isSuper: false }
+      : branchScopeFor(req.user, req.query.branchId);
     const cacheKey = scope.branchId == null ? 'all' : String(scope.branchId);
 
     const now = Date.now();

@@ -75,7 +75,7 @@ function TopList({ onAdd }) {
     let cancelled = false
     async function load() {
       try {
-        const r = await api.get('/stats')
+        const r = await api.get('/stats', { params: { public: 1 } })
         const topGames = r.data?.topGames || []
         setTop(topGames)
         if (!topGames.length) { setDetails([]); return }
