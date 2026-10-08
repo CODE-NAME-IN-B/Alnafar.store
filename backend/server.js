@@ -347,16 +347,39 @@ async function initializeDatabase() {
       is_main INTEGER DEFAULT 0,
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP
     );`);
+  // إسناد الفروع للمستخدمين والفواتير — الافتراضي الفرع الرئيسي (1) للبيانات القديمة
+  try { await run('ALTER TABLE users ADD COLUMN branch_id INTEGER DEFAULT 1'); } catch (e) { }
+  try { await run('ALTER TABLE invoices ADD COLUMN branch_id INTEGER DEFAULT 1'); } catch (e) { }
+  try { await exec('CREATE INDEX IF NOT EXISTS idx_invoices_branch ON invoices(branch_id)'); } catch (e) { }
+
+  // تنظيف الفروع المكررة (سببها سباق بدء التشغيل على Vercel) وإعادة ربط المراجع بالمعرّف الأصغر
+  try {
+    const dups = await all(`SELECT name, MIN(id) as keep_id, COUNT(*) as cnt FROM branches GROUP BY name HAVING cnt > 1`);
+    for (const d of dups || []) {
+      const removeIds = (await all('SELECT id FROM branches WHERE name = ? AND id != ?', [d.name, d.keep_id])).map(r => r.id);
+      if (removeIds.length) {
+        const ph = removeIds.map(() => '?').join(',');
+        await run(`UPDATE users SET branch_id = ? WHERE branch_id IN (${ph})`, [d.keep_id, ...removeIds]);
+        await run(`UPDATE invoices SET branch_id = ? WHERE branch_id IN (${ph})`, [d.keep_id, ...removeIds]);
+        await run(`DELETE FROM branches WHERE id IN (${ph})`, removeIds);
+      }
+    }
+  } catch (e) {
+    console.error('[DB] Branch dedupe error:', e.message);
+  }
+  // قيد فريد على الاسم يمنع التكرار مستقبلاً (حتى عند بدء تشغيل متزامن)
+  try { await exec('CREATE UNIQUE INDEX IF NOT EXISTS idx_branches_name ON branches(name)'); } catch (e) { }
   // بذور الفروع إن لم يوجد أي فرع — الفرع الرئيسي يحمل is_main=1
+  // INSERT OR IGNORE + الفهرس الفريد = بذر آمن ضد التزامن
   try {
     const branchCount = (await get('SELECT COUNT(*) as count FROM branches')).count;
     if (branchCount === 0) {
       await run(
-        'INSERT INTO branches (name, address, phone, is_active, is_main) VALUES (?, ?, ?, 1, 1)',
+        'INSERT OR IGNORE INTO branches (name, address, phone, is_active, is_main) VALUES (?, ?, ?, 1, 1)',
         ['الفرع الرئيسي - أجدابيا', 'اجدابيا - شارع القضائيه مقابل مطحنة الفضيل و بجوار معهد البيان', '0920595447']
       );
       await run(
-        'INSERT INTO branches (name, address, phone, is_active, is_main) VALUES (?, ?, ?, 1, 0)',
+        'INSERT OR IGNORE INTO branches (name, address, phone, is_active, is_main) VALUES (?, ?, ?, 1, 0)',
         ['الفرع الثاني - أجدابيا', 'اجدابيا - شارع طرابس مقابل الكناري للعطور بجوار بريوش الموهيب', '0931674852']
       );
       console.log('[DB] Seeded default branches');
@@ -364,10 +387,6 @@ async function initializeDatabase() {
   } catch (e) {
     console.error('[DB] Branch seed error:', e.message);
   }
-  // إسناد الفروع للمستخدمين والفواتير — الافتراضي الفرع الرئيسي (1) للبيانات القديمة
-  try { await run('ALTER TABLE users ADD COLUMN branch_id INTEGER DEFAULT 1'); } catch (e) { }
-  try { await run('ALTER TABLE invoices ADD COLUMN branch_id INTEGER DEFAULT 1'); } catch (e) { }
-  try { await exec('CREATE INDEX IF NOT EXISTS idx_invoices_branch ON invoices(branch_id)'); } catch (e) { }
 
   // Create available_genres table to store all available genres
   await exec(`CREATE TABLE IF NOT EXISTS available_genres (
@@ -1959,6 +1978,9 @@ app.post('/api/branches', authMiddleware, apiWriteRateLimit, async (req, res) =>
     res.status(201).json({ success: true, id: created ? created.id : null });
   } catch (error) {
     console.error('Create branch error:', error);
+    if (String(error.message || '').includes('UNIQUE')) {
+      return res.status(409).json({ message: 'يوجد فرع بنفس الاسم بالفعل' });
+    }
     res.status(500).json({ message: 'Failed to create branch', error: error.message });
   }
 });
@@ -1978,6 +2000,9 @@ app.put('/api/branches/:id', authMiddleware, apiWriteRateLimit, async (req, res)
     res.json({ success: true, branch: updated });
   } catch (error) {
     console.error('Update branch error:', error);
+    if (String(error.message || '').includes('UNIQUE')) {
+      return res.status(409).json({ message: 'يوجد فرع آخر بنفس الاسم' });
+    }
     res.status(500).json({ message: 'Failed to update branch', error: error.message });
   }
 });

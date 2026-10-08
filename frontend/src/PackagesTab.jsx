@@ -266,7 +266,7 @@ const PackagesTab = () => {
               if (showForm) { cancelEdit(); setShowForm(false); }
               else setShowForm(true);
             }}
-            className="w-full sm:w-auto px-6 py-3 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white rounded-xl font-bold transition-all flex items-center justify-center gap-2 shadow-xl shadow-purple-900/40 border border-white/10 active:scale-95"
+            className="w-full sm:w-auto px-6 py-3 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white rounded-xl font-bold transition-all flex items-center justify-center gap-2 shadow-xl shadow-purple-900/40 border border-white/10 active:scale-95 cursor-pointer"
           >
             {showForm ? '✕ إغلاق النموذج' : '+ إنشاء باقة جديدة'}
           </button>
@@ -342,10 +342,10 @@ const PackagesTab = () => {
                   <button
                     type="button"
                     onClick={() => setShowGamePicker(true)}
-                    className="flex items-center gap-2 px-4 py-2 bg-purple-600/20 hover:bg-purple-600 border border-purple-500/40 text-purple-300 hover:text-white rounded-xl text-sm font-bold transition-all active:scale-95"
+                    className="flex items-center gap-2 px-4 py-2 bg-purple-600/20 hover:bg-purple-600 border border-purple-500/40 text-purple-300 hover:text-white rounded-xl text-sm font-bold transition-all active:scale-95 cursor-pointer"
                   >
-                    <span>اختر الألعاب</span>
-                    <span>اختيار الألعاب</span>
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={1.8} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" /></svg>
+                    <span>{form.game_ids.length > 0 ? 'تعديل اختيار الألعاب' : 'اختر الألعاب'}</span>
                   </button>
                 </div>
 
@@ -402,7 +402,7 @@ const PackagesTab = () => {
             <div className="text-center py-20 bg-gray-900/40 rounded-2xl border border-white/5 backdrop-blur-md">
             <svg className="w-16 h-16 mx-auto mb-4 opacity-20" fill="none" stroke="currentColor" strokeWidth={1} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M21 7.5l-9-5.25L3 7.5m18 0l-9 5.25m9-5.25v9l-9 5.25M3 7.5l9 5.25M3 7.5v9l9 5.25m0-9v9" /></svg>
             <p className="text-gray-400 font-bold">لم يتم إنشاء أي باقات بعد</p>
-            <button onClick={() => setShowForm(true)} className="mt-4 text-purple-400 hover:underline">أنشئ أول باقة الآن</button>
+            <button onClick={() => setShowForm(true)} className="mt-4 text-purple-400 hover:underline cursor-pointer">أنشئ أول باقة الآن</button>
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">

@@ -68,7 +68,7 @@ const BranchesTab = () => {
       cancelForm();
       setShowForm(false);
     } catch (err) {
-      alert('فشل حفظ الفرع');
+      alert(err?.response?.data?.message || 'فشل حفظ الفرع');
     }
   };
 
