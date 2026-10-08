@@ -1,5 +1,5 @@
 import React, { lazy, Suspense, useEffect, useMemo, useState } from 'react'
-import { api, loadAuthFromStorage } from './api'
+import { api, loadAuthFromStorage, setActiveBranchId } from './api'
 import socket from './socket'
 import OrderTracking from './OrderTracking'
 import { preloadLogo } from './utils/logoCache'
@@ -217,9 +217,10 @@ export default function App() {
   const [viewingPackage, setViewingPackage] = useState(null)
   const [isGuestMode, setIsGuestMode] = useState(localStorage.getItem('isGuest') === 'true')
   const [storePhone, setStorePhone] = useState('')
+  const [branches, setBranches] = useState([])
 
   // Load auth token from storage on mount
-  useEffect(() => { loadAuthFromStorage() }, [])
+  useEffect(() => { loadAuthFromStorage(); setActiveBranchId(null) }, [])
 
   // Preload invoice logo for instant print
   useEffect(() => { preloadLogo(window.location.origin) }, [])
@@ -228,6 +229,9 @@ export default function App() {
 
   useEffect(() => {
     api.get('/services').then(({ data }) => setServices(Array.isArray(data) ? data : [])).catch(() => { })
+    api.get('/branches').then(({ data }) => {
+      setBranches(Array.isArray(data) ? data : (data?.branches || []))
+    }).catch(() => { })
     api.get('/invoice-settings').then(({ data }) => {
       if (data?.settings?.store_phone) setStorePhone(data.settings.store_phone)
     }).catch(() => { })
@@ -301,7 +305,7 @@ export default function App() {
   }, [])
 
   useEffect(() => {
-    api.get('/categories').then(r => {
+    api.get('/categories', { params: { public: 1 } }).then(r => {
       const data = Array.isArray(r.data) ? r.data : []
       setCategories(data);
       if (!activeCategory && data.length) {
@@ -962,7 +966,34 @@ export default function App() {
           <div className="grid md:grid-cols-2 gap-4 sm:gap-6 items-center">
             <div className="order-2 md:order-1">
               <h1 className="text-xl min-[400px]:text-2xl sm:text-3xl md:text-4xl font-extrabold mb-2 sm:mb-3 text-center md:text-right">اختر الألعاب التي تريدها</h1>
-              <p className="text-gray-200 mb-4 text-sm sm:text-base text-center md:text-right leading-relaxed md:text-gray-100">موقع المحل: الشاردة للإلكترونات - شارع القضائية مقابل فضيل للبن</p>
+
+              {/* فروعنا — الموقع والهاتف لكل فرع */}
+              {branches.length > 0 ? (
+                <div className="grid grid-cols-1 min-[400px]:grid-cols-2 gap-2 sm:gap-3 mb-4">
+                  {branches.map(b => (
+                    <div key={b.id} className="bg-white/5 border border-white/10 rounded-xl p-3 text-right">
+                      <div className="flex items-center justify-between gap-2 mb-1">
+                        <h3 className="font-bold text-white text-sm truncate">{b.name}</h3>
+                        {!!b.is_main && <span className="shrink-0 text-[10px] font-bold px-2 py-0.5 rounded-full bg-primary/20 text-primary border border-primary/30">رئيسي</span>}
+                      </div>
+                      {b.address && (
+                        <p className="text-gray-300 text-xs leading-relaxed mb-2 flex items-start gap-1.5">
+                          <svg className="w-3.5 h-3.5 shrink-0 mt-0.5 text-primary/70" fill="none" stroke="currentColor" strokeWidth={1.8} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M15 10.5a3 3 0 11-6 0 3 3 0 016 0z" /><path strokeLinecap="round" strokeLinejoin="round" d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1115 0z" /></svg>
+                          <span className="break-words">{b.address}</span>
+                        </p>
+                      )}
+                      {b.phone && (
+                        <a href={'tel:' + b.phone} className="inline-flex items-center gap-1.5 text-xs font-bold text-primary hover:text-white transition-colors" dir="ltr">
+                          <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth={1.8} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M2.25 6.75c0 8.284 6.716 15 15 15h2.25a2.25 2.25 0 002.25-2.25v-1.372c0-.516-.351-.966-.852-1.091l-4.423-1.106c-.44-.11-.902.055-1.173.417l-.97 1.293c-.282.376-.769.542-1.21.38a12.035 12.035 0 01-7.143-7.143c-.162-.441.004-.928.38-1.21l1.293-.97c.363-.271.527-.734.417-1.173L6.963 3.102a1.125 1.125 0 00-1.091-.852H4.5A2.25 2.25 0 002.25 4.5v2.25z" /></svg>
+                          <span>{b.phone}</span>
+                        </a>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-gray-200 mb-4 text-sm sm:text-base text-center md:text-right leading-relaxed md:text-gray-100">موقع المحل: الشاردة للإلكترونات - شارع القضائية مقابل فضيل للبن</p>
+              )}
 
               {/* Desktop Search */}
               <div className="hidden md:block mb-4">

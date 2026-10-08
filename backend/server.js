@@ -15,7 +15,7 @@ const axios = require('axios');
 const { GoogleGenerativeAI } = require('@google/generative-ai');
 const SunmiPrinter = require('./sunmi-printer');
 const webpush = require('web-push');
-const { authMiddleware, requireAdmin, requireRole, signToken, JWT_SECRET_ACTIVE } = require('./middleware/auth');
+const { authMiddleware, optionalAuthMiddleware, requireAdmin, requireRole, signToken, JWT_SECRET_ACTIVE } = require('./middleware/auth');
 const { loginRateLimit, apiWriteRateLimit, publicOrderRateLimit, uploadRateLimit, aiRateLimit } = require('./middleware/rateLimit');
 const { initAudit, auditLog } = require('./middleware/audit');
 
@@ -247,6 +247,25 @@ async function initDb() {
   console.log(`✅ Database initialized (${dbAdapter.getDbType()})`);
 }
 
+// ── مساعدات نطاق الفروع ──
+// الأدمن الرئيسي (admin + الفرع الرئيسي 1) يرى كل الفروع ويديرها والمستخدمين
+function isSuperAdmin(user) {
+  return !!(user && user.role === 'admin' && Number(user.branch_id || 1) === 1);
+}
+
+// يحدد نطاق الفرع لطلب: الأدمن الرئيسي يتحكم بـ ?branchId= (أو "all")، والبقية مقيّدة بفرعهم
+function branchScopeFor(user, queryBranchId) {
+  if (isSuperAdmin(user)) {
+    if (queryBranchId === undefined || queryBranchId === null || queryBranchId === '' || queryBranchId === 'all') {
+      return { branchId: null, isSuper: true }; // كل الفروع
+    }
+    const n = parseInt(queryBranchId, 10);
+    return { branchId: Number.isFinite(n) ? n : null, isSuper: true };
+  }
+  // مستخدم فرع: مقيّد دائماً بفرعه مهما أرسل
+  return { branchId: Number(user && user.branch_id) || 1, isSuper: false };
+}
+
 // Vercel serverless guard: wait for DB to be ready before handling requests
 function dbReadyGuard(req, res, next) {
   if (dbReady) return next();
@@ -315,6 +334,40 @@ async function initializeDatabase() {
       await run('INSERT INTO categories (name) VALUES (?)', [n]);
     }
   }
+  // إظهار/إخفاء تصنيف من المتجر (يقفل من لوحة التحكم)
+  try { await run('ALTER TABLE categories ADD COLUMN is_visible INTEGER DEFAULT 1'); } catch (e) { }
+
+  // ── الفروع المتعددة ──
+  await exec(`CREATE TABLE IF NOT EXISTS branches (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      name TEXT NOT NULL,
+      address TEXT DEFAULT '',
+      phone TEXT DEFAULT '',
+      is_active INTEGER DEFAULT 1,
+      is_main INTEGER DEFAULT 0,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    );`);
+  // بذور الفروع إن لم يوجد أي فرع — الفرع الرئيسي يحمل is_main=1
+  try {
+    const branchCount = (await get('SELECT COUNT(*) as count FROM branches')).count;
+    if (branchCount === 0) {
+      await run(
+        'INSERT INTO branches (name, address, phone, is_active, is_main) VALUES (?, ?, ?, 1, 1)',
+        ['الفرع الرئيسي - أجدابيا', 'اجدابيا - شارع القضائيه مقابل مطحنة الفضيل و بجوار معهد البيان', '0920595447']
+      );
+      await run(
+        'INSERT INTO branches (name, address, phone, is_active, is_main) VALUES (?, ?, ?, 1, 0)',
+        ['الفرع الثاني - أجدابيا', 'اجدابيا - شارع طرابس مقابل الكناري للعطور بجوار بريوش الموهيب', '0931674852']
+      );
+      console.log('[DB] Seeded default branches');
+    }
+  } catch (e) {
+    console.error('[DB] Branch seed error:', e.message);
+  }
+  // إسناد الفروع للمستخدمين والفواتير — الافتراضي الفرع الرئيسي (1) للبيانات القديمة
+  try { await run('ALTER TABLE users ADD COLUMN branch_id INTEGER DEFAULT 1'); } catch (e) { }
+  try { await run('ALTER TABLE invoices ADD COLUMN branch_id INTEGER DEFAULT 1'); } catch (e) { }
+  try { await exec('CREATE INDEX IF NOT EXISTS idx_invoices_branch ON invoices(branch_id)'); } catch (e) { }
 
   // Create available_genres table to store all available genres
   await exec(`CREATE TABLE IF NOT EXISTS available_genres (
@@ -1742,7 +1795,13 @@ app.post('/api/auth/login', loginRateLimit, async (req, res) => {
 
 app.get('/api/auth/me', authMiddleware, async (req, res) => {
   try {
-    const user = await get('SELECT id, username, role, created_at FROM users WHERE id = ?', [req.user.id]);
+    const user = await get(
+      `SELECT u.id, u.username, u.role, u.created_at, COALESCE(u.branch_id,1) as branch_id,
+              b.name as branch_name, b.is_main as branch_is_main
+       FROM users u LEFT JOIN branches b ON b.id = COALESCE(u.branch_id,1)
+       WHERE u.id = ?`,
+      [req.user.id]
+    );
     if (!user || !user.id) return res.status(404).json({ message: 'User not found' });
     res.json({ user });
   } catch (e) {
@@ -1753,7 +1812,17 @@ app.get('/api/auth/me', authMiddleware, async (req, res) => {
 // Users management (admin only)
 app.get('/api/users', authMiddleware, requireAdmin, async (req, res) => {
   try {
-    const rows = await all('SELECT id, username, role, created_at FROM users ORDER BY id DESC');
+    // الأدمن الرئيسي يرى الجميع، وأدمن الفرع يرى مستخدمي فرعه فقط
+    let sql = `SELECT u.id, u.username, u.role, u.created_at, COALESCE(u.branch_id,1) as branch_id,
+                      b.name as branch_name
+               FROM users u LEFT JOIN branches b ON b.id = COALESCE(u.branch_id,1)`;
+    const params = [];
+    if (!isSuperAdmin(req.user)) {
+      sql += ' WHERE COALESCE(u.branch_id,1) = ?';
+      params.push(Number(req.user.branch_id) || 1);
+    }
+    sql += ' ORDER BY u.id DESC';
+    const rows = await all(sql, params);
     res.json({ users: rows });
   } catch (e) {
     res.status(500).json({ message: 'Failed to fetch users', error: e.message });
@@ -1762,13 +1831,19 @@ app.get('/api/users', authMiddleware, requireAdmin, async (req, res) => {
 
 app.post('/api/users', authMiddleware, requireAdmin, async (req, res) => {
   try {
-    const { username, password, role = 'staff' } = req.body || {};
+    const { username, password, role = 'staff', branch_id } = req.body || {};
     if (!username || !password) return res.status(400).json({ message: 'username and password are required' });
     const exists = await get('SELECT id FROM users WHERE username = ?', [username]);
     if (exists && exists.id) return res.status(409).json({ message: 'Username already exists' });
+    // الأدمن الرئيسي يوزّع على أي فرع؛ أدمن الفرع يقدر ينشئ في فرعه فقط
+    let targetBranch = isSuperAdmin(req.user) ? (Number(branch_id) || 1) : (Number(req.user.branch_id) || 1);
     const hashed = bcrypt.hashSync(password, 10);
-    await run('INSERT INTO users (username, password, role) VALUES (?, ?, ?)', [username, hashed, role]);
-    const created = await get('SELECT id, username, role, created_at FROM users WHERE username = ?', [username]);
+    await run('INSERT INTO users (username, password, role, branch_id) VALUES (?, ?, ?, ?)', [username, hashed, role, targetBranch]);
+    const created = await get(
+      `SELECT u.id, u.username, u.role, u.created_at, COALESCE(u.branch_id,1) as branch_id, b.name as branch_name
+       FROM users u LEFT JOIN branches b ON b.id = COALESCE(u.branch_id,1) WHERE u.username = ?`,
+      [username]
+    );
     res.status(201).json({ success: true, user: created });
   } catch (e) {
     res.status(500).json({ message: 'Failed to create user', error: e.message });
@@ -1778,15 +1853,32 @@ app.post('/api/users', authMiddleware, requireAdmin, async (req, res) => {
 app.put('/api/users/:id', authMiddleware, requireAdmin, async (req, res) => {
   try {
     const { id } = req.params;
-    const { username, role } = req.body || {};
+    const { username, role, branch_id } = req.body || {};
     const user = await get('SELECT * FROM users WHERE id = ?', [id]);
     if (!user || !user.id) return res.status(404).json({ message: 'User not found' });
     if (username && username !== user.username) {
       const dupe = await get('SELECT id FROM users WHERE username = ? AND id != ?', [username, id]);
       if (dupe && dupe.id) return res.status(409).json({ message: 'Username already exists' });
     }
-    await run('UPDATE users SET username = COALESCE(?, username), role = COALESCE(?, role) WHERE id = ?', [username || null, role || null, id]);
-    const updated = await get('SELECT id, username, role, created_at FROM users WHERE id = ?', [id]);
+    // نقل بين الفروع: للأدمن الرئيسي فقط
+    let newBranch = null;
+    if (branch_id !== undefined && branch_id !== null && branch_id !== '') {
+      if (isSuperAdmin(req.user)) {
+        newBranch = Number(branch_id) || 1;
+      } else {
+        newBranch = Number(req.user.branch_id) || 1; // أدمن الفرع لا ينقل خارج فرعه
+      }
+    }
+    if (newBranch !== null) {
+      await run('UPDATE users SET username = COALESCE(?, username), role = COALESCE(?, role), branch_id = ? WHERE id = ?', [username || null, role || null, newBranch, id]);
+    } else {
+      await run('UPDATE users SET username = COALESCE(?, username), role = COALESCE(?, role) WHERE id = ?', [username || null, role || null, id]);
+    }
+    const updated = await get(
+      `SELECT u.id, u.username, u.role, u.created_at, COALESCE(u.branch_id,1) as branch_id, b.name as branch_name
+       FROM users u LEFT JOIN branches b ON b.id = COALESCE(u.branch_id,1) WHERE u.id = ?`,
+      [id]
+    );
     res.json({ success: true, user: updated });
   } catch (e) {
     res.status(500).json({ message: 'Failed to update user', error: e.message });
@@ -1824,13 +1916,69 @@ app.delete('/api/users/:id', authMiddleware, requireAdmin, async (req, res) => {
 });
 
 // Categories
-app.get('/api/categories', async (req, res) => {
+// عام: يعيد التصنيفات المرئية فقط (للمتجر). مع توكن أدمن: يعيد الكل مع is_visible (للوحة التحكم).
+app.get('/api/categories', optionalAuthMiddleware, async (req, res) => {
   try {
-    const rows = await all('SELECT * FROM categories');
+    // public=1 يعني واجهة المتجر: أظهر المرئي فقط حتى لو كان الطالب أدمن
+    const forcePublic = req.query.public === '1' || req.query.public === 'true';
+    const isAdmin = !forcePublic && req.user && req.user.role === 'admin';
+    const rows = isAdmin
+      ? await all('SELECT * FROM categories ORDER BY id ASC')
+      : await all('SELECT * FROM categories WHERE COALESCE(is_visible,1) = 1 ORDER BY id ASC');
     res.json(rows);
   } catch (error) {
     console.error('Error fetching categories:', error);
     res.status(500).json({ error: 'Failed to fetch categories' });
+  }
+});
+
+// ── إدارة الفروع ──
+// عام: يعيد الفروع النشطة فقط لعرضها في واجهة المتجر
+app.get('/api/branches', optionalAuthMiddleware, async (req, res) => {
+  try {
+    const isAdmin = req.user && req.user.role === 'admin';
+    const rows = isAdmin
+      ? await all('SELECT * FROM branches ORDER BY is_main DESC, id ASC')
+      : await all('SELECT id, name, address, phone, is_main FROM branches WHERE is_active = 1 ORDER BY is_main DESC, id ASC');
+    res.json({ success: true, branches: rows });
+  } catch (error) {
+    console.error('Error fetching branches:', error);
+    res.status(500).json({ success: false, message: 'Failed to fetch branches' });
+  }
+});
+
+app.post('/api/branches', authMiddleware, apiWriteRateLimit, async (req, res) => {
+  try {
+    if (!isSuperAdmin(req.user)) return res.status(403).json({ message: 'Only main-branch admin can manage branches' });
+    const { name, address, phone } = req.body || {};
+    if (!name || !String(name).trim()) return res.status(400).json({ message: 'اسم الفرع مطلوب' });
+    const created = await get(
+      'INSERT INTO branches (name, address, phone, is_active, is_main) VALUES (?, ?, ?, 1, 0) RETURNING id',
+      [String(name).trim(), String(address || ''), String(phone || '')]
+    );
+    res.status(201).json({ success: true, id: created ? created.id : null });
+  } catch (error) {
+    console.error('Create branch error:', error);
+    res.status(500).json({ message: 'Failed to create branch', error: error.message });
+  }
+});
+
+app.put('/api/branches/:id', authMiddleware, apiWriteRateLimit, async (req, res) => {
+  try {
+    if (!isSuperAdmin(req.user)) return res.status(403).json({ message: 'Only main-branch admin can manage branches' });
+    const { id } = req.params;
+    const { name, address, phone, is_active } = req.body || {};
+    const branch = await get('SELECT * FROM branches WHERE id = ?', [id]);
+    if (!branch || !branch.id) return res.status(404).json({ message: 'الفرع غير موجود' });
+    await run(
+      'UPDATE branches SET name = COALESCE(?, name), address = COALESCE(?, address), phone = COALESCE(?, phone), is_active = COALESCE(?, is_active) WHERE id = ?',
+      [name ?? null, address ?? null, phone ?? null, (is_active === undefined || is_active === null) ? null : (is_active ? 1 : 0), id]
+    );
+    const updated = await get('SELECT * FROM branches WHERE id = ?', [id]);
+    res.json({ success: true, branch: updated });
+  } catch (error) {
+    console.error('Update branch error:', error);
+    res.status(500).json({ message: 'Failed to update branch', error: error.message });
   }
 });
 
@@ -2137,19 +2285,45 @@ app.delete('/api/mapping/:file', authMiddleware, requireAdmin, apiWriteRateLimit
   res.status(500).json({ ok: false });
 });
 
-app.put('/api/categories/:id', authMiddleware, (req, res) => {
-  const { id } = req.params;
-  const { name } = req.body;
-  run('UPDATE categories SET name = ? WHERE id = ?', [name, id]);
-  const ch = get('SELECT changes() as changes');
-  res.json({ updated: ch.changes });
+app.put('/api/categories/:id', authMiddleware, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { name } = req.body;
+    await run('UPDATE categories SET name = ? WHERE id = ?', [name, id]);
+    const ch = await get('SELECT changes() as changes');
+    res.json({ updated: ch ? ch.changes : 0 });
+  } catch (e) {
+    res.status(500).json({ message: 'Failed to update category', error: e.message });
+  }
 });
 
-app.delete('/api/categories/:id', authMiddleware, requireAdmin, apiWriteRateLimit, (req, res) => {
-  const { id } = req.params;
-  run('DELETE FROM categories WHERE id = ?', [id]);
-  const ch = get('SELECT changes() as changes');
-  res.json({ deleted: ch.changes });
+// إظهار/إخفاء تصنيف من واجهة المتجر (أدمن) — مثل إخفاء PS3
+app.put('/api/categories/:id/visibility', authMiddleware, requireAdmin, apiWriteRateLimit, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { is_visible } = req.body || {};
+    const cat = await get('SELECT * FROM categories WHERE id = ?', [id]);
+    if (!cat || !cat.id) return res.status(404).json({ message: 'التصنيف غير موجود' });
+    const next = (is_visible === undefined || is_visible === null)
+      ? (Number(cat.is_visible) ? 0 : 1)
+      : (is_visible ? 1 : 0);
+    await run('UPDATE categories SET is_visible = ? WHERE id = ?', [next, id]);
+    broadcastUpdate('category_updated', { id: Number(id), is_visible: next });
+    res.json({ success: true, is_visible: next });
+  } catch (e) {
+    res.status(500).json({ message: 'Failed to toggle category visibility', error: e.message });
+  }
+});
+
+app.delete('/api/categories/:id', authMiddleware, requireAdmin, apiWriteRateLimit, async (req, res) => {
+  try {
+    const { id } = req.params;
+    await run('DELETE FROM categories WHERE id = ?', [id]);
+    const ch = await get('SELECT changes() as changes');
+    res.json({ deleted: ch ? ch.changes : 0 });
+  } catch (e) {
+    res.status(500).json({ message: 'Failed to delete category', error: e.message });
+  }
 });
 
 // Games
@@ -2525,19 +2699,32 @@ app.post('/api/send-telegram', async (req, res) => {
 });
 
 // Stats - Updated to use invoices table with in-memory cache
-let statsCache = { data: null, timestamp: 0 };
+let statsCache = { data: null, timestamp: 0, key: null };
 const STATS_CACHE_TTL = 5 * 60 * 1000; // 5 minutes
 
-app.get('/api/stats', async (req, res) => {
+app.get('/api/stats', optionalAuthMiddleware, async (req, res) => {
   try {
+    // نطاق الفرع: الزائر يرى كل الفروع (الألعاب مشتركة)، والأدمن يرى فرعه أو يختار ?branchId=
+    const scope = branchScopeFor(req.user, req.query.branchId);
+    const cacheKey = scope.branchId == null ? 'all' : String(scope.branchId);
+
     const now = Date.now();
-    if (statsCache.data && (now - statsCache.timestamp) < STATS_CACHE_TTL) {
+    if (statsCache.data && statsCache.key === cacheKey && (now - statsCache.timestamp) < STATS_CACHE_TTL) {
       return res.json(statsCache.data);
     }
 
+    const branchWhere = scope.branchId == null ? '' : ' AND COALESCE(branch_id,1) = ?';
+    const branchParams = scope.branchId == null ? [] : [scope.branchId];
+
     // استبعاد الفواتير الملغاة من عدّ المبيعات
-    const totals = await get(`SELECT COUNT(*) as totalOrders FROM invoices WHERE COALESCE(status,'') != 'cancelled'`);
-    const invoices = await all(`SELECT items FROM invoices WHERE COALESCE(status,'') != 'cancelled'`);
+    const totals = await get(
+      `SELECT COUNT(*) as totalOrders FROM invoices WHERE COALESCE(status,'') != 'cancelled'${branchWhere}`,
+      branchParams
+    );
+    const invoices = await all(
+      `SELECT items FROM invoices WHERE COALESCE(status,'') != 'cancelled'${branchWhere}`,
+      branchParams
+    );
 
     // خريطة العناوين المُطبَّعة → معرف اللعبة (لدمج الفواتير القديمة بالجديدة)
     const normalizeTitle = (t) => String(t || '').trim().replace(/\s+/g, ' ').toLowerCase();
@@ -2614,7 +2801,7 @@ app.get('/api/stats', async (req, res) => {
     }
 
     const result = { totalOrders: totals?.totalOrders || 0, topGames: top };
-    statsCache = { data: result, timestamp: now };
+    statsCache = { data: result, timestamp: now, key: cacheKey };
     console.log('📊 Stats generated (cached for 5min):', { totalOrders: result.totalOrders, topGames: top.length });
     res.json(result);
   } catch (error) {
@@ -2625,14 +2812,14 @@ app.get('/api/stats', async (req, res) => {
 
 // Invalidate stats cache when a new invoice is created
 function invalidateStatsCache() {
-  statsCache = { data: null, timestamp: 0 };
+  statsCache = { data: null, timestamp: 0, key: null };
 }
 
 // إنشاء طابعة Sunmi
 const printer = new SunmiPrinter();
 
 // إنشاء فاتورة جديدة
-app.post('/api/invoices', publicOrderRateLimit, async (req, res) => {
+app.post('/api/invoices', optionalAuthMiddleware, publicOrderRateLimit, async (req, res) => {
   try {
     const {
       customerInfo,
@@ -2645,6 +2832,9 @@ app.post('/api/invoices', publicOrderRateLimit, async (req, res) => {
       paidAmount = 0,
       date
     } = req.body;
+
+    // نسبة الفاتورة للفرع: فرع المستخدم المسجّل، أو الفرع الرئيسي للطلبات العامة
+    const invoiceBranchId = Number(req.body.branch_id) || Number(req.user && req.user.branch_id) || 1;
 
     const createdAt = date || new Date().toISOString();
     const computedFinal = finalTotal || (total - discount);
@@ -2689,8 +2879,8 @@ app.post('/api/invoices', publicOrderRateLimit, async (req, res) => {
     try {
       await run(`INSERT INTO invoices (
         invoice_number, customer_name, customer_phone, customer_address, 
-        customer_notes, items, total, total_size_gb, estimated_minutes, discount, final_total, status, paid_amount, created_at
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`, [
+        customer_notes, items, total, total_size_gb, estimated_minutes, discount, final_total, status, paid_amount, created_at, branch_id
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`, [
         fullNumber,
         customerInfo.name,
         customerInfo.phone,
@@ -2704,7 +2894,8 @@ app.post('/api/invoices', publicOrderRateLimit, async (req, res) => {
         computedFinal,
         status,
         paidAmount,
-        createdAt
+        createdAt,
+        invoiceBranchId
       ]);
     } catch (dbError) {
       console.error('خطأ في حفظ الفاتورة في قاعدة البيانات:', dbError);
@@ -2718,8 +2909,8 @@ app.post('/api/invoices', publicOrderRateLimit, async (req, res) => {
 
           await run(`INSERT INTO invoices (
             invoice_number, customer_name, customer_phone, customer_address, 
-            customer_notes, items, total, total_size_gb, estimated_minutes, discount, final_total, status, paid_amount, created_at
-          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`, [
+            customer_notes, items, total, total_size_gb, estimated_minutes, discount, final_total, status, paid_amount, created_at, branch_id
+          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`, [
             newFullNumber,
             customerInfo.name,
             customerInfo.phone,
@@ -2733,7 +2924,8 @@ app.post('/api/invoices', publicOrderRateLimit, async (req, res) => {
             computedFinal,
             status,
             paidAmount,
-            createdAt
+            createdAt,
+            invoiceBranchId
           ]);
 
           // تحديث رقم الفاتورة المستخدم
@@ -2872,40 +3064,40 @@ app.get('/api/invoices', authMiddleware, async (req, res) => {
     const unpaidOnly = req.query.unpaidOnly === '1' || req.query.unpaidOnly === 'true';
     const UNPAID_CLAUSE = '((COALESCE(total,0)-COALESCE(discount,0)-COALESCE(paid_amount,0)) > 0)';
 
-    let whereClause = '';
-    let params = [limit, offset];
-    let countParams = [];
+    // بناء شروط الاستعلام كمجموعة مستقلة (لتسهيل إضافة شرط الفرع وربطه بـ AND)
+    const conds = [];
+    const whereParams = [];
 
     if (unpaidOnly) {
-      whereClause = `WHERE ${UNPAID_CLAUSE}`;
-      params = [limit, offset];
-      countParams = [];
+      conds.push(`(${UNPAID_CLAUSE})`);
     } else if (dateFrom && dateTo) {
       if (includeUnpaid) {
-        whereClause = `WHERE ((DATE(created_at) >= ? AND DATE(created_at) <= ?) OR (${UNPAID_CLAUSE} AND DATE(created_at) < ?))`;
-        params = [dateFrom, dateTo, dateFrom, limit, offset];
-        countParams = [dateFrom, dateTo, dateFrom];
+        conds.push(`((DATE(created_at) >= ? AND DATE(created_at) <= ?) OR (${UNPAID_CLAUSE} AND DATE(created_at) < ?))`);
+        whereParams.push(dateFrom, dateTo, dateFrom);
       } else {
-        whereClause = 'WHERE DATE(created_at) >= ? AND DATE(created_at) <= ?';
-        params = [dateFrom, dateTo, limit, offset];
-        countParams = [dateFrom, dateTo];
+        conds.push('(DATE(created_at) >= ? AND DATE(created_at) <= ?)');
+        whereParams.push(dateFrom, dateTo);
       }
     } else if (date) {
       if (includeUnpaid) {
-        whereClause = `WHERE (DATE(created_at) = ? OR (${UNPAID_CLAUSE} AND DATE(created_at) < ?))`;
-        params = [date, date, limit, offset];
-        countParams = [date, date];
+        conds.push(`(DATE(created_at) = ? OR (${UNPAID_CLAUSE} AND DATE(created_at) < ?))`);
+        whereParams.push(date, date);
       } else {
-        whereClause = 'WHERE DATE(created_at) = ?';
-        params = [date, limit, offset];
-        countParams = [date];
+        conds.push('DATE(created_at) = ?');
+        whereParams.push(date);
       }
-    } else if (includeUnpaid) {
-      // no date filter but flag present: return all (paginated) — isCarried computed below
-      whereClause = '';
-      params = [limit, offset];
-      countParams = [];
     }
+
+    // نطاق الفرع: الأدمن الرئيسي يرى الكل أو يختار ?branchId=، ومستخدم الفرع مقيّد بفرعه
+    const scope = branchScopeFor(req.user, req.query.branchId);
+    if (scope.branchId != null) {
+      conds.push('COALESCE(branch_id,1) = ?');
+      whereParams.push(scope.branchId);
+    }
+
+    const whereClause = conds.length ? `WHERE ${conds.join(' AND ')}` : '';
+    const params = [...whereParams, limit, offset];
+    const countParams = [...whereParams];
 
     const rangeStart = dateFrom || date || null;
     const selectParams = [rangeStart, ...params];
@@ -3077,13 +3269,18 @@ app.put('/api/invoices/:id', authMiddleware, async (req, res) => {
 app.delete('/api/invoices/today', authMiddleware, requireAdmin, apiWriteRateLimit, async (req, res) => {
   try {
     const today = new Date().toISOString().split('T')[0];
-    const result = await get('SELECT COUNT(*) as count FROM invoices WHERE DATE(created_at) = ?', [today]);
+    // عزل الفرع: مستخدم/أدمن الفرع يحذف فواتير فرعه فقط
+    const scope = branchScopeFor(req.user, req.query.branchId);
+    const bWhere = scope.branchId == null ? '' : ' AND COALESCE(branch_id,1) = ?';
+    const bParams = scope.branchId == null ? [] : [scope.branchId];
+    const result = await get(`SELECT COUNT(*) as count FROM invoices WHERE DATE(created_at) = ?${bWhere}`, [today, ...bParams]);
     const count = result?.count || 0;
-    await run('DELETE FROM invoices WHERE DATE(created_at) = ?', [today]);
-    // إعادة ضبط عداد اليوم أيضاً لضمان بدء الترقيم من 001
-    await run('DELETE FROM daily_invoices WHERE date = ?', [today]);
-    // إعادة احتساب الجرد لليوم
-    recomputeDailyStats(today);
+    await run(`DELETE FROM invoices WHERE DATE(created_at) = ?${bWhere}`, [today, ...bParams]);
+    // إعادة ضبط عداد اليوم فقط عند حذف فواتير كل الفروع (العداد مشترك بين الفروع)
+    if (scope.branchId == null) {
+      await run('DELETE FROM daily_invoices WHERE date = ?', [today]);
+      recomputeDailyStats(today);
+    }
     invalidateStatsCache();
     res.json({
       success: true,
@@ -3240,7 +3437,12 @@ app.get('/api/daily-report/:date?', authMiddleware, async (req, res) => {
     const includeUnpaid = req.query.includeUnpaid === '1' || req.query.includeUnpaid === 'true';
     const UNPAID_CLAUSE = '((COALESCE(total,0)-COALESCE(discount,0)-COALESCE(paid_amount,0)) > 0)';
 
-    // الحصول على بيانات اليوم
+    // نطاق الفرع: مستخدم الفرع يرى جرده فقط؛ الأدمن الرئيسي يرى الكل أو ?branchId=
+    const scope = branchScopeFor(req.user, req.query.branchId);
+    const bWhere = scope.branchId == null ? '' : ' AND COALESCE(branch_id,1) = ?';
+    const bParams = scope.branchId == null ? [] : [scope.branchId];
+
+    // سجل اليوم العام (يُستخدم للترقيم وحالة الإغلاق) — الإجماليات تُحسب من فواتير الفرع عند تحديد نطاق
     const dailyRecord = await get('SELECT * FROM daily_invoices WHERE date = ?', [date]);
 
     // فواتير آجلة مرحّلة من أيام سابقة — تُجلب دائماً قبل أي early-return
@@ -3249,10 +3451,18 @@ app.get('/api/daily-report/:date?', authMiddleware, async (req, res) => {
     if (includeUnpaid) {
       carriedInvoices = await all(`
         SELECT * FROM invoices
-        WHERE ${UNPAID_CLAUSE} AND DATE(created_at) < ?
+        WHERE ${UNPAID_CLAUSE} AND DATE(created_at) < ?${bWhere}
         ORDER BY created_at ASC
-      `, [date]);
+      `, [date, ...bParams]);
     }
+
+    const mapCarried = (list) => list.map(invoice => {
+      try {
+        return { ...invoice, isCarried: 1, items: JSON.parse(invoice.items) };
+      } catch (_) {
+        return { ...invoice, isCarried: 1, items: [] };
+      }
+    });
 
     if (!dailyRecord) {
       return res.json({
@@ -3260,45 +3470,56 @@ app.get('/api/daily-report/:date?', authMiddleware, async (req, res) => {
         report: {
           date,
           totalInvoices: 0,
+          total_invoices: 0,
           totalRevenue: 0,
+          total_revenue: 0,
           totalDiscount: 0,
+          total_discount: 0,
           netRevenue: 0,
+          net_revenue: 0,
+          collected_revenue: 0,
           lastInvoiceNumber: 0,
           isClosed: false,
+          is_closed: 0,
           invoices: [],
-          carriedInvoices: carriedInvoices.map(invoice => {
-            try {
-              return { ...invoice, isCarried: 1, items: JSON.parse(invoice.items) };
-            } catch (_) {
-              return { ...invoice, isCarried: 1, items: [] };
-            }
-          })
+          carriedInvoices: mapCarried(carriedInvoices)
         }
       });
     }
 
-    // الحصول على فواتير اليوم
+    // الحصول على فواتير اليوم (مقيّدة بالفرع)
     const invoices = await all(`
       SELECT * FROM invoices 
-      WHERE DATE(created_at) = ?
+      WHERE DATE(created_at) = ?${bWhere}
             ORDER BY created_at ASC
-            `, [date]);
+            `, [date, ...bParams]);
+
+    let report = { ...dailyRecord };
+    // عند تحديد فرع: احسب إجماليات الفرع من فواتيره بدل الإجماليات العامة للسجل
+    if (scope.branchId != null) {
+      const rev = invoices.reduce((s, i) => s + (Number(i.total) || 0), 0);
+      const disc = invoices.reduce((s, i) => s + (Number(i.discount) || 0), 0);
+      const net = invoices.reduce((s, i) => s + (Number(i.final_total != null ? i.final_total : ((Number(i.total) || 0) - (Number(i.discount) || 0))) || 0), 0);
+      const collected = invoices.reduce((s, i) => s + (Number(i.paid_amount) || 0), 0);
+      report = {
+        ...report,
+        total_invoices: invoices.length,
+        total_revenue: rev,
+        total_discount: disc,
+        net_revenue: net,
+        collected_revenue: collected
+      };
+    }
 
     res.json({
       success: true,
       report: {
-        ...dailyRecord,
+        ...report,
         invoices: invoices.map(invoice => ({
           ...invoice,
           items: JSON.parse(invoice.items)
         })),
-        carriedInvoices: carriedInvoices.map(invoice => {
-          try {
-            return { ...invoice, isCarried: 1, items: JSON.parse(invoice.items) };
-          } catch (_) {
-            return { ...invoice, isCarried: 1, items: [] };
-          }
-        })
+        carriedInvoices: mapCarried(carriedInvoices)
       }
     });
 
@@ -3399,6 +3620,12 @@ app.get('/api/invoices-summary', authMiddleware, async (req, res) => {
     const dateFrom = (req.query.dateFrom || '').toString().trim().slice(0, 10);
     const dateTo = (req.query.dateTo || '').toString().trim().slice(0, 10);
 
+    // نطاق الفرع
+    const scope = branchScopeFor(req.user, req.query.branchId);
+    const bWhere = scope.branchId == null ? '' : ' WHERE COALESCE(branch_id,1) = ?';
+    const bAnd = scope.branchId == null ? '' : ' AND COALESCE(branch_id,1) = ?';
+    const bParams = scope.branchId == null ? [] : [scope.branchId];
+
     const summary = await get(`
       SELECT 
         COUNT(*) as totalInvoices,
@@ -3408,7 +3635,8 @@ app.get('/api/invoices-summary', authMiddleware, async (req, res) => {
             COALESCE(MAX(CASE WHEN final_total > 0 THEN final_total ELSE(total - COALESCE(discount, 0)) END), 0) as highestInvoice,
             COALESCE(MIN(CASE WHEN final_total > 0 THEN final_total ELSE(total - COALESCE(discount, 0)) END), 0) as lowestInvoice
       FROM invoices
-            `);
+      ${bWhere}
+            `, bParams);
 
     const todayStart = new Date();
     todayStart.setHours(0, 0, 0, 0);
@@ -3419,8 +3647,8 @@ app.get('/api/invoices-summary', authMiddleware, async (req, res) => {
             COALESCE(SUM(CASE WHEN final_total > 0 THEN final_total ELSE(total - COALESCE(discount, 0)) END), 0) as todayRevenue,
             COALESCE(SUM(COALESCE(paid_amount, 0)), 0) as todayCollectedRevenue
       FROM invoices
-      WHERE created_at >= ?
-            `, [todayStart.toISOString()]);
+      WHERE created_at >= ?${bAnd}
+            `, [todayStart.toISOString(), ...bParams]);
 
     let rangeSummary = null;
     if (dateFrom && dateTo) {
@@ -3430,8 +3658,8 @@ app.get('/api/invoices-summary', authMiddleware, async (req, res) => {
             COALESCE(SUM(CASE WHEN final_total > 0 THEN final_total ELSE(total - COALESCE(discount, 0)) END), 0) as rangeRevenue,
             COALESCE(SUM(COALESCE(paid_amount, 0)), 0) as rangeCollectedRevenue
         FROM invoices
-        WHERE DATE(created_at) >= ? AND DATE(created_at) <= ?
-            `, [dateFrom, dateTo]);
+        WHERE DATE(created_at) >= ? AND DATE(created_at) <= ?${bAnd}
+            `, [dateFrom, dateTo, ...bParams]);
     }
 
     res.json({

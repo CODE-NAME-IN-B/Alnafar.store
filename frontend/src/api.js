@@ -4,6 +4,26 @@ import axios from 'axios'
 const API_BASE = import.meta?.env?.VITE_API_BASE || '/api'
 export const api = axios.create({ baseURL: API_BASE })
 
+// ── نطاق الفرع النشط في لوحة التحكم ──
+// null = كل الفروع (الأدمن الرئيسي). يُرسَل كـ ?branchId= مع كل الطلب.
+let activeBranchId = null
+export function setActiveBranchId(id) {
+  activeBranchId = (id === null || id === undefined || id === '' || id === 'all') ? null : id
+}
+export function getActiveBranchId() {
+  return activeBranchId
+}
+
+api.interceptors.request.use(
+  config => {
+    if (activeBranchId != null) {
+      config.params = { ...(config.params || {}), branchId: activeBranchId }
+    }
+    return config
+  },
+  error => Promise.reject(error)
+)
+
 api.interceptors.response.use(
   response => response,
   error => {

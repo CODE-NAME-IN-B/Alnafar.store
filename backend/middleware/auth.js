@@ -22,6 +22,22 @@ function authMiddleware(req, res, next) {
   }
 }
 
+// يقرأ التوكن إن وُجد لكنه لا يرفض الطلب — للمسارات العامة التي تُريد تعرف هوية المستخدم إن موجود
+// (مثل إنشاء فاتورة POS: تُنسب للفرع تلقائياً إذا كان المستخدم مسجّل الدخول)
+function optionalAuthMiddleware(req, res, next) {
+  const header = req.headers.authorization || '';
+  const token = header.startsWith('Bearer ') ? header.slice(7) : null;
+  req.user = null;
+  if (token) {
+    try {
+      req.user = jwt.verify(token, JWT_SECRET_ACTIVE);
+    } catch (e) {
+      req.user = null; // توكن منتهي أو غير صالح — نتابع كضيف
+    }
+  }
+  next();
+}
+
 function requireAdmin(req, res, next) {
   if (!req.user || req.user.role !== 'admin') {
     return res.status(403).json({ message: 'Forbidden' });
@@ -40,10 +56,15 @@ function requireRole(...roles) {
 
 function signToken(user) {
   return jwt.sign(
-    { id: user.id, username: user.username, role: user.role || 'admin' },
+    {
+      id: user.id,
+      username: user.username,
+      role: user.role || 'admin',
+      branch_id: Number(user.branch_id) || 1
+    },
     JWT_SECRET_ACTIVE,
     { expiresIn: '7d' }
   );
 }
 
-module.exports = { authMiddleware, requireAdmin, requireRole, signToken, JWT_SECRET_ACTIVE };
+module.exports = { authMiddleware, optionalAuthMiddleware, requireAdmin, requireRole, signToken, JWT_SECRET_ACTIVE };

@@ -4,6 +4,7 @@ import Loader from './Loader'
 
 export default function UsersTab() {
   const [users, setUsers] = useState([])
+  const [branches, setBranches] = useState([])
   const [loading, setLoading] = useState(true)
   const [creating, setCreating] = useState(false)
   const [updating, setUpdating] = useState(false)
@@ -14,8 +15,15 @@ export default function UsersTab() {
   async function load() {
     try {
       setLoading(true)
-      const { data } = await api.get('/users')
-      setUsers(data.users || [])
+      const [usersRes, branchesRes] = await Promise.all([
+        api.get('/users'),
+        api.get('/branches')
+      ])
+      const ud = usersRes.data
+      setUsers(Array.isArray(ud) ? ud : (ud.users || []))
+      const rows = Array.isArray(branchesRes.data) ? branchesRes.data : (branchesRes.data?.branches || [])
+      setBranches(rows)
+      setForm(prev => prev.branch_id == null && rows.length ? { ...prev, branch_id: rows[0].id } : prev)
     } catch (e) {
       console.error(e)
       alert('تعذر تحميل المستخدمين')
@@ -31,8 +39,10 @@ export default function UsersTab() {
     if (!form.username.trim() || !form.password.trim()) return
     try {
       setCreating(true)
-      await api.post('/users', form)
-      setForm({ username: '', password: '', role: 'staff' })
+      const payload = { username: form.username, password: form.password, role: form.role }
+      if (form.branch_id != null) payload.branch_id = Number(form.branch_id)
+      await api.post('/users', payload)
+      setForm({ username: '', password: '', role: 'staff', branch_id: branches[0]?.id })
       await load()
     } catch (e) {
       alert(e?.response?.data?.message || 'فشل إنشاء المستخدم')
@@ -44,7 +54,9 @@ export default function UsersTab() {
     if (!editing) return
     try {
       setUpdating(true)
-      await api.put(`/users/${editing.id}`, { username: editing.username, role: editing.role })
+      const payload = { username: editing.username, role: editing.role }
+      if (editing.branch_id != null) payload.branch_id = Number(editing.branch_id)
+      await api.put(`/users/${editing.id}`, payload)
       setEditing(null)
       await load()
     } catch (e) {
@@ -118,6 +130,15 @@ export default function UsersTab() {
                 <option value="admin">مدير</option>
               </select>
             </div>
+            <div>
+              <label className="block text-xs sm:text-sm font-semibold text-gray-300 mb-1.5 sm:mb-2">الفرع</label>
+              <select className="w-full bg-gray-700 border border-gray-600 rounded-xl px-3 sm:px-4 py-2.5 sm:py-3 text-white text-sm sm:text-base" value={form.branch_id ?? ''} onChange={e=>setForm({...form, branch_id: Number(e.target.value)})}>
+                {branches.length === 0 && <option value="">—</option>}
+                {branches.map(b => (
+                  <option key={b.id} value={b.id}>{b.name}</option>
+                ))}
+              </select>
+            </div>
           </div>
           <div className="flex gap-3">
             <button disabled={creating} className="px-4 sm:px-6 py-2.5 sm:py-3 bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white font-semibold rounded-xl transition-all duration-300 text-sm sm:text-base min-h-[44px]">
@@ -140,7 +161,7 @@ export default function UsersTab() {
               <select className="w-full bg-gray-700 border border-gray-600 rounded-xl px-3 sm:px-4 py-2.5 sm:py-3 text-white text-sm sm:text-base" value={editing?.id || ''} onChange={(e)=>{
                 const id = Number(e.target.value)
                 const u = users.find(x=>x.id===id)
-                setEditing(u ? { ...u } : null)
+                setEditing(u ? { ...u, branch_id: u.branch_id ?? branches[0]?.id } : null)
               }}>
                 <option value="">—</option>
                 {users.map(u => (
@@ -159,6 +180,15 @@ export default function UsersTab() {
                   <select className="w-full bg-gray-700 border border-gray-600 rounded-xl px-3 sm:px-4 py-2.5 sm:py-3 text-white text-sm sm:text-base" value={editing.role} onChange={e=>setEditing({...editing, role:e.target.value})}>
                     <option value="staff">موظف</option>
                     <option value="admin">مدير</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-xs sm:text-sm font-semibold text-gray-300 mb-1.5 sm:mb-2">الفرع</label>
+                  <select className="w-full bg-gray-700 border border-gray-600 rounded-xl px-3 sm:px-4 py-2.5 sm:py-3 text-white text-sm sm:text-base" value={editing.branch_id ?? ''} onChange={e=>setEditing({...editing, branch_id: Number(e.target.value)})}>
+                    {branches.length === 0 && <option value="">—</option>}
+                    {branches.map(b => (
+                      <option key={b.id} value={b.id}>{b.name}</option>
+                    ))}
                   </select>
                 </div>
                 <div className="col-span-1 sm:col-span-2 flex flex-wrap gap-2 sm:gap-3">
@@ -182,6 +212,7 @@ export default function UsersTab() {
                 <th className="text-right py-3 px-2 sm:px-4">المعرف</th>
                 <th className="text-right py-3 px-2 sm:px-4">اسم المستخدم</th>
                 <th className="text-right py-3 px-2 sm:px-4">الدور</th>
+                <th className="text-right py-3 px-2 sm:px-4">الفرع</th>
                 <th className="text-right py-3 px-2 sm:px-4 hidden sm:table-cell">تاريخ الإضافة</th>
               </tr>
             </thead>
@@ -191,6 +222,7 @@ export default function UsersTab() {
                   <td className="py-3 px-2 sm:px-4">{u.id}</td>
                   <td className="py-3 px-2 sm:px-4">{u.username}</td>
                   <td className="py-3 px-2 sm:px-4">{u.role}</td>
+                  <td className="py-3 px-2 sm:px-4">{u.branch_name || '—'}</td>
                   <td className="py-3 px-2 sm:px-4 hidden sm:table-cell">{u.created_at ? new Date(u.created_at).toLocaleString('ar-LY') : '—'}</td>
                 </tr>
               ))}
