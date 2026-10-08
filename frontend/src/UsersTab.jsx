@@ -5,6 +5,8 @@ import Loader from './Loader'
 export default function UsersTab() {
   const [users, setUsers] = useState([])
   const [branches, setBranches] = useState([])
+  const [me, setMe] = useState(null)
+  const [movingId, setMovingId] = useState(null)
   const [loading, setLoading] = useState(true)
   const [creating, setCreating] = useState(false)
   const [updating, setUpdating] = useState(false)
@@ -12,17 +14,21 @@ export default function UsersTab() {
   const [editing, setEditing] = useState(null)
   const [pwModal, setPwModal] = useState({ open: false, id: null, username: '', password: '' })
 
+  const isSuperAdmin = !!me && me.role === 'admin' && Number(me.branch_id || 1) === 1
+
   async function load() {
     try {
       setLoading(true)
-      const [usersRes, branchesRes] = await Promise.all([
+      const [usersRes, branchesRes, meRes] = await Promise.all([
         api.get('/users'),
-        api.get('/branches')
+        api.get('/branches'),
+        api.get('/auth/me')
       ])
       const ud = usersRes.data
       setUsers(Array.isArray(ud) ? ud : (ud.users || []))
       const rows = Array.isArray(branchesRes.data) ? branchesRes.data : (branchesRes.data?.branches || [])
       setBranches(rows)
+      setMe(meRes.data?.user || null)
       setForm(prev => prev.branch_id == null && rows.length ? { ...prev, branch_id: rows[0].id } : prev)
     } catch (e) {
       console.error(e)
@@ -33,6 +39,18 @@ export default function UsersTab() {
   }
 
   useEffect(() => { load() }, [])
+
+  async function changeUserBranch(userId, branchId) {
+    try {
+      setMovingId(userId)
+      await api.put(`/users/${userId}`, { branch_id: Number(branchId) })
+      await load()
+    } catch (e) {
+      alert(e?.response?.data?.message || 'فشل نقل المستخدم إلى الفرع')
+    } finally {
+      setMovingId(null)
+    }
+  }
 
   async function createUser(e) {
     e.preventDefault()
@@ -222,7 +240,23 @@ export default function UsersTab() {
                   <td className="py-3 px-2 sm:px-4">{u.id}</td>
                   <td className="py-3 px-2 sm:px-4">{u.username}</td>
                   <td className="py-3 px-2 sm:px-4">{u.role}</td>
-                  <td className="py-3 px-2 sm:px-4">{u.branch_name || '—'}</td>
+                  <td className="py-3 px-2 sm:px-4">
+                    {isSuperAdmin ? (
+                      <select
+                        value={u.branch_id ?? ''}
+                        disabled={movingId === u.id}
+                        onChange={e => changeUserBranch(u.id, e.target.value)}
+                        title="نقل المستخدم إلى فرع آخر"
+                        className="bg-gray-700 border border-gray-600 hover:border-purple-500 focus:border-purple-500 rounded-lg px-2 py-1.5 text-white text-xs sm:text-sm cursor-pointer outline-none transition-colors disabled:opacity-50 disabled:cursor-wait"
+                      >
+                        {branches.map(b => (
+                          <option key={b.id} value={b.id}>{b.name}</option>
+                        ))}
+                      </select>
+                    ) : (
+                      <span>{u.branch_name || '—'}</span>
+                    )}
+                  </td>
                   <td className="py-3 px-2 sm:px-4 hidden sm:table-cell">{u.created_at ? new Date(u.created_at).toLocaleString('ar-LY') : '—'}</td>
                 </tr>
               ))}
