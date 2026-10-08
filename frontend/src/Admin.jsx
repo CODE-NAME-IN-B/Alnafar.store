@@ -40,6 +40,8 @@ export default function Admin() {
 
   useEffect(() => {
     loadAuthFromStorage();
+    setActiveBranchId(null);
+    setActiveBranch('all');
     const has = !!localStorage.getItem('token');
     if (has) {
       api.get('/auth/me').then(r => {
@@ -87,6 +89,7 @@ export default function Admin() {
 
   function logout() {
     setAuthToken(null)
+    setActiveBranchId(null)
     setLoggedIn(false)
     // إعادة التوجيه إلى الواجهة الرئيسية
     window.location.hash = '#/'
