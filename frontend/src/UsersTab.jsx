@@ -307,19 +307,30 @@ export default function UsersTab() {
             </div>
             <div>
               <label className="block text-gray-300 text-xs sm:text-sm mb-1.5 font-medium">الدور</label>
-              <select className={inputCls + ' cursor-pointer'} value={form.role} onChange={e => setForm({ ...form, role: e.target.value })}>
-                <option value="staff">موظف</option>
-                <option value="admin">مدير</option>
-              </select>
+              {isSuperAdmin ? (
+                <select className={inputCls + ' cursor-pointer'} value={form.role} onChange={e => setForm({ ...form, role: e.target.value })}>
+                  <option value="staff">موظف</option>
+                  <option value="admin">مدير</option>
+                </select>
+              ) : (
+                <div className={inputCls + ' flex items-center text-gray-300'}>موظف</div>
+              )}
             </div>
             <div>
               <label className="block text-gray-300 text-xs sm:text-sm mb-1.5 font-medium">الفرع</label>
-              <select className={inputCls + ' cursor-pointer'} value={form.branch_id ?? ''} onChange={e => setForm({ ...form, branch_id: Number(e.target.value) })}>
-                {branches.length === 0 && <option value="">—</option>}
-                {branches.map(b => (
-                  <option key={b.id} value={b.id}>{b.name}</option>
-                ))}
-              </select>
+              {isSuperAdmin ? (
+                <select className={inputCls + ' cursor-pointer'} value={form.branch_id ?? ''} onChange={e => setForm({ ...form, branch_id: Number(e.target.value) })}>
+                  {branches.length === 0 && <option value="">—</option>}
+                  {branches.map(b => (
+                    <option key={b.id} value={b.id}>{b.name}</option>
+                  ))}
+                </select>
+              ) : (
+                <div className={inputCls + ' flex items-center gap-1.5 text-gray-300'}>
+                  <BranchIcon className="w-4 h-4 text-gray-400" />
+                  {me?.branch_name || 'فرعك'}
+                </div>
+              )}
             </div>
           </div>
 
@@ -477,20 +488,31 @@ export default function UsersTab() {
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-gray-300 text-xs sm:text-sm mb-1.5 font-medium">الدور</label>
+                {isSuperAdmin ? (
                   <select className={inputCls + ' cursor-pointer'} value={editing.role} onChange={e => setEditing({ ...editing, role: e.target.value })}>
                     <option value="staff">موظف</option>
                     <option value="admin">مدير</option>
                   </select>
-                </div>
-                <div>
-                  <label className="block text-gray-300 text-xs sm:text-sm mb-1.5 font-medium">الفرع</label>
+                ) : (
+                  <div className={inputCls + ' flex items-center text-gray-300'}>موظف</div>
+                )}
+              </div>
+              <div>
+                <label className="block text-gray-300 text-xs sm:text-sm mb-1.5 font-medium">الفرع</label>
+                {isSuperAdmin ? (
                   <select className={inputCls + ' cursor-pointer'} value={editing.branch_id ?? ''} onChange={e => setEditing({ ...editing, branch_id: Number(e.target.value) })}>
                     {branches.length === 0 && <option value="">—</option>}
                     {branches.map(b => (
                       <option key={b.id} value={b.id}>{b.name}</option>
                     ))}
                   </select>
-                </div>
+                ) : (
+                  <div className={inputCls + ' flex items-center gap-1.5 text-gray-300'}>
+                    <BranchIcon className="w-4 h-4 text-gray-400" />
+                    {me?.branch_name || editing.branch_name || 'فرعك'}
+                  </div>
+                )}
+              </div>
               </div>
               <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 pt-4 border-t border-white/10">
                 <button

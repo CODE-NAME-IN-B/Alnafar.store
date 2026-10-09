@@ -707,18 +707,42 @@ app.use(async (req, res, next) => {
   }
 });
 
+// ── صفوف الجرد حسب النطاق ──
+// جدول daily_invoices عام (بلا فرع). للمستخدم المقيّد بفرع نحسب الإجماليات من invoices مجمّعة بالتاريخ.
+async function dailyReportRowsForScope(scope, start, end) {
+  if (scope.branchId == null) {
+    return await all(`
+      SELECT date, total_invoices, total_revenue, total_discount, net_revenue, is_closed, closed_at, COALESCE(notes,'') AS notes
+      FROM daily_invoices
+      WHERE date BETWEEN ? AND ?
+      ORDER BY date ASC
+    `, [start, end]);
+  }
+  return await all(`
+    SELECT DATE(i.created_at) AS date,
+      COUNT(*) AS total_invoices,
+      COALESCE(SUM(i.total), 0) AS total_revenue,
+      COALESCE(SUM(COALESCE(i.discount, 0)), 0) AS total_discount,
+      COALESCE(SUM(COALESCE(i.final_total, COALESCE(i.total, 0) - COALESCE(i.discount, 0))), 0) AS net_revenue,
+      COALESCE(d.is_closed, 0) AS is_closed,
+      d.closed_at AS closed_at,
+      COALESCE(d.notes, '') AS notes
+    FROM invoices i
+    LEFT JOIN daily_invoices d ON d.date = DATE(i.created_at)
+    WHERE DATE(i.created_at) BETWEEN ? AND ? AND COALESCE(i.branch_id, 1) = ?
+    GROUP BY DATE(i.created_at)
+    ORDER BY date ASC
+  `, [start, end, scope.branchId]);
+}
+
 // تقارير بنطاق تاريخ
 app.get('/api/daily-report-range', authMiddleware, async (req, res) => {
   try {
     const start = (req.query.start || '').slice(0, 10);
     const end = ((req.query.end || start) || '').slice(0, 10);
     if (!start) return res.status(400).json({ success: false, message: 'start مطلوب' });
-    const rows = await all(`
-      SELECT date, total_invoices, total_revenue, total_discount, net_revenue, is_closed, closed_at, COALESCE(notes,'') AS notes
-      FROM daily_invoices
-      WHERE date BETWEEN ? AND ?
-      ORDER BY date ASC
-    `, [start, end]);
+    const scope = branchScopeFor(req.user, req.query.branchId);
+    const rows = await dailyReportRowsForScope(scope, start, end);
     const totals = rows.reduce((acc, r) => {
       acc.total_invoices += (r.total_invoices || 0);
       acc.total_revenue += (r.total_revenue || 0);
@@ -739,12 +763,8 @@ app.get('/api/daily-report/export.csv', authMiddleware, async (req, res) => {
     const start = (req.query.start || '').slice(0, 10);
     const end = ((req.query.end || start) || '').slice(0, 10);
     if (!start) return res.status(400).json({ message: 'start مطلوب' });
-    const rows = await all(`
-      SELECT date, total_invoices, total_revenue, total_discount, net_revenue, is_closed, closed_at, COALESCE(notes,'') AS notes
-      FROM daily_invoices
-      WHERE date BETWEEN ? AND ?
-      ORDER BY date ASC
-    `, [start, end]);
+    const scope = branchScopeFor(req.user, req.query.branchId);
+    const rows = await dailyReportRowsForScope(scope, start, end);
     function csvEscape(val) {
       const s = String(val == null ? '' : val).replace(/"/g, '""');
       return '"' + s + '"';
@@ -873,9 +893,9 @@ function updateDailyStats(invoiceData) {
 }
 
 // إعادة احتساب إحصائيات الجرد اليومي من جدول الفواتير
-function recomputeDailyStats(dateStr) {
+async function recomputeDailyStats(dateStr) {
   const date = dateStr || new Date().toISOString().split('T')[0];
-  const agg = get(`
+  const agg = await get(`
     SELECT 
       COUNT(*) AS total_invoices,
       COALESCE(SUM(total), 0) AS total_revenue,
@@ -884,7 +904,7 @@ function recomputeDailyStats(dateStr) {
     FROM invoices
     WHERE DATE(created_at) = ?
   `, [date]);
-  const lastNum = get(`
+  const lastNum = await get(`
     SELECT COALESCE(MAX(CAST(substr(invoice_number, 10) AS INTEGER)), 0) AS last
     FROM invoices
     WHERE DATE(created_at) = ?
@@ -895,12 +915,12 @@ function recomputeDailyStats(dateStr) {
     const totalDisc = agg.total_discount;
     const netRev = totalRev - totalDisc;
     const collectedRev = agg.collected_revenue;
-    const existing = get('SELECT * FROM daily_invoices WHERE date = ?', [date]);
+    const existing = await get('SELECT * FROM daily_invoices WHERE date = ?', [date]);
 
     if (!existing || !existing.id) {
-      run(`INSERT INTO daily_invoices (date, last_invoice_number, total_invoices, total_revenue, total_discount, net_revenue, collected_revenue, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)`, [date, lastNum.last || 0, agg.total_invoices || 0, totalRev, totalDisc, netRev, collectedRev]);
+      await run(`INSERT INTO daily_invoices (date, last_invoice_number, total_invoices, total_revenue, total_discount, net_revenue, collected_revenue, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)`, [date, lastNum.last || 0, agg.total_invoices || 0, totalRev, totalDisc, netRev, collectedRev]);
     } else {
-      run(`UPDATE daily_invoices SET last_invoice_number = ?, total_invoices = ?, total_revenue = ?, total_discount = ?, net_revenue = ?, collected_revenue = ?, updated_at = CURRENT_TIMESTAMP WHERE date = ?`, [lastNum.last || 0, agg.total_invoices || 0, totalRev, totalDisc, netRev, collectedRev, date]);
+      await run(`UPDATE daily_invoices SET last_invoice_number = ?, total_invoices = ?, total_revenue = ?, total_discount = ?, net_revenue = ?, collected_revenue = ?, updated_at = CURRENT_TIMESTAMP WHERE date = ?`, [lastNum.last || 0, agg.total_invoices || 0, totalRev, totalDisc, netRev, collectedRev, date]);
     }
   }
 }
@@ -1329,7 +1349,14 @@ app.put('/api/invoices/:id/status', authMiddleware, async (req, res) => {
 
     if (!status) return res.status(400).json({ success: false, message: 'الحالة مطلوبة' });
 
-    const oldInvoice = await get('SELECT status FROM invoices WHERE id = ?', [id]);
+    const oldInvoice = await get('SELECT id, status, branch_id FROM invoices WHERE id = ?', [id]);
+    if (!oldInvoice || !oldInvoice.id) {
+      return res.status(404).json({ success: false, message: 'الفاتورة غير موجودة' });
+    }
+    const scope = branchScopeFor(req.user, req.query.branchId);
+    if (scope.branchId != null && (Number(oldInvoice.branch_id) || 1) !== scope.branchId) {
+      return res.status(403).json({ success: false, message: 'لا يمكنك تعديل فاتورة من فرع آخر' });
+    }
     await run('UPDATE invoices SET status = ? WHERE id = ?', [status, id]);
     const updated = await get('SELECT * FROM invoices WHERE id = ?', [id]);
 
@@ -1873,8 +1900,10 @@ app.post('/api/users', authMiddleware, requireAdmin, async (req, res) => {
     if (exists && exists.id) return res.status(409).json({ message: 'Username already exists' });
     // الأدمن الرئيسي يوزّع على أي فرع؛ أدمن الفرع يقدر ينشئ في فرعه فقط
     let targetBranch = isSuperAdmin(req.user) ? (Number(branch_id) || 1) : (Number(req.user.branch_id) || 1);
+    // أدمن الفرع لا يستطيع ترقية مستخدم إلى مدير (منع تصعيد الصلاحيات)
+    const safeRole = isSuperAdmin(req.user) ? (role === 'admin' ? 'admin' : 'staff') : 'staff';
     const hashed = bcrypt.hashSync(password, 10);
-    await run('INSERT INTO users (username, password, role, branch_id) VALUES (?, ?, ?, ?)', [username, hashed, role, targetBranch]);
+    await run('INSERT INTO users (username, password, role, branch_id) VALUES (?, ?, ?, ?)', [username, hashed, safeRole, targetBranch]);
     const created = await get(
       `SELECT u.id, u.username, u.role, u.created_at, COALESCE(u.branch_id,1) as branch_id, b.name as branch_name
        FROM users u LEFT JOIN branches b ON b.id = COALESCE(u.branch_id,1) WHERE u.username = ?`,
@@ -2000,10 +2029,17 @@ app.get('/api/categories', optionalAuthMiddleware, async (req, res) => {
 // عام: يعيد الفروع النشطة فقط لعرضها في واجهة المتجر
 app.get('/api/branches', optionalAuthMiddleware, async (req, res) => {
   try {
-    const isAdmin = req.user && req.user.role === 'admin';
-    const rows = isAdmin
-      ? await all('SELECT * FROM branches ORDER BY is_main DESC, id ASC')
-      : await all('SELECT id, name, address, phone, is_main FROM branches WHERE is_active = 1 ORDER BY is_main DESC, id ASC');
+    let rows;
+    if (req.query.public === '1' || !req.user) {
+      // المتجر العام (زائر أو طلب عام صريح): الفروع النشطة فقط
+      rows = await all('SELECT id, name, address, phone, is_main FROM branches WHERE is_active = 1 ORDER BY is_main DESC, id ASC');
+    } else if (isSuperAdmin(req.user)) {
+      // الأدمن الرئيسي: كل الفروع
+      rows = await all('SELECT * FROM branches ORDER BY is_main DESC, id ASC');
+    } else {
+      // مستخدم فرع: فرعه فقط (لا تسريب لباقي الفروع)
+      rows = await all('SELECT id, name, address, phone, is_main, is_active FROM branches WHERE id = ? ORDER BY is_main DESC, id ASC', [Number(req.user.branch_id) || 1]);
+    }
     res.json({ success: true, branches: rows });
   } catch (error) {
     console.error('Error fetching branches:', error);
@@ -3383,6 +3419,11 @@ app.put('/api/invoices/:id', authMiddleware, async (req, res) => {
       return res.status(404).json({ success: false, message: 'الفاتورة غير موجودة' });
     }
 
+    const scope = branchScopeFor(req.user, req.query.branchId);
+    if (scope.branchId != null && (Number(invoice.branch_id) || 1) !== scope.branchId) {
+      return res.status(403).json({ success: false, message: 'لا يمكنك تعديل فاتورة من فرع آخر' });
+    }
+
     const finalTotal = (total || invoice.total) - (discount !== undefined ? discount : (invoice.discount || 0));
     const currentPaid = paidAmount !== undefined ? paidAmount : (invoice.paid_amount || 0);
     const status = requestedStatus || (currentPaid <= 0 ? 'pending' : (currentPaid >= finalTotal ? 'completed' : 'pending'));
@@ -3465,7 +3506,7 @@ app.delete('/api/invoices/today', authMiddleware, requireAdmin, apiWriteRateLimi
     // إعادة ضبط عداد اليوم فقط عند حذف فواتير كل الفروع (العداد مشترك بين الفروع)
     if (scope.branchId == null) {
       await run('DELETE FROM daily_invoices WHERE date = ?', [today]);
-      recomputeDailyStats(today);
+      await recomputeDailyStats(today);
     }
     invalidateStatsCache();
     res.json({
@@ -3498,6 +3539,11 @@ app.put('/api/invoices/:id/payment', authMiddleware, async (req, res) => {
     const invoice = await get('SELECT * FROM invoices WHERE id = ?', [id]);
     if (!invoice || !invoice.id) {
       return res.status(404).json({ success: false, message: 'الفاتورة غير موجودة' });
+    }
+
+    const scope = branchScopeFor(req.user, req.query.branchId);
+    if (scope.branchId != null && (Number(invoice.branch_id) || 1) !== scope.branchId) {
+      return res.status(403).json({ success: false, message: 'لا يمكنك تعديل فاتورة من فرع آخر' });
     }
 
     const oldPaidAmount = invoice.paid_amount || 0;
@@ -3563,11 +3609,16 @@ app.delete('/api/invoices/:id', authMiddleware, requireAdmin, apiWriteRateLimit,
       return res.status(404).json({ success: false, message: 'الفاتورة غير موجودة' });
     }
 
+    const scope = branchScopeFor(req.user, req.query.branchId);
+    if (scope.branchId != null && (Number(invoice.branch_id) || 1) !== scope.branchId) {
+      return res.status(403).json({ success: false, message: 'لا يمكنك حذف فاتورة من فرع آخر' });
+    }
+
     await run('DELETE FROM invoices WHERE id = ?', [id]);
     // إعادة احتساب الجرد لليوم الموافق لتاريخ هذه الفاتورة
     try {
       const dateStr = (invoice.created_at || '').slice(0, 10) || new Date().toISOString().split('T')[0];
-      recomputeDailyStats(dateStr);
+      await recomputeDailyStats(dateStr);
     } catch (_) { }
 
     res.json({
@@ -3588,16 +3639,40 @@ app.delete('/api/invoices/:id', authMiddleware, requireAdmin, apiWriteRateLimit,
 
 
 // حذف جميع الفواتير - admin only (خطير!)
+// الأدمن الرئيسي يحذف الكل؛ مستخدم الفرع يحذف فواتير فرعه فقط
 app.delete('/api/invoices', authMiddleware, requireAdmin, apiWriteRateLimit, async (req, res) => {
   try {
-    const countResult = await get('SELECT COUNT(*) as count FROM invoices');
+    const scope = branchScopeFor(req.user, req.query.branchId);
+
+    if (scope.branchId == null) {
+      const countResult = await get('SELECT COUNT(*) as count FROM invoices');
+      const count = countResult?.count || 0;
+
+      await run('DELETE FROM invoices');
+      await run("DELETE FROM sqlite_sequence WHERE name='invoices'");
+      // Clear daily reports as well since invoices are wiped
+      await run('DELETE FROM daily_invoices');
+      await run("DELETE FROM sqlite_sequence WHERE name='daily_invoices'");
+      invalidateStatsCache();
+
+      return res.json({
+        success: true,
+        message: `تم حذف ${count} فاتورة بنجاح`,
+        deletedCount: count
+      });
+    }
+
+    // نطاق فرع: حذف فواتير هذا الفرع فقط ثم إعادة احتساب الجرد العام لليوميات المتأثرة
+    const dates = await all('SELECT DISTINCT DATE(created_at) AS date FROM invoices WHERE COALESCE(branch_id,1) = ?', [scope.branchId]);
+    const countResult = await get('SELECT COUNT(*) as count FROM invoices WHERE COALESCE(branch_id,1) = ?', [scope.branchId]);
     const count = countResult?.count || 0;
 
-    await run('DELETE FROM invoices');
-    await run("DELETE FROM sqlite_sequence WHERE name='invoices'");
-    // Clear daily reports as well since invoices are wiped
-    await run('DELETE FROM daily_invoices');
-    await run("DELETE FROM sqlite_sequence WHERE name='daily_invoices'");
+    await run('DELETE FROM invoices WHERE COALESCE(branch_id,1) = ?', [scope.branchId]);
+    for (const d of dates) {
+      if (d && d.date) {
+        try { await recomputeDailyStats(d.date); } catch (_) { }
+      }
+    }
     invalidateStatsCache();
 
     res.json({
@@ -3766,18 +3841,43 @@ app.post('/api/daily-report/:date/close', authMiddleware, (req, res) => {
 });
 
 // الحصول على تقرير الأيام السابقة
-app.get('/api/daily-reports', authMiddleware, (req, res) => {
+app.get('/api/daily-reports', authMiddleware, async (req, res) => {
   try {
     const limit = parseInt(req.query.limit) || 30;
     const offset = parseInt(req.query.offset) || 0;
+    const scope = branchScopeFor(req.user, req.query.branchId);
 
-    const reports = all(`
-      SELECT * FROM daily_invoices 
-      ORDER BY date DESC 
-      LIMIT ? OFFSET ?
-              `, [limit, offset]);
-
-    const total = get('SELECT COUNT(*) as count FROM daily_invoices').count;
+    let reports;
+    let total;
+    if (scope.branchId == null) {
+      reports = await all(`
+        SELECT * FROM daily_invoices 
+        ORDER BY date DESC 
+        LIMIT ? OFFSET ?
+      `, [limit, offset]);
+      const totalRow = await get('SELECT COUNT(*) as count FROM daily_invoices');
+      total = totalRow?.count || 0;
+    } else {
+      // مستخدم فرع: نجمع تواريخ فواتير فرعه فقط ونربطها بحالة الإغلاق العامة
+      reports = await all(`
+        SELECT DATE(i.created_at) AS date,
+          COUNT(*) AS total_invoices,
+          COALESCE(SUM(i.total), 0) AS total_revenue,
+          COALESCE(SUM(COALESCE(i.discount, 0)), 0) AS total_discount,
+          COALESCE(SUM(COALESCE(i.final_total, COALESCE(i.total, 0) - COALESCE(i.discount, 0))), 0) AS net_revenue,
+          COALESCE(MAX(d.is_closed), 0) AS is_closed,
+          MAX(d.closed_at) AS closed_at,
+          COALESCE(MAX(d.notes), '') AS notes
+        FROM invoices i
+        LEFT JOIN daily_invoices d ON d.date = DATE(i.created_at)
+        WHERE COALESCE(i.branch_id, 1) = ?
+        GROUP BY DATE(i.created_at)
+        ORDER BY date DESC
+        LIMIT ? OFFSET ?
+      `, [scope.branchId, limit, offset]);
+      const totalRow = await get('SELECT COUNT(DISTINCT DATE(created_at)) as count FROM invoices WHERE COALESCE(branch_id,1) = ?', [scope.branchId]);
+      total = totalRow?.count || 0;
+    }
 
     res.json({
       success: true,
