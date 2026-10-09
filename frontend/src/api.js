@@ -16,7 +16,8 @@ export function getActiveBranchId() {
 
 api.interceptors.request.use(
   config => {
-    if (activeBranchId != null) {
+    // لا نُجبر الفرع النشط إذا حدّد الطلب فرعه بنفسه (مثال: فلتر سجل النشاط)
+    if (activeBranchId != null && config.params?.branchId == null) {
       config.params = { ...(config.params || {}), branchId: activeBranchId }
     }
     return config
