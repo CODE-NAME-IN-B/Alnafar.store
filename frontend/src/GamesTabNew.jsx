@@ -34,8 +34,6 @@ export default function GamesTab() {
   const [visibleCount, setVisibleCount] = useState(24)
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
-  const [classifying, setClassifying] = useState(false)
-  const [classifyProgress, setClassifyProgress] = useState(null)
 
   async function load() {
     try {
@@ -122,56 +120,6 @@ export default function GamesTab() {
     } catch (error) {
       console.error('خطأ في حذف اللعبة:', error);
       showToast('حدث خطأ أثناء حذف اللعبة. يرجى المحاولة مرة أخرى.', 'error')
-    }
-  }
-
-  async function handleClassify() {
-    const confirmed = confirm('تصنيف الألعاب حسب النوع والسلسلة بالعربية؟');
-    if (!confirmed) return;
-
-    const list = filteredItems.length ? filteredItems : items;
-    if (!list.length) { showToast('لا توجد ألعاب لتصنيفها', 'error'); return; }
-
-    try {
-      setClassifying(true)
-      let updated = 0;
-      const updatedGames = [];
-
-      for (let i = 0; i < list.length; i++) {
-        const g = list[i];
-        setClassifyProgress({ current: i + 1, total: list.length, title: g.title });
-        try {
-          const { data } = await api.post('/analyze-game-genre', { title: g.title });
-          if (data?.success && data.arabicGenre) {
-            const features = data.features.length > 0 ? JSON.stringify(data.features) : null;
-            const updatedGame = { ...g, genre: data.arabicGenre, features };
-            await api.put(`/games/${g.id}`, updatedGame);
-            // تجميع التحديثات بدلاً من التحديث المباشر
-            updatedGames.push(updatedGame);
-            updated++;
-          }
-          await new Promise(r => setTimeout(r, 2500)); // Rate limiting
-        } catch (e) {
-          console.error('خطأ في تصنيف اللعبة:', e);
-          await new Promise(r => setTimeout(r, 1000));
-        }
-      }
-
-      // تحديث واحد في النهاية بدلاً من تحديثات متعددة
-      if (updatedGames.length > 0) {
-        setItems(prevItems => {
-          const updatedMap = new Map(updatedGames.map(game => [game.id, game]));
-          return prevItems.map(item => updatedMap.get(item.id) || item);
-        });
-      }
-
-      showToast(`تم تصنيف ${updated} لعبة بالعربية`)
-    } catch (error) {
-      console.error('خطأ عام في التصنيف:', error);
-      showToast('حدث خطأ أثناء التصنيف. يرجى المحاولة مرة أخرى.', 'error')
-    } finally {
-      setClassifying(false)
-      setClassifyProgress(null)
     }
   }
 
@@ -280,30 +228,6 @@ export default function GamesTab() {
             </div>
           </div>
 
-          <div className="flex flex-col gap-1.5">
-            <button
-              type="button"
-              onClick={handleClassify}
-              disabled={classifying}
-              className="btn btn-secondary"
-              title="تصنيف الألعاب حسب النوع والسلسلة بالعربية"
-            >
-              {classifying ? (
-                <>
-                  <span className="loading-spinner !w-4 !h-4"></span>
-                  {classifyProgress ? `${classifyProgress.current} / ${classifyProgress.total}` : 'جاري التصنيف...'}
-                </>
-              ) : (
-                <>
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={1.7} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M9.568 3H5.25A2.25 2.25 0 003 5.25v4.318c0 .597.237 1.17.659 1.591l9.581 9.581c.699.699 1.78.872 2.607.33a18.095 18.095 0 005.223-5.223c.542-.827.369-1.908-.33-2.607L11.16 3.66A2.25 2.25 0 009.568 3z" /></svg>
-                  تصنيف حسب النوع والسلسلة
-                </>
-              )}
-            </button>
-            {classifying && classifyProgress && (
-              <p className="text-[11px] text-gray-400 truncate max-w-[240px]" title={classifyProgress.title}>{classifyProgress.title}</p>
-            )}
-          </div>
         </div>
       </div>
 

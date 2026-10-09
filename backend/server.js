@@ -2908,8 +2908,8 @@ app.post('/api/invoices', optionalAuthMiddleware, publicOrderRateLimit, async (r
       date
     } = req.body;
 
-    // نسبة الفاتورة للفرع: فرع المستخدم المسجّل، أو الفرع الرئيسي للطلبات العامة
-    const invoiceBranchId = Number(req.body.branch_id) || Number(req.user && req.user.branch_id) || 1;
+    // نسبة الفاتورة للفرع: فرع المستخدم المسجّل يفوز دائماً، وإلا الفرع المرسل من الطلب العام، وإلا الفرع الرئيسي
+    const invoiceBranchId = req.user ? (Number(req.user.branch_id) || 1) : (Number(req.body.branch_id) || 1);
 
     const createdAt = date || new Date().toISOString();
     const computedFinal = finalTotal || (total - discount);
