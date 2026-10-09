@@ -2873,9 +2873,11 @@ app.get('/api/stats', optionalAuthMiddleware, async (req, res) => {
       }
     }
 
-    const result = { totalOrders: totals?.totalOrders || 0, topGames: top };
+    const gamesCount = await get('SELECT COUNT(*) AS c FROM games');
+
+    const result = { totalOrders: totals?.totalOrders || 0, topGames: top, totalGames: gamesCount?.c || 0 };
     statsCache = { data: result, timestamp: now, key: cacheKey };
-    console.log('📊 Stats generated (cached for 5min):', { totalOrders: result.totalOrders, topGames: top.length });
+    console.log('📊 Stats generated (cached for 5min):', { totalOrders: result.totalOrders, topGames: top.length, totalGames: result.totalGames });
     res.json(result);
   } catch (error) {
     console.error('Error fetching stats:', error);

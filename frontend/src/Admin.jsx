@@ -5,6 +5,7 @@ import InvoiceSettings from './InvoiceSettings'
 import InvoicesTab from './InvoicesTab'
 import Loader from './Loader'
 import { preloadLogo } from './utils/logoCache'
+import { showToast as showToastShared } from './utils/toast'
 import DailyReportTab from './DailyReportTab'
 import GenreSeriesManager from './GenreSeriesManager'
 import logo from '../assites/logo.png'
@@ -17,12 +18,7 @@ function currency(num) {
 }
 
 function showToast(message, type = 'info') {
-  const toast = document.createElement('div')
-  toast.className = `toast toast-${type}`
-  toast.textContent = message
-  document.body.appendChild(toast)
-  setTimeout(() => { toast.style.opacity = '0'; toast.style.transform = 'translateX(-50%) translateY(1rem)' }, 3000)
-  setTimeout(() => toast.remove(), 3500)
+  showToastShared(message, type)
 }
 
 export default function Admin() {
@@ -339,41 +335,62 @@ function CategoriesTab() {
   const [items, setItems] = useState([])
   const [name, setName] = useState('')
   const [editing, setEditing] = useState(null)
+  const [loading, setLoading] = useState(true)
+  const [saving, setSaving] = useState(false)
 
   async function load() {
     try {
+      setLoading(true)
       const { data } = await api.get('/categories');
       setItems(Array.isArray(data) ? data : [])
     } catch (e) {
       setItems([])
+      showToast('تعذر تحميل التصنيفات', 'error')
+    } finally {
+      setLoading(false)
     }
   }
 
   useEffect(() => { load() }, [])
 
-  async function save() {
+  async function save(e) {
+    if (e) e.preventDefault()
     if (!name.trim()) return
-    if (editing) {
-      await api.put(`/categories/${editing.id}`, { name })
-      // تحديث محلي بدلاً من إعادة التحميل
-      setItems(prevItems =>
-        prevItems.map(item =>
-          item.id === editing.id ? { ...item, name } : item
+    try {
+      setSaving(true)
+      if (editing) {
+        await api.put(`/categories/${editing.id}`, { name: name.trim() })
+        // تحديث محلي بدلاً من إعادة التحميل
+        setItems(prevItems =>
+          prevItems.map(item =>
+            item.id === editing.id ? { ...item, name: name.trim() } : item
+          )
         )
-      )
-    } else {
-      const response = await api.post('/categories', { name })
-      // إضافة التصنيف الجديد محلياً
-      setItems(prevItems => [...prevItems, response.data])
+        showToast('تم تحديث التصنيف بنجاح')
+      } else {
+        const response = await api.post('/categories', { name: name.trim() })
+        // إضافة التصنيف الجديد محلياً
+        setItems(prevItems => [...prevItems, response.data])
+        showToast('تمت إضافة التصنيف بنجاح')
+      }
+      setName(''); setEditing(null)
+    } catch (e) {
+      showToast(e?.response?.data?.message || 'فشل حفظ التصنيف', 'error')
+    } finally {
+      setSaving(false)
     }
-    setName(''); setEditing(null)
   }
 
   async function remove(id) {
     if (!confirm('هل أنت متأكد من حذف هذا التصنيف؟')) return
-    await api.delete(`/categories/${id}`)
-    // حذف محلي بدلاً من إعادة التحميل
-    setItems(prevItems => prevItems.filter(item => item.id !== id))
+    try {
+      await api.delete(`/categories/${id}`)
+      // حذف محلي بدلاً من إعادة التحميل
+      setItems(prevItems => prevItems.filter(item => item.id !== id))
+      showToast('تم حذف التصنيف')
+    } catch (e) {
+      showToast('تعذر حذف التصنيف', 'error')
+    }
   }
 
   async function toggleVisibility(item) {
@@ -381,32 +398,51 @@ function CategoriesTab() {
     try {
       await api.put(`/categories/${item.id}/visibility`, { is_visible: next })
       setItems(prevItems => prevItems.map(c => c.id === item.id ? { ...c, is_visible: next } : c))
+      showToast(next ? 'أصبح التصنيف ظاهراً' : 'تم إخفاء التصنيف')
     } catch (e) {
       showToast('تعذر تغيير حالة الظهور', 'error')
     }
+  }
+
+  if (loading) {
+    return (
+      <div className="p-4 sm:p-6 lg:p-8">
+        <div className="skeleton-header mb-6"></div>
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 lg:gap-8">
+          {[0, 1].map(i => (
+            <div key={i} className="bg-gray-900/40 backdrop-blur-md rounded-2xl border border-white/5 shadow-xl p-5 sm:p-6 space-y-3">
+              <div className="skeleton h-8 w-1/2 rounded-lg"></div>
+              <div className="skeleton h-12 w-full rounded-xl"></div>
+              <div className="skeleton h-12 w-full rounded-xl"></div>
+              <div className="skeleton h-12 w-full rounded-xl"></div>
+            </div>
+          ))}
+        </div>
+      </div>
+    )
   }
 
   return (
     <div className="p-4 sm:p-6 lg:p-8">
       <div className="mb-6 sm:mb-8">
         <h2 className="text-2xl sm:text-3xl font-bold text-white mb-2">إدارة التصنيفات</h2>
-        <p className="text-gray-400">إضافة وتعديل وحذف تصنيفات الألعاب</p>
+        <p className="text-gray-400 text-sm sm:text-base">إضافة وتعديل وحذف تصنيفات الألعاب</p>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 lg:gap-8">
-        <div className="bg-gradient-to-br from-gray-800 to-gray-900 p-5 sm:p-8 rounded-2xl border border-gray-700 shadow-2xl">
-          <div className="flex items-center mb-5 sm:mb-6">
-            <div className="w-10 h-10 sm:w-12 sm:h-12 bg-gradient-to-r from-green-500 to-green-600 rounded-xl flex items-center justify-center mr-3 sm:mr-4 flex-shrink-0">
-              <svg className="w-5 h-5 sm:w-6 sm:h-6 text-white" fill="none" stroke="currentColor" strokeWidth={1.5} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M2.25 12.75V12A2.25 2.25 0 014.5 9.75h15A2.25 2.25 0 0121.75 12v.75m-8.69-6.44l-2.12-2.12a1.5 1.5 0 00-1.061-.44H4.5A2.25 2.25 0 002.25 6v12a2.25 2.25 0 002.25 2.25h15A2.25 2.25 0 0021.75 18V9a2.25 2.25 0 00-2.25-2.25h-5.379a1.5 1.5 0 01-1.06-.44z" /></svg>
+        <div className="bg-gray-900/40 backdrop-blur-md rounded-2xl border border-white/5 shadow-xl p-5 sm:p-6">
+          <div className="flex items-center gap-3 mb-5 sm:mb-6">
+            <div className="w-10 h-10 sm:w-12 sm:h-12 bg-teal-500/10 border border-teal-500/20 text-teal-400 rounded-xl flex items-center justify-center shrink-0">
+              <svg className="w-5 h-5 sm:w-6 sm:h-6" fill="none" stroke="currentColor" strokeWidth={1.5} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M9.568 3H5.25A2.25 2.25 0 003 5.25v4.318c0 .597.237 1.17.659 1.591l9.581 9.581c.699.699 1.78.872 2.607.33a18.095 18.095 0 005.223-5.223c.542-.827.369-1.908-.33-2.607L11.16 3.66A2.25 2.25 0 009.568 3z" /><path strokeLinecap="round" strokeLinejoin="round" d="M6 6h.008v.008H6V6z" /></svg>
             </div>
             <h3 className="text-xl sm:text-2xl font-bold text-white">{editing ? 'تعديل التصنيف' : 'إضافة تصنيف جديد'}</h3>
           </div>
 
-          <div className="space-y-4 sm:space-y-6">
+          <form onSubmit={save} className="space-y-4 sm:space-y-6">
             <div>
               <label className="block text-sm font-semibold text-gray-300 mb-2">اسم التصنيف</label>
               <input
-                className="w-full bg-gray-700 border border-gray-600 rounded-xl px-4 py-3 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all duration-300"
+                className="w-full bg-gray-950 border border-gray-700/50 rounded-xl px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-teal-500/50 transition-all"
                 placeholder="أدخل اسم التصنيف"
                 value={name}
                 onChange={e => setName(e.target.value)}
@@ -415,64 +451,89 @@ function CategoriesTab() {
 
             <div className="flex gap-3">
               <button
-                onClick={save}
-                className="flex-1 px-4 sm:px-6 py-3 bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white font-semibold rounded-xl transition-all duration-300 hover:scale-105 shadow-lg text-sm sm:text-base"
+                type="submit"
+                disabled={saving || !name.trim()}
+                className="btn btn-primary flex-1"
               >
-                {editing ? 'تحديث التصنيف' : 'إضافة التصنيف'}
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" /></svg>
+                {saving ? 'جاري الحفظ...' : (editing ? 'تحديث التصنيف' : 'إضافة التصنيف')}
               </button>
               {editing && (
                 <button
+                  type="button"
                   onClick={() => { setEditing(null); setName('') }}
-                  className="px-4 sm:px-6 py-3 bg-gray-600 hover:bg-gray-700 text-white font-semibold rounded-xl transition-all duration-300 text-sm sm:text-base"
+                  className="btn btn-secondary"
                 >
                   إلغاء
                 </button>
               )}
             </div>
-          </div>
+          </form>
         </div>
 
-        <div className="bg-gradient-to-br from-gray-800 to-gray-900 p-5 sm:p-8 rounded-2xl border border-gray-700 shadow-2xl">
-          <div className="flex items-center mb-5 sm:mb-6">
-            <div className="w-10 h-10 sm:w-12 sm:h-12 bg-gradient-to-r from-blue-500 to-blue-600 rounded-xl flex items-center justify-center mr-3 sm:mr-4 flex-shrink-0">
-              <svg className="w-5 h-5 sm:w-6 sm:h-6 text-white" fill="none" stroke="currentColor" strokeWidth={1.5} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M9 12h3.75M9 15h3.75M9 18h3.75m3 .75H18a2.25 2.25 0 002.25-2.25V6.108c0-1.135-.845-2.098-1.976-2.192a48.424 48.424 0 00-1.123-.08m-5.801 0c-.065.21-.1.433-.1.664 0 .414.336.75.75.75h4.5a.75.75 0 00.75-.75 2.25 2.25 0 00-.1-.664m-5.8 0A2.251 2.251 0 0113.5 2.25H15a2.25 2.25 0 012.15 1.586m-5.8 0c-.376.023-.75.05-1.124.08C9.095 4.01 8.25 4.973 8.25 6.108V8.25m0 0H4.875c-.621 0-1.125.504-1.125 1.125v11.25c0 .621.504 1.125 1.125 1.125h9.75c.621 0 1.125-.504 1.125-1.125V9.375c0-.621-.504-1.125-1.125-1.125H8.25zM6.75 12h.008v.008H6.75V12zm0 3h.008v.008H6.75V15zm0 3h.008v.008H6.75V18z" /></svg>
+        <div className="bg-gray-900/40 backdrop-blur-md rounded-2xl border border-white/5 shadow-xl p-5 sm:p-6">
+          <div className="flex items-center gap-3 mb-5 sm:mb-6">
+            <div className="w-10 h-10 sm:w-12 sm:h-12 bg-teal-500/10 border border-teal-500/20 text-teal-400 rounded-xl flex items-center justify-center shrink-0">
+              <svg className="w-5 h-5 sm:w-6 sm:h-6" fill="none" stroke="currentColor" strokeWidth={1.5} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M8.25 6.75h7.5M8.25 12h7.5m-7.5 5.25h7.5M3.75 6.75h.007v.008H3.75V6.75zm.375 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zM3.75 12h.007v.008H3.75V12zm.375 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zm-.375 5.25h.007v.008H3.75v-.008zm.375 0a.375.375 0 11-.75 0 .375.375 0 01.75 0z" /></svg>
             </div>
             <h3 className="text-xl sm:text-2xl font-bold text-white">قائمة التصنيفات ({items.length})</h3>
           </div>
 
-          <div className="space-y-3">
-            {items.map(item => (
-              <div key={item.id} className="flex items-center justify-between p-3 sm:p-4 bg-gray-700/50 rounded-xl hover:bg-gray-700 transition-colors">
-                <div className="flex items-center gap-2 min-w-0">
-                  <span className={`text-gray-200 font-medium text-sm sm:text-base truncate ${Number(item.is_visible) ? '' : 'line-through opacity-50'}`}>{item.name}</span>
-                  <span className={`shrink-0 px-2 py-0.5 rounded-full text-[10px] font-semibold ${Number(item.is_visible) ? 'bg-green-900/40 text-green-300' : 'bg-gray-600 text-gray-300'}`}>
-                    {Number(item.is_visible) ? 'ظاهر' : 'مخفي'}
-                  </span>
-                </div>
-                <div className="flex gap-2 shrink-0">
-                  <button
-                    onClick={() => toggleVisibility(item)}
-                    className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors ${Number(item.is_visible) ? 'bg-amber-600 hover:bg-amber-700 text-white' : 'bg-green-600 hover:bg-green-700 text-white'}`}
-                    title={Number(item.is_visible) ? 'إخفاء من المتجر' : 'إظهار في المتجر'}
-                  >
-                    {Number(item.is_visible) ? 'إخفاء' : 'إظهار'}
-                  </button>
-                  <button
-                    onClick={() => { setEditing(item); setName(item.name) }}
-                    className="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-semibold transition-colors"
-                  >
-                    تعديل
-                  </button>
-                  <button
-                    onClick={() => remove(item.id)}
-                    className="px-3 py-1.5 bg-red-600 hover:bg-red-700 text-white rounded-lg text-xs font-semibold transition-colors"
-                  >
-                    حذف
-                  </button>
-                </div>
+          {items.length === 0 ? (
+            <div className="empty-state">
+              <div className="empty-state-icon text-teal-400">
+                <svg className="w-12 h-12 mx-auto" fill="none" stroke="currentColor" strokeWidth={1.2} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M9.568 3H5.25A2.25 2.25 0 003 5.25v4.318c0 .597.237 1.17.659 1.591l9.581 9.581c.699.699 1.78.872 2.607.33a18.095 18.095 0 005.223-5.223c.542-.827.369-1.908-.33-2.607L11.16 3.66A2.25 2.25 0 009.568 3z" /></svg>
               </div>
-            ))}
-          </div>
+              <div className="empty-state-title">لا توجد تصنيفات</div>
+              <div className="empty-state-description">ابدأ بإضافة أول تصنيف من النموذج المجاور.</div>
+            </div>
+          ) : (
+            <div className="space-y-3 custom-scrollbar max-h-[28rem] overflow-y-auto pr-1">
+              {items.map(item => (
+                <div key={item.id} className="flex items-center justify-between p-3 sm:p-4 bg-gray-950/60 rounded-xl border border-white/5 hover:border-teal-500/20 transition-colors">
+                  <div className="flex items-center gap-2 min-w-0">
+                    <span className={`text-gray-200 font-medium text-sm sm:text-base truncate ${Number(item.is_visible) ? '' : 'line-through opacity-50'}`}>{item.name}</span>
+                    <span className={`badge shrink-0 ${Number(item.is_visible) ? 'badge-success' : 'badge-neutral'}`}>
+                      {Number(item.is_visible) ? 'ظاهر' : 'مخفي'}
+                    </span>
+                  </div>
+                  <div className="flex gap-1.5 shrink-0">
+                    <button
+                      onClick={() => toggleVisibility(item)}
+                      className={`btn btn-sm ${Number(item.is_visible) ? 'btn-secondary text-amber-300' : 'btn-secondary text-teal-300'}`}
+                      title={Number(item.is_visible) ? 'إخفاء من المتجر' : 'إظهار في المتجر'}
+                      aria-label={Number(item.is_visible) ? 'إخفاء' : 'إظهار'}
+                    >
+                      {Number(item.is_visible) ? (
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={1.7} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M3.98 8.223A10.477 10.477 0 001.934 12C3.226 16.338 7.244 19.5 12 19.5c.993 0 1.953-.138 2.863-.395M6.228 6.228A10.45 10.45 0 0112 4.5c4.756 0 8.773 3.162 10.065 7.498a10.523 10.523 0 01-4.293 5.774M6.228 6.228L3 3m3.228 3.228l3.65 3.65m7.894 7.894L21 21m-3.228-3.228l-3.65-3.65m0 0a3 3 0 10-4.243-4.243m4.242 4.242L9.88 9.88" /></svg>
+                      ) : (
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={1.7} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M2.036 12.322a1.012 1.012 0 010-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178z" /><path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
+                      )}
+                      <span className="hidden sm:inline">{Number(item.is_visible) ? 'إخفاء' : 'إظهار'}</span>
+                    </button>
+                    <button
+                      onClick={() => { setEditing(item); setName(item.name) }}
+                      className="btn btn-sm btn-secondary text-teal-300"
+                      title="تعديل"
+                      aria-label="تعديل"
+                    >
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={1.7} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125" /></svg>
+                      <span className="hidden sm:inline">تعديل</span>
+                    </button>
+                    <button
+                      onClick={() => remove(item.id)}
+                      className="btn btn-sm btn-secondary text-red-400"
+                      title="حذف"
+                      aria-label="حذف"
+                    >
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={1.7} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0" /></svg>
+                      <span className="hidden sm:inline">حذف</span>
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       </div>
     </div>
@@ -482,15 +543,18 @@ function CategoriesTab() {
 function ServicesTab() {
   const [items, setItems] = useState([])
   const [loading, setLoading] = useState(true)
+  const [saving, setSaving] = useState(false)
   const [form, setForm] = useState({ title: '', price: '', is_active: 1 })
   const [editingId, setEditingId] = useState(null)
 
   const load = async () => {
     try {
+      setLoading(true)
       const { data } = await api.get('/services?active=false')
       setItems(Array.isArray(data) ? data : [])
     } catch (e) {
       console.error(e)
+      showToast('تعذر تحميل الخدمات', 'error')
     } finally {
       setLoading(false)
     }
@@ -501,6 +565,7 @@ function ServicesTab() {
     e.preventDefault()
     if (!form.title.trim()) return
     try {
+      setSaving(true)
       if (editingId) {
         await api.put(`/services/${editingId}`, {
           title: form.title.trim(),
@@ -508,17 +573,21 @@ function ServicesTab() {
           is_active: form.is_active ? 1 : 0
         })
         setEditingId(null)
+        showToast('تم تحديث الخدمة بنجاح')
       } else {
         await api.post('/services', {
           title: form.title.trim(),
           price: Number(form.price) || 0,
           is_active: form.is_active ? 1 : 0
         })
+        showToast('تمت إضافة الخدمة بنجاح')
       }
       setForm({ title: '', price: '', is_active: 1 })
       load()
     } catch (err) {
       showToast(err?.response?.data?.message || 'فشل الحفظ', 'error')
+    } finally {
+      setSaving(false)
     }
   }
 
@@ -526,6 +595,7 @@ function ServicesTab() {
     if (!confirm('حذف هذه الخدمة؟')) return
     try {
       await api.delete(`/services/${id}`)
+      showToast('تم حذف الخدمة')
       load()
     } catch (err) {
       showToast('فشل الحذف', 'error')
@@ -549,85 +619,130 @@ function ServicesTab() {
         <h2 className="text-lg sm:text-2xl font-bold text-white">الخدمات</h2>
         <p className="text-gray-400 mt-1 text-xs sm:text-base">مثل: فورمات PS4، صيانة، إلخ. تظهر في الواجهة الرئيسية ويضيفها الزبون مع الألعاب.</p>
       </div>
-      <form onSubmit={save} className="bg-gray-800 p-3 sm:p-4 rounded-xl border border-gray-700 mb-4 sm:mb-6 flex flex-col sm:flex-row sm:items-end gap-3">
-        <input
-          placeholder="اسم الخدمة (مثال: فورمات PS4)"
-          value={form.title}
-          onChange={e => setForm({ ...form, title: e.target.value })}
-          className="bg-gray-700 border border-gray-600 rounded-lg px-3 py-2.5 text-white flex-1 min-w-0 text-sm"
-        />
-        <input
-          type="number"
-          step="0.001"
-          placeholder="السعر (د.ل)"
-          value={form.price}
-          onChange={e => setForm({ ...form, price: e.target.value })}
-          className="bg-gray-700 border border-gray-600 rounded-lg px-3 py-2.5 text-white sm:w-32 text-sm"
-        />
-        <label className="flex items-center gap-2 text-gray-300 text-sm">
-          <input type="checkbox" checked={!!form.is_active} onChange={e => setForm({ ...form, is_active: e.target.checked ? 1 : 0 })} />
+
+      <form onSubmit={save} className="bg-gray-900/40 backdrop-blur-md p-4 sm:p-5 rounded-2xl border border-white/5 shadow-xl mb-4 sm:mb-6 flex flex-col sm:flex-row sm:items-end gap-3">
+        <div className="flex-1 min-w-0">
+          <label className="block text-xs font-semibold text-gray-400 mb-1.5">اسم الخدمة</label>
+          <input
+            placeholder="مثال: فورمات PS4"
+            value={form.title}
+            onChange={e => setForm({ ...form, title: e.target.value })}
+            className="w-full bg-gray-950 border border-gray-700/50 rounded-xl px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-teal-500/50 text-sm"
+          />
+        </div>
+        <div className="sm:w-36">
+          <label className="block text-xs font-semibold text-gray-400 mb-1.5">السعر (د.ل)</label>
+          <input
+            type="number"
+            step="0.001"
+            placeholder="0.000"
+            value={form.price}
+            onChange={e => setForm({ ...form, price: e.target.value })}
+            className="w-full bg-gray-950 border border-gray-700/50 rounded-xl px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-teal-500/50 text-sm"
+          />
+        </div>
+        <label className="flex items-center gap-2 text-gray-300 text-sm min-h-[44px] cursor-pointer select-none">
+          <input
+            type="checkbox"
+            checked={!!form.is_active}
+            onChange={e => setForm({ ...form, is_active: e.target.checked ? 1 : 0 })}
+            className="w-4 h-4 accent-teal-500"
+          />
           نشط
         </label>
         <div className="flex gap-2">
-          <button type="submit" className="flex-1 sm:flex-none px-4 py-2.5 bg-primary hover:bg-primary-dark text-white rounded-lg font-medium text-sm">
-            {editingId ? 'حفظ التعديل' : 'إضافة خدمة'}
+          <button type="submit" disabled={saving || !form.title.trim()} className="btn btn-primary flex-1 sm:flex-none">
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" /></svg>
+            {saving ? 'جاري الحفظ...' : (editingId ? 'حفظ التعديل' : 'إضافة خدمة')}
           </button>
-          {editingId && <button type="button" onClick={() => { setEditingId(null); setForm({ title: '', price: '', is_active: 1 }) }} className="px-3 py-2.5 bg-gray-600 text-white rounded-lg text-sm">إلغاء</button>}
+          {editingId && (
+            <button type="button" onClick={() => { setEditingId(null); setForm({ title: '', price: '', is_active: 1 }) }} className="btn btn-secondary">
+              إلغاء
+            </button>
+          )}
         </div>
       </form>
 
       {/* Mobile card layout */}
       <div className="sm:hidden space-y-3">
-        {items.length === 0 && <div className="p-6 text-center text-gray-400">لا توجد خدمات. أضف خدمة من النموذج أعلاه.</div>}
+        {items.length === 0 && (
+          <div className="empty-state">
+            <div className="empty-state-icon text-teal-400">
+              <svg className="w-12 h-12 mx-auto" fill="none" stroke="currentColor" strokeWidth={1.2} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M11.42 15.17l-5.1-5.1m0 0L11.42 4.97m-5.1 5.1H21M3 3v18" /></svg>
+            </div>
+            <div className="empty-state-title">لا توجد خدمات</div>
+            <div className="empty-state-description">أضف خدمة من النموذج أعلاه.</div>
+          </div>
+        )}
         {items.map(s => (
-          <div key={s.id} className="bg-gray-800 rounded-xl border border-gray-700 p-3">
-            <div className="flex items-start justify-between gap-2 mb-2">
+          <div key={s.id} className="bg-gray-900/40 backdrop-blur-md rounded-2xl border border-white/5 shadow-xl p-4">
+            <div className="flex items-start justify-between gap-2 mb-3">
               <div className="flex-1 min-w-0">
                 <p className="text-white font-medium text-sm truncate">{s.title}</p>
-                <p className="text-primary font-mono text-sm mt-0.5">{Number(s.price).toFixed(3)} د.ل</p>
+                <p className="text-teal-400 font-mono text-sm mt-0.5 tabular-nums">{Number(s.price).toFixed(3)} د.ل</p>
               </div>
-              <span className={`shrink-0 px-2 py-0.5 rounded-full text-xs font-semibold ${s.is_active ? 'bg-green-900/40 text-green-300' : 'bg-gray-700 text-gray-400'}`}>
+              <span className={`badge shrink-0 ${s.is_active ? 'badge-success' : 'badge-neutral'}`}>
                 {s.is_active ? 'نشط' : 'معطل'}
               </span>
             </div>
             <div className="flex gap-2">
-              <button onClick={() => { setForm({ title: s.title, price: s.price, is_active: s.is_active }); setEditingId(s.id) }} className="flex-1 px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-medium transition-colors">تعديل</button>
-              <button onClick={() => remove(s.id)} className="flex-1 px-3 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg text-xs font-medium transition-colors">حذف</button>
+              <button onClick={() => { setForm({ title: s.title, price: s.price, is_active: s.is_active }); setEditingId(s.id) }} className="btn btn-secondary flex-1 btn-sm text-teal-300">
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={1.7} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125" /></svg>
+                تعديل
+              </button>
+              <button onClick={() => remove(s.id)} className="btn btn-secondary flex-1 btn-sm text-red-400">
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={1.7} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0" /></svg>
+                حذف
+              </button>
             </div>
           </div>
         ))}
       </div>
 
       {/* Desktop table layout */}
-      <div className="hidden sm:block bg-gray-800 rounded-xl border border-gray-700 overflow-x-auto">
+      <div className="hidden sm:block bg-gray-900/40 backdrop-blur-md rounded-2xl border border-white/5 shadow-xl overflow-hidden">
         <table className="w-full text-white">
           <thead>
-            <tr className="border-b border-gray-600">
-              <th className="text-right py-3 px-4 text-sm">الخدمة</th>
-              <th className="text-right py-3 px-4 text-sm">السعر (د.ل)</th>
-              <th className="text-right py-3 px-4 text-sm">الحالة</th>
-              <th className="text-center py-3 px-4 text-sm">إجراءات</th>
+            <tr className="border-b border-white/5 bg-gray-950/40">
+              <th className="text-right py-3 px-4 text-sm font-semibold text-gray-400">الخدمة</th>
+              <th className="text-right py-3 px-4 text-sm font-semibold text-gray-400">السعر (د.ل)</th>
+              <th className="text-right py-3 px-4 text-sm font-semibold text-gray-400">الحالة</th>
+              <th className="text-center py-3 px-4 text-sm font-semibold text-gray-400">إجراءات</th>
             </tr>
           </thead>
           <tbody>
             {items.map(s => (
-              <tr key={s.id} className="border-b border-gray-700 hover:bg-gray-700/30">
+              <tr key={s.id} className="border-b border-white/5 hover:bg-white/5 transition-colors">
                 <td className="py-3 px-4 text-sm">{s.title}</td>
-                <td className="py-3 px-4 font-mono text-sm">{Number(s.price).toFixed(3)}</td>
+                <td className="py-3 px-4 font-mono text-sm tabular-nums">{Number(s.price).toFixed(3)}</td>
                 <td className="py-3 px-4">
-                  <span className={`inline-block px-2 py-0.5 rounded-full text-xs font-semibold ${s.is_active ? 'bg-green-900/40 text-green-300' : 'bg-gray-700 text-gray-400'}`}>
+                  <span className={`badge ${s.is_active ? 'badge-success' : 'badge-neutral'}`}>
                     {s.is_active ? 'نشط' : 'معطل'}
                   </span>
                 </td>
                 <td className="py-3 px-4 text-center">
-                  <button onClick={() => { setForm({ title: s.title, price: s.price, is_active: s.is_active }); setEditingId(s.id) }} className="px-3 py-2 min-h-[40px] bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-medium transition-colors mx-1">تعديل</button>
-                  <button onClick={() => remove(s.id)} className="px-3 py-2 min-h-[40px] bg-red-600 hover:bg-red-700 text-white rounded-lg text-xs font-medium transition-colors mx-1">حذف</button>
+                  <button onClick={() => { setForm({ title: s.title, price: s.price, is_active: s.is_active }); setEditingId(s.id) }} className="btn btn-secondary btn-sm text-teal-300 mx-1" title="تعديل">
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={1.7} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125" /></svg>
+                    تعديل
+                  </button>
+                  <button onClick={() => remove(s.id)} className="btn btn-secondary btn-sm text-red-400 mx-1" title="حذف">
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={1.7} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0" /></svg>
+                    حذف
+                  </button>
                 </td>
               </tr>
             ))}
           </tbody>
         </table>
-        {items.length === 0 && <div className="p-6 text-center text-gray-400">لا توجد خدمات. أضف خدمة من النموذج أعلاه.</div>}
+        {items.length === 0 && (
+          <div className="empty-state">
+            <div className="empty-state-icon text-teal-400">
+              <svg className="w-12 h-12 mx-auto" fill="none" stroke="currentColor" strokeWidth={1.2} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M11.42 15.17l-5.1-5.1m0 0L11.42 4.97m-5.1 5.1H21M3 3v18" /></svg>
+            </div>
+            <div className="empty-state-title">لا توجد خدمات</div>
+            <div className="empty-state-description">أضف خدمة من النموذج أعلاه.</div>
+          </div>
+        )}
       </div>
     </div>
   )
@@ -635,16 +750,42 @@ function ServicesTab() {
 
 function StatsTab() {
   const [stats, setStats] = useState({ totalOrders: 0, topGames: [] })
+  const [details, setDetails] = useState([])
+  const [gamesCount, setGamesCount] = useState(null)
 
   async function load() {
     try {
       const { data } = await api.get('/stats');
-      setStats({
-        totalOrders: data?.totalOrders || 0,
-        topGames: Array.isArray(data?.topGames) ? data.topGames : []
-      })
+      const topGames = Array.isArray(data?.topGames) ? data.topGames : []
+      setStats({ totalOrders: data?.totalOrders || 0, topGames })
+      setGamesCount(data?.totalGames ?? null)
+
+      // حلّ عناوين الألعاب عبر /games/batch (نفس نمط TopList في App.jsx)
+      const idList = topGames
+        .map(t => t.gameId)
+        .filter(v => v !== null && v !== undefined && String(v).trim() !== '' && !Number.isNaN(Number(v)))
+      let rows = []
+      if (idList.length) {
+        try {
+          const res = await api.get('/games/batch', { params: { ids: idList.join(',') } })
+          rows = Array.isArray(res.data) ? res.data : []
+        } catch (_) { rows = [] }
+      }
+      const map = new Map(rows.map(g => [Number(g.id), g]))
+      setDetails(
+        topGames.map(t => {
+          const g = (t.gameId !== null && t.gameId !== undefined && String(t.gameId).trim() !== '') ? map.get(Number(t.gameId)) : null
+          return {
+            id: g?.id ?? t.gameId ?? t.title,
+            title: g?.title || t.title || (t.gameId ? `لعبة #${t.gameId}` : null),
+            image: g?.image || '',
+            count: t.count
+          }
+        }).filter(g => g.title !== null)
+      )
     } catch (e) {
       setStats({ totalOrders: 0, topGames: [] })
+      setDetails([])
     }
   }
 
@@ -654,42 +795,53 @@ function StatsTab() {
     <div className="p-4 sm:p-6 lg:p-8">
       <div className="mb-6 sm:mb-8">
         <h2 className="text-2xl sm:text-3xl font-bold text-white mb-2">الإحصائيات</h2>
-        <p className="text-gray-400">عرض إحصائيات المتجر والألعاب الأكثر طلباً</p>
+        <p className="text-gray-400 text-sm sm:text-base">عرض إحصائيات المتجر والألعاب الأكثر طلباً</p>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 lg:gap-8">
-        <div className="bg-gradient-to-br from-gray-800 to-gray-900 p-5 sm:p-8 rounded-2xl border border-gray-700 shadow-2xl">
-          <div className="flex items-center mb-5 sm:mb-6">
-            <div className="w-10 h-10 sm:w-12 sm:h-12 bg-gradient-to-r from-purple-500 to-purple-600 rounded-xl flex items-center justify-center mr-3 sm:mr-4 flex-shrink-0">
-              <svg className="w-5 h-5 sm:w-6 sm:h-6 text-white" fill="none" stroke="currentColor" strokeWidth={1.5} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v6.75C7.5 20.496 6.996 21 6.375 21h-2.25A1.125 1.125 0 013 19.875v-6.75zM9.75 8.625c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v11.25c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V8.625zM16.5 4.125c0-.621.504-1.125 1.125-1.125h2.25C20.496 3 21 3.504 21 4.125v15.75c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V4.125z" /></svg>
+        <div className="bg-gray-900/40 backdrop-blur-md rounded-2xl border border-white/5 shadow-xl p-5 sm:p-8">
+          <div className="flex items-center gap-3 mb-5 sm:mb-6">
+            <div className="w-10 h-10 sm:w-12 sm:h-12 bg-teal-500/10 border border-teal-500/20 text-teal-400 rounded-xl flex items-center justify-center shrink-0">
+              <svg className="w-5 h-5 sm:w-6 sm:h-6" fill="none" stroke="currentColor" strokeWidth={1.5} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v6.75C7.5 20.496 6.996 21 6.375 21h-2.25A1.125 1.125 0 013 19.875v-6.75zM9.75 8.625c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v11.25c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V8.625zM16.5 4.125c0-.621.504-1.125 1.125-1.125h2.25C20.496 3 21 3.504 21 4.125v15.75c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V4.125z" /></svg>
             </div>
             <h3 className="text-xl sm:text-2xl font-bold text-white">إجمالي الطلبات</h3>
           </div>
-          <div className="text-4xl sm:text-5xl font-bold text-purple-400 mb-2">{stats.totalOrders}</div>
+          <div className="text-4xl sm:text-5xl font-bold text-teal-400 mb-2 tabular-nums">{stats.totalOrders}</div>
           <p className="text-gray-400">طلب إجمالي</p>
+          <div className="mt-4 text-sm text-gray-400">
+            الألعاب في المتجر: <span className="text-teal-400 font-semibold tabular-nums">{gamesCount ?? stats.topGames.length}</span>
+          </div>
         </div>
 
-        <div className="bg-gradient-to-br from-gray-800 to-gray-900 p-5 sm:p-8 rounded-2xl border border-gray-700 shadow-2xl">
-          <div className="flex items-center mb-5 sm:mb-6">
-            <div className="w-10 h-10 sm:w-12 sm:h-12 bg-gradient-to-r from-orange-500 to-orange-600 rounded-xl flex items-center justify-center mr-3 sm:mr-4 flex-shrink-0">
-              <svg className="w-5 h-5 sm:w-6 sm:h-6 text-white" fill="none" stroke="currentColor" strokeWidth={1.5} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M16.5 18.75h-9m9 0a3 3 0 013 3h-15a3 3 0 013-3m9 0v-3.375c0-.621-.503-1.125-1.125-1.125h-.871M7.5 18.75v-3.375c0-.621.504-1.125 1.125-1.125h.872m5.007 0H9.497m5.007 0a7.454 7.454 0 01-.982-3.172M9.497 14.25a7.454 7.454 0 00.981-3.172M5.25 4.236c-.982.143-1.954.317-2.916.52A6.003 6.003 0 007.73 9.728M5.25 4.236V4.5c0 2.108.966 3.99 2.48 5.228M5.25 4.236V2.721C7.456 2.41 9.71 2.25 12 2.25c2.291 0 4.545.16 6.75.47v1.516M18.75 4.236c.982.143 1.954.317 2.916.52A6.003 6.003 0 0116.27 9.728M18.75 4.236V4.5c0 2.108-.966 3.99-2.48 5.228m0 0a6.023 6.023 0 01-2.77.665 6.023 6.023 0 01-2.77-.665m5.54 0a6.023 6.023 0 01-2.77.665 6.023 6.023 0 01-2.77-.665" /></svg>
+        <div className="bg-gray-900/40 backdrop-blur-md rounded-2xl border border-white/5 shadow-xl p-5 sm:p-8">
+          <div className="flex items-center gap-3 mb-5 sm:mb-6">
+            <div className="w-10 h-10 sm:w-12 sm:h-12 bg-teal-500/10 border border-teal-500/20 text-teal-400 rounded-xl flex items-center justify-center shrink-0">
+              <svg className="w-5 h-5 sm:w-6 sm:h-6" fill="none" stroke="currentColor" strokeWidth={1.5} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M16.5 18.75h-9m9 0a3 3 0 013 3h-15a3 3 0 013-3m9 0v-3.375c0-.621-.503-1.125-1.125-1.125h-.871M7.5 18.75v-3.375c0-.621.504-1.125 1.125-1.125h.872m5.007 0H9.497m5.007 0a7.454 7.454 0 01-.982-3.172M9.497 14.25a7.454 7.454 0 00.981-3.172M5.25 4.236c-.982.143-1.954.317-2.916.52A6.003 6.003 0 007.73 9.728M5.25 4.236V4.5c0 2.108.966 3.99 2.48 5.228M5.25 4.236V2.721C7.456 2.41 9.71 2.25 12 2.25c2.291 0 4.545.16 6.75.47v1.516M18.75 4.236c.982.143 1.954.317 2.916.52A6.003 6.003 0 0116.27 9.728M18.75 4.236V4.5c0 2.108-.966 3.99-2.48 5.228m0 0a6.023 6.023 0 01-2.77.665 6.023 6.023 0 01-2.77-.665m5.54 0a6.023 6.023 0 01-2.77.665 6.023 6.023 0 01-2.77-.665" /></svg>
             </div>
             <h3 className="text-xl sm:text-2xl font-bold text-white">الألعاب الأكثر طلباً</h3>
           </div>
 
           <div className="space-y-3">
-            {stats.topGames.length > 0 ? (
-              stats.topGames.slice(0, 5).map((g, i) => (
-                <div key={i} className="flex items-center justify-between p-3 bg-gray-700/50 rounded-xl">
-                  <div className="flex items-center gap-2">
-                    <span className="w-6 h-6 bg-orange-500/20 text-orange-400 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0">{i + 1}</span>
-                    <span className="text-gray-200 text-sm">{g.title || `لعبة #${g.gameId}`}</span>
+            {details.length > 0 ? (
+              details.slice(0, 5).map((g, i) => (
+                <div key={g.id} className="flex items-center justify-between p-3 bg-gray-950/60 rounded-xl border border-white/5">
+                  <div className="flex items-center gap-3 min-w-0">
+                    <span className="w-7 h-7 bg-teal-500/15 text-teal-400 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0 tabular-nums">{i + 1}</span>
+                    {g.image && (
+                      <img src={g.image} alt={g.title} loading="lazy" className="w-9 h-9 rounded-lg object-cover border border-white/10 shrink-0" onError={e => { e.currentTarget.style.display = 'none' }} />
+                    )}
+                    <span className="text-gray-200 text-sm truncate">{g.title}</span>
                   </div>
-                  <span className="text-orange-400 font-semibold text-sm">{g.count}</span>
+                  <span className="text-teal-400 font-semibold text-sm shrink-0 tabular-nums">{g.count}</span>
                 </div>
               ))
             ) : (
-              <p className="text-gray-400">لا توجد بيانات بعد</p>
+              <div className="empty-state py-8">
+                <div className="empty-state-icon text-teal-400">
+                  <svg className="w-12 h-12 mx-auto" fill="none" stroke="currentColor" strokeWidth={1.2} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" /></svg>
+                </div>
+                <div className="empty-state-title">لا توجد بيانات بعد</div>
+              </div>
             )}
           </div>
         </div>
@@ -700,12 +852,14 @@ function StatsTab() {
 
 
 function DashboardHome() {
-  const [stats, setStats] = useState({ totalOrders: 0, topGames: [] })
+  const [stats, setStats] = useState({ totalOrders: 0, topGames: [], totalGames: null })
+  const [topDetails, setTopDetails] = useState([])
   const [invoicesSummary, setInvoicesSummary] = useState(null)
   const [recentInvoices, setRecentInvoices] = useState([])
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
+    let cancelled = false
     async function load() {
       try {
         const [statsRes, summaryRes, invoicesRes] = await Promise.allSettled([
@@ -714,53 +868,122 @@ function DashboardHome() {
           api.get('/invoices?limit=5')
         ])
         if (statsRes.status === 'fulfilled') {
-          setStats({
-            totalOrders: statsRes.value.data?.totalOrders || 0,
-            topGames: Array.isArray(statsRes.value.data?.topGames) ? statsRes.value.data.topGames : []
-          })
+          const d = statsRes.value.data || {}
+          const topGames = Array.isArray(d.topGames) ? d.topGames : []
+          if (!cancelled) {
+            setStats({
+              totalOrders: d.totalOrders || 0,
+              topGames,
+              totalGames: d.totalGames ?? null
+            })
+          }
+
+          // حلّ عناوين الألعاب وصورها عبر /games/batch (نفس نمط TopList في App.jsx)
+          const idList = topGames
+            .map(t => t.gameId)
+            .filter(v => v !== null && v !== undefined && String(v).trim() !== '' && !Number.isNaN(Number(v)))
+          let rows = []
+          if (idList.length) {
+            try {
+              const res = await api.get('/games/batch', { params: { ids: idList.join(',') } })
+              rows = Array.isArray(res.data) ? res.data : (res.data?.games || [])
+            } catch (_) { rows = [] }
+          }
+          const map = new Map(rows.map(g => [Number(g.id), g]))
+          const resolved = topGames
+            .map(t => {
+              const g = (t.gameId !== null && t.gameId !== undefined && String(t.gameId).trim() !== '')
+                ? map.get(Number(t.gameId))
+                : null
+              return {
+                id: g?.id ?? t.gameId ?? t.title,
+                title: g?.title || t.title || (t.gameId ? `لعبة #${t.gameId}` : null),
+                image: g?.image || '',
+                count: t.count
+              }
+            })
+            .filter(g => g.title !== null)
+          if (!cancelled) setTopDetails(resolved)
         }
         if (summaryRes.status === 'fulfilled') {
-          setInvoicesSummary(summaryRes.value.data)
+          if (!cancelled) setInvoicesSummary(summaryRes.value.data)
         }
         if (invoicesRes.status === 'fulfilled') {
-          setRecentInvoices(invoicesRes.value.data?.invoices || invoicesRes.value.data || [])
+          if (!cancelled) setRecentInvoices(invoicesRes.value.data?.invoices || invoicesRes.value.data || [])
         }
       } catch (e) {
         console.error(e)
       } finally {
-        setLoading(false)
+        if (!cancelled) setLoading(false)
       }
     }
     load()
+    return () => { cancelled = true }
   }, [])
 
   if (loading) {
     return (
       <div className="p-4 sm:p-6 lg:p-8">
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="skeleton-header mb-6"></div>
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-5">
           {[1,2,3,4].map(i => (
-            <div key={i} className="skeleton h-28 rounded-xl"></div>
+            <div key={i} className="skeleton h-28 rounded-2xl"></div>
+          ))}
+        </div>
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
+          {[1,2].map(i => (
+            <div key={i} className="skeleton h-64 rounded-2xl"></div>
           ))}
         </div>
       </div>
     )
   }
 
+  // قراءة دفاعية لكل شكل من أشكال الاستجابة
+  const summary = invoicesSummary?.summary || invoicesSummary || {}
+  const invoiceCount = summary.totalInvoices ?? summary.total_invoices ?? stats.totalOrders
+  const revenue = summary.totalRevenue ?? summary.total_revenue ?? 0
+  const gamesCount = stats.totalGames ?? stats.topGames.length
+
+  const fmt = (n) => new Intl.NumberFormat('ar-LY', { maximumFractionDigits: 0 }).format(Number(n) || 0)
+  const fmtDate = (v) => {
+    if (!v) return ''
+    const d = new Date(v)
+    if (isNaN(d.getTime())) return ''
+    return d.toLocaleDateString('ar-LY', { day: '2-digit', month: '2-digit' })
+  }
+
   const kpis = [
-    { label: 'إجمالي الطلبات', value: stats.totalOrders, color: 'from-blue-500 to-blue-600', icon: '📋' },
-    { label: 'الفواتير', value: invoicesSummary?.total_invoices || stats.totalOrders, color: 'from-green-500 to-green-600', icon: '🧾' },
-    { label: 'الإيرادات', value: `${(invoicesSummary?.total_revenue || 0).toFixed(0)} د.ل`, color: 'from-purple-500 to-purple-600', icon: '💰' },
-    { label: 'الألعاب', value: stats.topGames.length, color: 'from-orange-500 to-orange-600', icon: '🎮' },
+    {
+      label: 'إجمالي الطلبات',
+      value: fmt(stats.totalOrders),
+      icon: <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth={1.5} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M9 12h3.75M9 15h3.75M9 18h3.75m3 .75H18a2.25 2.25 0 002.25-2.25V6.108c0-1.135-.845-2.098-1.976-2.192a48.424 48.424 0 00-1.123-.08m-5.801 0c-.065.21-.1.433-.1.664 0 .414.336.75.75.75h4.5a.75.75 0 00.75-.75 2.25 2.25 0 00-.1-.664m-5.8 0A2.251 2.251 0 0113.5 2.25H15a2.25 2.25 0 012.15 1.586m-5.8 0c-.376.023-.75.05-1.124.08C9.095 4.01 8.25 4.973 8.25 6.108V8.25m0 0H4.875c-.621 0-1.125.504-1.125 1.125v11.25c0 .621.504 1.125 1.125 1.125h9.75c.621 0 1.125-.504 1.125-1.125V9.375c0-.621-.504-1.125-1.125-1.125H8.25z" /></svg>
+    },
+    {
+      label: 'الفواتير',
+      value: fmt(invoiceCount),
+      icon: <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth={1.5} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z" /></svg>
+    },
+    {
+      label: 'الإيرادات',
+      value: `${fmt(revenue)} د.ل`,
+      icon: <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth={1.5} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M2.25 18.75a60.07 60.07 0 0115.797 2.101c.727.198 1.453-.342 1.453-1.096V18.75M3.75 4.5v.75A.75.75 0 013 6h-.75m0 0v-.375c0-.621.504-1.125 1.125-1.125H20.25M2.25 6v9m18-10.5v.75c0 .414.336.75.75.75h.75m-1.5-1.5h.375c.621 0 1.125.504 1.125 1.125v9.75c0 .621-.504 1.125-1.125 1.125h-.375m1.5-1.5H21a.75.75 0 00-.75.75v.75m0 0H3.75m0 0h-.375a1.125 1.125 0 01-1.125-1.125V15m1.5 1.5v-.75A.75.75 0 003 15h-.75M15 10.5a3 3 0 11-6 0 3 3 0 016 0zm3 0h.008v.008H18V10.5zm-12 0h.008v.008H6V10.5z" /></svg>
+    },
+    {
+      label: 'الألعاب',
+      value: fmt(gamesCount),
+      icon: <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth={1.5} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M14.25 6.087c0-.355.186-.676.401-.959.221-.29.349-.634.349-1.003 0-1.036-1.007-1.875-2.25-1.875s-2.25.84-2.25 1.875c0 .369.128.713.349 1.003.215.283.401.604.401.959V6a2 2 0 00-2-2H5.5a2 2 0 00-2 2v5.5c0 .355.186.676.401.959.221.29.349.634.349 1.003 0 1.036 1.007 1.875 2.25 1.875s2.25-.84 2.25-1.875c0-.369-.128-.713-.349-1.003A1.65 1.65 0 015.5 11.5V6" /><path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
+    },
   ]
 
-  const statusColors = {
-    pending: 'bg-yellow-900/40 text-yellow-300',
-    confirmed: 'bg-blue-900/40 text-blue-300',
-    processing: 'bg-indigo-900/40 text-indigo-300',
-    ready: 'bg-green-900/40 text-green-300',
-    completed: 'bg-emerald-900/40 text-emerald-300',
-    cancelled: 'bg-red-900/40 text-red-300',
-    refunded: 'bg-gray-700 text-gray-400',
+  const statusBadges = {
+    pending: 'badge-warning',
+    confirmed: 'badge-info',
+    processing: 'badge-info',
+    ready: 'badge-success',
+    completed: 'badge-success',
+    cancelled: 'badge-danger',
+    refunded: 'badge-neutral',
   }
   const statusLabels = {
     pending: 'قيد الانتظار', confirmed: 'مؤكد', processing: 'قيد التنفيذ',
@@ -775,36 +998,43 @@ function DashboardHome() {
       </div>
 
       {/* KPI Cards */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-3 mb-4 sm:mb-6">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-5 sm:mb-6">
         {kpis.map((kpi, i) => (
-          <div key={i} className={`bg-gradient-to-br ${kpi.color} rounded-xl p-3 sm:p-4 text-white shadow-lg`}>
-            <div className="text-base sm:text-xl mb-1">{kpi.icon}</div>
-            <div className="text-xl sm:text-2xl font-bold leading-tight">{kpi.value}</div>
-            <div className="text-white/70 text-[11px] sm:text-xs mt-0.5">{kpi.label}</div>
+          <div key={i} className="bg-gray-900/40 backdrop-blur-md rounded-2xl border border-white/5 shadow-xl p-4 sm:p-5 hover:border-teal-500/30 transition-colors duration-200">
+            <div className="w-10 h-10 rounded-xl bg-teal-500/10 text-teal-400 border border-teal-500/20 flex items-center justify-center mb-3">
+              {kpi.icon}
+            </div>
+            <div className="text-xl sm:text-2xl font-bold text-white leading-tight tabular-nums">{kpi.value}</div>
+            <div className="text-gray-400 text-[11px] sm:text-xs mt-1">{kpi.label}</div>
           </div>
         ))}
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
         {/* Recent Invoices */}
-        <div className="bg-gray-800/50 rounded-xl border border-gray-700/50 p-4 sm:p-5">
+        <div className="bg-gray-900/40 backdrop-blur-md rounded-2xl border border-white/5 shadow-xl p-4 sm:p-5">
           <h3 className="text-base font-bold text-white mb-4">آخر الفواتير</h3>
           {recentInvoices.length === 0 ? (
             <div className="empty-state py-8">
-              <div className="empty-state-icon">📋</div>
+              <div className="empty-state-icon text-teal-400">
+                <svg className="w-12 h-12 mx-auto" fill="none" stroke="currentColor" strokeWidth={1.2} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z" /></svg>
+              </div>
               <div className="empty-state-title">لا توجد فواتير بعد</div>
             </div>
           ) : (
             <div className="space-y-2">
               {recentInvoices.slice(0, 5).map((inv, i) => (
-                <div key={i} className="flex items-center justify-between p-3 bg-gray-700/30 rounded-lg">
+                <div key={inv.id ?? i} className="flex items-center justify-between gap-3 p-3 bg-gray-950/60 rounded-xl border border-white/5">
                   <div className="min-w-0">
                     <div className="text-white text-sm font-medium truncate">{inv.customer_name || 'عميل'}</div>
-                    <div className="text-gray-400 text-xs">{inv.invoice_number}</div>
+                    <div className="text-gray-400 text-xs truncate">
+                      {inv.invoice_number}
+                      {fmtDate(inv.created_at) ? ` • ${fmtDate(inv.created_at)}` : ''}
+                    </div>
                   </div>
-                  <div className="text-left shrink-0">
-                    <div className="text-white font-semibold text-sm">{(inv.final_total || inv.total || 0).toFixed(2)} د.ل</div>
-                    <span className={`inline-block px-2 py-0.5 rounded-full text-[10px] font-semibold ${statusColors[inv.status] || 'bg-gray-700 text-gray-400'}`}>
+                  <div className="text-left shrink-0 flex flex-col items-end gap-1">
+                    <div className="text-white font-semibold text-sm tabular-nums">{Number(inv.final_total || inv.total || 0).toFixed(2)} د.ل</div>
+                    <span className={`badge ${statusBadges[inv.status] || 'badge-neutral'}`}>
                       {statusLabels[inv.status] || inv.status}
                     </span>
                   </div>
@@ -815,22 +1045,40 @@ function DashboardHome() {
         </div>
 
         {/* Top Games */}
-        <div className="bg-gray-800/50 rounded-xl border border-gray-700/50 p-4 sm:p-5">
+        <div className="bg-gray-900/40 backdrop-blur-md rounded-2xl border border-white/5 shadow-xl p-4 sm:p-5">
           <h3 className="text-base font-bold text-white mb-4">الأكثر مبيعاً</h3>
-          {stats.topGames.length === 0 ? (
+          {topDetails.length === 0 ? (
             <div className="empty-state py-8">
-              <div className="empty-state-icon">🎮</div>
+              <div className="empty-state-icon text-teal-400">
+                <svg className="w-12 h-12 mx-auto" fill="none" stroke="currentColor" strokeWidth={1.2} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M14.25 6.087c0-.355.186-.676.401-.959.221-.29.349-.634.349-1.003 0-1.036-1.007-1.875-2.25-1.875s-2.25.84-2.25 1.875c0 .369.128.713.349 1.003.215.283.401.604.401.959V6a2 2 0 00-2-2H5.5a2 2 0 00-2 2v5.5c0 .355.186.676.401.959.221.29.349.634.349 1.003 0 1.036 1.007 1.875 2.25 1.875s2.25-.84 2.25-1.875c0-.369-.128-.713-.349-1.003A1.65 1.65 0 015.5 11.5V6" /><path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
+              </div>
               <div className="empty-state-title">لا توجد بيانات بعد</div>
             </div>
           ) : (
             <div className="space-y-2">
-              {stats.topGames.slice(0, 5).map((g, i) => (
-                <div key={i} className="flex items-center justify-between p-3 bg-gray-700/30 rounded-lg">
-                  <div className="flex items-center gap-3">
-                    <span className="w-7 h-7 bg-brand/20 text-brand rounded-full flex items-center justify-center text-xs font-bold">{i + 1}</span>
-                    <span className="text-white text-sm">{g.title || `لعبة #${g.gameId}`}</span>
-                  </div>
-                  <span className="text-brand font-semibold text-sm">{g.count} مبيعة</span>
+              {topDetails.slice(0, 5).map((g, i) => (
+                <div key={g.id ?? i} className="flex items-center gap-3 p-3 bg-gray-950/60 rounded-xl border border-white/5">
+                  <span className={`w-7 h-7 rounded-lg flex items-center justify-center text-xs font-bold shrink-0 tabular-nums ${
+                    i === 0 ? 'bg-teal-500/20 text-teal-300'
+                    : i === 1 ? 'bg-gray-400/20 text-gray-300'
+                    : i === 2 ? 'bg-teal-700/20 text-teal-500'
+                    : 'bg-white/5 text-gray-500'
+                  }`}>{i + 1}</span>
+                  {g.image ? (
+                    <img
+                      src={g.image}
+                      alt={g.title}
+                      loading="lazy"
+                      className="w-10 h-10 rounded-lg object-cover border border-white/10 shrink-0"
+                      onError={e => { e.currentTarget.style.display = 'none' }}
+                    />
+                  ) : (
+                    <div className="w-10 h-10 rounded-lg bg-teal-500/10 text-teal-400 border border-white/10 flex items-center justify-center shrink-0">
+                      <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth={1.5} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path strokeLinecap="round" strokeLinejoin="round" d="M14.25 6.087c0-.355.186-.676.401-.959.221-.29.349-.634.349-1.003 0-1.036-1.007-1.875-2.25-1.875s-2.25.84-2.25 1.875c0 .369.128.713.349 1.003.215.283.401.604.401.959" /></svg>
+                    </div>
+                  )}
+                  <span className="flex-1 min-w-0 text-white text-sm truncate" title={g.title}>{g.title}</span>
+                  <span className="text-teal-400 font-semibold text-sm shrink-0 tabular-nums">{g.count} مبيعة</span>
                 </div>
               ))}
             </div>

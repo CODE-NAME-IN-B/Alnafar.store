@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react'
 import { createPortal } from 'react-dom'
 import { api } from './api'
 import { exportGamesToExcel } from './utils/exportGamesExcel'
+import { showToast } from './utils/toast'
 
 // معالج الأخطاء العام
 window.addEventListener('error', (event) => {
@@ -17,6 +18,8 @@ function currency(num) {
   return new Intl.NumberFormat('ar-LY', { style: 'currency', currency: 'LYD' }).format(num)
 }
 
+const inputCls = "w-full bg-gray-950 border border-gray-700/50 rounded-xl px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-teal-500/50 transition-all text-sm sm:text-base"
+
 export default function GamesTab() {
   const empty = { title: '', image: '', description: '', price: '', size_gb: '', category_id: '', genre: '', series: '', features: '' }
   const [items, setItems] = useState([])
@@ -29,23 +32,33 @@ export default function GamesTab() {
   const [selectedCategory, setSelectedCategory] = useState('')
   const [showModal, setShowModal] = useState(false)
   const [visibleCount, setVisibleCount] = useState(24)
+  const [loading, setLoading] = useState(true)
+  const [saving, setSaving] = useState(false)
+  const [classifying, setClassifying] = useState(false)
+  const [classifyProgress, setClassifyProgress] = useState(null)
 
   async function load() {
-    const [g, c, s, genresRes] = await Promise.all([
-      api.get('/games'),
-      api.get('/categories'),
-      api.get('/series'),
-      api.get('/genres')
-    ])
-    setItems(g.data)
-    setCategories(c.data)
-    setSeries(s.data || [])
-    setGenres(genresRes.data || [])
+    try {
+      setLoading(true)
+      const [g, c, s, genresRes] = await Promise.all([
+        api.get('/games'),
+        api.get('/categories'),
+        api.get('/series'),
+        api.get('/genres')
+      ])
+      setItems(g.data)
+      setCategories(c.data)
+      setSeries(s.data || [])
+      setGenres(genresRes.data || [])
+    } catch (error) {
+      console.error('خطأ في تحميل البيانات:', error);
+      showToast('تعذر تحميل بيانات الألعاب', 'error')
+    } finally {
+      setLoading(false)
+    }
   }
   useEffect(() => {
-    load().catch(error => {
-      console.error('خطأ في تحميل البيانات:', error);
-    });
+    load();
   }, [])
 
   const filteredItems = items
@@ -64,6 +77,7 @@ export default function GamesTab() {
     if (e) e.preventDefault() // منع إعادة تحميل الصفحة
 
     try {
+      setSaving(true)
       const payload = {
         ...form,
         price: Number(form.price),
@@ -81,15 +95,19 @@ export default function GamesTab() {
             item.id === editing.id ? { ...item, ...payload, id: editing.id } : item
           )
         )
+        showToast('تم تحديث اللعبة بنجاح')
       } else {
         const response = await api.post('/games', payload)
         // إضافة اللعبة الجديدة محلياً
         setItems(prevItems => [...prevItems, response.data])
+        showToast('تمت إضافة اللعبة بنجاح')
       }
       setForm(empty); setEditing(null); setShowModal(false)
     } catch (error) {
       console.error('خطأ في حفظ اللعبة:', error);
-      alert('حدث خطأ أثناء حفظ اللعبة. يرجى المحاولة مرة أخرى.');
+      showToast('حدث خطأ أثناء حفظ اللعبة. يرجى المحاولة مرة أخرى.', 'error')
+    } finally {
+      setSaving(false)
     }
   }
 
@@ -100,9 +118,60 @@ export default function GamesTab() {
       await api.delete(`/games/${id}`)
       // حذف محلي بدلاً من إعادة التحميل
       setItems(prevItems => prevItems.filter(item => item.id !== id))
+      showToast('تم حذف اللعبة')
     } catch (error) {
       console.error('خطأ في حذف اللعبة:', error);
-      alert('حدث خطأ أثناء حذف اللعبة. يرجى المحاولة مرة أخرى.');
+      showToast('حدث خطأ أثناء حذف اللعبة. يرجى المحاولة مرة أخرى.', 'error')
+    }
+  }
+
+  async function handleClassify() {
+    const confirmed = confirm('تصنيف الألعاب حسب النوع والسلسلة بالعربية؟');
+    if (!confirmed) return;
+
+    const list = filteredItems.length ? filteredItems : items;
+    if (!list.length) { showToast('لا توجد ألعاب لتصنيفها', 'error'); return; }
+
+    try {
+      setClassifying(true)
+      let updated = 0;
+      const updatedGames = [];
+
+      for (let i = 0; i < list.length; i++) {
+        const g = list[i];
+        setClassifyProgress({ current: i + 1, total: list.length, title: g.title });
+        try {
+          const { data } = await api.post('/analyze-game-genre', { title: g.title });
+          if (data?.success && data.arabicGenre) {
+            const features = data.features.length > 0 ? JSON.stringify(data.features) : null;
+            const updatedGame = { ...g, genre: data.arabicGenre, features };
+            await api.put(`/games/${g.id}`, updatedGame);
+            // تجميع التحديثات بدلاً من التحديث المباشر
+            updatedGames.push(updatedGame);
+            updated++;
+          }
+          await new Promise(r => setTimeout(r, 2500)); // Rate limiting
+        } catch (e) {
+          console.error('خطأ في تصنيف اللعبة:', e);
+          await new Promise(r => setTimeout(r, 1000));
+        }
+      }
+
+      // تحديث واحد في النهاية بدلاً من تحديثات متعددة
+      if (updatedGames.length > 0) {
+        setItems(prevItems => {
+          const updatedMap = new Map(updatedGames.map(game => [game.id, game]));
+          return prevItems.map(item => updatedMap.get(item.id) || item);
+        });
+      }
+
+      showToast(`تم تصنيف ${updated} لعبة بالعربية`)
+    } catch (error) {
+      console.error('خطأ عام في التصنيف:', error);
+      showToast('حدث خطأ أثناء التصنيف. يرجى المحاولة مرة أخرى.', 'error')
+    } finally {
+      setClassifying(false)
+      setClassifyProgress(null)
     }
   }
 
@@ -125,21 +194,33 @@ export default function GamesTab() {
     setShowModal(true)
   }
 
+  if (loading) {
+    return (
+      <div className="p-4 sm:p-6 lg:p-8">
+        <div className="skeleton-header mb-6"></div>
+        <div className="skeleton h-28 rounded-2xl mb-6"></div>
+        <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
+          {Array.from({ length: 8 }).map((_, i) => <div key={i} className="skeleton-card"></div>)}
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div className="p-4 sm:p-6 lg:p-8">
       {/* Header */}
       <div className="mb-6 sm:mb-8 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div>
-          <h2 className="text-2xl sm:text-3xl font-bold text-white mb-2">إدارة الألعاب</h2>
+          <h2 className="text-2xl sm:text-3xl font-bold text-white mb-1">إدارة الألعاب</h2>
           <p className="text-gray-400 text-sm sm:text-base">إضافة وتعديل وحذف الألعاب في المتجر</p>
         </div>
         <div className="w-full sm:w-auto flex flex-col sm:flex-row gap-2">
           <button
             onClick={() => {
-              if (!items.length) { alert('لا توجد ألعاب للتصدير'); return; }
+              if (!items.length) { showToast('لا توجد ألعاب للتصدير', 'error'); return; }
               exportGamesToExcel(items, categories);
             }}
-            className="w-full sm:w-auto px-4 py-3 bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-600 hover:to-orange-700 text-white font-bold rounded-xl transition-all duration-300 shadow-lg flex items-center justify-center gap-2 min-h-[48px]"
+            className="btn btn-secondary w-full sm:w-auto"
             title="تصدير كل الألعاب إلى Excel مقسّمة حسب التصنيف وحجم التخزين"
           >
             <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
@@ -147,23 +228,23 @@ export default function GamesTab() {
           </button>
           <button
             onClick={openAddModal}
-            className="w-full sm:w-auto px-6 py-3 bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white font-bold rounded-xl transition-all duration-300 shadow-lg flex items-center justify-center gap-2 min-h-[48px]"
+            className="btn btn-primary w-full sm:w-auto"
           >
-            <span className="text-xl">+</span>
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" /></svg>
             إضافة لعبة جديدة
           </button>
         </div>
       </div>
 
       {/* Filter & Actions Bar */}
-      <div className="bg-gradient-to-r from-gray-800 to-gray-900 p-4 sm:p-6 rounded-2xl border border-gray-700 shadow-xl mb-6">
+      <div className="bg-gray-900/40 backdrop-blur-md p-4 sm:p-5 rounded-2xl border border-white/5 shadow-xl mb-6">
         <div className="flex flex-col sm:flex-row flex-wrap items-stretch sm:items-end gap-3 sm:gap-4">
           <div className="flex-1 min-w-0 sm:min-w-[200px]">
-            <label className="block text-sm font-semibold text-gray-300 mb-2">تصفية حسب الفئة</label>
+            <label className="block text-xs font-semibold text-gray-400 mb-1.5">تصفية حسب الفئة</label>
             <select
               value={selectedCategory}
               onChange={e => setSelectedCategory(e.target.value)}
-              className="w-full bg-gray-700 border border-gray-600 rounded-xl px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-blue-500 min-h-[48px]"
+              className={inputCls + " cursor-pointer"}
             >
               <option value="">جميع الفئات ({items.length})</option>
               {categories.map(c => (
@@ -175,154 +256,108 @@ export default function GamesTab() {
           </div>
 
           <div className="flex-1 min-w-0 sm:min-w-[200px]">
-            <label className="block text-sm font-semibold text-gray-300 mb-2">البحث</label>
+            <label className="block text-xs font-semibold text-gray-400 mb-1.5">البحث</label>
             <div className="relative">
+              <span className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 pointer-events-none">
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth={1.7} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" /></svg>
+              </span>
               <input
                 type="text"
                 placeholder="ابحث عن لعبة..."
                 value={searchTerm}
                 onChange={e => setSearchTerm(e.target.value)}
-                className="w-full bg-gray-700 border border-gray-600 rounded-xl px-4 py-3 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 min-h-[48px]"
+                className={inputCls + " pr-11"}
               />
               {searchTerm && (
                 <button
                   onClick={() => setSearchTerm('')}
-                  className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-white min-w-[44px] min-h-[44px] flex items-center justify-center"
+                  className="absolute left-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-white w-9 h-9 flex items-center justify-center rounded-lg hover:bg-white/5 transition-colors"
                   aria-label="مسح البحث"
                 >
-                  ✕
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
                 </button>
               )}
             </div>
           </div>
 
-          <div className="flex gap-2 items-end">
+          <div className="flex flex-col gap-1.5">
             <button
               type="button"
-              onClick={async (e) => {
-                e.preventDefault();
-                e.stopPropagation();
-
-                try {
-                  const confirmed = confirm('تصنيف الألعاب حسب النوع والسلسلة بالعربية؟');
-                  if (!confirmed) return;
-
-                  const list = filteredItems.length ? filteredItems : items;
-                  let updated = 0;
-                  const updatedGames = []; // تجميع التحديثات
-                  const box = document.createElement('div');
-                  box.style.cssText = 'position:fixed;top:20px;right:20px;background:#1f2937;color:white;padding:20px;border-radius:12px;z-index:9999;box-shadow:0 8px 16px rgba(0,0,0,0.4);max-width:420px;border:2px solid #8b5cf6;';
-                  box.innerHTML = '<div style="font-weight:bold;margin-bottom:12px;">🏷️ تصنيف حسب النوع والسلسلة...</div><div id="status-arabic">0 / ' + list.length + '</div>';
-                  document.body.appendChild(box);
-
-                  for (let i = 0; i < list.length; i++) {
-                    const g = list[i];
-                    try {
-                      const statusEl = document.getElementById('status-arabic');
-                      if (statusEl) {
-                        statusEl.innerHTML = `${i + 1} / ${list.length}<br/>${g.title}`;
-                      }
-
-                      const { data } = await api.post('/analyze-game-genre', { title: g.title });
-                      if (data?.success && data.arabicGenre) {
-                        const features = data.features.length > 0 ? JSON.stringify(data.features) : null;
-                        const updatedGame = { ...g, genre: data.arabicGenre, features };
-                        await api.put(`/games/${g.id}`, updatedGame);
-                        // تجميع التحديثات بدلاً من التحديث المباشر
-                        updatedGames.push(updatedGame);
-                        updated++;
-
-                        if (statusEl) {
-                          statusEl.innerHTML = `${i + 1} / ${list.length}<br/>✅ ${g.title} → ${data.arabicGenre}`;
-                        }
-                      }
-                      await new Promise(r => setTimeout(r, 2500)); // Rate limiting
-                    } catch (e) {
-                      console.error('خطأ في تصنيف اللعبة:', e);
-                      const statusEl = document.getElementById('status-arabic');
-                      if (statusEl) {
-                        statusEl.innerHTML = `${i + 1} / ${list.length}<br/>❌ ${g.title}`;
-                      }
-                      await new Promise(r => setTimeout(r, 1000));
-                    }
-                  }
-
-                  // تحديث واحد في النهاية بدلاً من تحديثات متعددة
-                  if (updatedGames.length > 0) {
-                    setItems(prevItems => {
-                      const updatedMap = new Map(updatedGames.map(game => [game.id, game]));
-                      return prevItems.map(item => updatedMap.get(item.id) || item);
-                    });
-                  }
-
-                  setTimeout(() => {
-                    if (box && box.parentNode) {
-                      box.remove();
-                    }
-                  }, 2000);
-                  alert(`تم تصنيف ${updated} لعبة بالعربية`);
-
-                } catch (error) {
-                  console.error('خطأ عام في التصنيف:', error);
-                  alert('حدث خطأ أثناء التصنيف. يرجى المحاولة مرة أخرى.');
-                }
-              }}
-              className="px-4 py-3 bg-gradient-to-r from-purple-600 to-violet-600 hover:from-purple-700 hover:to-violet-700 text-white rounded-xl font-bold transition-all shadow-lg"
-              title="تصنيف حسب النوع والسلسلة"
+              onClick={handleClassify}
+              disabled={classifying}
+              className="btn btn-secondary"
+              title="تصنيف الألعاب حسب النوع والسلسلة بالعربية"
             >
-              تصنيف حسب النوع والسلسلة
+              {classifying ? (
+                <>
+                  <span className="loading-spinner !w-4 !h-4"></span>
+                  {classifyProgress ? `${classifyProgress.current} / ${classifyProgress.total}` : 'جاري التصنيف...'}
+                </>
+              ) : (
+                <>
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={1.7} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M9.568 3H5.25A2.25 2.25 0 003 5.25v4.318c0 .597.237 1.17.659 1.591l9.581 9.581c.699.699 1.78.872 2.607.33a18.095 18.095 0 005.223-5.223c.542-.827.369-1.908-.33-2.607L11.16 3.66A2.25 2.25 0 009.568 3z" /></svg>
+                  تصنيف حسب النوع والسلسلة
+                </>
+              )}
             </button>
+            {classifying && classifyProgress && (
+              <p className="text-[11px] text-gray-400 truncate max-w-[240px]" title={classifyProgress.title}>{classifyProgress.title}</p>
+            )}
           </div>
         </div>
       </div>
 
       {/* Games Grid */}
-      <div className="bg-gradient-to-br from-gray-800 to-gray-900 p-4 sm:p-6 rounded-2xl border border-gray-700 shadow-2xl">
+      <div className="bg-gray-900/40 backdrop-blur-md p-4 sm:p-6 rounded-2xl border border-white/5 shadow-xl">
         <div className="mb-4">
           <h3 className="text-lg sm:text-xl font-bold text-white">الألعاب ({filteredItems.length})</h3>
         </div>
 
-        <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-2 sm:gap-3">
+        <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-2.5 sm:gap-3">
           {filteredItems.slice(0, visibleCount).map(game => (
-            <div key={game.id} className="bg-gray-700/50 rounded-xl overflow-hidden border border-gray-600 hover:border-blue-500 transition-all group">
-              <div className="aspect-[3/4] sm:aspect-square relative overflow-hidden bg-gray-800">
+            <div key={game.id} className="bg-gray-950/60 rounded-2xl overflow-hidden border border-white/5 hover:border-teal-500/30 transition-all duration-200 group flex flex-col">
+              <div className="aspect-[3/4] sm:aspect-square relative overflow-hidden bg-gray-900">
                 <img
                   src={game.image}
                   alt={game.title}
                   loading="lazy"
                   decoding="async"
-                  className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
+                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                   onError={(e) => { e.target.src = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="200" height="200"%3E%3Crect fill="%23374151" width="200" height="200"/%3E%3Cpath d="M70 80h60v40H70z M100 70v-20M80 90a10 10 0 1020 0" stroke="%239ca3af" stroke-width="4" fill="none"/%3E%3C/svg%3E' }}
                 />
               </div>
-              <div className="p-2 sm:p-3">
-                <h4 className="text-white font-semibold mb-1 line-clamp-2 text-xs sm:text-sm leading-tight">{game.title}</h4>
-                <div className="flex items-center justify-between mb-1">
-                  <span className="px-1.5 py-0.5 bg-blue-600/20 text-blue-300 rounded text-[10px] sm:text-xs truncate max-w-[60%]">
+              <div className="p-3 flex flex-col flex-1">
+                <h4 className="text-white font-semibold mb-2 line-clamp-2 text-sm leading-tight min-h-[2.5rem]">{game.title}</h4>
+                <div className="flex items-center justify-between gap-2 mb-1.5">
+                  <span className="px-2 py-0.5 bg-teal-500/10 text-teal-300 border border-teal-500/20 rounded-md text-[10px] sm:text-xs truncate max-w-[60%]">
                     {categories.find(c => c.id === game.category_id)?.name || 'غير محدد'}
                   </span>
-                  <span className="text-green-400 font-bold text-xs sm:text-sm">{currency(game.price)}</span>
+                  <span className="text-teal-400 font-bold text-xs sm:text-sm shrink-0 tabular-nums">{currency(game.price)}</span>
                 </div>
-                <div className="flex items-center gap-1 flex-wrap">
+                <div className="flex items-center gap-1.5 flex-wrap mb-2">
                   {game.genre && (
-                    <span className="px-1.5 py-0.5 bg-purple-600/20 text-purple-300 rounded text-[10px] sm:text-xs">
-                      {game.genre}
-                    </span>
+                    <span className="badge badge-info">{game.genre}</span>
                   )}
-                  {game.size_gb > 0 && <span className="text-gray-400 text-[10px]">{game.size_gb}GB</span>}
+                  {game.size_gb > 0 && <span className="badge badge-neutral">{game.size_gb} GB</span>}
                 </div>
-                <div className="flex gap-1.5 mt-2">
+                <div className="flex gap-1.5 mt-auto">
                   <button
                     onClick={() => openEditModal(game)}
-                    className="flex-1 px-2 py-1.5 min-h-[36px] bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-semibold transition-colors"
+                    className="btn btn-secondary btn-sm flex-1 text-teal-300"
+                    aria-label="تعديل"
+                    title="تعديل"
                   >
-                    تعديل
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={1.7} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125" /></svg>
+                    <span className="hidden sm:inline">تعديل</span>
                   </button>
                   <button
                     onClick={() => remove(game.id)}
-                    className="px-2 py-1.5 min-h-[36px] bg-red-600 hover:bg-red-700 text-white rounded-lg text-xs font-semibold transition-colors"
+                    className="btn btn-secondary btn-sm text-red-400"
+                    aria-label="حذف"
+                    title="حذف"
                   >
-                    حذف
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={1.7} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0" /></svg>
+                    <span className="hidden sm:inline">حذف</span>
                   </button>
                 </div>
               </div>
@@ -334,7 +369,7 @@ export default function GamesTab() {
           <div className="text-center py-4 mt-3">
             <button
               onClick={() => setVisibleCount(prev => prev + 24)}
-              className="px-5 py-2.5 rounded-lg bg-gray-600 hover:bg-gray-500 text-white font-medium text-sm transition-colors"
+              className="btn btn-secondary"
             >
               تحميل المزيد ({filteredItems.length - visibleCount} متبقية)
             </button>
@@ -342,25 +377,28 @@ export default function GamesTab() {
         )}
 
         {filteredItems.length === 0 && (
-          <div className="text-center py-12 text-gray-400">
-            <p className="text-xl mb-2">لا توجد ألعاب</p>
-            <p className="text-sm">جرّب تغيير الفلاتر أو أضف لعبة جديدة</p>
+          <div className="empty-state">
+            <div className="empty-state-icon text-teal-400">
+              <svg className="w-12 h-12 mx-auto" fill="none" stroke="currentColor" strokeWidth={1.2} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path strokeLinecap="round" strokeLinejoin="round" d="M14.25 6.087c0-.355.186-.676.401-.959.221-.29.349-.634.349-1.003 0-1.036-1.007-1.875-2.25-1.875s-2.25.84-2.25 1.875c0 .369.128.713.349 1.003.215.283.401.604.401.959V6a2 2 0 00-2-2H5.5a2 2 0 00-2 2v5.5c0 .355.186.676.401.959.221.29.349.634.349 1.003 0 1.036 1.007 1.875 2.25 1.875s2.25-.84 2.25-1.875c0-.369-.128-.713-.349-1.003A1.65 1.65 0 015.5 11.5V6" /></svg>
+            </div>
+            <div className="empty-state-title">لا توجد ألعاب</div>
+            <div className="empty-state-description">جرّب تغيير الفلاتر أو أضف لعبة جديدة</div>
           </div>
         )}
       </div>
 
       {/* Modal (Portal) */}
       {showModal && createPortal(
-        <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-[9999] p-3 sm:p-4" onClick={() => setShowModal(false)}>
-          <div className="bg-gray-800 rounded-xl sm:rounded-2xl border border-gray-700 shadow-2xl w-full sm:max-w-xl md:max-w-2xl max-h-[85vh] flex flex-col" onClick={e => e.stopPropagation()}>
-            <div className="p-4 sm:p-6 border-b border-gray-700 flex items-center justify-between sticky top-0 bg-gray-800 z-10 rounded-t-xl sm:rounded-t-2xl">
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-[9999] p-3 sm:p-4" onClick={() => setShowModal(false)}>
+          <div className="bg-gray-900/95 backdrop-blur-xl rounded-2xl border border-white/10 shadow-2xl w-full sm:max-w-xl md:max-w-2xl max-h-[85vh] flex flex-col" onClick={e => e.stopPropagation()}>
+            <div className="p-4 sm:p-5 border-b border-white/5 flex items-center justify-between sticky top-0 bg-gray-900/95 backdrop-blur-xl z-10 rounded-t-2xl">
               <h3 className="text-xl sm:text-2xl font-bold text-white">{editing ? 'تعديل اللعبة' : 'إضافة لعبة جديدة'}</h3>
               <button
                 onClick={() => setShowModal(false)}
-                className="text-gray-400 hover:text-white text-3xl leading-none w-8 h-8 flex items-center justify-center bg-gray-700/50 hover:bg-gray-600 rounded-full transition-colors"
+                className="w-11 h-11 flex items-center justify-center text-gray-400 hover:text-white hover:bg-white/10 rounded-xl transition-colors"
                 aria-label="إغلاق"
               >
-                &times;
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
               </button>
             </div>
 
@@ -369,7 +407,7 @@ export default function GamesTab() {
                 <div>
                   <label className="block text-sm font-semibold text-gray-300 mb-2">عنوان اللعبة</label>
                   <input
-                    className="w-full bg-gray-700 border border-gray-600 rounded-xl px-4 py-3 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className={inputCls}
                     placeholder="أدخل عنوان اللعبة"
                     value={form.title}
                     onChange={e => setForm({ ...form, title: e.target.value })}
@@ -377,16 +415,16 @@ export default function GamesTab() {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-semibold text-gray-300 mb-2">صورة اللعبة (رابط مباشر أو رفع)</label>
+                  <label className="block text-sm font-semibold text-gray-300 mb-2">صورة اللعبة</label>
                   {form.image && (
                     <div className="mb-3">
-                      <img src={form.image} alt="معاينة" className="w-24 h-24 sm:w-32 sm:h-32 object-cover rounded-lg border border-gray-600" />
+                      <img src={form.image} alt="معاينة" className="w-24 h-24 sm:w-32 sm:h-32 object-cover rounded-xl border border-white/10" />
                     </div>
                   )}
                   <input
                     type="file"
                     accept="image/*"
-                    className="w-full bg-gray-700 border border-gray-600 rounded-xl px-3 py-2 sm:px-4 sm:py-3 text-white file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-blue-500 file:text-white hover:file:bg-blue-600 text-xs sm:text-sm"
+                    className="w-full bg-gray-950 border border-gray-700/50 rounded-xl px-3 py-2 sm:px-4 sm:py-3 text-white file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-teal-500 file:text-white hover:file:bg-teal-600 cursor-pointer text-xs sm:text-sm"
                     onChange={async e => {
                       const file = e.target.files[0]
                       if (!file) return
@@ -399,7 +437,7 @@ export default function GamesTab() {
                         } catch (err) {
                           console.error('Upload error:', err);
                           const msg = err.response?.data?.error || err.response?.data?.message || err.message;
-                          alert(`فشل رفع الصورة: ${msg}`);
+                          showToast(`فشل رفع الصورة: ${msg}`, 'error');
                         }
                       }
                       reader.readAsDataURL(file)
@@ -413,7 +451,7 @@ export default function GamesTab() {
                     <input
                       type="number"
                       step="0.001"
-                      className="w-full bg-gray-700 border border-gray-600 rounded-xl px-3 py-2.5 sm:px-4 sm:py-3 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      className={inputCls}
                       placeholder="مثال: 5.000"
                       value={form.price}
                       onChange={e => setForm({ ...form, price: e.target.value })}
@@ -425,7 +463,7 @@ export default function GamesTab() {
                     <input
                       type="number"
                       step="0.01"
-                      className="w-full bg-gray-700 border border-gray-600 rounded-xl px-3 py-2.5 sm:px-4 sm:py-3 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-500"
+                      className={inputCls}
                       placeholder="مثال: 45.5"
                       value={form.size_gb}
                       onChange={e => setForm({ ...form, size_gb: e.target.value })}
@@ -435,7 +473,7 @@ export default function GamesTab() {
                   <div className="col-span-1 sm:col-span-2">
                     <label className="block text-sm font-semibold text-gray-300 mb-2">الفئة (المنصة)</label>
                     <select
-                      className="w-full bg-gray-700 border border-gray-600 rounded-xl px-3 py-2.5 sm:px-4 sm:py-3 text-white focus:outline-none focus:ring-2 focus:ring-blue-500 appearance-none text-sm sm:text-base"
+                      className={inputCls + " cursor-pointer"}
                       value={form.category_id}
                       onChange={e => setForm({ ...form, category_id: e.target.value })}
                     >
@@ -451,7 +489,7 @@ export default function GamesTab() {
                   <div>
                     <label className="block text-sm font-semibold text-gray-300 mb-2">النوع (Genre)</label>
                     <select
-                      className="w-full bg-gray-700 border border-gray-600 rounded-xl px-3 py-2.5 sm:px-4 sm:py-3 text-white focus:outline-none focus:ring-2 focus:ring-blue-500 appearance-none text-sm sm:text-base"
+                      className={inputCls + " cursor-pointer"}
                       value={form.genre || ''}
                       onChange={e => {
                         const value = e.target.value;
@@ -468,7 +506,7 @@ export default function GamesTab() {
                   <div>
                     <label className="block text-sm font-semibold text-gray-300 mb-2">السلسلة (Series)</label>
                     <select
-                      className="w-full bg-gray-700 border border-gray-600 rounded-xl px-3 py-2.5 sm:px-4 sm:py-3 text-white focus:outline-none focus:ring-2 focus:ring-blue-500 appearance-none text-sm sm:text-base"
+                      className={inputCls + " cursor-pointer"}
                       value={form.series || ''}
                       onChange={e => {
                         const value = e.target.value;
@@ -483,18 +521,11 @@ export default function GamesTab() {
                   </div>
                 </div>
 
-                <div className="flex gap-3 pt-4 border-t border-gray-700 mt-2">
-                  <button
-                    type="submit"
-                    className="flex-1 px-4 py-3 bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white font-semibold rounded-xl transition-all shadow-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:ring-offset-gray-800"
-                  >
-                    {editing ? 'تحديث البيانات' : 'إضافة اللعبة'}
+                <div className="flex gap-3 pt-4 border-t border-white/5 mt-2">
+                  <button type="submit" disabled={saving} className="btn btn-primary flex-1">
+                    {saving ? 'جاري الحفظ...' : (editing ? 'تحديث البيانات' : 'إضافة اللعبة')}
                   </button>
-                  <button
-                    type="button"
-                    onClick={() => setShowModal(false)}
-                    className="px-6 py-3 bg-gray-700 hover:bg-gray-600 text-white font-semibold rounded-xl transition-all border border-gray-600 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 focus:ring-offset-gray-800"
-                  >
+                  <button type="button" onClick={() => setShowModal(false)} className="btn btn-secondary">
                     إلغاء
                   </button>
                 </div>
