@@ -282,6 +282,7 @@ export default function App() {
   const [showLogin, setShowLogin] = useState(false)
   const [loginForm, setLoginForm] = useState({ username: '', password: '' })
   const [loginLoading, setLoginLoading] = useState(false)
+  const [showPassword, setShowPassword] = useState(false)
   const [showInvoice, setShowInvoice] = useState(false)
   const [showMobileCart, setShowMobileCart] = useState(false)
   const [viewingPackage, setViewingPackage] = useState(null)
@@ -859,89 +860,143 @@ export default function App() {
   // حماية المتجر: يجب تسجيل الدخول للوصول إلى نقطة البيع
   if (!hasToken && !isGuestMode && !showLogin) {
     return (
-      <div className="min-h-screen bg-black text-white flex flex-col items-center justify-center p-4 sm:p-6 relative overflow-hidden">
-        {/* Animated background */}
-        <div className="fixed inset-0 pointer-events-none">
-          <div className="absolute top-[-20%] left-[-10%] w-[50%] h-[50%] bg-primary/20 rounded-full blur-[150px] animate-pulse"></div>
-          <div className="absolute bottom-[-20%] right-[-10%] w-[50%] h-[50%] bg-blue-600/20 rounded-full blur-[150px] animate-pulse" style={{ animationDelay: '2s' }}></div>
-          <div className="absolute top-[40%] left-[50%] -translate-x-1/2 w-[30%] h-[30%] bg-purple-600/10 rounded-full blur-[120px] animate-pulse" style={{ animationDelay: '4s' }}></div>
+      <div className="min-h-screen bg-base text-white relative overflow-hidden flex items-center justify-center p-4 sm:p-6">
+        {/* Animated ambient background */}
+        <div aria-hidden="true" className="fixed inset-0 pointer-events-none">
+          <div className="absolute -top-40 -right-32 w-[55%] h-[55%] rounded-full blur-[150px] animate-pulse" style={{ background: 'rgba(20,184,166,0.18)' }}></div>
+          <div className="absolute -bottom-40 -left-32 w-[55%] h-[55%] rounded-full blur-[150px] animate-pulse" style={{ background: 'rgba(16,185,129,0.12)', animationDelay: '1.5s' }}></div>
+          <div className="absolute top-1/3 left-1/2 -translate-x-1/2 w-[35%] h-[35%] rounded-full blur-[130px] animate-pulse" style={{ background: 'rgba(59,130,246,0.08)', animationDelay: '3s' }}></div>
         </div>
 
-        <div className="relative z-10 text-center max-w-sm w-full">
-          {/* Logo with glow */}
-          <div className="relative inline-block mb-6">
-            <div className="absolute inset-0 bg-primary/30 rounded-3xl blur-2xl"></div>
-            <div className="relative bg-gray-900/80 backdrop-blur-sm border border-white/10 rounded-3xl p-5 shadow-2xl">
-              <img src={logo} alt="Alnafar Store" className="h-16 sm:h-20 mx-auto" />
+        <div className="relative z-10 w-full max-w-4xl grid lg:grid-cols-2 rounded-3xl overflow-hidden border border-white/10 shadow-2xl" style={{ background: 'rgba(17,24,39,0.55)', backdropFilter: 'blur(20px)' }}>
+          {/* Brand panel (desktop) */}
+          <div className="hidden lg:flex flex-col justify-between p-8 relative overflow-hidden" style={{ background: 'linear-gradient(145deg, rgba(20,184,166,0.16), rgba(15,23,42,0.4) 55%, rgba(15,23,42,0.7))' }}>
+            <div className="absolute -top-16 -left-16 w-48 h-48 bg-primary/20 rounded-full blur-3xl" aria-hidden="true"></div>
+            <div className="relative">
+              <div className="flex items-center gap-3 mb-10">
+                <div className="w-14 h-14 rounded-2xl bg-white/95 flex items-center justify-center shadow-lg shrink-0">
+                  <img src={logo} alt="شعار متجر النفار" className="w-11 h-11 object-contain" />
+                </div>
+                <div>
+                  <p className="text-lg font-extrabold bg-gradient-to-r from-primary to-emerald-400 bg-clip-text text-transparent">متجر النفار</p>
+                  <p className="text-xs text-gray-400">نقطة البيع ونظام الألعاب</p>
+                </div>
+              </div>
+              <h2 className="text-2xl font-extrabold leading-snug mb-3">كل ألعابك في مكان واحد</h2>
+              <p className="text-sm text-gray-400 leading-relaxed">سجّل الدخول لإدارة الطلبات والفواتير، أو تصفّح كضيف وأرسل طلبك مباشرة عبر واتساب.</p>
+
+              <ul className="mt-8 space-y-4">
+                {[
+                  { d: 'M4 6h16M4 12h16M4 18h10', t: 'مكتبة ألعاب محدّثة لحظيًا' },
+                  { d: 'M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z', t: 'سلة وطلب فوري عبر واتساب' },
+                  { d: 'M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z', t: 'فواتير وتقارير دقيقة' },
+                ].map((f, i) => (
+                  <li key={i} className="flex items-center gap-3 text-sm text-gray-200">
+                    <span className="w-9 h-9 rounded-xl bg-primary/15 border border-primary/25 flex items-center justify-center text-primary shrink-0">
+                      <svg style={{ width: '18px', height: '18px' }} fill="none" stroke="currentColor" strokeWidth={1.8} viewBox="0 0 24 24" aria-hidden="true"><path strokeLinecap="round" strokeLinejoin="round" d={f.d} /></svg>
+                    </span>
+                    {f.t}
+                  </li>
+                ))}
+              </ul>
             </div>
+            <p className="relative text-xs text-gray-500 mt-10">الشاردة للإلكترونات — شارع القضائية</p>
           </div>
 
-          <h1 className="text-2xl sm:text-3xl font-extrabold mb-2 bg-gradient-to-r from-primary via-emerald-400 to-blue-400 bg-clip-text text-transparent">
-            متجر النفار
-          </h1>
-          <p className="text-gray-400 mb-8 text-sm sm:text-base">اختر ألعابك المفضلة واطلبها بسهولة</p>
-
-          {/* Login Form */}
-          <form
-            onSubmit={submitLogin}
-            className="bg-gray-900/60 backdrop-blur-md border border-white/10 rounded-2xl p-5 sm:p-6 space-y-4 shadow-2xl"
-          >
-            <div className="text-right mb-2">
-              <h2 className="text-lg font-bold text-white">تسجيل الدخول</h2>
-              <p className="text-xs text-gray-400">للوصول إلى نظام نقطة البيع</p>
-            </div>
-            <div>
-              <input
-                className="w-full border border-gray-700/60 bg-gray-800/60 text-white rounded-xl px-4 py-3 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary/50 text-base transition-all"
-                placeholder="اسم المستخدم"
-                value={loginForm.username}
-                onChange={e => setLoginForm({ ...loginForm, username: e.target.value })}
-                autoComplete="username"
-              />
-            </div>
-            <div>
-              <input
-                className="w-full border border-gray-700/60 bg-gray-800/60 text-white rounded-xl px-4 py-3 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary/50 text-base transition-all"
-                placeholder="كلمة المرور"
-                type="password"
-                value={loginForm.password}
-                onChange={e => setLoginForm({ ...loginForm, password: e.target.value })}
-                autoComplete="current-password"
-              />
-            </div>
-            <button
-              type="submit"
-              className="w-full px-4 py-3.5 rounded-xl bg-gradient-to-r from-primary to-emerald-600 hover:from-primary-dark hover:to-emerald-700 text-white disabled:opacity-50 transition-all font-bold flex items-center justify-center gap-2 shadow-lg shadow-primary/20"
-              disabled={loginLoading}
-            >
-              {loginLoading ? 'جارٍ الدخول...' : 'تسجيل الدخول'}
-            </button>
-
-            <div className="relative my-2">
-              <div className="absolute inset-0 flex items-center">
-                <div className="w-full border-t border-gray-700/50"></div>
+          {/* Form panel */}
+          <div className="p-6 sm:p-8">
+            <div className="lg:hidden flex flex-col items-center text-center mb-6">
+              <div className="w-16 h-16 rounded-2xl bg-white/95 flex items-center justify-center shadow-lg mb-3">
+                <img src={logo} alt="شعار متجر النفار" className="w-12 h-12 object-contain" />
               </div>
-              <div className="relative flex justify-center text-xs">
-                <span className="bg-gray-900/60 px-3 text-gray-500">أو</span>
-              </div>
+              <h1 className="text-xl font-extrabold bg-gradient-to-r from-primary to-emerald-400 bg-clip-text text-transparent">متجر النفار</h1>
+              <p className="text-xs text-gray-400 mt-1">اختر ألعابك المفضلة واطلبها بسهولة</p>
             </div>
 
-            <button
-              type="button"
-              onClick={() => {
-                localStorage.setItem('isGuest', 'true');
-                setIsGuestMode(true);
-              }}
-              className="w-full px-4 py-3.5 rounded-xl border border-gray-600/50 hover:bg-white/5 text-gray-300 hover:text-white transition-all font-bold flex items-center justify-center gap-3"
-            >
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-              </svg>
-              تصفح كضيف — أضف ألعاب وأرسل الطلب عبر واتساب
-            </button>
-          </form>
+            <div className="mb-6">
+              <h2 className="text-xl font-bold text-white mb-1">تسجيل الدخول</h2>
+              <p className="text-sm text-gray-400">للوصول إلى نظام نقطة البيع</p>
+            </div>
 
-          <p className="text-gray-600 text-xs mt-6">الشاردة للإلكترونات — شارع القضائية</p>
+            <form onSubmit={submitLogin} className="space-y-4">
+              <div>
+                <label htmlFor="login-username" className="block text-xs font-medium text-gray-400 mb-1.5 text-right">اسم المستخدم</label>
+                <div className="relative">
+                  <span className="absolute inset-y-0 right-0 flex items-center pr-3.5 text-gray-500 pointer-events-none" aria-hidden="true">
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth={1.8} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.5 20.25a7.5 7.5 0 0115 0v.75H4.5v-.75z" /></svg>
+                  </span>
+                  <input
+                    id="login-username"
+                    className="w-full border border-gray-700/60 bg-gray-800/60 text-white rounded-xl pr-11 pl-4 py-3 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary/50 text-base transition-all min-h-[48px]"
+                    placeholder="أدخل اسم المستخدم"
+                    value={loginForm.username}
+                    onChange={e => setLoginForm({ ...loginForm, username: e.target.value })}
+                    autoComplete="username"
+                  />
+                </div>
+              </div>
+              <div>
+                <label htmlFor="login-password" className="block text-xs font-medium text-gray-400 mb-1.5 text-right">كلمة المرور</label>
+                <div className="relative">
+                  <span className="absolute inset-y-0 right-0 flex items-center pr-3.5 text-gray-500 pointer-events-none" aria-hidden="true">
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth={1.8} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 10-9 0v3.75m-.75 11.25h10.5A2.25 2.25 0 0019.5 19.5v-6.75A2.25 2.25 0 0017.25 10.5H6.75A2.25 2.25 0 004.5 12.75v6.75A2.25 2.25 0 006.75 21.75z" /></svg>
+                  </span>
+                  <input
+                    id="login-password"
+                    className="w-full border border-gray-700/60 bg-gray-800/60 text-white rounded-xl pr-11 pl-11 py-3 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary/50 text-base transition-all min-h-[48px]"
+                    placeholder="أدخل كلمة المرور"
+                    type={showPassword ? 'text' : 'password'}
+                    value={loginForm.password}
+                    onChange={e => setLoginForm({ ...loginForm, password: e.target.value })}
+                    autoComplete="current-password"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(v => !v)}
+                    aria-label={showPassword ? 'إخفاء كلمة المرور' : 'إظهار كلمة المرور'}
+                    className="absolute inset-y-0 left-0 flex items-center pl-3.5 text-gray-500 hover:text-gray-300 transition-colors cursor-pointer"
+                  >
+                    {showPassword ? (
+                      <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth={1.8} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M3.98 8.223A10.477 10.477 0 001.934 12C3.226 16.338 7.244 19.5 12 19.5c.993 0 1.953-.138 2.863-.395M6.228 6.228A10.45 10.45 0 0112 4.5c4.756 0 8.773 3.162 10.065 7.498a10.523 10.523 0 01-4.293 5.774M6.228 6.228L3 3m3.228 3.228l3.65 3.65m7.894 7.894L21 21m-3.228-3.228l-3.65-3.65m0 0a3 3 0 10-4.243-4.243m4.242 4.242L9.88 9.88" /></svg>
+                    ) : (
+                      <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth={1.8} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M2.036 12.322a1.012 1.012 0 010-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178z" /><path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
+                    )}
+                  </button>
+                </div>
+              </div>
+
+              <button
+                type="submit"
+                className="w-full px-4 py-3.5 rounded-xl bg-gradient-to-r from-primary to-emerald-600 hover:from-primary-dark hover:to-emerald-700 text-white disabled:opacity-50 disabled:cursor-not-allowed transition-all font-bold flex items-center justify-center gap-2 shadow-lg shadow-primary/20 min-h-[48px] cursor-pointer focus:outline-none focus:ring-2 focus:ring-teal-500/50"
+                disabled={loginLoading}
+              >
+                {loginLoading ? (
+                  <><span className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" aria-hidden="true"></span> جارٍ الدخول...</>
+                ) : (
+                  <>تسجيل الدخول
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24" aria-hidden="true"><path strokeLinecap="round" strokeLinejoin="round" d="M10.5 19.5L3 12m0 0l7.5-7.5M3 12h18" /></svg>
+                  </>
+                )}
+              </button>
+
+              <div className="relative my-1">
+                <div className="absolute inset-0 flex items-center"><div className="w-full border-t border-white/10"></div></div>
+                <div className="relative flex justify-center text-xs"><span className="px-3 text-gray-500" style={{ background: 'rgba(17,24,39,0.6)' }}>أو</span></div>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => { localStorage.setItem('isGuest', 'true'); setIsGuestMode(true); }}
+                className="w-full px-4 py-3.5 rounded-xl border border-white/10 bg-white/5 hover:bg-white/10 text-gray-200 hover:text-white transition-all font-bold flex items-center justify-center gap-2 min-h-[48px] cursor-pointer focus:outline-none focus:ring-2 focus:ring-teal-500/50"
+              >
+                <svg className="w-5 h-5 shrink-0" fill="none" stroke="currentColor" strokeWidth={1.8} viewBox="0 0 24 24" aria-hidden="true">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z" />
+                </svg>
+                تصفح كضيف
+              </button>
+              <p className="text-center text-xs text-gray-500">أضف الألعاب للسلة ثم أرسل الطلب عبر واتساب</p>
+            </form>
+          </div>
         </div>
       </div>
     )
@@ -1040,7 +1095,7 @@ export default function App() {
               value={query}
               onChange={e => setQuery(e.target.value)}
               placeholder="ابحث عن لعبة..."
-              className="w-full bg-white/5 border border-white/10 text-white placeholder:text-gray-300 rounded-lg px-3 py-2.5 min-h-[44px] text-base focus:ring-2 focus:ring-purple-500/60 focus:border-purple-500/60 focus:outline-none"
+              className="w-full bg-white/5 border border-white/10 text-white placeholder:text-gray-300 rounded-xl px-4 py-2.5 min-h-[44px] text-base focus:ring-2 focus:ring-teal-500/50 focus:border-teal-500/50 focus:outline-none transition-all"
             />
           </div>
 
@@ -1053,9 +1108,9 @@ export default function App() {
                   <button
                     key={c.id}
                     onClick={() => setActiveCategory(c.id)}
-                    className={`whitespace-nowrap px-4 py-2 text-sm sm:text-base font-bold rounded-xl transition-all duration-200 ${
+                    className={`whitespace-nowrap px-4 py-2 text-sm sm:text-base font-bold rounded-xl transition-all duration-200 cursor-pointer focus:outline-none focus:ring-2 focus:ring-teal-500/50 ${
                       isActive
-                        ? 'bg-gradient-to-r from-purple-600 to-indigo-600 text-white shadow-lg shadow-purple-500/25 scale-105'
+                        ? 'bg-gradient-to-r from-[color:var(--brand)] to-emerald-500 text-white shadow-lg shadow-teal-500/25'
                         : 'bg-white/5 text-gray-300 hover:bg-white/10 hover:text-white border border-white/10'
                     }`}
                   >
@@ -1085,7 +1140,8 @@ export default function App() {
         <div className="w-full px-3 min-[400px]:px-4 sm:px-4 md:px-5 lg:px-6 xl:px-8 py-4 min-[400px]:py-5 sm:py-6 md:py-8 lg:py-10">
           <div className="grid md:grid-cols-2 gap-4 sm:gap-6 items-center">
             <div className="order-2 md:order-1">
-              <h1 className="text-xl min-[400px]:text-2xl sm:text-3xl md:text-4xl font-extrabold mb-2 sm:mb-3 text-center md:text-right">اختر الألعاب التي تريدها</h1>
+              <h1 className="text-xl min-[400px]:text-2xl sm:text-3xl md:text-4xl font-extrabold mb-1.5 sm:mb-2 text-center md:text-right bg-gradient-to-r from-white via-teal-100 to-teal-300 bg-clip-text text-transparent">اختر الألعاب التي تريدها</h1>
+              <p className="text-gray-400 text-sm sm:text-base mb-3 text-center md:text-right">تصفّح المكتبة، أضف للسلة، وأكمل طلبك بسهولة.</p>
 
               {/* فروعنا — اختيار الفرع مقصور على الضيوف/غير المسجّلين؛ المسجّل تُنشأ فاتورته على فرعه */}
               {(!hasToken || isGuestMode) ? (
@@ -1155,12 +1211,16 @@ export default function App() {
                   value={query}
                   onChange={e => setQuery(e.target.value)}
                   placeholder="ابحث عن لعبة..."
-                  className="w-full bg-white/5 border border-white/10 text-white placeholder:text-gray-300 rounded-lg px-3 py-2.5"
+                  className="w-full bg-white/5 border border-white/10 text-white placeholder:text-gray-300 rounded-xl px-4 py-2.5 focus:ring-2 focus:ring-teal-500/50 focus:border-teal-500/50 focus:outline-none transition-all"
                 />
               </div>
 
               {/* Filters - Mobile optimized */}
-              <div className="space-y-3">
+              <div className="rounded-2xl border border-white/10 bg-gray-900/40 backdrop-blur-md p-3 sm:p-4 space-y-3">
+                <div className="flex items-center gap-2 text-gray-300">
+                  <svg className="w-4 h-4 text-[color:var(--brand)]" fill="none" stroke="currentColor" strokeWidth={1.8} viewBox="0 0 24 24" aria-hidden="true"><path strokeLinecap="round" strokeLinejoin="round" d="M12 3c2.755 0 5.455.232 8.083.678.533.09.917.556.917 1.096v1.044a2.25 2.25 0 01-.659 1.591l-5.432 5.432a2.25 2.25 0 00-.659 1.591v2.927a2.25 2.25 0 01-1.244 2.013L9.75 21v-6.568a2.25 2.25 0 00-.659-1.591L3.659 7.409A2.25 2.25 0 013 5.818V4.774c0-.54.384-1.006.917-1.096A48.32 48.32 0 0112 3z" /></svg>
+                  <span className="text-xs font-bold">تصفية النتائج</span>
+                </div>
                 {/* Price filters */}
                 <div className="grid grid-cols-2 gap-2 sm:gap-3">
                   <input
@@ -1372,7 +1432,7 @@ export default function App() {
                   <p className="text-sm text-gray-400 mb-4">جرّب مسح الفلاتر أو البحث باسم آخر</p>
                   <button
                     onClick={() => { setQuery(''); setGenreFilter(''); setSeriesFilter(''); setLetterFilter(''); setMinPrice(''); setMaxPrice(''); setSplitOnly(false); }}
-                    className="px-5 py-2.5 min-h-[44px] rounded-xl bg-purple-600 hover:bg-purple-500 text-white font-bold cursor-pointer transition-colors duration-200"
+                    className="px-5 py-2.5 min-h-[44px] rounded-xl bg-primary hover:bg-primary-dark text-black font-bold cursor-pointer transition-colors duration-200"
                   >
                     مسح الفلاتر
                   </button>
@@ -1381,7 +1441,7 @@ export default function App() {
               {displayedGames.slice(0, visibleGameCount).map(game => {
                 const categoryName = (categories || []).find(c => c.id === game.category_id)?.name || 'PS4'
                 return (
-                  <div key={game.id} className="game-card game-card-store group rounded-2xl overflow-hidden border border-white/5 bg-gradient-to-b from-gray-800/80 to-gray-900/90 hover:border-purple-500/50 hover:shadow-[0_0_30px_rgba(124,58,237,0.25)] transition-all duration-300 hover:-translate-y-1" data-game-id={game.id}>
+                  <div key={game.id} className="game-card game-card-store group rounded-2xl overflow-hidden border border-white/5 bg-gradient-to-b from-gray-800/80 to-gray-900/90 hover:border-teal-500/50 hover:shadow-[0_0_30px_rgba(20,184,166,0.25)] transition-all duration-300 hover:-translate-y-1" data-game-id={game.id}>
                     {/* صورة اللعبة مع overlay */}
                     <div className="aspect-square sm:aspect-[4/3] relative overflow-hidden bg-gray-800">
                       <img
@@ -1431,7 +1491,7 @@ export default function App() {
                       <div className="mt-auto">
                         <div className="flex items-center justify-between">
                           <div className="flex items-baseline gap-1">
-                            <span className="text-purple-400 font-black text-lg sm:text-xl tabular-nums">{game.price.toFixed(3)}</span>
+                            <span className="text-[color:var(--brand)] font-black text-lg sm:text-xl tabular-nums">{game.price.toFixed(3)}</span>
                             <span className="text-gray-500 text-xs font-medium">د.ل</span>
                           </div>
                         </div>
@@ -1640,46 +1700,76 @@ export default function App() {
 
       {/* Login Modal - Mobile optimized */}
       {showLogin && (
-        <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
+        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4">
           <form
             onSubmit={submitLogin}
-            className="bg-gray-900 w-full max-w-sm rounded-2xl p-5 sm:p-6 shadow-2xl space-y-4 border border-gray-700/50 mx-auto"
+            className="w-full max-w-sm rounded-2xl p-5 sm:p-6 shadow-2xl space-y-4 border border-white/10 mx-auto tab-fade-in"
+            style={{ background: 'rgba(17,24,39,0.85)', backdropFilter: 'blur(20px)' }}
           >
             <div className="text-center">
-              <h3 className="text-xl sm:text-2xl font-bold text-white mb-1">تسجيل الدخول</h3>
+              <div className="w-14 h-14 mx-auto mb-3 rounded-2xl bg-white/95 flex items-center justify-center shadow-lg">
+                <img src={logo} alt="شعار متجر النفار" className="w-11 h-11 object-contain" />
+              </div>
+              <h3 className="text-xl font-bold text-white mb-1">تسجيل الدخول</h3>
               <p className="text-sm text-gray-400">للوصول إلى لوحة التحكم</p>
             </div>
 
             <div className="space-y-3">
-              <input
-                className="w-full border border-gray-700/60 bg-gray-800/60 text-white rounded-xl px-4 py-3 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-primary/50 text-base"
-                placeholder="اسم المستخدم"
-                value={loginForm.username}
-                onChange={e => setLoginForm({ ...loginForm, username: e.target.value })}
-                autoComplete="username"
-              />
-              <input
-                className="w-full border border-gray-700/60 bg-gray-800/60 text-white rounded-xl px-4 py-3 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-primary/50 text-base"
-                placeholder="كلمة المرور"
-                type="password"
-                value={loginForm.password}
-                onChange={e => setLoginForm({ ...loginForm, password: e.target.value })}
-                autoComplete="current-password"
-              />
+              <div className="relative">
+                <span className="absolute inset-y-0 right-0 flex items-center pr-3.5 text-gray-500 pointer-events-none" aria-hidden="true">
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth={1.8} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.5 20.25a7.5 7.5 0 0115 0v.75H4.5v-.75z" /></svg>
+                </span>
+                <input
+                  className="w-full border border-gray-700/60 bg-gray-800/60 text-white rounded-xl pr-11 pl-4 py-3 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary/50 text-base min-h-[48px]"
+                  placeholder="اسم المستخدم"
+                  aria-label="اسم المستخدم"
+                  value={loginForm.username}
+                  onChange={e => setLoginForm({ ...loginForm, username: e.target.value })}
+                  autoComplete="username"
+                />
+              </div>
+              <div className="relative">
+                <span className="absolute inset-y-0 right-0 flex items-center pr-3.5 text-gray-500 pointer-events-none" aria-hidden="true">
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth={1.8} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 10-9 0v3.75m-.75 11.25h10.5A2.25 2.25 0 0019.5 19.5v-6.75A2.25 2.25 0 0017.25 10.5H6.75A2.25 2.25 0 004.5 12.75v6.75A2.25 2.25 0 006.75 21.75z" /></svg>
+                </span>
+                <input
+                  className="w-full border border-gray-700/60 bg-gray-800/60 text-white rounded-xl pr-11 pl-11 py-3 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary/50 text-base min-h-[48px]"
+                  placeholder="كلمة المرور"
+                  aria-label="كلمة المرور"
+                  type={showPassword ? 'text' : 'password'}
+                  value={loginForm.password}
+                  onChange={e => setLoginForm({ ...loginForm, password: e.target.value })}
+                  autoComplete="current-password"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(v => !v)}
+                  aria-label={showPassword ? 'إخفاء كلمة المرور' : 'إظهار كلمة المرور'}
+                  className="absolute inset-y-0 left-0 flex items-center pl-3.5 text-gray-500 hover:text-gray-300 transition-colors cursor-pointer"
+                >
+                  {showPassword ? (
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth={1.8} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M3.98 8.223A10.477 10.477 0 001.934 12C3.226 16.338 7.244 19.5 12 19.5c.993 0 1.953-.138 2.863-.395M6.228 6.228A10.45 10.45 0 0112 4.5c4.756 0 8.773 3.162 10.065 7.498a10.523 10.523 0 01-4.293 5.774M6.228 6.228L3 3m3.228 3.228l3.65 3.65m7.894 7.894L21 21m-3.228-3.228l-3.65-3.65m0 0a3 3 0 10-4.243-4.243m4.242 4.242L9.88 9.88" /></svg>
+                  ) : (
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth={1.8} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M2.036 12.322a1.012 1.012 0 010-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178z" /><path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
+                  )}
+                </button>
+              </div>
             </div>
 
             <div className="flex flex-col gap-3 pt-2">
               <button
                 type="submit"
-                className="w-full px-4 py-3 rounded-xl bg-gradient-to-r from-primary to-emerald-600 hover:from-primary-dark hover:to-emerald-700 text-white disabled:opacity-50 disabled:cursor-not-allowed transition-colors font-bold flex items-center justify-center gap-2"
+                className="w-full px-4 py-3 rounded-xl bg-gradient-to-r from-primary to-emerald-600 hover:from-primary-dark hover:to-emerald-700 text-white disabled:opacity-50 disabled:cursor-not-allowed transition-colors font-bold flex items-center justify-center gap-2 min-h-[48px] cursor-pointer focus:outline-none focus:ring-2 focus:ring-teal-500/50"
                 disabled={loginLoading}
               >
-                {loginLoading ? 'جارٍ الدخول...' : 'دخول'}
+                {loginLoading ? (
+                  <><span className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" aria-hidden="true"></span> جارٍ الدخول...</>
+                ) : 'دخول'}
               </button>
               <button
                 type="button"
                 onClick={() => setShowLogin(false)}
-                className="w-full px-4 py-3 rounded-xl border border-gray-700/50 bg-gray-800/40 text-white hover:bg-gray-700/50 transition-colors font-medium"
+                className="w-full px-4 py-3 rounded-xl border border-gray-700/50 bg-gray-800/40 text-white hover:bg-gray-700/50 transition-colors font-medium min-h-[48px] cursor-pointer"
               >
                 إلغاء
               </button>
