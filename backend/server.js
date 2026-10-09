@@ -1877,6 +1877,18 @@ app.put('/api/users/:id', authMiddleware, requireAdmin, async (req, res) => {
     const { username, role, branch_id } = req.body || {};
     const user = await get('SELECT * FROM users WHERE id = ?', [id]);
     if (!user || !user.id) return res.status(404).json({ message: 'User not found' });
+    // أدمن الفرع: يعدّل مستخدمي فرعه فقط، ولا يعدّل المديرين ولا يرقّي إلى مدير
+    if (!isSuperAdmin(req.user)) {
+      if ((Number(user.branch_id) || 1) !== (Number(req.user.branch_id) || 1)) {
+        return res.status(403).json({ message: 'لا يمكنك تعديل مستخدم من فرع آخر' });
+      }
+      if (user.role === 'admin' && String(user.id) !== String(req.user.id)) {
+        return res.status(403).json({ message: 'لا يمكنك تعديل حساب مدير' });
+      }
+      if (role === 'admin') {
+        return res.status(403).json({ message: 'لا يمكنك منح صلاحية مدير' });
+      }
+    }
     if (username && username !== user.username) {
       const dupe = await get('SELECT id FROM users WHERE username = ? AND id != ?', [username, id]);
       if (dupe && dupe.id) return res.status(409).json({ message: 'Username already exists' });
@@ -1913,6 +1925,14 @@ app.put('/api/users/:id/password', authMiddleware, requireAdmin, async (req, res
     if (!password || String(password).length < 6) return res.status(400).json({ message: 'Password must be at least 6 characters' });
     const user = await get('SELECT * FROM users WHERE id = ?', [id]);
     if (!user || !user.id) return res.status(404).json({ message: 'User not found' });
+    if (!isSuperAdmin(req.user)) {
+      if ((Number(user.branch_id) || 1) !== (Number(req.user.branch_id) || 1)) {
+        return res.status(403).json({ message: 'لا يمكنك تغيير كلمة مرور مستخدم من فرع آخر' });
+      }
+      if (user.role === 'admin' && String(user.id) !== String(req.user.id)) {
+        return res.status(403).json({ message: 'لا يمكنك تغيير كلمة مرور حساب مدير' });
+      }
+    }
     const hashed = bcrypt.hashSync(password, 10);
     await run('UPDATE users SET password = ? WHERE id = ?', [hashed, id]);
     res.json({ success: true });
@@ -1929,6 +1949,14 @@ app.delete('/api/users/:id', authMiddleware, requireAdmin, async (req, res) => {
     }
     const user = await get('SELECT * FROM users WHERE id = ?', [id]);
     if (!user || !user.id) return res.status(404).json({ message: 'User not found' });
+    if (!isSuperAdmin(req.user)) {
+      if ((Number(user.branch_id) || 1) !== (Number(req.user.branch_id) || 1)) {
+        return res.status(403).json({ message: 'لا يمكنك حذف مستخدم من فرع آخر' });
+      }
+      if (user.role === 'admin') {
+        return res.status(403).json({ message: 'لا يمكنك حذف حساب مدير' });
+      }
+    }
     await run('DELETE FROM users WHERE id = ?', [id]);
     res.json({ success: true });
   } catch (e) {
@@ -3201,6 +3229,78 @@ app.get('/api/invoices/:invoiceNumber', async (req, res) => {
   } catch (error) {
     console.error('خطأ في جلب الفاتورة:', error);
     res.status(500).json({ message: 'حدث خطأ في جلب الفاتورة' });
+  }
+});
+
+// تسديد جميع الفواتير ذات الرصيد المتبقي ضمن نطاق الفرع المحدد
+app.post('/api/invoices/pay-all', authMiddleware, apiWriteRateLimit, async (req, res) => {
+  try {
+    const { dateFrom, dateTo, includeUnpaid } = req.body || {};
+    const UNPAID_CLAUSE = '((COALESCE(total,0)-COALESCE(discount,0)-COALESCE(paid_amount,0)) > 0)';
+
+    const conds = [`(${UNPAID_CLAUSE})`];
+    const params = [];
+
+    if (dateFrom && dateTo) {
+      if (includeUnpaid) {
+        conds.push('((DATE(created_at) >= ? AND DATE(created_at) <= ?) OR (DATE(created_at) < ?))');
+        params.push(dateFrom, dateTo, dateFrom);
+      } else {
+        conds.push('(DATE(created_at) >= ? AND DATE(created_at) <= ?)');
+        params.push(dateFrom, dateTo);
+      }
+    }
+
+    const scope = branchScopeFor(req.user, req.query.branchId);
+    if (scope.branchId != null) {
+      conds.push('COALESCE(branch_id,1) = ?');
+      params.push(scope.branchId);
+    }
+
+    const rows = await all(
+      `SELECT id, invoice_number, total, discount, COALESCE(paid_amount,0) as paid_amount
+       FROM invoices WHERE ${conds.join(' AND ')}`,
+      params
+    );
+
+    if (!rows.length) {
+      return res.json({ success: true, paidCount: 0, totalPaid: 0, message: 'لا توجد فواتير غير مسددة' });
+    }
+
+    let totalPaid = 0;
+    for (const inv of rows) {
+      const finalTotal = (inv.total || 0) - (inv.discount || 0);
+      const balance = finalTotal - (inv.paid_amount || 0);
+      if (balance <= 0) continue;
+      totalPaid += balance;
+      await run("UPDATE invoices SET paid_amount = ?, status = 'completed' WHERE id = ?", [finalTotal, inv.id]);
+    }
+
+    if (totalPaid > 0) {
+      const today = new Date().toISOString().split('T')[0];
+      const dailyRecord = await get('SELECT id FROM daily_invoices WHERE date = ?', [today]);
+      if (!dailyRecord) {
+        await run('INSERT INTO daily_invoices (date, collected_revenue) VALUES (?, ?)', [today, totalPaid]);
+      } else {
+        await run('UPDATE daily_invoices SET collected_revenue = collected_revenue + ? WHERE date = ?', [totalPaid, today]);
+      }
+    }
+
+    await auditLog(req, 'invoices_paid_all', 'invoice', null,
+      { count: 0 }, { count: rows.length, totalPaid, branchId: scope.branchId });
+
+    broadcastUpdate('invoice_updated', { message: `تم تسديد ${rows.length} فاتورة بإجمالي ${totalPaid} د.ل` });
+    invalidateStatsCache();
+
+    res.json({
+      success: true,
+      paidCount: rows.length,
+      totalPaid,
+      message: `تم تسديد ${rows.length} فاتورة بإجمالي ${totalPaid} د.ل`
+    });
+  } catch (error) {
+    console.error('خطأ في تسديد جميع الفواتير:', error);
+    res.status(500).json({ success: false, message: 'حدث خطأ في تسديد الفواتير', error: error.message });
   }
 });
 

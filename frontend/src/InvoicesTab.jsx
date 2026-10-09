@@ -28,6 +28,7 @@ export default function InvoicesTab() {
   const [serviceSearch, setServiceSearch] = useState('')
   const [dateFrom, setDateFrom] = useState(() => new Date().toISOString().split('T')[0])
   const [dateTo, setDateTo] = useState(() => new Date().toISOString().split('T')[0])
+  const [payingAll, setPayingAll] = useState(false)
 
   useEffect(() => {
     loadInvoices()
@@ -201,6 +202,29 @@ export default function InvoicesTab() {
     }
   }
 
+  const payAllInvoices = async () => {
+    const scopeLabel = (dateFrom && dateTo)
+      ? (dateFrom === dateTo ? `يوم ${dateFrom}` : `من ${dateFrom} إلى ${dateTo}`)
+      : 'كل الفترات'
+    if (!confirm(`سيتم تسديد كل الفواتير غير المسددة (${scopeLabel}) للفرع المحدد.\nهل تريد المتابعة؟`)) return
+    try {
+      setPayingAll(true)
+      const body = {}
+      if (dateFrom && dateTo) { body.dateFrom = dateFrom; body.dateTo = dateTo; body.includeUnpaid = 1 }
+      const { data } = await api.post('/invoices/pay-all', body)
+      if (data.success) {
+        alert(data.message || 'تم تسديد جميع الفواتير')
+        loadInvoices(1)
+        loadSummary()
+      }
+    } catch (error) {
+      console.error('فشل تسديد جميع الفواتير:', error)
+      alert(error?.response?.data?.message || 'فشل تسديد جميع الفواتير')
+    } finally {
+      setPayingAll(false)
+    }
+  }
+
   const handleSaveEdit = async () => {
     if (!editingInvoice || !editingInvoice.id) return
     const items = editingInvoice.items || []
@@ -278,6 +302,18 @@ export default function InvoicesTab() {
           <p className="text-gray-400 mt-1 text-sm">اختر نطاق التاريخ لحساب الأرباح (عن فترة محددة)</p>
         </div>
         <div className="flex gap-2 w-full sm:w-auto">
+          <button
+            onClick={payAllInvoices}
+            disabled={payingAll || loading}
+            className="flex-1 sm:flex-none px-4 py-2.5 bg-emerald-600/20 text-emerald-400 hover:bg-emerald-600 hover:text-white border border-emerald-600/30 rounded-lg font-medium transition-all flex justify-center items-center gap-2 disabled:opacity-50 disabled:cursor-wait"
+          >
+            {payingAll ? (
+              <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" /><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" /></svg>
+            ) : (
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={1.5} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+            )}
+            <span className="text-sm">{payingAll ? 'جارٍ التسديد...' : 'تسديد جميع الفواتير'}</span>
+          </button>
           <button
             onClick={deleteAllInvoices}
             className="flex-1 sm:flex-none px-4 py-2.5 bg-red-600/20 text-red-400 hover:bg-red-600 hover:text-white border border-red-600/30 rounded-lg font-medium transition-all flex justify-center items-center gap-2"
