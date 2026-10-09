@@ -23,8 +23,25 @@ function currency(num) {
 export async function openInvoicePrintWindow(invoice, invSettings = {}) {
   const paperMM = Number(invSettings?.paper_width) || 58
   const fs = String(invSettings?.font_size || 'normal').toLowerCase()
-  const fontSize = paperMM <= 58 ? '11px' : (fs === 'large' ? '12px' : fs === 'small' ? '10px' : '11px')
-  const titleSize = paperMM <= 58 ? '15px' : (fs === 'large' ? '17px' : fs === 'small' ? '14px' : '15px')
+
+  let fontSize, titleSize, logoW, logoH
+  if (paperMM <= 58) {
+    fontSize = '11px'
+    titleSize = '15px'
+    logoW = '38mm'
+    logoH = '10mm'
+  } else if (paperMM < 100) {
+    fontSize = fs === 'large' ? '12px' : fs === 'small' ? '10px' : '11px'
+    titleSize = fs === 'large' ? '17px' : fs === 'small' ? '14px' : '15px'
+    logoW = '42mm'
+    logoH = '12mm'
+  } else {
+    fontSize = fs === 'large' ? '14px' : fs === 'small' ? '12px' : '13px'
+    titleSize = fs === 'large' ? '20px' : fs === 'small' ? '16px' : '18px'
+    logoW = '52mm'
+    logoH = '14mm'
+  }
+
   const storeName = (invSettings?.store_name || '').trim() || 'الشارده للإلكترونيات'
   const storeNameEn = (invSettings?.store_name_english || '').trim() || 'Alnafar Store'
   const storePhone = invSettings?.store_phone || ''
@@ -33,9 +50,6 @@ export async function openInvoicePrintWindow(invoice, invSettings = {}) {
 
   const fullNumber = String(invoice.invoice_number || '')
   const dailyNo = fullNumber.includes('-') ? String(parseInt(fullNumber.split('-')[1], 10)) : fullNumber
-
-  const logoW = paperMM <= 58 ? '38mm' : '42mm'
-  const logoH = paperMM <= 58 ? '10mm' : '12mm'
 
   // Generate QR
   let qrDataUrl = ''

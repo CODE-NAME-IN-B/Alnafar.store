@@ -55,13 +55,19 @@ class SunmiPrinter {
     return cleanedLines.join('\r\n');
   }
 
+  // كمية الأحرف لكل سطر مشتقة من عرض الورق (تقريبياً 0.56 حرف لكل مليمتر، مع حدود 32-64)
+  get columnWidth() {
+    const paperWidth = Number(this.printSettings.paperWidth) || 58;
+    return Math.max(32, Math.min(64, Math.round(paperWidth * 0.56)));
+  }
+
   // دالة لإنشاء خط فاصل
-  createSeparatorLine(char = '-', length = 32) {
+  createSeparatorLine(char = '-', length = this.columnWidth) {
     return char.repeat(length);
   }
 
   // دالة لتنسيق النص في عمودين
-  formatTwoColumns(left, right, totalWidth = 32) {
+  formatTwoColumns(left, right, totalWidth = this.columnWidth) {
     const leftText = String(left);
     const rightText = String(right);
     const spaces = totalWidth - leftText.length - rightText.length;
@@ -69,7 +75,7 @@ class SunmiPrinter {
   }
 
   // دالة لتنسيق النص في الوسط (محسنة للنصوص العربية)
-  centerText(text, width = 32) {
+  centerText(text, width = this.columnWidth) {
     if (!text) return '';
 
     // تنظيف النص أولاً
@@ -271,7 +277,7 @@ class SunmiPrinter {
           charset: 'UTF-8',
           raw: false, // طباعة نصية مباشرة (الوضع الخام قد يتجاهل بعض الأسطر)
           // إعدادات مبسطة للطباعة الموثوقة
-          paperWidth: 58,
+          paperWidth: this.printSettings.paperWidth || 58,
           lineSpacing: 2,
           // إزالة الإعدادات التي قد تسبب مشاكل
           bold: false,

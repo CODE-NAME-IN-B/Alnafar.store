@@ -282,6 +282,7 @@ export default function InvoiceSettings() {
               >
                 <option value={58}>58 مم</option>
                 <option value={80}>80 مم</option>
+                <option value={100}>100 مم</option>
               </select>
             </div>
 

@@ -4158,6 +4158,10 @@ app.post('/api/invoice-settings', authMiddleware, async (req, res) => {
       font_size
     } = req.body;
 
+    // قائمة عروض الورق المدعومة بالمليمتر، وأي قيمة خارجها تُعاد إلى 58
+    const ALLOWED_PAPER_WIDTHS = [58, 80, 100];
+    const normalizedPaperWidth = ALLOWED_PAPER_WIDTHS.includes(Number(paper_width)) ? Number(paper_width) : 58;
+
     // التحقق من وجود إعدادات حالية
     const existing = await get('SELECT * FROM invoice_settings ORDER BY id DESC LIMIT 1');
 
@@ -4179,7 +4183,7 @@ app.post('/api/invoice-settings', authMiddleware, async (req, res) => {
         header_logo_text || 'فاتورة مبيعات',
         show_store_info ? 1 : 0,
         show_footer ? 1 : 0,
-        paper_width || 58,
+        normalizedPaperWidth,
         font_size || 'normal',
         existing.id
       ]);
@@ -4200,7 +4204,7 @@ app.post('/api/invoice-settings', authMiddleware, async (req, res) => {
         header_logo_text || 'فاتورة مبيعات',
         show_store_info ? 1 : 0,
         show_footer ? 1 : 0,
-        paper_width || 58,
+        normalizedPaperWidth,
         font_size || 'normal'
       ]);
     }
@@ -4208,7 +4212,7 @@ app.post('/api/invoice-settings', authMiddleware, async (req, res) => {
     // تحديث إعدادات الطابعة
     if (paper_width || font_size) {
       printer.updateSettings({
-        paperWidth: paper_width || 58,
+        paperWidth: normalizedPaperWidth,
         fontSize: font_size || 'normal'
       });
     }
