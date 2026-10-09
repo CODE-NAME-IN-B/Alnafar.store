@@ -551,7 +551,11 @@ export default function InvoicesTab() {
                       ) : null}
                       <span className="text-white text-sm font-medium">{invoice.customer_name || 'عميل نقدي'}</span>
                       {invoice.customer_notes && (
-                        <span className="text-[11px] text-amber-300/90 bg-amber-500/10 border border-amber-500/20 rounded-md px-2 py-0.5 max-w-[220px] truncate" title={invoice.customer_notes}>{invoice.customer_notes}</span>
+                        <span className="inline-flex items-center gap-1.5 text-[11px] text-amber-200 bg-amber-500/10 border border-amber-500/25 rounded-md px-2 py-1 max-w-[240px]" title={invoice.customer_notes}>
+                          <svg className="w-3.5 h-3.5 shrink-0" fill="none" stroke="currentColor" strokeWidth={1.6} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125" /></svg>
+                          <span className="font-bold shrink-0">ملاحظة:</span>
+                          <span className="truncate">{invoice.customer_notes}</span>
+                        </span>
                       )}
                     </div>
                     <select
@@ -668,7 +672,13 @@ export default function InvoicesTab() {
                     <td className="py-3 px-4">
                       <div className="font-medium">{invoice.customer_name || 'نقدي'}</div>
                       {invoice.customer_phone && <div className="text-xs text-gray-400 mt-0.5">{invoice.customer_phone}</div>}
-                      {invoice.customer_notes && <div className="text-xs text-amber-300/90 mt-0.5 max-w-[200px] truncate" title={invoice.customer_notes}>ملاحظة: {invoice.customer_notes}</div>}
+                      {invoice.customer_notes && (
+                        <div className="inline-flex items-center gap-1.5 text-xs text-amber-200 bg-amber-500/10 border border-amber-500/25 rounded-md px-2 py-1 mt-1 max-w-[220px]" title={invoice.customer_notes}>
+                          <svg className="w-3.5 h-3.5 shrink-0" fill="none" stroke="currentColor" strokeWidth={1.6} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125" /></svg>
+                          <span className="font-bold shrink-0">ملاحظة:</span>
+                          <span className="truncate">{invoice.customer_notes}</span>
+                        </div>
+                      )}
                     </td>
                     <td className="py-3 px-4 text-gray-200">{currency(finalTotal)}</td>
                     <td className="py-3 px-4 font-bold text-green-400">{currency(invoice.paid_amount || 0)}</td>
@@ -776,7 +786,19 @@ export default function InvoicesTab() {
                   <input value={editingInvoice.customer_name || ''} onChange={e => setEditingInvoice({ ...editingInvoice, customer_name: e.target.value })} className="bg-gray-800 border border-white/10 rounded-lg px-3 py-2.5 text-white text-sm focus:outline-none focus:ring-1 focus:ring-yellow-500/50" placeholder="الاسم" />
                   <input value={editingInvoice.customer_phone || ''} onChange={e => setEditingInvoice({ ...editingInvoice, customer_phone: e.target.value })} className="bg-gray-800 border border-white/10 rounded-lg px-3 py-2.5 text-white text-sm focus:outline-none focus:ring-1 focus:ring-yellow-500/50" placeholder="الهاتف" />
                 </div>
-                <textarea value={editingInvoice.customer_notes || ''} onChange={e => setEditingInvoice({ ...editingInvoice, customer_notes: e.target.value })} rows={2} className="mt-2 w-full bg-gray-800 border border-white/10 rounded-lg px-3 py-2.5 text-white text-sm focus:outline-none focus:ring-1 focus:ring-yellow-500/50 resize-none" placeholder="ملاحظات الفاتورة" />
+                <div className="mt-2">
+                  <label className="text-xs text-gray-400 font-bold mb-1 flex items-center gap-1.5">
+                    <svg className="w-3.5 h-3.5 text-amber-400" fill="none" stroke="currentColor" strokeWidth={1.6} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125" /></svg>
+                    ملاحظات الفاتورة
+                  </label>
+                  <textarea
+                    value={editingInvoice.customer_notes || ''}
+                    onChange={e => setEditingInvoice({ ...editingInvoice, customer_notes: e.target.value })}
+                    rows={2}
+                    className="w-full bg-gray-800 border border-white/10 rounded-lg px-3 py-2.5 text-white text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/50 resize-none transition-all placeholder-gray-500"
+                    placeholder="أضف ملاحظة تظهر مع الفاتورة..."
+                  />
+                </div>
               </div>
 
               {/* الخصم + الحالة */}
