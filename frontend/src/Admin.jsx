@@ -842,20 +842,130 @@ function DashboardHome() {
 }
 
 
+const auditSelectCls = "w-full sm:w-auto bg-gray-950 border border-gray-700/50 rounded-xl px-4 py-3 text-white text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/50 focus:border-transparent transition-all cursor-pointer"
+
 function AuditLogsTab() {
   const [logs, setLogs] = useState([])
+  const [branches, setBranches] = useState([])
   const [loading, setLoading] = useState(true)
   const [page, setPage] = useState(1)
   const [total, setTotal] = useState(0)
-  const [filter, setFilter] = useState({ action: '', entity_type: '' })
+  const [filter, setFilter] = useState({ action: '', entity_type: '', branchId: '' })
+
+  const statusLabels = {
+    pending: 'قيد الانتظار', confirmed: 'مؤكد', processing: 'قيد التنفيذ',
+    ready: 'جاهز', completed: 'مكتمل', cancelled: 'ملغي', refunded: 'مسترد',
+  }
+
+  const actionLabels = {
+    login_success: 'تسجيل دخول ناجح',
+    login_failed: 'محاولة دخول فاشلة',
+    invoice_status_changed: 'تغيير حالة فاتورة',
+    order_status_changed: 'تغيير حالة طلب',
+    game_created: 'إضافة لعبة',
+    game_updated: 'تعديل لعبة',
+    game_deleted: 'حذف لعبة',
+    settings_updated: 'تعديل الإعدادات',
+    settings_created: 'إنشاء الإعدادات',
+    invoices_paid_all: 'تسديد جميع الفواتير',
+    invoice_marked_unpaid: 'إرجاع فاتورة إلى غير مدفوعة',
+    payment_recorded: 'تسجيل دفعة',
+  }
+
+  const entityLabels = {
+    user: 'مستخدم',
+    game: 'لعبة',
+    invoice: 'فاتورة',
+    settings: 'الإعدادات',
+  }
+
+  const diffLabels = {
+    status: 'الحالة',
+    paid_amount: 'المبلغ المدفوع',
+    payment_amount: 'قيمة الدفعة',
+    price: 'السعر',
+    title: 'العنوان',
+    category_id: 'الفئة',
+    genre: 'النوع',
+    series: 'السلسلة',
+    whatsapp_number: 'رقم واتساب',
+    telegram_username: 'تلجرام',
+    communication_method: 'طريقة التواصل',
+    reason: 'السبب',
+    count: 'العدد',
+    totalPaid: 'الإجمالي المسدّد',
+    branchId: 'الفرع',
+  }
+
+  const reasonLabels = {
+    invalid_credentials: 'بيانات الدخول غير صحيحة',
+    wrong_password: 'كلمة مرور خاطئة',
+  }
+
+  function actionBadgeClass(action) {
+    if (action === 'login_failed' || action === 'game_deleted' || action === 'invoice_marked_unpaid') {
+      return 'bg-red-500/15 text-red-400 border border-red-500/30'
+    }
+    if (action === 'login_success' || action === 'game_created' || action === 'payment_recorded' || action === 'invoices_paid_all' || action === 'settings_created') {
+      return 'bg-teal-500/15 text-teal-400 border border-teal-500/30'
+    }
+    return 'bg-gray-700/60 text-gray-300 border border-gray-600/50'
+  }
+
+  function formatDiffValue(key, value) {
+    if (value === null || value === undefined || value === '') return '—'
+    if (key === 'status') return statusLabels[value] || String(value)
+    if (key === 'reason') return reasonLabels[value] || String(value)
+    if (typeof value === 'boolean') return value ? 'نعم' : 'لا'
+    if (typeof value === 'object') return JSON.stringify(value)
+    return String(value)
+  }
+
+  function renderDiff(log) {
+    let oldObj = null
+    let newObj = null
+    try { oldObj = log.old_value ? JSON.parse(log.old_value) : null } catch { oldObj = null }
+    try { newObj = log.new_value ? JSON.parse(log.new_value) : null } catch { newObj = null }
+    if (!oldObj && !newObj) return null
+    const keys = Array.from(new Set([...Object.keys(oldObj || {}), ...Object.keys(newObj || {})]))
+    const entries = keys.filter(k => {
+      const hasOld = oldObj && Object.prototype.hasOwnProperty.call(oldObj, k)
+      const hasNew = newObj && Object.prototype.hasOwnProperty.call(newObj, k)
+      if (hasOld && hasNew) return JSON.stringify(oldObj[k]) !== JSON.stringify(newObj[k])
+      return true
+    })
+    if (!entries.length) return null
+    return (
+      <div className="flex flex-wrap gap-1.5">
+        {entries.map(k => {
+          const hasOld = oldObj && Object.prototype.hasOwnProperty.call(oldObj, k)
+          return (
+            <span key={k} className="inline-flex items-center gap-1.5 text-[11px] bg-gray-950/60 border border-white/5 rounded-lg px-2 py-1">
+              <span className="font-semibold text-gray-300">{diffLabels[k] || k}:</span>
+              {hasOld && (
+                <>
+                  <span className="text-red-400/80 line-through decoration-red-400/40">{formatDiffValue(k, oldObj[k])}</span>
+                  <svg className="w-3 h-3 text-gray-500 shrink-0" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M10.5 19.5L3 12m0 0l7.5-7.5M3 12h18" />
+                  </svg>
+                </>
+              )}
+              <span className="text-teal-400">{formatDiffValue(k, (newObj || {})[k])}</span>
+            </span>
+          )
+        })}
+      </div>
+    )
+  }
 
   async function load() {
     setLoading(true)
     try {
-      const params = new URLSearchParams({ page, limit: 20 })
-      if (filter.action) params.set('action', filter.action)
-      if (filter.entity_type) params.set('entity_type', filter.entity_type)
-      const { data } = await api.get(`/audit-logs?${params}`)
+      const params = { page, limit: 20 }
+      if (filter.action) params.action = filter.action
+      if (filter.entity_type) params.entity_type = filter.entity_type
+      if (filter.branchId) params.branchId = filter.branchId
+      const { data } = await api.get('/audit-logs', { params })
       setLogs(data?.logs || [])
       setTotal(data?.total || 0)
     } catch (e) {
@@ -867,90 +977,200 @@ function AuditLogsTab() {
 
   useEffect(() => { load() }, [page, filter])
 
-  const actionLabels = {
-    login_success: 'دخول ناجح', login_failed: 'دخول فاشل',
-    game_created: 'إضافة لعبة', game_updated: 'تعديل لعبة', game_deleted: 'حذف لعبة',
-    settings_updated: 'تعديل الإعدادات', settings_created: 'إنشاء الإعدادات',
-    invoice_status_changed: 'تغيير حالة الفاتورة', payment_recorded: 'تسجيل دفعة',
-    order_status_changed: 'تغيير حالة الطلب',
+  useEffect(() => {
+    let mounted = true
+    api.get('/branches')
+      .then(({ data }) => {
+        if (!mounted) return
+        const rows = Array.isArray(data) ? data : (data?.branches || [])
+        setBranches(rows)
+      })
+      .catch(e => console.error(e))
+    return () => { mounted = false }
+  }, [])
+
+  function updateFilter(patch) {
+    setFilter(prev => ({ ...prev, ...patch }))
+    setPage(1)
   }
 
   return (
-    <div className="p-4 sm:p-6 lg:p-8">
-      <div className="mb-6">
-        <h2 className="text-xl sm:text-2xl font-bold text-white">سجل النشاط</h2>
-        <p className="text-gray-400 text-sm mt-1">تتبع جميع العمليات في النظام</p>
+    <div className="p-3 min-[400px]:p-4 sm:p-6 lg:p-8 space-y-6 tab-fade-in">
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row items-center justify-between gap-4 bg-gray-900/40 p-4 sm:p-6 rounded-2xl border border-white/5 backdrop-blur-md shadow-xl">
+        <div className="flex items-center gap-3 w-full sm:w-auto">
+          <div className="w-11 h-11 sm:w-12 sm:h-12 rounded-xl bg-gradient-to-br from-teal-500 to-emerald-600 flex items-center justify-center shadow-lg shadow-teal-900/30 shrink-0">
+            <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" strokeWidth={1.5} viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+          </div>
+          <div>
+            <h2 className="text-lg sm:text-2xl font-bold text-white">سجل النشاط</h2>
+            <p className="text-gray-400 mt-1 text-xs sm:text-sm">تتبّع كل العمليات التي تمت على النظام والفروع</p>
+          </div>
+        </div>
+        <span className="w-full sm:w-auto inline-flex items-center justify-center gap-2 text-sm font-bold text-teal-400 bg-teal-500/15 border border-teal-500/30 rounded-xl px-4 py-2.5">
+          <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={1.5} viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 12h16.5m-16.5 3.75h16.5M3.75 19.5h16.5M5.625 4.5h12.75a1.875 1.875 0 010 3.75H5.625a1.875 1.875 0 010-3.75z" />
+          </svg>
+          <span>{total}</span>
+        </span>
       </div>
 
       {/* Filters */}
-      <div className="flex flex-wrap gap-3 mb-4">
-        <select
-          value={filter.action}
-          onChange={e => { setFilter({ ...filter, action: e.target.value }); setPage(1) }}
-          className="bg-gray-800 border border-gray-600 rounded-lg px-3 py-2 text-white text-sm"
-        >
-          <option value="">جميع العمليات</option>
-          {Object.entries(actionLabels).map(([key, label]) => (
-            <option key={key} value={key}>{label}</option>
-          ))}
-        </select>
-        <select
-          value={filter.entity_type}
-          onChange={e => { setFilter({ ...filter, entity_type: e.target.value }); setPage(1) }}
-          className="bg-gray-800 border border-gray-600 rounded-lg px-3 py-2 text-white text-sm"
-        >
-          <option value="">جميع الكيانات</option>
-          <option value="user">مستخدم</option>
-          <option value="game">لعبة</option>
-          <option value="invoice">فاتورة</option>
-          <option value="settings">إعدادات</option>
-        </select>
+      <div className="bg-gray-900/40 backdrop-blur-md rounded-2xl border border-white/5 shadow-xl p-4">
+        <div className="flex flex-col sm:flex-row flex-wrap gap-3">
+          <select
+            value={filter.action}
+            onChange={e => updateFilter({ action: e.target.value })}
+            className={auditSelectCls}
+            aria-label="تصفية حسب العملية"
+          >
+            <option value="">جميع العمليات</option>
+            {Object.entries(actionLabels).map(([key, label]) => (
+              <option key={key} value={key}>{label}</option>
+            ))}
+          </select>
+          <select
+            value={filter.entity_type}
+            onChange={e => updateFilter({ entity_type: e.target.value })}
+            className={auditSelectCls}
+            aria-label="تصفية حسب الكيان"
+          >
+            <option value="">جميع الكيانات</option>
+            {Object.entries(entityLabels).map(([key, label]) => (
+              <option key={key} value={key}>{label}</option>
+            ))}
+          </select>
+          <select
+            value={filter.branchId}
+            onChange={e => updateFilter({ branchId: e.target.value })}
+            className={auditSelectCls}
+            aria-label="تصفية حسب الفرع"
+          >
+            <option value="">كل الفروع</option>
+            {branches.map(b => (
+              <option key={b.id} value={b.id}>{b.name}</option>
+            ))}
+          </select>
+        </div>
       </div>
 
-      {/* Logs Table */}
+      {/* Logs */}
       {loading ? (
         <div className="space-y-2">
-          {[1,2,3,4,5].map(i => <div key={i} className="skeleton h-14 rounded-lg"></div>)}
+          {[1, 2, 3, 4, 5].map(i => <div key={i} className="skeleton h-14 rounded-2xl"></div>)}
         </div>
       ) : logs.length === 0 ? (
-        <div className="empty-state py-12">
-          <div className="empty-state-icon">📋</div>
-          <div className="empty-state-title">لا يوجد نشاط</div>
-          <div className="empty-state-description">لم يتم تسجيل أي عمليات بعد</div>
+        <div className="empty-state bg-gray-900/40 rounded-2xl border border-white/5 backdrop-blur-md">
+          <svg className="w-16 h-16 mx-auto mb-4 opacity-30 text-teal-400" fill="none" stroke="currentColor" strokeWidth={1} viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg>
+          <p className="empty-state-title">لا يوجد نشاط</p>
+          <p className="empty-state-description">لم يتم تسجيل أي عمليات بعد</p>
         </div>
       ) : (
-        <div className="space-y-2">
-          {logs.map((log, i) => (
-            <div key={i} className="flex items-start gap-3 p-3 bg-gray-800/50 rounded-lg border border-gray-700/30">
-              <div className="w-8 h-8 rounded-full bg-gray-700 flex items-center justify-center text-xs shrink-0 mt-0.5">
-                {log.username?.[0]?.toUpperCase() || '?'}
-              </div>
-              <div className="min-w-0 flex-1">
-                <div className="flex items-center gap-2 flex-wrap">
-                  <span className="text-white text-sm font-medium">{log.username || 'system'}</span>
-                  <span className="badge badge-info text-[10px]">{actionLabels[log.action] || log.action}</span>
-                  {log.entity_type && <span className="text-gray-400 text-xs">{log.entity_type} #{log.entity_id}</span>}
-                </div>
-                {log.old_value && log.new_value && (
-                  <div className="text-xs text-gray-500 mt-1">
-                    {(() => {
-                      try {
-                        const old = JSON.parse(log.old_value)
-                        const nw = JSON.parse(log.new_value)
-                        const changes = Object.keys(nw).map(k => `${k}: ${old[k]} → ${nw[k]}`)
-                        return changes.join(', ')
-                      } catch { return null }
-                    })()}
-                  </div>
-                )}
-                <div className="text-gray-500 text-xs mt-1">
-                  {log.created_at ? new Date(log.created_at).toLocaleString('ar-LY') : ''}
-                  {log.ip_address && <span className="mr-2">IP: {log.ip_address}</span>}
-                </div>
-              </div>
+        <>
+          {/* Desktop table */}
+          <div className="hidden md:block bg-gray-900/40 backdrop-blur-md rounded-2xl border border-white/5 shadow-xl overflow-hidden">
+            <div className="overflow-x-auto">
+              <table className="w-full text-white text-sm">
+                <thead>
+                  <tr className="border-b border-white/5 bg-white/[0.02] text-gray-400">
+                    <th className="text-right font-semibold py-4 px-4">المستخدم</th>
+                    <th className="text-right font-semibold py-4 px-4">العملية</th>
+                    <th className="text-right font-semibold py-4 px-4">الكيان</th>
+                    <th className="text-right font-semibold py-4 px-4">الفرع</th>
+                    <th className="text-right font-semibold py-4 px-4">التفاصيل</th>
+                    <th className="text-right font-semibold py-4 px-4">الوقت</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {logs.map((log, i) => (
+                    <tr key={log.id ?? i} className="border-b border-white/5 hover:bg-white/[0.03] transition-colors align-top">
+                      <td className="py-3 px-4">
+                        <div className="flex items-center gap-3 min-w-0">
+                          <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-teal-500 to-emerald-600 flex items-center justify-center text-white font-bold text-sm shrink-0 shadow">
+                            {(log.username || '?').charAt(0).toUpperCase()}
+                          </div>
+                          <span className="font-bold text-white truncate">{log.username || 'system'}</span>
+                        </div>
+                      </td>
+                      <td className="py-3 px-4">
+                        <span className={`badge ${actionBadgeClass(log.action)}`}>
+                          {actionLabels[log.action] || log.action}
+                        </span>
+                      </td>
+                      <td className="py-3 px-4 text-gray-300 whitespace-nowrap">
+                        {log.entity_type ? (
+                          <>
+                            {entityLabels[log.entity_type] || log.entity_type}
+                            {log.entity_id != null && <span className="text-gray-500"> #{log.entity_id}</span>}
+                          </>
+                        ) : '—'}
+                      </td>
+                      <td className="py-3 px-4">
+                        {log.branch_name && (
+                          <span className="badge bg-gray-700/50 text-gray-300 border border-gray-600/40 whitespace-nowrap">
+                            {log.branch_name || 'الفرع الرئيسي'}
+                          </span>
+                        )}
+                      </td>
+                      <td className="py-3 px-4 min-w-[220px]">{renderDiff(log)}</td>
+                      <td className="py-3 px-4 text-gray-400 text-xs whitespace-nowrap">
+                        {log.created_at ? new Date(log.created_at).toLocaleString('ar-LY') : '—'}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             </div>
-          ))}
-        </div>
+          </div>
+
+          {/* Mobile cards */}
+          <div className="md:hidden space-y-3">
+            {logs.map((log, i) => (
+              <div key={log.id ?? i} className="bg-gray-900/40 backdrop-blur-md rounded-2xl border border-white/5 p-4 shadow-xl space-y-3">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="flex items-center gap-3 min-w-0">
+                    <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-teal-500 to-emerald-600 flex items-center justify-center text-white font-bold shrink-0 shadow">
+                      {(log.username || '?').charAt(0).toUpperCase()}
+                    </div>
+                    <div className="min-w-0">
+                      <p className="text-white font-bold truncate">{log.username || 'system'}</p>
+                      <div className="flex items-center gap-2 mt-1 flex-wrap">
+                        <span className={`badge ${actionBadgeClass(log.action)}`}>
+                          {actionLabels[log.action] || log.action}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                  <span className="text-[11px] text-gray-500 whitespace-nowrap shrink-0">
+                    {log.created_at ? new Date(log.created_at).toLocaleString('ar-LY') : '—'}
+                  </span>
+                </div>
+
+                <div className="flex flex-wrap items-center gap-2 text-xs">
+                  {log.entity_type && (
+                    <span className="inline-flex items-center gap-1 text-gray-300 bg-white/5 border border-white/5 rounded-lg px-2.5 py-1.5">
+                      {entityLabels[log.entity_type] || log.entity_type}
+                      {log.entity_id != null && <span className="text-gray-500">#{log.entity_id}</span>}
+                    </span>
+                  )}
+                  {log.branch_name && (
+                    <span className="badge bg-gray-700/50 text-gray-300 border border-gray-600/40">
+                      {log.branch_name || 'الفرع الرئيسي'}
+                    </span>
+                  )}
+                </div>
+
+                {renderDiff(log) && (
+                  <div className="pt-3 border-t border-white/5">{renderDiff(log)}</div>
+                )}
+              </div>
+            ))}
+          </div>
+        </>
       )}
 
       {/* Pagination */}

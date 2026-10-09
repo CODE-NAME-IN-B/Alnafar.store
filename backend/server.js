@@ -353,6 +353,8 @@ async function initializeDatabase() {
   try { await run('ALTER TABLE users ADD COLUMN branch_id INTEGER DEFAULT 1'); } catch (e) { }
   try { await run('ALTER TABLE invoices ADD COLUMN branch_id INTEGER DEFAULT 1'); } catch (e) { }
   try { await exec('CREATE INDEX IF NOT EXISTS idx_invoices_branch ON invoices(branch_id)'); } catch (e) { }
+  try { await run('ALTER TABLE audit_logs ADD COLUMN branch_id INTEGER DEFAULT 1'); } catch (e) { }
+  try { await exec('CREATE INDEX IF NOT EXISTS idx_audit_logs_branch ON audit_logs(branch_id)'); } catch (e) { }
 
   // تنظيف الفروع المكررة (سببها سباق بدء التشغيل على Vercel) وإعادة ربط المراجع بالمعرّف الأصغر
   try {
@@ -614,6 +616,7 @@ async function initializeDatabase() {
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       user_id INTEGER,
       username TEXT,
+      branch_id INTEGER DEFAULT 1,
       action TEXT NOT NULL,
       entity_type TEXT,
       entity_id TEXT,
@@ -645,6 +648,7 @@ async function initializeDatabase() {
     'CREATE INDEX IF NOT EXISTS idx_audit_logs_action ON audit_logs(action)',
     'CREATE INDEX IF NOT EXISTS idx_audit_logs_entity ON audit_logs(entity_type, entity_id)',
     'CREATE INDEX IF NOT EXISTS idx_audit_logs_created_at ON audit_logs(created_at)',
+    'CREATE INDEX IF NOT EXISTS idx_audit_logs_branch ON audit_logs(branch_id)',
     'CREATE INDEX IF NOT EXISTS idx_users_username ON users(username)',
     'CREATE INDEX IF NOT EXISTS idx_package_games_package ON package_games(package_id)',
     'CREATE INDEX IF NOT EXISTS idx_package_games_game ON package_games(game_id)',
@@ -1170,20 +1174,31 @@ app.get('/api/debug/db-schema', authMiddleware, requireAdmin, async (req, res) =
 app.get('/api/audit-logs', authMiddleware, requireAdmin, async (req, res) => {
   try {
     const { page = 1, limit = 50, action, entity_type, user_id, start_date, end_date } = req.query;
-    const offset = (Math.max(1, parseInt(page)) - 1) * parseInt(limit);
-    const pageSize = Math.min(100, Math.max(1, parseInt(limit)));
+    const pageNum = Math.max(1, parseInt(page) || 1);
+    const pageSize = Math.min(100, Math.max(1, parseInt(limit) || 50));
+    const offset = (pageNum - 1) * pageSize;
     const conditions = [];
     const params = [];
-    if (action) { conditions.push('action = ?'); params.push(action); }
-    if (entity_type) { conditions.push('entity_type = ?'); params.push(entity_type); }
-    if (user_id) { conditions.push('user_id = ?'); params.push(user_id); }
-    if (start_date) { conditions.push('created_at >= ?'); params.push(start_date); }
-    if (end_date) { conditions.push('created_at <= ?'); params.push(end_date + ' 23:59:59'); }
+    if (action) { conditions.push('al.action = ?'); params.push(action); }
+    if (entity_type) { conditions.push('al.entity_type = ?'); params.push(entity_type); }
+    if (user_id) { conditions.push('al.user_id = ?'); params.push(user_id); }
+    if (start_date) { conditions.push('al.created_at >= ?'); params.push(start_date); }
+    if (end_date) { conditions.push('al.created_at <= ?'); params.push(end_date + ' 23:59:59'); }
+    const scope = branchScopeFor(req.user, req.query.branchId);
+    if (scope.branchId != null) { conditions.push('COALESCE(al.branch_id,1) = ?'); params.push(scope.branchId); }
     const where = conditions.length ? `WHERE ${conditions.join(' AND ')}` : '';
-    const countRow = await get(`SELECT COUNT(*) as total FROM audit_logs ${where}`, params);
+    const countRow = await get(`SELECT COUNT(*) as total FROM audit_logs al ${where}`, params);
     const total = countRow?.total || 0;
-    const rows = await all(`SELECT * FROM audit_logs ${where} ORDER BY created_at DESC LIMIT ? OFFSET ?`, [...params, pageSize, offset]);
-    res.json({ logs: rows, total, page: parseInt(page), limit: pageSize });
+    const rows = await all(
+      `SELECT al.*, COALESCE(al.branch_id,1) AS branch_id, b.name AS branch_name
+       FROM audit_logs al
+       LEFT JOIN branches b ON b.id = COALESCE(al.branch_id,1)
+       ${where}
+       ORDER BY al.created_at DESC
+       LIMIT ? OFFSET ?`,
+      [...params, pageSize, offset]
+    );
+    res.json({ success: true, logs: rows, total, page: pageNum, limit: pageSize });
   } catch (error) {
     console.error('[Audit] Fetch error:', error.message);
     res.status(500).json({ message: 'Failed to fetch audit logs', error: error.message });
@@ -1802,11 +1817,11 @@ app.post('/api/auth/login', loginRateLimit, async (req, res) => {
     }
     const ok = bcrypt.compareSync(password, user.password);
     if (!ok) {
-      await auditLog({ ...req, user: { id: user.id, username: user.username } }, 'login_failed', 'user', user.id, null, { reason: 'wrong_password' });
+      await auditLog({ ...req, user: { id: user.id, username: user.username, branch_id: user.branch_id ?? 1 } }, 'login_failed', 'user', user.id, null, { reason: 'wrong_password' });
       return res.status(401).json({ message: 'Invalid credentials' });
     }
     const token = signToken(user);
-    await auditLog({ ...req, user: { id: user.id, username: user.username } }, 'login_success', 'user', user.id, null, null);
+    await auditLog({ ...req, user: { id: user.id, username: user.username, branch_id: user.branch_id ?? 1 } }, 'login_success', 'user', user.id, null, null);
     res.json({ token });
   } catch (error) {
     console.error('Login error:', error.message);
