@@ -404,9 +404,10 @@ select optgroup {
 /* هاتف صغير جداً (320px - 360px) */
 .games-grid {
     display: grid;
-    grid-template-columns: repeat(2, 1fr);
+    grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 0.5rem;
     grid-auto-flow: dense;
+    align-items: stretch;
 }
 
 /* هاتف صغير (360px+) */
@@ -476,8 +477,8 @@ select optgroup {
 }
 
 .game-card:hover {
-    box-shadow: 0 0 30px rgba(124, 58, 237, 0.25), 0 20px 40px rgba(0, 0, 0, 0.4);
-    border-color: rgba(124, 58, 237, 0.5);
+    box-shadow: 0 0 30px rgba(20, 184, 166, 0.25), 0 20px 40px rgba(0, 0, 0, 0.4);
+    border-color: rgba(20, 184, 166, 0.5);
     transform: translateY(-4px);
 }
 
@@ -488,7 +489,7 @@ select optgroup {
     inset: -1px;
     border-radius: 16px;
     padding: 1px;
-    background: linear-gradient(135deg, rgba(124, 58, 237, 0), rgba(124, 58, 237, 0));
+    background: linear-gradient(135deg, rgba(20, 184, 166, 0), rgba(20, 184, 166, 0));
     -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
     mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
     -webkit-mask-composite: xor;
@@ -499,7 +500,7 @@ select optgroup {
 }
 
 .game-card:hover::before {
-    background: linear-gradient(135deg, rgba(124, 58, 237, 0.6), rgba(16, 185, 129, 0.6));
+    background: linear-gradient(135deg, rgba(20, 184, 166, 0.6), rgba(20, 184, 166, 0.6));
     opacity: 1;
 }
 
@@ -590,17 +591,19 @@ select optgroup {
 }
 
 .game-card-title {
-    font-size: clamp(0.7rem, 1.2vw + 0.5rem, 1rem);
-    font-weight: 600;
+    font-size: clamp(0.75rem, 0.9vw + 0.5rem, 0.95rem);
+    font-weight: 700;
     color: #ffffff;
-    line-height: 1.35;
+    line-height: 1.5;
     display: -webkit-box;
     -webkit-line-clamp: 2;
     line-clamp: 2;
     -webkit-box-orient: vertical;
     overflow: hidden;
     text-overflow: ellipsis;
-    min-height: 2.5rem;
+    overflow-wrap: break-word;
+    word-break: break-word;
+    min-height: 3.1em;
     font-family: var(--font-arabic);
     text-align: right;
     letter-spacing: 0.01em;
@@ -873,8 +876,8 @@ select optgroup {
     }
 
     .game-card-title {
-        font-size: 0.7rem;
-        min-height: 2.2em;
+        font-size: 0.75rem;
+        min-height: 3.1em;
         -webkit-line-clamp: 2;
         line-clamp: 2;
     }
@@ -893,8 +896,8 @@ select optgroup {
     }
 
     .game-card-title {
-        font-size: 0.75rem;
-        min-height: 1.75rem;
+        font-size: 0.8125rem;
+        min-height: 3.1em;
         -webkit-line-clamp: 2;
         line-clamp: 2;
     }
@@ -1096,10 +1099,10 @@ select optgroup {
 /* Pulse glow for CTA buttons */
 @keyframes pulse-glow {
     0%, 100% {
-        box-shadow: 0 0 10px rgba(124, 58, 237, 0.3);
+        box-shadow: 0 0 10px rgba(20, 184, 166, 0.3);
     }
     50% {
-        box-shadow: 0 0 25px rgba(124, 58, 237, 0.6);
+        box-shadow: 0 0 25px rgba(20, 184, 166, 0.6);
     }
 }
 
@@ -1150,9 +1153,9 @@ select optgroup {
 
 /* Neon text effect */
 .neon-text {
-    text-shadow: 0 0 10px rgba(124, 58, 237, 0.5),
-                 0 0 20px rgba(124, 58, 237, 0.3),
-                 0 0 30px rgba(124, 58, 237, 0.2);
+    text-shadow: 0 0 10px rgba(20, 184, 166, 0.5),
+                 0 0 20px rgba(20, 184, 166, 0.3),
+                 0 0 30px rgba(20, 184, 166, 0.2);
 }
 
 /* Glass morphism for overlays */
@@ -1173,12 +1176,12 @@ select optgroup {
 }
 
 .custom-scrollbar::-webkit-scrollbar-thumb {
-    background: rgba(124, 58, 237, 0.3);
+    background: rgba(20, 184, 166, 0.3);
     border-radius: 4px;
 }
 
 .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-    background: rgba(124, 58, 237, 0.5);
+    background: rgba(20, 184, 166, 0.5);
 }
 
 /* Tab content fade-in animation */
@@ -1246,7 +1249,7 @@ select optgroup {
     position: absolute;
     inset: 0;
     border-radius: 50%;
-    background: linear-gradient(135deg, #6366f1, #a855f7);
+    background: linear-gradient(135deg, #14b8a6, #0e7f74);
 }
 
 .loading-spinner::before {
@@ -1274,7 +1277,7 @@ select optgroup {
     width: var(--dot, 12px);
     height: var(--dot, 12px);
     border-radius: 50%;
-    background: linear-gradient(135deg, #7C3AED, #10B981);
+    background: linear-gradient(135deg, #14b8a6, #0e7f74);
     animation: dot-bounce 1.2s ease-in-out infinite;
 }
 
@@ -1311,7 +1314,7 @@ select optgroup {
     position: absolute;
     height: 100%;
     width: 40%;
-    background: linear-gradient(90deg, #22c55e, #3b82f6, #9333ea);
+    background: linear-gradient(90deg, #14b8a6, #0e7f74, #134e4a);
     animation: bar-slide 1.4s ease-in-out infinite;
 }
 

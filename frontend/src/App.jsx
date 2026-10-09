@@ -186,6 +186,54 @@ function formatWhatsAppPhone(raw) {
   return digits
 }
 
+// اختيار الفرع لإرسال الطلب — كل فرع له رقم واتساب مستقل
+function BranchSelect({ branches, selectedId, onSelect, compact }) {
+  return (
+    <div className={compact ? '' : 'bg-gray-950/40 rounded-xl border border-white/10 p-3 sm:p-4'}>
+      <div className="flex items-center gap-2 mb-2.5">
+        <span className="w-6 h-6 rounded-lg bg-teal-500/15 text-teal-400 flex items-center justify-center shrink-0">
+          <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth={1.6} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M13.5 21v-7.5a.75.75 0 01.75-.75h3a.75.75 0 01.75.75V21m-4.5 0H2.36m11.14 0H18m0 0h3.64m-1.39 0V9.349m-16.5 11.65V9.35m0 0a3.001 3.001 0 003.75-.615A2.993 2.993 0 009.75 9.75c.896 0 1.7-.393 2.25-1.016a2.993 2.993 0 002.25 1.016c.896 0 1.7-.393 2.25-1.016a3.001 3.001 0 003.75.614m-16.5 0a3.004 3.004 0 01-.621-4.72L4.318 3.44A1.5 1.5 0 015.378 3h13.243a1.5 1.5 0 011.06.44l1.19 1.189a3 3 0 01-.621 4.72m-13.5 8.65h3.75a.75.75 0 00.75-.75V13.5a.75.75 0 00-.75-.75H6.75a.75.75 0 00-.75.75v3.75c0 .414.336.75.75.75z" /></svg>
+        </span>
+        <span className="text-xs font-bold text-[var(--text-secondary)]">أرسل الطلب إلى الفرع</span>
+      </div>
+      <div className="grid gap-2">
+        {branches.map(b => {
+          const selected = String(b.id) === String(selectedId)
+          return (
+            <button
+              key={b.id}
+              type="button"
+              onClick={() => onSelect(b.id)}
+              aria-pressed={selected}
+              className={`w-full text-right rounded-xl border p-3 transition-all duration-200 cursor-pointer focus:outline-none focus:ring-2 focus:ring-teal-500/60 ${
+                selected
+                  ? 'border-teal-500/70 bg-teal-500/10 ring-2 ring-teal-500/40 shadow-[0_0_16px_rgba(20,184,166,0.15)]'
+                  : 'border-white/10 bg-gray-950/40 hover:border-white/25 hover:bg-gray-900/60'
+              }`}
+            >
+              <div className="flex items-center justify-between gap-2">
+                <span className={`font-bold text-sm truncate ${selected ? 'text-teal-300' : 'text-white'}`}>{b.name}</span>
+                <span className={`w-5 h-5 rounded-full flex items-center justify-center shrink-0 transition-colors ${selected ? 'bg-teal-500 text-white' : 'bg-white/10 text-transparent'}`}>
+                  <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" /></svg>
+                </span>
+              </div>
+              {b.address && (
+                <p className="text-[11px] text-gray-400 mt-1 truncate" title={b.address}>{b.address}</p>
+              )}
+              {b.phone && (
+                <p className="flex items-center gap-1 text-[11px] text-teal-400/80 mt-1 font-mono" dir="ltr">
+                  <svg className="w-3 h-3 shrink-0" fill="none" stroke="currentColor" strokeWidth={1.6} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M2.25 6.75c0 8.284 6.716 15 15 15h2.25a2.25 2.25 0 002.25-2.25v-1.372c0-.516-.351-.966-.852-1.091l-4.423-1.106c-.44-.11-.902.055-1.173.417l-.97 1.293c-.282.376-.769.542-1.21.38a12.035 12.035 0 01-7.143-7.143c-.162-.441.004-.928.38-1.21l1.293-.97c.363-.271.527-.734.417-1.173L6.963 3.102a1.125 1.125 0 00-1.091-.852H4.5A2.25 2.25 0 002.25 4.5v2.25z" /></svg>
+                  <span className="truncate">{b.phone}</span>
+                </p>
+              )}
+            </button>
+          )
+        })}
+      </div>
+    </div>
+  )
+}
+
 export default function App() {
   const [route, setRoute] = useState(window.location.hash || '#/')
   const [categories, setCategories] = useState([])
@@ -218,6 +266,12 @@ export default function App() {
   const [isGuestMode, setIsGuestMode] = useState(localStorage.getItem('isGuest') === 'true')
   const [storePhone, setStorePhone] = useState('')
   const [branches, setBranches] = useState([])
+  const [selectedBranchId, setSelectedBranchId] = useState(() => {
+    const stored = localStorage.getItem('selectedBranchId')
+    return stored && !Number.isNaN(Number(stored)) ? Number(stored) : null
+  })
+  // حماية المتجر: يجب تسجيل الدخول للوصول إلى نقطة البيع
+  const hasToken = !!localStorage.getItem('token')
 
   // Load auth token from storage on mount
   useEffect(() => { loadAuthFromStorage(); setActiveBranchId(null) }, [])
@@ -230,7 +284,20 @@ export default function App() {
   useEffect(() => {
     api.get('/services').then(({ data }) => setServices(Array.isArray(data) ? data : [])).catch(() => { })
     api.get('/branches').then(({ data }) => {
-      setBranches(Array.isArray(data) ? data : (data?.branches || []))
+      const rows = Array.isArray(data) ? data : (data?.branches || [])
+      setBranches(rows)
+      // مزامنة الفرع المحدد: احتفظ بالاختيار السابق إن كان ما زال متاحاً،
+      // وإلا اختر الفرع الوحيد النشط تلقائياً (كل فرع له رقم واتساب خاص به)
+      setSelectedBranchId(prev => {
+        let id = prev
+        if (!rows.some(b => String(b.id) === String(id))) id = null
+        if (id === null) {
+          const active = rows.filter(b => b.is_active !== 0)
+          if (active.length === 1) id = active[0].id
+        }
+        if (id !== prev) localStorage.setItem('selectedBranchId', id != null ? String(id) : '')
+        return id
+      })
     }).catch(() => { })
     api.get('/invoice-settings').then(({ data }) => {
       if (data?.settings?.store_phone) setStorePhone(data.settings.store_phone)
@@ -653,6 +720,25 @@ export default function App() {
   }
   function removeFromServicesCart(index) { setServicesCart(prev => prev.filter((_, i) => i !== index)) }
 
+  // تحديد فرع لإرسال الطلب عبر واتساب (كل فرع له رقم مستقل) مع الحفظ محلياً
+  function selectBranch(id) {
+    setSelectedBranchId(id)
+    if (id === null || id === undefined) localStorage.removeItem('selectedBranchId')
+    else localStorage.setItem('selectedBranchId', String(id))
+  }
+
+  // حالة إرسال الطلب عبر واتساب: يتطلب فرعاً محدداً برقم هاتف
+  const selectedBranch = branches.find(b => String(b.id) === String(selectedBranchId)) || null
+  const selectedBranchPhone = selectedBranch?.phone?.trim() || ''
+  const canSendWhatsApp = !!(selectedBranchPhone || (!branches.length && storePhone.trim()))
+  const whatsAppHint = (() => {
+    if (hasToken && !isGuestMode) return 'سيتم إنشاء فاتورة وطباعتها'
+    if (canSendWhatsApp) return selectedBranch ? `سيتم فتح واتساب لإرسال طلبك إلى ${selectedBranch.name}` : 'سيتم فتح واتساب لإرسال طلبك'
+    if (branches.length === 0) return 'لا يوجد رقم واتساب متاح حالياً'
+    if (selectedBranch && !selectedBranchPhone) return 'الفرع المحدد بدون رقم هاتف — اختر فرعاً آخر'
+    return 'اختر الفرع لإرسال الطلب'
+  })()
+
   async function sendOrder() {
     if (cart.length === 0 && servicesCart.length === 0) return showToast('السلة فارغة', 'error')
     if (!hasToken || isGuestMode) {
@@ -666,7 +752,16 @@ export default function App() {
   function sendWhatsAppOrder() {
     if (cart.length === 0 && servicesCart.length === 0) return
 
+    const branch = branches.find(b => String(b.id) === String(selectedBranchId)) || null
+    const branchPhone = branch?.phone?.trim() || ''
+    const orderPhone = branchPhone || storePhone
+    if (!orderPhone) {
+      showToast('اختر الفرع لإرسال الطلب', 'error')
+      return
+    }
+
     let msg = '🎮 *طلب ألعاب من متجر النفار*\n'
+    msg += `🏬 *الفرع:* ${branch ? branch.name : 'الفرع الرئيسي'}\n`
     msg += '━━━━━━━━━━━━━━━━━━━━\n\n'
 
     if (cart.length > 0) {
@@ -691,7 +786,7 @@ export default function App() {
     msg += '━━━━━━━━━━━━━━━━━━━━\n'
     msg += '\n⏳ *ملاحظة:* يرجى تأكيد الطلب وتحديد موعد التثبيت'
 
-    const phone = formatWhatsAppPhone(storePhone)
+    const phone = formatWhatsAppPhone(orderPhone)
     const url = `https://wa.me/${phone}?text=${encodeURIComponent(msg)}`
     window.open(url, '_blank')
   }
@@ -748,7 +843,6 @@ export default function App() {
   }
 
   // حماية المتجر: يجب تسجيل الدخول للوصول إلى نقطة البيع
-  const hasToken = !!localStorage.getItem('token')
   if (!hasToken && !isGuestMode && !showLogin) {
     return (
       <div className="min-h-screen bg-black text-white flex flex-col items-center justify-center p-4 sm:p-6 relative overflow-hidden">
@@ -967,30 +1061,53 @@ export default function App() {
             <div className="order-2 md:order-1">
               <h1 className="text-xl min-[400px]:text-2xl sm:text-3xl md:text-4xl font-extrabold mb-2 sm:mb-3 text-center md:text-right">اختر الألعاب التي تريدها</h1>
 
-              {/* فروعنا — الموقع والهاتف لكل فرع */}
+              {/* فروعنا — الموقع والهاتف لكل فرع (قابلة للاختيار لإرسال الطلب) */}
               {branches.length > 0 ? (
-                <div className="grid grid-cols-1 min-[400px]:grid-cols-2 gap-2 sm:gap-3 mb-4">
-                  {branches.map(b => (
-                    <div key={b.id} className="bg-white/5 border border-white/10 rounded-xl p-3 text-right">
-                      <div className="flex items-center justify-between gap-2 mb-1">
-                        <h3 className="font-bold text-white text-sm truncate">{b.name}</h3>
-                        {!!b.is_main && <span className="shrink-0 text-[10px] font-bold px-2 py-0.5 rounded-full bg-primary/20 text-primary border border-primary/30">رئيسي</span>}
-                      </div>
-                      {b.address && (
-                        <p className="text-gray-300 text-xs leading-relaxed mb-2 flex items-start gap-1.5">
-                          <svg className="w-3.5 h-3.5 shrink-0 mt-0.5 text-primary/70" fill="none" stroke="currentColor" strokeWidth={1.8} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M15 10.5a3 3 0 11-6 0 3 3 0 016 0z" /><path strokeLinecap="round" strokeLinejoin="round" d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1115 0z" /></svg>
-                          <span className="break-words">{b.address}</span>
-                        </p>
-                      )}
-                      {b.phone && (
-                        <a href={'tel:' + b.phone} className="inline-flex items-center gap-1.5 text-xs font-bold text-primary hover:text-white transition-colors" dir="ltr">
-                          <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth={1.8} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M2.25 6.75c0 8.284 6.716 15 15 15h2.25a2.25 2.25 0 002.25-2.25v-1.372c0-.516-.351-.966-.852-1.091l-4.423-1.106c-.44-.11-.902.055-1.173.417l-.97 1.293c-.282.376-.769.542-1.21.38a12.035 12.035 0 01-7.143-7.143c-.162-.441.004-.928.38-1.21l1.293-.97c.363-.271.527-.734.417-1.173L6.963 3.102a1.125 1.125 0 00-1.091-.852H4.5A2.25 2.25 0 002.25 4.5v2.25z" /></svg>
-                          <span>{b.phone}</span>
-                        </a>
-                      )}
-                    </div>
-                  ))}
-                </div>
+                <>
+                  <div className="flex items-center gap-1.5 mb-2 text-center md:text-right justify-center md:justify-start">
+                    <svg className="w-3.5 h-3.5 text-primary/70" fill="none" stroke="currentColor" strokeWidth={1.8} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M15 19.128a9.38 9.38 0 002.625.372 9.337 9.337 0 004.121-.952 4.125 4.125 0 00-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 018.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0111.964-3.07M12 6.375a3.375 3.375 0 11-6.75 0 3.375 3.375 0 016.75 0zm8.25 2.25a2.625 2.625 0 11-5.25 0 2.625 2.625 0 015.25 0z" /></svg>
+                    <p className="text-gray-400 text-xs font-medium">اختر فرعك لإرسال الطلب عبر واتساب</p>
+                  </div>
+                  <div className="grid grid-cols-1 min-[400px]:grid-cols-2 gap-2 sm:gap-3 mb-4">
+                    {branches.map(b => {
+                      const selectedHero = String(b.id) === String(selectedBranchId)
+                      return (
+                        <button
+                          key={b.id}
+                          type="button"
+                          onClick={() => selectBranch(b.id)}
+                          aria-pressed={selectedHero}
+                          className={`text-right rounded-xl p-3 transition-all duration-200 cursor-pointer focus:outline-none focus:ring-2 focus:ring-teal-500/60 ${selectedHero
+                            ? 'bg-teal-500/10 border border-teal-500/70 ring-2 ring-teal-500/40 shadow-[0_0_18px_rgba(20,184,166,0.15)]'
+                            : 'bg-white/5 border border-white/10 hover:border-white/25 hover:bg-white/10'
+                          }`}
+                        >
+                          <div className="flex items-center justify-between gap-2 mb-1">
+                            <h3 className={`font-bold text-sm truncate ${selectedHero ? 'text-teal-300' : 'text-white'}`}>{b.name}</h3>
+                            <span className="flex items-center gap-1.5 shrink-0">
+                              {!!b.is_main && <span className="shrink-0 text-[10px] font-bold px-2 py-0.5 rounded-full bg-primary/20 text-primary border border-primary/30">رئيسي</span>}
+                              <span className={`w-4.5 h-4.5 rounded-full flex items-center justify-center shrink-0 transition-colors ${selectedHero ? 'bg-teal-500 text-white' : 'bg-white/10 text-transparent'}`} style={{ width: '1.125rem', height: '1.125rem' }}>
+                                <svg className="w-3 h-3" fill="none" stroke="currentColor" strokeWidth={3} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" /></svg>
+                              </span>
+                            </span>
+                          </div>
+                          {b.address && (
+                            <p className="text-gray-300 text-xs leading-relaxed mb-2 flex items-start gap-1.5">
+                              <svg className="w-3.5 h-3.5 shrink-0 mt-0.5 text-primary/70" fill="none" stroke="currentColor" strokeWidth={1.8} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M15 10.5a3 3 0 11-6 0 3 3 0 016 0z" /><path strokeLinecap="round" strokeLinejoin="round" d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1115 0z" /></svg>
+                              <span className="break-words">{b.address}</span>
+                            </p>
+                          )}
+                          {b.phone && (
+                            <span className="inline-flex items-center gap-1.5 text-xs font-bold text-primary hover:text-white transition-colors cursor-pointer" dir="ltr">
+                              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth={1.8} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M2.25 6.75c0 8.284 6.716 15 15 15h2.25a2.25 2.25 0 002.25-2.25v-1.372c0-.516-.351-.966-.852-1.091l-4.423-1.106c-.44-.11-.902.055-1.173.417l-.97 1.293c-.282.376-.769.542-1.21.38a12.035 12.035 0 01-7.143-7.143c-.162-.441.004-.928.38-1.21l1.293-.97c.363-.271.527-.734.417-1.173L6.963 3.102a1.125 1.125 0 00-1.091-.852H4.5A2.25 2.25 0 002.25 4.5v2.25z" /></svg>
+                              <span>{b.phone}</span>
+                            </span>
+                          )}
+                        </button>
+                      )
+                    })}
+                  </div>
+                </>
               ) : (
                 <p className="text-gray-200 mb-4 text-sm sm:text-base text-center md:text-right leading-relaxed md:text-gray-100">موقع المحل: الشاردة للإلكترونات - شارع القضائية مقابل فضيل للبن</p>
               )}
@@ -1258,7 +1375,7 @@ export default function App() {
                     
                     {/* محتوى البطاقة */}
                     <div className="p-3 sm:p-4 flex flex-col flex-grow">
-                      <h3 className="game-card-title text-white font-bold text-sm sm:text-base mb-2 line-clamp-2 min-h-[2.5rem] group-hover:text-purple-300 transition-colors">{game.title}</h3>
+                      <h3 className="game-card-title text-white font-bold leading-snug break-words mb-2 group-hover:text-[color:var(--brand)] transition-colors">{game.title}</h3>
                       
                       {/* شارة التصنيف */}
                       <div className="mb-3">
@@ -1281,7 +1398,7 @@ export default function App() {
                         {(hasToken || isGuestMode) && (
                           <button
                             onClick={() => addToCart(game)}
-                            className="mt-3 w-full bg-gradient-to-r from-purple-600 to-emerald-500 hover:from-purple-500 hover:to-emerald-400 text-white font-bold py-2.5 px-4 rounded-xl transition-all duration-300 hover:shadow-[0_0_20px_rgba(124,58,237,0.5)] active:scale-[0.97] flex items-center justify-center gap-2 text-sm cursor-pointer"
+                            className="mt-3 w-full bg-gradient-to-r from-[color:var(--brand)] to-emerald-500 hover:from-[color:var(--brand-hover)] hover:to-emerald-400 text-white font-bold py-2.5 px-4 rounded-xl transition-all duration-300 hover:shadow-[0_0_20px_rgba(20,184,166,0.5)] active:scale-[0.97] flex items-center justify-center gap-2 text-sm cursor-pointer"
                           >
                             <svg className="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
@@ -1376,17 +1493,24 @@ export default function App() {
                     </div>
                     <div className="flex justify-between items-center mb-4">
                       <span className="text-sm font-bold text-white">الإجمالي</span>
-                      <span className="text-xl font-black text-purple-400 tabular-nums">{currency(total)}</span>
+                      <span className="text-xl font-black text-primary tabular-nums">{currency(total)}</span>
                     </div>
+
+                    {/* اختيار الفرع لإرسال الطلب (كل فرع له رقم واتساب مستقل) */}
+                    {branches.length > 0 && (
+                      <div className="mb-3">
+                        <BranchSelect branches={branches} selectedId={selectedBranchId} onSelect={selectBranch} />
+                      </div>
+                    )}
 
                     <div className="space-y-2.5">
                       <button
-                        disabled={cart.length === 0 && servicesCart.length === 0}
+                        disabled={(cart.length === 0 && servicesCart.length === 0) || ((!hasToken || isGuestMode) && !canSendWhatsApp)}
                         onClick={sendOrder}
-                        className={`w-full disabled:opacity-40 disabled:cursor-not-allowed text-white font-bold py-3 px-4 rounded-xl transition-all duration-300 text-sm flex items-center justify-center gap-2 ${
+                        className={`w-full disabled:opacity-40 disabled:cursor-not-allowed text-white font-bold py-3 px-4 rounded-xl transition-all duration-300 text-sm flex items-center justify-center gap-2 cursor-pointer ${
                           (!hasToken || isGuestMode)
                             ? 'bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-400 hover:to-emerald-400 hover:shadow-[0_0_20px_rgba(34,197,94,0.4)]'
-                            : 'bg-gradient-to-r from-purple-600 to-purple-500 hover:from-purple-500 hover:to-purple-400 hover:shadow-[0_0_20px_rgba(124,58,237,0.4)]'
+                            : 'bg-gradient-to-r from-[color:var(--brand)] to-emerald-500 hover:from-[color:var(--brand-hover)] hover:to-emerald-400 hover:shadow-[0_0_20px_rgba(20,184,166,0.4)]'
                         } active:scale-[0.98]`}
                       >
                         {(!hasToken || isGuestMode) ? (
@@ -1406,7 +1530,7 @@ export default function App() {
 
                       <div className="text-[11px] text-gray-500 bg-gray-800/30 p-2 rounded-lg text-center">
                         {(!hasToken || isGuestMode) ? (
-                          <p>سيتم فتح واتساب لإرسال طلبك</p>
+                          <p>{whatsAppHint}</p>
                         ) : (
                           <p>سيتم إنشاء فاتورة وطباعتها</p>
                         )}
@@ -1527,10 +1651,10 @@ export default function App() {
                   <ul className="space-y-2 mb-4">
                     {cart.map((g, i) => (
                       <li key={`g-${i}`} className="flex items-center gap-3 p-3 bg-white/5 hover:bg-white/8 rounded-xl transition-colors group">
-                        <div className="w-2 h-2 bg-purple-500 rounded-full flex-shrink-0"></div>
+                        <div className="w-2 h-2 bg-primary rounded-full flex-shrink-0"></div>
                         <div className="flex-1 min-w-0">
                           <p className="font-medium truncate text-white text-sm" title={g.title}>{g.title}</p>
-                          <p className="text-purple-400 font-bold text-xs">{currency(g.price)}</p>
+                          <p className="text-primary font-bold text-xs">{currency(g.price)}</p>
                         </div>
                         <button onClick={() => removeFromCart(i)} className="w-8 h-8 flex items-center justify-center text-gray-500 hover:text-red-400 hover:bg-red-500/10 rounded-lg transition-all" aria-label="حذف من السلة">
                           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
@@ -1562,19 +1686,26 @@ export default function App() {
                     </div>
                     <div className="flex justify-between items-center mb-4">
                       <span className="text-sm font-bold text-white">الإجمالي</span>
-                      <span className="text-xl font-black text-purple-400 tabular-nums">{currency(total)}</span>
+                      <span className="text-xl font-black text-primary tabular-nums">{currency(total)}</span>
                     </div>
 
+                    {/* اختيار الفرع لإرسال الطلب (كل فرع له رقم واتساب مستقل) */}
+                    {branches.length > 0 && (
+                      <div className="mb-3">
+                        <BranchSelect branches={branches} selectedId={selectedBranchId} onSelect={selectBranch} compact />
+                      </div>
+                    )}
+
                     <button
-                      disabled={cart.length === 0 && servicesCart.length === 0}
+                      disabled={(cart.length === 0 && servicesCart.length === 0) || ((!hasToken || isGuestMode) && !canSendWhatsApp)}
                       onClick={() => {
                         setShowMobileCart(false)
                         sendOrder()
                       }}
-                      className={`w-full disabled:opacity-40 disabled:cursor-not-allowed text-white font-bold py-4 px-4 rounded-xl transition-all duration-300 flex items-center justify-center gap-2 active:scale-[0.98] ${
+                      className={`w-full disabled:opacity-40 disabled:cursor-not-allowed text-white font-bold py-4 px-4 rounded-xl transition-all duration-300 flex items-center justify-center gap-2 active:scale-[0.98] cursor-pointer ${
                         (!hasToken || isGuestMode)
                           ? 'bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-400 hover:to-emerald-400 hover:shadow-[0_0_20px_rgba(34,197,94,0.4)]'
-                          : 'bg-gradient-to-r from-purple-600 to-purple-500 hover:from-purple-500 hover:to-purple-400 hover:shadow-[0_0_20px_rgba(124,58,237,0.4)]'
+                          : 'bg-gradient-to-r from-[color:var(--brand)] to-emerald-500 hover:from-[color:var(--brand-hover)] hover:to-emerald-400 hover:shadow-[0_0_20px_rgba(20,184,166,0.4)]'
                       }`}
                     >
                       {(!hasToken || isGuestMode) ? (
@@ -1591,6 +1722,13 @@ export default function App() {
                         </>
                       )}
                     </button>
+                    <div className="text-[11px] text-gray-500 bg-gray-800/30 p-2 rounded-lg text-center">
+                      {(!hasToken || isGuestMode) ? (
+                        <p>{whatsAppHint}</p>
+                      ) : (
+                        <p>سيتم إنشاء فاتورة وطباعتها</p>
+                      )}
+                    </div>
                   </div>
                 </>
               )}

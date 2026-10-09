@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { api } from './api';
 import Loader from './Loader';
 
+const closeIcon = <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M6 18L18 6M6 6l12 12" /></svg>;
+
 // ─── Full-screen Game Picker Modal ──────────────────────────────────────────
 const GamePickerModal = ({ games, selectedIds, onToggle, onClose, categoryId }) => {
   const [search, setSearch] = useState('');
@@ -33,18 +35,19 @@ const GamePickerModal = ({ games, selectedIds, onToggle, onClose, categoryId }) 
         <button
           type="button"
           onClick={onClose}
-          className="p-2 rounded-xl bg-white/5 hover:bg-white/10 text-white transition-colors"
+          className="p-2.5 rounded-xl bg-white/5 hover:bg-white/10 text-gray-400 hover:text-white transition-colors cursor-pointer"
+          aria-label="إغلاق"
         >
-          ✕
+          {closeIcon}
         </button>
         <div className="flex-1">
           <h3 className="text-white font-bold text-base">اختر الألعاب</h3>
-          <p className="text-purple-400 text-xs font-medium">{selectedIds.length} مختارة</p>
+          <p className="text-teal-400 text-xs font-medium">{selectedIds.length} مختارة</p>
         </div>
         <button
           type="button"
           onClick={onClose}
-          className="px-4 py-2 bg-gradient-to-r from-purple-600 to-indigo-600 text-white rounded-xl text-sm font-bold"
+          className="px-4 py-2.5 bg-gradient-to-l from-[color:var(--brand)] to-emerald-600 hover:from-teal-500 hover:to-emerald-500 text-white rounded-xl text-sm font-bold transition-all cursor-pointer"
         >
           تأكيد
         </button>
@@ -58,11 +61,13 @@ const GamePickerModal = ({ games, selectedIds, onToggle, onClose, categoryId }) 
             value={search}
             onChange={e => setSearch(e.target.value)}
             placeholder="ابحث بالاسم، النوع أو السلسلة..."
-            className="w-full bg-gray-800 border border-gray-700/50 rounded-xl px-4 py-3 text-sm text-white placeholder-gray-500 outline-none focus:ring-2 focus:ring-purple-500/50"
+            className="w-full bg-gray-800 border border-gray-700/50 rounded-xl px-4 py-3 text-sm text-white placeholder-gray-500 outline-none focus:ring-2 focus:ring-teal-500/50 transition-all"
             autoFocus
           />
           {search && (
-            <button type="button" onClick={() => setSearch('')} className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-white">✕</button>
+            <button type="button" onClick={() => setSearch('')} className="absolute left-3 top-1/2 -translate-y-1/2 w-8 h-8 flex items-center justify-center text-gray-400 hover:text-white rounded-lg transition-colors cursor-pointer" aria-label="مسح البحث">
+              {closeIcon}
+            </button>
           )}
         </div>
       </div>
@@ -81,17 +86,19 @@ const GamePickerModal = ({ games, selectedIds, onToggle, onClose, categoryId }) 
                 key={g.id}
                 type="button"
                 onClick={() => onToggle(g.id)}
-                className={`w-full flex items-center gap-3 p-3 rounded-2xl text-right transition-all active:scale-[0.98] ${
+                className={`w-full flex items-center gap-3 p-3 rounded-2xl text-right transition-all active:scale-[0.98] cursor-pointer ${
                   selected
-                    ? 'bg-purple-600/30 border border-purple-500/50'
+                    ? 'bg-teal-500/15 border border-teal-500/50'
                     : 'bg-white/5 border border-transparent'
                 }`}
               >
                 {/* Checkbox indicator */}
                 <div className={`w-7 h-7 rounded-lg flex items-center justify-center shrink-0 transition-colors ${
-                  selected ? 'bg-purple-500 text-white' : 'bg-gray-700'
+                  selected ? 'bg-teal-500 text-white' : 'bg-gray-700'
                 }`}>
-                  {selected && <span className="text-sm font-bold">✓</span>}
+                  {selected && (
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" /></svg>
+                  )}
                 </div>
 
                 {/* Game image */}
@@ -109,7 +116,7 @@ const GamePickerModal = ({ games, selectedIds, onToggle, onClose, categoryId }) 
                   <p className={`font-bold truncate text-sm ${selected ? 'text-white' : 'text-gray-200'}`}>{g.title}</p>
                   <div className="flex gap-1.5 mt-1 flex-wrap">
                     {g.genre && <span className="text-[10px] bg-gray-700/80 text-gray-300 px-2 py-0.5 rounded-lg">{g.genre}</span>}
-                    {g.series && <span className="text-[10px] bg-purple-900/50 text-purple-300 px-2 py-0.5 rounded-lg">{g.series}</span>}
+                    {g.series && <span className="text-[10px] bg-teal-500/15 text-teal-300 border border-teal-500/20 px-2 py-0.5 rounded-lg">{g.series}</span>}
                   </div>
                 </div>
               </button>
@@ -255,27 +262,40 @@ const PackagesTab = () => {
       <div className="p-3 min-[400px]:p-4 sm:p-6 lg:p-8 space-y-6">
         {/* Header */}
         <div className="flex flex-col sm:flex-row items-center justify-between gap-4 bg-gray-900/40 p-4 sm:p-6 rounded-2xl border border-white/5 backdrop-blur-md shadow-xl">
-          <div>
-            <h2 className="text-xl sm:text-2xl font-bold text-white flex items-center gap-2">
-              <span className="text-purple-500 text-3xl">إدارة الباقات</span>
-            </h2>
-            <p className="text-gray-400 mt-1 text-xs sm:text-sm">تجميع الألعاب في باقات مخفضة للبيع السريع</p>
+          <div className="flex items-center gap-3">
+            <div className="w-11 h-11 rounded-2xl bg-teal-500/15 border border-teal-500/30 text-teal-400 flex items-center justify-center shrink-0">
+              <svg className="w-6 h-6" fill="none" stroke="currentColor" strokeWidth={1.6} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M12 6.042A8.967 8.967 0 006 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 016 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 016-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0018 18a8.967 8.967 0 00-6 2.292m0-14.25v14.25" /></svg>
+            </div>
+            <div>
+              <h2 className="text-xl sm:text-2xl font-bold text-white">إدارة الباقات</h2>
+              <p className="text-gray-400 mt-1 text-xs sm:text-sm">تجميع الألعاب في باقات مخفضة للبيع السريع</p>
+            </div>
           </div>
           <button
             onClick={() => {
               if (showForm) { cancelEdit(); setShowForm(false); }
               else setShowForm(true);
             }}
-            className="w-full sm:w-auto px-6 py-3 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white rounded-xl font-bold transition-all flex items-center justify-center gap-2 shadow-xl shadow-purple-900/40 border border-white/10 active:scale-95 cursor-pointer"
+            className="w-full sm:w-auto px-6 py-3 bg-gradient-to-l from-[color:var(--brand)] to-emerald-600 hover:from-teal-500 hover:to-emerald-500 text-white rounded-xl font-bold transition-all flex items-center justify-center gap-2 shadow-xl shadow-teal-900/40 border border-white/10 active:scale-95 cursor-pointer min-h-[44px]"
           >
-            {showForm ? '✕ إغلاق النموذج' : '+ إنشاء باقة جديدة'}
+            {showForm ? (
+              <>
+                {closeIcon}
+                إغلاق النموذج
+              </>
+            ) : (
+              <>
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" /></svg>
+                إنشاء باقة جديدة
+              </>
+            )}
           </button>
         </div>
 
         {/* ── Create / Edit Form ── */}
         {showForm && (
-          <form onSubmit={save} className="bg-gray-900/60 backdrop-blur-xl border border-purple-500/30 rounded-2xl p-4 sm:p-6 lg:p-8 space-y-6 shadow-2xl relative overflow-hidden">
-            <div className="absolute top-0 right-0 w-32 h-32 bg-purple-500/10 rounded-full blur-3xl pointer-events-none"></div>
+          <form onSubmit={save} className="bg-gray-900/60 backdrop-blur-xl border border-teal-500/30 rounded-2xl p-4 sm:p-6 lg:p-8 space-y-6 shadow-2xl relative overflow-hidden">
+            <div className="absolute top-0 right-0 w-32 h-32 bg-teal-500/10 rounded-full blur-3xl pointer-events-none"></div>
             <h3 className="text-lg font-bold text-white flex items-center gap-2 border-b border-white/10 pb-4">
               {editingId ? 'تعديل باقة' : 'إضافة باقة جديدة'}
             </h3>
@@ -288,7 +308,7 @@ const PackagesTab = () => {
                   placeholder="مثال: باقة ألعاب الأكشن"
                   value={form.name}
                   onChange={e => setForm({ ...form, name: e.target.value })}
-                  className="w-full bg-gray-950 border border-gray-700/50 rounded-xl px-4 py-3 text-white focus:ring-2 focus:ring-purple-500/50 outline-none transition-all"
+                  className="w-full bg-gray-950 border border-gray-700/50 rounded-xl px-4 py-3 text-white focus:ring-2 focus:ring-teal-500/50 outline-none transition-all"
                 />
               </div>
               <div>
@@ -299,7 +319,7 @@ const PackagesTab = () => {
                   placeholder="السعر الإجمالي د.ل"
                   value={form.price}
                   onChange={e => setForm({ ...form, price: e.target.value })}
-                  className="w-full bg-gray-950 border border-gray-700/50 rounded-xl px-4 py-3 text-white font-mono focus:ring-2 focus:ring-purple-500/50 outline-none transition-all"
+                  className="w-full bg-gray-950 border border-gray-700/50 rounded-xl px-4 py-3 text-white font-mono focus:ring-2 focus:ring-teal-500/50 outline-none transition-all"
                 />
               </div>
             </div>
@@ -310,7 +330,7 @@ const PackagesTab = () => {
                 <select
                   value={form.category_id}
                   onChange={e => setForm({ ...form, category_id: e.target.value, game_ids: [] })}
-                  className="w-full bg-gray-950 border border-gray-700/50 rounded-xl px-4 py-3 text-white appearance-none focus:ring-2 focus:ring-purple-500/50 outline-none transition-all"
+                  className="w-full bg-gray-950 border border-gray-700/50 rounded-xl px-4 py-3 text-white appearance-none focus:ring-2 focus:ring-teal-500/50 outline-none transition-all"
                 >
                   <option value="">-- اختر المنصة --</option>
                   {categories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
@@ -322,7 +342,7 @@ const PackagesTab = () => {
                     type="checkbox"
                     checked={!!form.is_active}
                     onChange={e => setForm({ ...form, is_active: e.target.checked ? 1 : 0 })}
-                    className="w-5 h-5 rounded accent-purple-500"
+                    className="w-5 h-5 rounded accent-teal-500"
                   />
                   <span className="font-medium">باقة نشطة ومتاحة للبيع</span>
                 </label>
@@ -335,14 +355,14 @@ const PackagesTab = () => {
                 <div className="flex items-center justify-between">
                   <label className="text-gray-300 text-xs sm:text-sm font-bold">
                     الألعاب المختارة
-                    <span className="text-purple-400 bg-purple-900/30 px-2 py-0.5 rounded mr-2">
+                    <span className="text-teal-400 bg-teal-500/15 border border-teal-500/25 px-2 py-0.5 rounded mr-2">
                       {form.game_ids.length} مختارة
                     </span>
                   </label>
                   <button
                     type="button"
                     onClick={() => setShowGamePicker(true)}
-                    className="flex items-center gap-2 px-4 py-2 bg-purple-600/20 hover:bg-purple-600 border border-purple-500/40 text-purple-300 hover:text-white rounded-xl text-sm font-bold transition-all active:scale-95 cursor-pointer"
+                    className="flex items-center gap-2 px-4 py-2.5 bg-teal-500/20 hover:bg-teal-600 border border-teal-500/40 text-teal-300 hover:text-white rounded-xl text-sm font-bold transition-all active:scale-95 cursor-pointer min-h-[44px]"
                   >
                     <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={1.8} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" /></svg>
                     <span>{form.game_ids.length > 0 ? 'تعديل اختيار الألعاب' : 'اختر الألعاب'}</span>
@@ -353,15 +373,16 @@ const PackagesTab = () => {
                 {selectedGamesInfo.length > 0 ? (
                   <div className="bg-gray-950/40 rounded-2xl border border-gray-700/50 p-3 space-y-2 max-h-56 overflow-y-auto">
                     {selectedGamesInfo.map(g => (
-                      <div key={g.id} className="flex items-center gap-3 p-2 bg-purple-600/20 rounded-xl border border-purple-500/30">
+                      <div key={g.id} className="flex items-center gap-3 p-2 bg-teal-500/10 rounded-xl border border-teal-500/25">
                         {g.image && <img src={g.image} alt="" className="w-9 h-9 rounded-lg object-cover shrink-0" referrerPolicy="no-referrer" />}
                         <span className="text-sm font-medium text-white truncate flex-1">{g.title}</span>
                         <button
                           type="button"
                           onClick={() => toggleGameId(g.id)}
-                          className="text-gray-500 hover:text-red-400 shrink-0 text-lg leading-none"
+                          className="w-8 h-8 flex items-center justify-center text-gray-400 hover:text-red-400 hover:bg-red-500/10 rounded-lg transition-all shrink-0 cursor-pointer"
+                          aria-label="إزالة اللعبة"
                         >
-                          ✕
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M6 18L18 6M6 6l12 12" /></svg>
                         </button>
                       </div>
                     ))}
@@ -370,7 +391,7 @@ const PackagesTab = () => {
                   <button
                     type="button"
                     onClick={() => setShowGamePicker(true)}
-                    className="w-full py-8 border-2 border-dashed border-gray-700/60 rounded-2xl text-gray-500 hover:border-purple-500/50 hover:text-purple-400 transition-all text-sm flex flex-col items-center gap-2"
+                    className="w-full py-8 border-2 border-dashed border-gray-700/60 rounded-2xl text-gray-500 hover:border-teal-500/50 hover:text-teal-400 transition-all text-sm flex flex-col items-center gap-2 cursor-pointer"
                   >
                     <svg className="w-8 h-8" fill="none" stroke="currentColor" strokeWidth={1.5} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M14.25 6.087c0-.355.186-.676.401-.959.221-.29.349-.634.349-1.003 0-1.036-1.007-1.875-2.25-1.875s-2.25.84-2.25 1.875c0 .369.128.713.349 1.003.215.283.401.604.401.959V6a2 2 0 00-2-2H5.5a2 2 0 00-2 2v5.5c0 .355.186.676.401.959.221.29.349.634.349 1.003 0 1.036 1.007 1.875 2.25 1.875s2.25-.84 2.25-1.875c0-.369-.128-.713-.349-1.003A1.65 1.65 0 015.5 11.5V6" /><path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
                     <span>اضغط لاختيار الألعاب</span>
@@ -382,14 +403,14 @@ const PackagesTab = () => {
             <div className="flex items-center gap-3 pt-4 border-t border-white/10">
               <button
                 type="submit"
-                className="flex-1 py-3 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white rounded-xl font-bold shadow-lg shadow-purple-900/40 transition-all active:scale-95"
+                className="flex-1 py-3 bg-gradient-to-l from-[color:var(--brand)] to-emerald-600 hover:from-teal-500 hover:to-emerald-500 text-white rounded-xl font-bold shadow-lg shadow-teal-900/40 transition-all active:scale-95 cursor-pointer min-h-[44px]"
               >
                 {editingId ? 'تحديث الباقة' : 'تأكيد وحفظ الباقة'}
               </button>
               <button
                 type="button"
                 onClick={() => { cancelEdit(); setShowForm(false); }}
-                className="px-6 py-3 bg-white/5 hover:bg-white/10 text-white rounded-xl font-medium transition-all"
+                className="px-6 py-3 bg-white/5 hover:bg-white/10 text-white rounded-xl font-medium transition-all min-h-[44px] cursor-pointer"
               >
                 إلغاء
               </button>
@@ -400,9 +421,9 @@ const PackagesTab = () => {
         {/* ── Packages List ── */}
         {packages.length === 0 ? (
             <div className="text-center py-20 bg-gray-900/40 rounded-2xl border border-white/5 backdrop-blur-md">
-            <svg className="w-16 h-16 mx-auto mb-4 opacity-20" fill="none" stroke="currentColor" strokeWidth={1} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M21 7.5l-9-5.25L3 7.5m18 0l-9 5.25m9-5.25v9l-9 5.25M3 7.5l9 5.25M3 7.5v9l9 5.25m0-9v9" /></svg>
+            <svg className="w-16 h-16 mx-auto mb-4 opacity-20 text-gray-400" fill="none" stroke="currentColor" strokeWidth={1} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M21 7.5l-9-5.25L3 7.5m18 0l-9 5.25m9-5.25v9l-9 5.25M3 7.5l9 5.25M3 7.5v9l9 5.25m0-9v9" /></svg>
             <p className="text-gray-400 font-bold">لم يتم إنشاء أي باقات بعد</p>
-            <button onClick={() => setShowForm(true)} className="mt-4 text-purple-400 hover:underline cursor-pointer">أنشئ أول باقة الآن</button>
+            <button onClick={() => setShowForm(true)} className="mt-4 text-teal-400 hover:underline cursor-pointer">أنشئ أول باقة الآن</button>
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
@@ -410,8 +431,8 @@ const PackagesTab = () => {
               const platformName = categories.find(c => c.id === p.category_id)?.name || 'المنصة';
               const pkgGames = p.packageGames && Array.isArray(p.packageGames) ? p.packageGames : [];
               return (
-                <div key={p.id} className="group bg-gray-900/40 backdrop-blur-md rounded-2xl border border-white/5 overflow-hidden flex flex-col hover:border-purple-500/30 transition-all duration-300 shadow-xl relative">
-                  <div className="absolute top-0 right-0 w-24 h-24 bg-purple-500/5 rounded-full blur-2xl group-hover:bg-purple-500/10 transition-colors pointer-events-none"></div>
+                <div key={p.id} className="group bg-gray-900/40 backdrop-blur-md rounded-2xl border border-white/5 overflow-hidden flex flex-col hover:border-teal-500/30 transition-all duration-300 shadow-xl relative">
+                  <div className="absolute top-0 right-0 w-24 h-24 bg-teal-500/5 rounded-full blur-2xl group-hover:bg-teal-500/10 transition-colors pointer-events-none"></div>
 
                   {/* Card Header */}
                   <div className="p-4 sm:p-5 bg-gradient-to-br from-gray-800/40 to-transparent border-b border-white/5">
@@ -433,13 +454,13 @@ const PackagesTab = () => {
                           </div>
                         )}
                       </div>
-                      <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${p.is_active ? 'bg-green-500/20 text-green-400 border border-green-500/30' : 'bg-gray-700 text-gray-400'}`}>
+                      <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${p.is_active ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30' : 'bg-gray-700 text-gray-400'}`}>
                         {p.is_active ? 'نشط' : 'معطل'}
                       </span>
                     </div>
-                    <h4 className="text-base sm:text-lg font-bold text-white group-hover:text-purple-400 transition-colors truncate">{p.name}</h4>
+                    <h4 className="text-base sm:text-lg font-bold text-white group-hover:text-teal-400 transition-colors truncate">{p.name}</h4>
                     <div className="flex items-center gap-2 mt-1">
-                      <span className="text-purple-400 font-bold text-xs">{platformName}</span>
+                      <span className="text-teal-400 font-bold text-xs">{platformName}</span>
                       <span className="text-gray-600">•</span>
                       <span className="text-gray-400 text-xs">{pkgGames.length} ألعاب</span>
                     </div>
@@ -452,7 +473,7 @@ const PackagesTab = () => {
                         <span key={g.id} className="text-[11px] bg-white/5 border border-white/5 px-2 py-1 rounded-lg text-gray-300 truncate max-w-[140px]">{g.title}</span>
                       ))}
                       {pkgGames.length > 6 && (
-                        <span className="text-[11px] bg-purple-900/20 border border-purple-500/20 px-2 py-1 rounded-lg text-purple-300">+{pkgGames.length - 6} أخرى</span>
+                        <span className="text-[11px] bg-teal-500/10 border border-teal-500/20 px-2 py-1 rounded-lg text-teal-300">+{pkgGames.length - 6} أخرى</span>
                       )}
                     </div>
                     <div className="flex items-baseline gap-1 pt-3">
@@ -465,23 +486,24 @@ const PackagesTab = () => {
                   <div className="p-4 sm:p-5 pt-0 flex gap-2">
                     <button
                       onClick={() => startEdit(p)}
-                      className="flex-1 py-2.5 bg-white/5 hover:bg-purple-600 hover:text-white rounded-xl text-sm font-bold transition-all border border-white/5 flex items-center justify-center gap-2"
+                      className="flex-1 py-2.5 bg-white/5 hover:bg-teal-600 hover:text-white rounded-xl text-sm font-bold transition-all border border-white/5 flex items-center justify-center gap-2 cursor-pointer min-h-[44px]"
                     >
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={1.5} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0115.75 21H5.25A2.25 2.25 0 013 18.75V8.25A2.25 2.25 0 015.25 6H10" /></svg>
                       تعديل
                     </button>
                     <button
                       onClick={() => remove(p.id)}
-                      className="px-4 py-2.5 bg-white/5 hover:bg-red-600 hover:text-white rounded-xl transition-all border border-white/5"
+                      className="px-4 py-2.5 bg-white/5 hover:bg-red-600 hover:text-white rounded-xl transition-all border border-white/5 cursor-pointer min-h-[44px]"
                       title="حذف"
                     >
                       <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={1.5} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0" /></svg>
                     </button>
                     <button
                       onClick={() => toggleStatus(p.id)}
-                      className={`px-4 py-2.5 rounded-xl transition-all border border-white/5 ${p.is_active ? 'bg-green-600/10 text-green-500 hover:bg-green-600 hover:text-white' : 'bg-gray-800 text-gray-400 hover:bg-gray-700'}`}
+                      className={`px-4 py-2.5 rounded-xl transition-all border border-white/5 cursor-pointer min-h-[44px] ${p.is_active ? 'bg-emerald-600/10 text-emerald-500 hover:bg-emerald-600 hover:text-white' : 'bg-gray-800 text-gray-400 hover:bg-gray-700'}`}
                       title={p.is_active ? 'تعطيل' : 'تفعيل'}
                     >
-                      {p.is_active ? '◎' : '◉'}
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={1.5} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M5.636 5.636a9 9 0 1012.728 0M12 12V3" /></svg>
                     </button>
                   </div>
                 </div>
