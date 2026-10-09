@@ -3304,6 +3304,45 @@ app.post('/api/invoices/pay-all', authMiddleware, apiWriteRateLimit, async (req,
   }
 });
 
+// إرجاع فاتورة إلى "غير مدفوع" (تصفير المبلغ المدفوع)
+app.put('/api/invoices/:id/mark-unpaid', authMiddleware, apiWriteRateLimit, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const invoice = await get('SELECT * FROM invoices WHERE id = ?', [id]);
+    if (!invoice || !invoice.id) {
+      return res.status(404).json({ success: false, message: 'الفاتورة غير موجودة' });
+    }
+
+    const scope = branchScopeFor(req.user, req.query.branchId);
+    if (scope.branchId != null && (Number(invoice.branch_id) || 1) !== scope.branchId) {
+      return res.status(403).json({ success: false, message: 'لا يمكنك تعديل فاتورة من فرع آخر' });
+    }
+
+    const oldPaid = invoice.paid_amount || 0;
+    await run("UPDATE invoices SET paid_amount = 0, status = 'pending' WHERE id = ?", [id]);
+
+    // عكس الإيراد المحصّل لليوم بمقدار ما كان مدفوعاً
+    if (oldPaid > 0) {
+      const today = new Date().toISOString().split('T')[0];
+      const daily = await get('SELECT id, collected_revenue FROM daily_invoices WHERE date = ?', [today]);
+      if (daily) {
+        const newVal = Math.max(0, Number(daily.collected_revenue || 0) - oldPaid);
+        await run('UPDATE daily_invoices SET collected_revenue = ? WHERE date = ?', [newVal, today]);
+      }
+    }
+
+    await auditLog(req, 'invoice_marked_unpaid', 'invoice', id, { paid_amount: oldPaid }, { paid_amount: 0 });
+    const updated = await get('SELECT * FROM invoices WHERE id = ?', [id]);
+    broadcastUpdate('invoice_updated', { invoice: updated, message: `تم إرجاع الفاتورة ${invoice.invoice_number} إلى غير مدفوع` });
+    invalidateStatsCache();
+
+    res.json({ success: true, message: 'تم إرجاع الفاتورة إلى غير مدفوع', invoice: updated });
+  } catch (error) {
+    console.error('خطأ في إرجاع الفاتورة إلى غير مدفوع:', error);
+    res.status(500).json({ success: false, message: 'حدث خطأ في تعديل الفاتورة', error: error.message });
+  }
+});
+
 // تعديل فاتورة
 app.put('/api/invoices/:id', authMiddleware, async (req, res) => {
   try {

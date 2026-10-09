@@ -225,6 +225,31 @@ export default function InvoicesTab() {
     }
   }
 
+  const markUnpaid = async (invoice) => {
+    const paid = Number(invoice.paid_amount || 0)
+    if (paid <= 0) return
+    if (!confirm(`سيتم إرجاع الفاتورة ${invoice.invoice_number} إلى "غير مدفوع" وتصفير المبلغ المدفوع (${currency(paid)}).\nهل تريد المتابعة؟`)) return
+    try {
+      const { data } = await api.put(`/invoices/${invoice.id}/mark-unpaid`)
+      if (data.success) {
+        setInvoices(prev => prev.map(inv => inv.id === invoice.id
+          ? { ...inv, paid_amount: 0, status: 'pending', has_balance: 1 }
+          : inv))
+        setSummary(prev => {
+          if (!prev) return prev
+          const next = { ...prev }
+          for (const k of ['collectedRevenue', 'rangeCollectedRevenue', 'todayCollectedRevenue', 'totalCollected', 'collected']) {
+            if (next[k] !== undefined) next[k] = Math.max(0, Number(next[k] || 0) - paid)
+          }
+          return next
+        })
+      }
+    } catch (error) {
+      console.error('فشل تعديل الفاتورة إلى غير مدفوع:', error)
+      alert(error?.response?.data?.message || 'فشل تعديل الفاتورة إلى غير مدفوع')
+    }
+  }
+
   const handleSaveEdit = async () => {
     if (!editingInvoice || !editingInvoice.id) return
     const items = editingInvoice.items || []
@@ -234,6 +259,8 @@ export default function InvoicesTab() {
       await api.put(`/invoices/${editingInvoice.id}`, {
         customer_name: editingInvoice.customer_name,
         customer_phone: editingInvoice.customer_phone,
+        customer_address: editingInvoice.customer_address || '',
+        customer_notes: editingInvoice.customer_notes || '',
         items,
         total,
         discount,
@@ -523,6 +550,9 @@ export default function InvoicesTab() {
                         <span className="text-[10px] font-bold text-amber-300 bg-amber-500/15 border border-amber-500/30 rounded-full px-2 py-0.5 w-fit">آجل مرحّل</span>
                       ) : null}
                       <span className="text-white text-sm font-medium">{invoice.customer_name || 'عميل نقدي'}</span>
+                      {invoice.customer_notes && (
+                        <span className="text-[11px] text-amber-300/90 bg-amber-500/10 border border-amber-500/20 rounded-md px-2 py-0.5 max-w-[220px] truncate" title={invoice.customer_notes}>{invoice.customer_notes}</span>
+                      )}
                     </div>
                     <select
                       value={invoice.status || 'pending'}
@@ -579,6 +609,7 @@ export default function InvoicesTab() {
                         `الاسم: ${invoice.customer_name}`,
                         `الهاتف: ${invoice.customer_phone}`,
                         invoice.customer_address ? `العنوان: ${invoice.customer_address}` : '',
+                        invoice.customer_notes ? `ملاحظات: ${invoice.customer_notes}` : '',
                         `المجموع: ${currency(invoice.total)}`,
                         invoice.discount > 0 ? `الخصم: -${currency(invoice.discount)}` : '',
                         `النهائي: ${currency(finalTotal)}`,
@@ -598,6 +629,11 @@ export default function InvoicesTab() {
                     {balance > 0 && (
                       <button onClick={() => payBalance(invoice)} className="col-span-4 mt-1 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-lg text-sm transition-colors shadow-lg">
                         تسديد الباقي ({currency(balance)})
+                      </button>
+                    )}
+                    {(invoice.paid_amount || 0) > 0 && (
+                      <button onClick={() => markUnpaid(invoice)} className="col-span-4 mt-1 py-2 bg-gray-700/60 hover:bg-red-600 text-red-300 hover:text-white font-bold rounded-lg text-sm transition-colors border border-red-600/30">
+                        إرجاع الفاتورة إلى غير مدفوع
                       </button>
                     )}
                   </div>
@@ -632,6 +668,7 @@ export default function InvoicesTab() {
                     <td className="py-3 px-4">
                       <div className="font-medium">{invoice.customer_name || 'نقدي'}</div>
                       {invoice.customer_phone && <div className="text-xs text-gray-400 mt-0.5">{invoice.customer_phone}</div>}
+                      {invoice.customer_notes && <div className="text-xs text-amber-300/90 mt-0.5 max-w-[200px] truncate" title={invoice.customer_notes}>ملاحظة: {invoice.customer_notes}</div>}
                     </td>
                     <td className="py-3 px-4 text-gray-200">{currency(finalTotal)}</td>
                     <td className="py-3 px-4 font-bold text-green-400">{currency(invoice.paid_amount || 0)}</td>
@@ -668,6 +705,7 @@ export default function InvoicesTab() {
                             `الاسم: ${invoice.customer_name}`,
                             `الهاتف: ${invoice.customer_phone}`,
                             invoice.customer_address ? `العنوان: ${invoice.customer_address}` : '',
+                            invoice.customer_notes ? `ملاحظات: ${invoice.customer_notes}` : '',
                             `المجموع: ${currency(invoice.total)}`,
                             invoice.discount > 0 ? `الخصم: -${currency(invoice.discount)}` : '',
                             `النهائي: ${currency(finalTotal)}`,
@@ -686,6 +724,11 @@ export default function InvoicesTab() {
                         {balance > 0 && (
                           <button onClick={() => payBalance(invoice)} className="px-3 py-2 bg-indigo-600/90 hover:bg-indigo-600 text-white rounded-lg text-xs font-bold transition-colors shadow-md">
                             تسديد
+                          </button>
+                        )}
+                        {(invoice.paid_amount || 0) > 0 && (
+                          <button onClick={() => markUnpaid(invoice)} className="px-3 py-2 bg-gray-700/60 hover:bg-red-600 text-red-300 hover:text-white rounded-lg text-xs font-bold transition-colors border border-red-600/30" title="إرجاع إلى غير مدفوع">
+                            غير مدفوع
                           </button>
                         )}
                       </div>
@@ -733,6 +776,7 @@ export default function InvoicesTab() {
                   <input value={editingInvoice.customer_name || ''} onChange={e => setEditingInvoice({ ...editingInvoice, customer_name: e.target.value })} className="bg-gray-800 border border-white/10 rounded-lg px-3 py-2.5 text-white text-sm focus:outline-none focus:ring-1 focus:ring-yellow-500/50" placeholder="الاسم" />
                   <input value={editingInvoice.customer_phone || ''} onChange={e => setEditingInvoice({ ...editingInvoice, customer_phone: e.target.value })} className="bg-gray-800 border border-white/10 rounded-lg px-3 py-2.5 text-white text-sm focus:outline-none focus:ring-1 focus:ring-yellow-500/50" placeholder="الهاتف" />
                 </div>
+                <textarea value={editingInvoice.customer_notes || ''} onChange={e => setEditingInvoice({ ...editingInvoice, customer_notes: e.target.value })} rows={2} className="mt-2 w-full bg-gray-800 border border-white/10 rounded-lg px-3 py-2.5 text-white text-sm focus:outline-none focus:ring-1 focus:ring-yellow-500/50 resize-none" placeholder="ملاحظات الفاتورة" />
               </div>
 
               {/* الخصم + الحالة */}
