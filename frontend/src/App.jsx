@@ -1292,12 +1292,13 @@ export default function App() {
           {/* Navigation - تمرير أفقي على الهاتف */}
             <div className="pb-2 -mx-3 px-3 min-[400px]:-mx-4 min-[400px]:px-4 sm:mx-0 sm:px-0 scroll-px-3 min-[400px]:scroll-px-4 sm:scroll-px-0 overflow-x-auto scrollbar-hide nav-scroll">
               <nav className="flex items-center gap-2 sm:gap-3 min-w-max py-0.5">
+              {(() => { const isAllActive = String(activeCategory || '') === '' && categories.length > 0; return (
               <button
                 type="button"
                 onClick={() => commitCategory('')}
-                aria-pressed={String(activeCategory || '') === ''}
+                aria-pressed={isAllActive}
                 className={`inline-flex items-center gap-2 px-4 min-h-[44px] rounded-xl font-bold text-sm sm:text-base whitespace-nowrap transition-all duration-200 cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-500/60 ${
-                  String(activeCategory || '') === ''
+                  isAllActive
                     ? 'bg-gradient-to-r from-[color:var(--brand)] to-emerald-500 text-white shadow-lg shadow-teal-500/30'
                     : 'bg-white/5 text-gray-300 border border-white/10 hover:bg-white/10 hover:text-white hover:border-teal-400/40'
                 }`}
@@ -1305,6 +1306,7 @@ export default function App() {
                 <CategoryIcon name="" />
                 كل الألعاب
               </button>
+              ) })()}
               {(categories || []).map((c) => {
                 const isActive = String(activeCategory) === String(c.id)
                 return (
