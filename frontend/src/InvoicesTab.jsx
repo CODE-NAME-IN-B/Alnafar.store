@@ -26,12 +26,15 @@ const Icon = {
   calendar: <path strokeLinecap="round" strokeLinejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 012.25-2.25h13.5A2.25 2.25 0 0121 7.5v11.25m-18 0A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75m-18 0v-7.5A2.25 2.25 0 015.25 9h13.5A2.25 2.25 0 0121 11.25v7.5" />,
   banknote: <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 18.75a60.07 60.07 0 0115.797 2.101c.727.198 1.453-.342 1.453-1.096V18.75M3.75 4.5v.75A.75.75 0 013 6h-.75m0 0v-.375c0-.621.504-1.125 1.125-1.125H20.25M2.25 6v9m18-10.5v.75c0 .414.336.75.75.75h.75m-1.5-1.5h.375c.621 0 1.125.504 1.125 1.125v9.75c0 .621-.504 1.125-1.125 1.125h-.375m1.5-1.5H21a.75.75 0 00-.75.75v.75m0 0H3.75m0 0h-.375a1.125 1.125 0 01-1.125-1.125V15m1.5 1.5v-.75A.75.75 0 003 15h-.75M15 10.5a3 3 0 11-6 0 3 3 0 016 0zm3 0h.008v.008H18V10.5zm-12 0h.008v.008H6V10.5z" />,
   calendarRange: <path strokeLinecap="round" strokeLinejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 012.25-2.25h13.5A2.25 2.25 0 0121 7.5v11.25m-18 0A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75m-18 0v-7.5A2.25 2.25 0 015.25 9h13.5A2.25 2.25 0 0121 11.25v7.5m-9-6h.008v.008H12v-.008zM12 15h.008v.008H12V15zm0 2.25h.008v.008H12v-.008zM9.75 15h.008v.008H9.75V15zm0 2.25h.008v.008H9.75v-.008zM7.5 15h.008v.008H7.5V15zm0 2.25h.008v.008H7.5v-.008zM6.75 12h.008v.008H6.75V12zm0 2.25h.008v.008H6.75v-.008zm0 2.25h.008v.008H6.75v-.008zm12-4.5h.008v.008H18.75V12zm0 2.25h.008v.008H18.75v-.008z" />,
-  eye: <><path strokeLinecap="round" strokeLinejoin="round" d="M2.036 12.322a1.012 1.012 0 010-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178z" /><path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /></>
+  eye: <><path strokeLinecap="round" strokeLinejoin="round" d="M2.036 12.322a1.012 1.012 0 010-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178z" /><path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /></>,
+  wrench: <path strokeLinecap="round" strokeLinejoin="round" d="M21.75 6.75a4.5 4.5 0 01-4.884 4.484c-1.076-.091-2.264.071-2.95.904l-7.152 8.684a2.548 2.548 0 11-3.586-3.586l8.684-7.152c.833-.686.995-1.874.904-2.95a4.5 4.5 0 016.336-4.486l-3.276 3.276a3.004 3.004 0 002.25 2.25l3.276-3.276c.256.565.398 1.192.398 1.852z" />,
+  gamepad: <><path strokeLinecap="round" strokeLinejoin="round" d="M6 11h4M8 9v4" /><path strokeLinecap="round" strokeLinejoin="round" d="M15 12h.01M18 10h.01" /><path strokeLinecap="round" strokeLinejoin="round" d="M17.32 5H6.68a4 4 0 00-3.978 3.59c-.006.052-.01.101-.017.152C2.604 9.416 2 14.456 2 16a3 3 0 003 3c1 0 1.5-.5 2-1l1.414-1.414A2 2 0 019.828 16h4.344a2 2 0 011.414.586L17 18c.5.5 1 1 2 1a3 3 0 003-3c0-1.545-.604-6.584-.685-7.258-.007-.05-.011-.1-.017-.151A4 4 0 0017.32 5z" /></>,
+  cube: <path strokeLinecap="round" strokeLinejoin="round" d="M21 7.5l-9-5.25L3 7.5m18 0l-9 5.25m9-5.25v9l-9 5.25M3 7.5l9 5.25M3 7.5v9l9 5.25m0-9v9" />
 }
 
 const statusStyles = (status) =>
-  status === 'ready' ? 'bg-emerald-900/50 text-emerald-300' :
-  status === 'completed' ? 'bg-sky-900/50 text-sky-300' :
+  status === 'completed' ? 'bg-emerald-900/50 text-emerald-300' :
+  status === 'ready' ? 'bg-sky-900/50 text-sky-300' :
   status === 'processing' ? 'bg-amber-900/50 text-amber-300' :
   'bg-gray-700 text-gray-300'
 
@@ -42,6 +45,44 @@ const statusLabels = {
   completed: 'مكتمل'
 }
 
+const statusBorder = (status) =>
+  status === 'completed' ? 'border-emerald-500/30' :
+  status === 'ready' ? 'border-sky-500/30' :
+  status === 'processing' ? 'border-amber-500/30' :
+  'border-gray-600'
+
+function StatusPill({ status, selectable = false, onChange }) {
+  const value = status || 'pending'
+  if (selectable) {
+    return (
+      <div className="relative inline-flex items-center">
+        <select
+          value={value}
+          onChange={(e) => onChange && onChange(e.target.value)}
+          aria-label="حالة الفاتورة"
+          className={`appearance-none cursor-pointer min-h-[38px] font-bold text-xs pl-8 pr-3 py-1.5 rounded-full border focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-500/50 transition-all ${statusStyles(value)} ${statusBorder(value)}`}
+        >
+          <option value="pending">{statusLabels.pending}</option>
+          <option value="processing">{statusLabels.processing}</option>
+          <option value="ready">{statusLabels.ready}</option>
+          <option value="completed">{statusLabels.completed}</option>
+        </select>
+        <svg className="w-3.5 h-3.5 absolute left-2.5 pointer-events-none" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5" /></svg>
+      </div>
+    )
+  }
+  return (
+    <span className={`inline-flex items-center font-bold text-xs px-2.5 py-1 rounded-full border ${statusStyles(value)} ${statusBorder(value)}`}>
+      {statusLabels[value] || value}
+    </span>
+  )
+}
+
+const itemMeta = (type) =>
+  type === 'service' ? { cls: 'bg-sky-500/15 text-sky-400', icon: Icon.wrench } :
+  type === 'package' ? { cls: 'bg-purple-500/15 text-purple-400', icon: Icon.cube } :
+  { cls: 'bg-emerald-500/15 text-emerald-400', icon: Icon.gamepad }
+
 function KpiCard({ icon, label, value, accent = 'teal', big }) {
   const accents = {
     teal: 'bg-teal-500/15 text-teal-400 border-teal-500/30',
@@ -49,9 +90,15 @@ function KpiCard({ icon, label, value, accent = 'teal', big }) {
     sky: 'bg-sky-500/15 text-sky-400 border-sky-500/30',
     amber: 'bg-amber-500/15 text-amber-400 border-amber-500/30'
   }
+  const blobs = {
+    teal: 'bg-teal-500/5',
+    emerald: 'bg-emerald-500/5',
+    sky: 'bg-sky-500/5',
+    amber: 'bg-amber-500/5'
+  }
   return (
     <div className="relative overflow-hidden bg-gray-900/50 backdrop-blur-md rounded-2xl border border-white/5 shadow-xl p-4">
-      <div className="absolute top-0 right-0 w-24 h-24 bg-teal-500/5 rounded-full blur-2xl pointer-events-none"></div>
+      <div className={`absolute top-0 right-0 w-24 h-24 rounded-full blur-2xl pointer-events-none ${blobs[accent] || blobs.teal}`}></div>
       <div className="relative z-10">
         <div className={`w-9 h-9 rounded-xl border flex items-center justify-center mb-3 ${accents[accent]}`}>
           <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.6}>{icon}</svg>
@@ -72,6 +119,7 @@ export default function InvoicesTab() {
   const [detailsInvoice, setDetailsInvoice] = useState(null)
   const [search, setSearch] = useState('')
   const [pageLimit, setPageLimit] = useState(50)
+  const [statusFilter, setStatusFilter] = useState('')
   const [gamesList, setGamesList] = useState([])
   const [servicesList, setServicesList] = useState([])
   const [categories, setCategories] = useState([])
@@ -116,15 +164,23 @@ export default function InvoicesTab() {
     };
   }, [])
 
+  useEffect(() => {
+    if (!detailsInvoice) return
+    const onKeyDown = (e) => { if (e.key === 'Escape') setDetailsInvoice(null) }
+    window.addEventListener('keydown', onKeyDown)
+    return () => window.removeEventListener('keydown', onKeyDown)
+  }, [detailsInvoice])
+
   const filteredInvoices = useMemo(() => {
     const q = search.trim().toLowerCase()
-    if (!q) return invoices
     return invoices.filter(inv => {
+      if (statusFilter && (inv.status || 'pending') !== statusFilter) return false
+      if (!q) return true
       const num = String(inv.invoice_number || '').toLowerCase()
       const name = String(inv.customer_name || '').toLowerCase()
       return num.includes(q) || name.includes(q)
     })
-  }, [invoices, search])
+  }, [invoices, search, statusFilter])
 
   const loadInvoices = async (page = 1) => {
     try {
@@ -375,6 +431,10 @@ export default function InvoicesTab() {
     )
   }
 
+  const detailsItems = detailsInvoice ? parseItems(detailsInvoice) : []
+  const detailsFinalTotal = detailsInvoice ? (detailsInvoice.total || 0) - (detailsInvoice.discount || 0) : 0
+  const detailsBalance = detailsInvoice ? detailsFinalTotal - (detailsInvoice.paid_amount || 0) : 0
+
   return (
     <div className="p-4 sm:p-8 overflow-hidden max-w-full">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6 mt-2">
@@ -464,12 +524,32 @@ export default function InvoicesTab() {
           <select
             value={pageLimit}
             onChange={e => setPageLimit(parseInt(e.target.value) || 50)}
-            className="w-full sm:w-auto bg-gray-950 border border-gray-700/50 rounded-xl px-3 py-2.5 text-white text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/50 transition-all"
+            className="w-full sm:w-auto bg-gray-950 border border-gray-700/50 rounded-xl px-3 py-2.5 text-white text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/50 transition-all cursor-pointer"
           >
             <option value={20}>20 فاتورة</option>
             <option value={50}>50 فاتورة</option>
             <option value={100}>100 فاتورة</option>
           </select>
+          <select
+            value={statusFilter}
+            onChange={e => setStatusFilter(e.target.value)}
+            aria-label="فلترة حسب الحالة"
+            className="w-full sm:w-auto bg-gray-950 border border-gray-700/50 rounded-xl px-3 py-2.5 text-white text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/50 transition-all cursor-pointer"
+          >
+            <option value="">كل الحالات</option>
+            <option value="pending">{statusLabels.pending}</option>
+            <option value="processing">{statusLabels.processing}</option>
+            <option value="ready">{statusLabels.ready}</option>
+            <option value="completed">{statusLabels.completed}</option>
+          </select>
+          <button
+            onClick={() => loadInvoices(pagination.page)}
+            className="w-11 h-11 min-h-[44px] flex items-center justify-center bg-gray-950 border border-gray-700/50 rounded-xl text-gray-300 hover:text-white hover:border-teal-500/40 hover:bg-gray-900 transition-all cursor-pointer shrink-0"
+            title="تحديث"
+            aria-label="تحديث"
+          >
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth={1.6} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182m0-4.991v4.99" /></svg>
+          </button>
         </div>
       </div>
 
@@ -478,20 +558,17 @@ export default function InvoicesTab() {
         <div className="mb-8 space-y-4">
           {/* Period Stats */}
           {dateFrom && dateTo && (summary.rangeInvoices !== undefined || summary.rangeRevenue !== undefined) && (
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
               <KpiCard icon={Icon.calendarRange} label="فواتير الفترة" value={Number(summary.rangeInvoices) ?? 0} accent="sky" big />
               <KpiCard icon={Icon.trend} label="إيرادات الفترة" value={currency(Number(summary.rangeRevenue) || 0)} accent="emerald" big />
+              <KpiCard
+                icon={Icon.cash}
+                label="الكاش المحصّل فعلياً (بدون الآجل)"
+                value={currency(Number(summary.rangeCollectedRevenue) || 0)}
+                accent="teal"
+                big
+              />
             </div>
-          )}
-
-          {dateFrom && dateTo && (summary.rangeCollectedRevenue !== undefined) && (
-            <KpiCard
-              icon={Icon.cash}
-              label="الكاش المحصّل فعلياً (بدون الآجل)"
-              value={currency(Number(summary.rangeCollectedRevenue) || 0)}
-              accent="teal"
-              big
-            />
           )}
 
           {/* Main Stats Grid */}
@@ -505,13 +582,15 @@ export default function InvoicesTab() {
         </div>
       )}
 
-      {invoices.length === 0 ? (
+      {(invoices.length === 0 || filteredInvoices.length === 0) ? (
         <div className="bg-gray-900/40 backdrop-blur-md p-8 sm:p-12 rounded-2xl border border-white/5 text-center shadow-xl">
           <div className="mb-4 opacity-60">
             <svg className="w-16 h-16 mx-auto text-gray-500" fill="none" stroke="currentColor" strokeWidth={1} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z" /></svg>
           </div>
           <h3 className="text-xl font-bold text-white mb-2">لا توجد فواتير</h3>
-          <p className="text-gray-400 text-sm">لم يتم العثور على أي فواتير في هذه الفترة</p>
+          <p className="text-gray-400 text-sm">
+            {invoices.length > 0 ? 'لا توجد فواتير مطابقة للبحث أو الفلترة' : 'لم يتم العثور على أي فواتير في هذه الفترة'}
+          </p>
         </div>
       ) : (
         <div className="mb-4">
@@ -540,16 +619,11 @@ export default function InvoicesTab() {
                         </span>
                       )}
                     </div>
-                    <select
-                      value={invoice.status || 'pending'}
-                      onChange={(e) => updateStatus(invoice.id, e.target.value)}
-                      className={`text-xs p-1.5 rounded-md border-none focus:ring-2 focus:ring-teal-500/50 ${statusStyles(invoice.status)}`}
-                    >
-                      <option value="pending">{statusLabels.pending}</option>
-                      <option value="processing">{statusLabels.processing}</option>
-                      <option value="ready">{statusLabels.ready}</option>
-                      <option value="completed">{statusLabels.completed}</option>
-                    </select>
+                    <StatusPill
+                      status={invoice.status}
+                      selectable
+                      onChange={(value) => updateStatus(invoice.id, value)}
+                    />
                   </div>
 
                   {/* Body: Amounts */}
@@ -612,17 +686,17 @@ export default function InvoicesTab() {
           {/* Desktop Table (Hidden on Mobile) */}
           <div className="hidden md:block overflow-hidden bg-gray-900/60 backdrop-blur-md rounded-2xl border border-white/5 shadow-xl">
             <div className="overflow-x-auto">
-              <table className="w-full text-white">
+              <table className="w-full text-sm text-white">
                 <thead>
                   <tr className="border-b border-white/10 bg-gray-900/80">
-                    <th className="text-right py-4 px-4 font-semibold text-xs text-gray-400">رقم الفاتورة</th>
-                    <th className="text-right py-4 px-4 font-semibold text-xs text-gray-400">العميل</th>
-                    <th className="text-right py-4 px-4 font-semibold text-xs text-gray-400">المجموع</th>
-                    <th className="text-right py-4 px-4 font-semibold text-xs text-gray-400">المدفوع</th>
-                    <th className="text-right py-4 px-4 font-semibold text-xs text-gray-400">الباقي</th>
-                    <th className="text-right py-4 px-4 font-semibold text-xs text-gray-400">الحالة</th>
-                    <th className="text-right py-4 px-4 font-semibold text-xs text-gray-400">التاريخ</th>
-                    <th className="text-center py-4 px-4 font-semibold text-xs text-gray-400">إجراءات</th>
+                    <th className="text-right py-3 px-4 font-semibold text-xs text-gray-400">رقم الفاتورة</th>
+                    <th className="text-right py-3 px-4 font-semibold text-xs text-gray-400">العميل</th>
+                    <th className="text-right py-3 px-4 font-semibold text-xs text-gray-400">المجموع</th>
+                    <th className="text-right py-3 px-4 font-semibold text-xs text-gray-400">المدفوع</th>
+                    <th className="text-right py-3 px-4 font-semibold text-xs text-gray-400">الباقي</th>
+                    <th className="text-right py-3 px-4 font-semibold text-xs text-gray-400">الحالة</th>
+                    <th className="text-right py-3 px-4 font-semibold text-xs text-gray-400">التاريخ</th>
+                    <th className="text-center py-3 px-4 font-semibold text-xs text-gray-400">إجراءات</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -631,7 +705,7 @@ export default function InvoicesTab() {
                     const balance = finalTotal - (invoice.paid_amount || 0);
                     const items = parseItems(invoice);
                     return (
-                    <tr key={invoice.id} className="border-b border-white/5 hover:bg-white/[0.03] transition-colors">
+                    <tr key={invoice.id} className="border-b border-white/5 hover:bg-white/[0.03] transition-colors align-middle">
                       <td className="py-3 px-4 font-mono text-[color:var(--brand)] font-bold">{invoice.invoice_number}{invoice.isCarried ? <span className="block text-[10px] font-bold text-amber-300 bg-amber-500/15 border border-amber-500/30 rounded-full px-2 py-0.5 w-fit mt-1">آجل مرحّل</span> : null}</td>
                       <td className="py-3 px-4">
                         <div className="font-medium">{invoice.customer_name || 'نقدي'}</div>
@@ -644,45 +718,52 @@ export default function InvoicesTab() {
                           </div>
                         )}
                       </td>
-                      <td className="py-3 px-4 text-gray-200">{currency(finalTotal)}</td>
-                      <td className="py-3 px-4 font-bold text-emerald-400">{currency(invoice.paid_amount || 0)}</td>
-                      <td className="py-3 px-4 font-bold text-red-400">{currency(balance)}</td>
-                      <td className="py-3 px-4">
-                        <select
-                          value={invoice.status || 'pending'}
-                          onChange={(e) => updateStatus(invoice.id, e.target.value)}
-                          className={`text-xs p-1.5 rounded-md border-none focus:ring-2 focus:ring-teal-500/50 font-medium ${statusStyles(invoice.status)}`}
-                        >
-                          <option value="pending">{statusLabels.pending}</option>
-                          <option value="processing">{statusLabels.processing}</option>
-                          <option value="ready">{statusLabels.ready}</option>
-                          <option value="completed">{statusLabels.completed}</option>
-                        </select>
+                      <td className="py-3 px-4 text-gray-200 tabular-nums whitespace-nowrap">{currency(finalTotal)}</td>
+                      <td className="py-3 px-4 font-bold text-emerald-400 tabular-nums whitespace-nowrap">{currency(invoice.paid_amount || 0)}</td>
+                      <td className="py-3 px-4 tabular-nums whitespace-nowrap">
+                        {balance > 0
+                          ? <span className="font-bold text-red-400">{currency(balance)}</span>
+                          : <span className="text-gray-500">{currency(0)}</span>}
                       </td>
-                      <td className="py-3 px-4 text-gray-400 text-xs">
+                      <td className="py-3 px-4">
+                        <StatusPill
+                          status={invoice.status}
+                          selectable
+                          onChange={(value) => updateStatus(invoice.id, value)}
+                        />
+                      </td>
+                      <td className="py-3 px-4 text-gray-400 text-xs tabular-nums whitespace-nowrap">
                         {new Date(invoice.created_at).toLocaleString('ar-LY', {
-                          month: 'short', day: '2-digit', hour: '2-digit', minute: '2-digit'
+                          year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit'
                         })}
                       </td>
-                      <td className="py-3 px-4 text-center">
-                        <div className="flex flex-wrap gap-2 justify-center">
-                          <button onClick={() => reprintInvoice(invoice)} className="p-2 bg-gray-800 hover:bg-emerald-600 text-white rounded-lg transition-all cursor-pointer" title="طباعة"><svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={1.5} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M6.72 13.829c-.24.03-.48.062-.72.096m.72-.096a42.415 42.415 0 0110.56 0m-10.56 0L6.34 18m10.94-4.171c.24.03.48.062.72.096m-.72-.096L17.66 18m0 0l.229 2.523a1.125 1.125 0 01-1.12 1.227H7.231c-.662 0-1.18-.568-1.12-1.227L6.34 18m11.318 0h1.091A2.25 2.25 0 0021 15.75V9.456c0-1.081-.768-2.015-1.837-2.175a48.055 48.055 0 00-1.913-.247M6.34 18H5.25A2.25 2.25 0 013 15.75V9.456c0-1.081.768-2.015 1.837-2.175a48.041 48.041 0 011.913-.247m10.5 0a48.536 48.536 0 00-10.5 0m10.5 0V3.375c0-.621-.504-1.125-1.125-1.125h-8.25c-.621 0-1.125.504-1.125 1.125v3.659M18 10.5h.008v.008H18V10.5zm-3 0h.008v.008H15V10.5z" /></svg></button>
-                          <button onClick={() => setDetailsInvoice(invoice)} className="p-2 bg-gray-800 hover:bg-teal-600 text-white rounded-lg transition-all cursor-pointer" title="تفاصيل"><svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={1.5} viewBox="0 0 24 24">{Icon.eye}</svg></button>
+                      <td className="py-3 px-4">
+                        <div className="flex items-center justify-end gap-1.5 flex-nowrap">
+                          <button onClick={() => reprintInvoice(invoice)} className="w-9 h-9 min-h-9 flex items-center justify-center rounded-lg bg-gray-800 text-white transition-all cursor-pointer hover:bg-emerald-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-500/50" aria-label="طباعة الفاتورة" title="طباعة">
+                            <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth={1.6} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M6.72 13.829c-.24.03-.48.062-.72.096m.72-.096a42.415 42.415 0 0110.56 0m-10.56 0L6.34 18m10.94-4.171c.24.03.48.062.72.096m-.72-.096L17.66 18m0 0l.229 2.523a1.125 1.125 0 01-1.12 1.227H7.231c-.662 0-1.18-.568-1.12-1.227L6.34 18m11.318 0h1.091A2.25 2.25 0 0021 15.75V9.456c0-1.081-.768-2.015-1.837-2.175a48.055 48.055 0 00-1.913-.247M6.34 18H5.25A2.25 2.25 0 013 15.75V9.456c0-1.081.768-2.015 1.837-2.175a48.041 48.041 0 011.913-.247m10.5 0a48.536 48.536 0 00-10.5 0m10.5 0V3.375c0-.621-.504-1.125-1.125-1.125h-8.25c-.621 0-1.125.504-1.125 1.125v3.659M18 10.5h.008v.008H18V10.5zm-3 0h.008v.008H15V10.5z" /></svg>
+                          </button>
+                          <button onClick={() => setDetailsInvoice(invoice)} className="w-9 h-9 min-h-9 flex items-center justify-center rounded-lg bg-gray-800 text-white transition-all cursor-pointer hover:bg-teal-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-500/50" aria-label="عرض التفاصيل" title="تفاصيل">
+                            <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth={1.6} viewBox="0 0 24 24">{Icon.eye}</svg>
+                          </button>
                           <button onClick={() => setEditingInvoice({
                             id: invoice.id, invoice_number: invoice.invoice_number,
                             customer_name: invoice.customer_name, customer_phone: invoice.customer_phone,
                             customer_address: invoice.customer_address || '',
                             customer_notes: invoice.customer_notes || '',
                             items: items, discount: invoice.discount || 0, status: invoice.status
-                          })} className="p-2 bg-gray-800 hover:bg-amber-600 text-white rounded-lg transition-all cursor-pointer" title="تعديل"><svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={1.5} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0115.75 21H5.25A2.25 2.25 0 013 18.75V8.25A2.25 2.25 0 015.25 6H10" /></svg></button>
-                          <button onClick={() => deleteInvoice(invoice.id)} className="p-2 bg-gray-800 hover:bg-red-600 text-white rounded-lg transition-all cursor-pointer" title="حذف"><svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={1.5} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0" /></svg></button>
+                          })} className="w-9 h-9 min-h-9 flex items-center justify-center rounded-lg bg-gray-800 text-white transition-all cursor-pointer hover:bg-amber-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-500/50" aria-label="تعديل الفاتورة" title="تعديل">
+                            <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth={1.6} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0115.75 21H5.25A2.25 2.25 0 013 18.75V8.25A2.25 2.25 0 015.25 6H10" /></svg>
+                          </button>
+                          <button onClick={() => deleteInvoice(invoice.id)} className="w-9 h-9 min-h-9 flex items-center justify-center rounded-lg bg-gray-800 text-white transition-all cursor-pointer hover:bg-red-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-500/50" aria-label="حذف الفاتورة" title="حذف">
+                            <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth={1.6} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0" /></svg>
+                          </button>
                           {balance > 0 && (
-                            <button onClick={() => payBalance(invoice)} className="px-3 py-2 bg-teal-600/90 hover:bg-teal-500 text-white rounded-lg text-xs font-bold transition-all shadow-md min-h-[44px]">
+                            <button onClick={() => payBalance(invoice)} className="px-3 h-9 min-h-[44px] bg-teal-600/90 hover:bg-teal-500 text-white rounded-lg text-xs font-bold whitespace-nowrap transition-all shadow-md cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-500/50">
                               تسديد
                             </button>
                           )}
                           {(invoice.paid_amount || 0) > 0 && (
-                            <button onClick={() => markUnpaid(invoice)} className="px-3 py-2 bg-gray-800 hover:bg-red-600 text-red-300 hover:text-white rounded-lg text-xs font-bold transition-all border border-red-600/30 min-h-[44px]" title="إرجاع إلى غير مدفوع">
+                            <button onClick={() => markUnpaid(invoice)} className="px-3 h-9 min-h-[44px] text-xs font-bold border border-red-600/30 text-red-300 hover:bg-red-600 hover:text-white rounded-lg whitespace-nowrap transition-all cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-500/50" aria-label="إرجاع إلى غير مدفوع" title="إرجاع إلى غير مدفوع">
                               غير مدفوع
                             </button>
                           )}
@@ -701,8 +782,8 @@ export default function InvoicesTab() {
             <button disabled={pagination.page <= 1} onClick={() => loadInvoices(pagination.page - 1)} className="px-4 py-2 bg-gray-800 hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed rounded-lg text-sm font-medium transition-all min-h-[44px]">
               السابق
             </button>
-            <span className="text-gray-300 text-sm font-medium font-mono">
-              {pagination.page} / {pagination.pages}
+            <span className="text-gray-300 text-sm font-medium font-mono tabular-nums">
+              صفحة {pagination.page} من {pagination.pages}{(pagination.total !== undefined && pagination.total !== null) ? ` | ${pagination.total} فاتورة` : ''}
             </span>
             <button disabled={pagination.page >= pagination.pages} onClick={() => loadInvoices(pagination.page + 1)} className="px-4 py-2 bg-gray-800 hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed rounded-lg text-sm font-medium transition-all min-h-[44px]">
               التالي
@@ -713,84 +794,121 @@ export default function InvoicesTab() {
 
       {/* modal تفاصيل الفاتورة */}
       {detailsInvoice && (
-        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-end sm:items-center justify-center z-50 p-0 sm:p-4" onClick={() => setDetailsInvoice(null)}>
-          <div className="bg-gray-900 rounded-t-2xl sm:rounded-2xl border border-white/10 max-w-md w-full max-h-[85vh] overflow-y-auto shadow-2xl" onClick={e => e.stopPropagation()}>
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-label="تفاصيل الفاتورة"
+          className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-end sm:items-center justify-center z-50 p-0 sm:p-4"
+          onClick={() => setDetailsInvoice(null)}
+        >
+          <div className="w-full sm:max-w-2xl lg:max-w-3xl bg-gray-900 rounded-t-2xl sm:rounded-2xl border border-white/10 max-h-[85vh] overflow-y-auto shadow-2xl" onClick={e => e.stopPropagation()}>
             <div className="sticky top-0 z-10 bg-gray-800/90 backdrop-blur-md p-4 flex items-center justify-between border-b border-white/10">
               <div>
                 <h3 className="text-sm font-bold text-white">تفاصيل الفاتورة</h3>
                 <p className="text-xs text-gray-400 font-mono mt-0.5">#{detailsInvoice.invoice_number}</p>
+                <p className="text-[11px] text-gray-500 mt-0.5 tabular-nums">
+                  {new Date(detailsInvoice.created_at).toLocaleString('ar-LY', { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' })}
+                </p>
               </div>
               <button onClick={() => setDetailsInvoice(null)} className="w-9 h-9 flex items-center justify-center text-gray-400 hover:text-white hover:bg-white/10 rounded-lg transition-all cursor-pointer" aria-label="إغلاق">
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M6 18L18 6M6 6l12 12" /></svg>
               </button>
             </div>
 
-            <div className="p-4 space-y-4">
-              <div className="flex items-center justify-between">
-                <span className={`text-xs font-bold px-2.5 py-1 rounded-full border ${statusStyles(detailsInvoice.status)}`}>{statusLabels[detailsInvoice.status] || detailsInvoice.status}</span>
-                {detailsInvoice.isCarried ? <span className="text-[10px] font-bold text-amber-300 bg-amber-500/15 border border-amber-500/30 rounded-full px-2 py-0.5">آجل مرحّل</span> : null}
-              </div>
-
-              {(detailsInvoice.customer_name || detailsInvoice.customer_phone) && (
-                <div className="bg-gray-800/60 rounded-xl border border-white/5 p-3 space-y-1.5">
-                  {detailsInvoice.customer_name && <p className="text-white text-sm font-medium">الاسم: {detailsInvoice.customer_name}</p>}
-                  {detailsInvoice.customer_phone && <p className="text-gray-300 text-xs" dir="ltr">الهاتف: {detailsInvoice.customer_phone}</p>}
-                  {detailsInvoice.customer_address && <p className="text-gray-300 text-xs">العنوان: {detailsInvoice.customer_address}</p>}
-                  {detailsInvoice.customer_notes && <p className="text-amber-200 text-xs">ملاحظات: {detailsInvoice.customer_notes}</p>}
-                </div>
-              )}
-
-              <div>
-                <div className="flex items-center justify-between mb-2">
-                  <span className="text-xs text-gray-400 font-bold">العناصر ({parseItems(detailsInvoice).length})</span>
-                  <span className="text-[11px] text-gray-500">{new Date(detailsInvoice.created_at).toLocaleString('ar-LY')}</span>
-                </div>
-                <div className="space-y-1.5">
-                  {parseItems(detailsInvoice).map((item, i) => (
-                    <div key={i} className="flex items-center gap-2 bg-gray-800/60 rounded-lg px-3 py-2 border border-white/5">
-                      <span className={`w-2 h-2 rounded-full flex-shrink-0 ${item.type === 'service' ? 'bg-sky-400' : 'bg-emerald-400'}`}></span>
-                      <span className="flex-1 text-white text-sm truncate">{item.title}</span>
-                      <span className="text-xs text-gray-300 font-mono">{currency(item.price)}</span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              <div className="bg-gray-800/60 rounded-xl border border-white/5 p-3 space-y-2">
-                <div className="flex justify-between text-sm">
-                  <span className="text-gray-400">المجموع</span>
-                  <span className="text-white">{currency(detailsInvoice.total || 0)}</span>
-                </div>
-                {Number(detailsInvoice.discount) > 0 && (
-                  <div className="flex justify-between text-sm">
-                    <span className="text-gray-400">الخصم</span>
-                    <span className="text-amber-400">-{currency(detailsInvoice.discount)}</span>
+            <div className="p-4 sm:p-5">
+              <div className="grid grid-cols-1 md:grid-cols-[1fr_260px] gap-4">
+                {/* Zone A: customer + items */}
+                <div className="space-y-4 min-w-0">
+                  <div className="flex items-center justify-between gap-2">
+                    <StatusPill status={detailsInvoice.status} />
+                    {detailsInvoice.isCarried ? <span className="text-[10px] font-bold text-amber-300 bg-amber-500/15 border border-amber-500/30 rounded-full px-2 py-0.5">آجل مرحّل</span> : null}
                   </div>
-                )}
-                <div className="flex justify-between text-sm">
-                  <span className="text-gray-400">المدفوع</span>
-                  <span className="text-emerald-400 font-bold">{currency(detailsInvoice.paid_amount || 0)}</span>
-                </div>
-                <div className="flex justify-between items-center border-t border-white/5 pt-2">
-                  <span className="text-sm font-bold text-white">النهائي</span>
-                  <span className="text-lg font-black text-[color:var(--brand)]">{currency((detailsInvoice.total || 0) - (detailsInvoice.discount || 0))}</span>
-                </div>
-              </div>
 
-              <div className="flex gap-2 pt-1">
-                <button onClick={() => reprintInvoice(detailsInvoice)} className="flex-1 py-3 bg-emerald-600/20 text-emerald-400 border border-emerald-600/30 rounded-xl font-bold text-sm hover:bg-emerald-600 hover:text-white transition-all min-h-[44px]">
-                  طباعة
-                </button>
-                <button onClick={() => { const inv = detailsInvoice; setDetailsInvoice(null); setEditingInvoice({
-                  id: inv.id, invoice_number: inv.invoice_number,
-                  customer_name: inv.customer_name, customer_phone: inv.customer_phone,
-                  customer_address: inv.customer_address || '',
-                  customer_notes: inv.customer_notes || '',
-                  items: parseItems(inv), discount: inv.discount || 0, status: inv.status
-                }) }} className="flex-1 py-3 bg-amber-500/20 text-amber-400 border border-amber-500/30 rounded-xl font-bold text-sm hover:bg-amber-500 hover:text-white transition-all min-h-[44px]">
-                  تعديل
-                </button>
-                <button onClick={() => setDetailsInvoice(null)} className="flex-1 py-3 border border-white/10 text-gray-300 rounded-xl font-medium text-sm hover:bg-white/5 transition-all min-h-[44px]">إغلاق</button>
+                  {(detailsInvoice.customer_name || detailsInvoice.customer_phone || detailsInvoice.customer_address || detailsInvoice.customer_notes) && (
+                    <div className="bg-gray-800/60 border border-white/5 rounded-xl p-3 space-y-1.5 text-sm">
+                      {detailsInvoice.customer_name && <p className="font-bold text-white">الاسم: {detailsInvoice.customer_name}</p>}
+                      {detailsInvoice.customer_phone && <p className="text-gray-300 text-xs" dir="ltr">الهاتف: {detailsInvoice.customer_phone}</p>}
+                      {detailsInvoice.customer_address && <p className="text-xs text-amber-200">العنوان: {detailsInvoice.customer_address}</p>}
+                      {detailsInvoice.customer_notes && <p className="text-xs text-amber-200">ملاحظات: {detailsInvoice.customer_notes}</p>}
+                    </div>
+                  )}
+
+                  <div>
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-xs text-gray-400 font-bold">عدّة العناصر ({detailsItems.length})</span>
+                      <span className="text-[11px] text-gray-500 tabular-nums">{detailsItems.length}</span>
+                    </div>
+                    <div className="divide-y divide-white/5 bg-gray-800/40 border border-white/5 rounded-xl">
+                      {detailsItems.map((item, i) => {
+                        const meta = itemMeta(item.type)
+                        const sub = (item.size_gb !== undefined && item.size_gb !== null && item.size_gb !== '')
+                          ? `${item.size_gb} GB`
+                          : (item.quantity ? `× ${item.quantity}` : null)
+                        return (
+                          <div key={i} className="flex items-center gap-3 px-3 py-2.5">
+                            <span className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${meta.cls}`}>
+                              <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={1.6} viewBox="0 0 24 24">{meta.icon}</svg>
+                            </span>
+                            <div className="flex-1 min-w-0">
+                              <p className="text-sm font-semibold text-white truncate">{item.title}</p>
+                              {sub && <p className="text-[11px] text-gray-500">{sub}</p>}
+                            </div>
+                            <span className="text-sm font-mono tabular-nums text-gray-200 whitespace-nowrap">{currency(item.price)}</span>
+                          </div>
+                        )
+                      })}
+                      {detailsItems.length === 0 && (
+                        <div className="text-center text-gray-500 text-xs py-4">لا توجد عناصر</div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Zone B: totals + actions */}
+                <div className="space-y-4">
+                  <div className="bg-gray-800/60 border border-white/5 rounded-xl p-4 space-y-2">
+                    <div className="flex justify-between text-sm">
+                      <span className="text-gray-400">المجموع</span>
+                      <span className="text-white tabular-nums">{currency(detailsInvoice.total || 0)}</span>
+                    </div>
+                    {Number(detailsInvoice.discount) > 0 && (
+                      <div className="flex justify-between text-sm">
+                        <span className="text-gray-400">الخصم</span>
+                        <span className="text-amber-400 tabular-nums">-{currency(detailsInvoice.discount)}</span>
+                      </div>
+                    )}
+                    <div className="flex justify-between text-sm">
+                      <span className="text-gray-400">المدفوع</span>
+                      <span className="text-emerald-400 font-bold tabular-nums">{currency(detailsInvoice.paid_amount || 0)}</span>
+                    </div>
+                    {detailsBalance > 0 && (
+                      <div className="flex justify-between text-sm">
+                        <span className="text-gray-400">الباقي</span>
+                        <span className="text-red-400 font-bold tabular-nums">{currency(detailsBalance)}</span>
+                      </div>
+                    )}
+                    <div className="flex justify-between items-center border-t border-white/5 pt-3">
+                      <span className="text-sm font-bold text-white">النهائي</span>
+                      <span className="text-lg font-black text-[color:var(--brand)] tabular-nums">{currency(detailsFinalTotal)}</span>
+                    </div>
+                  </div>
+
+                  <div className="flex flex-col gap-2">
+                    <button onClick={() => reprintInvoice(detailsInvoice)} className="py-3 min-h-[44px] rounded-xl font-bold text-sm bg-emerald-600/20 text-emerald-400 border border-emerald-600/30 hover:bg-emerald-600 hover:text-white transition-all cursor-pointer">
+                      طباعة
+                    </button>
+                    <button onClick={() => { const inv = detailsInvoice; setDetailsInvoice(null); setEditingInvoice({
+                      id: inv.id, invoice_number: inv.invoice_number,
+                      customer_name: inv.customer_name, customer_phone: inv.customer_phone,
+                      customer_address: inv.customer_address || '',
+                      customer_notes: inv.customer_notes || '',
+                      items: parseItems(inv), discount: inv.discount || 0, status: inv.status
+                    }) }} className="py-3 min-h-[44px] rounded-xl font-bold text-sm bg-amber-500/20 text-amber-400 border border-amber-500/30 hover:bg-amber-500 hover:text-white transition-all cursor-pointer">
+                      تعديل
+                    </button>
+                    <button onClick={() => setDetailsInvoice(null)} className="py-3 min-h-[44px] rounded-xl font-semibold text-sm border border-white/10 text-gray-300 hover:bg-white/5 transition-all cursor-pointer">إغلاق</button>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
@@ -800,7 +918,7 @@ export default function InvoicesTab() {
       {/* modal تعديل الفاتورة */}
       {editingInvoice && (
         <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-end sm:items-center justify-center z-50 p-0 sm:p-4" onClick={() => setEditingInvoice(null)}>
-          <div className="bg-gray-900 rounded-t-2xl sm:rounded-2xl border border-white/10 max-w-md w-full max-h-[85vh] overflow-y-auto shadow-2xl" onClick={e => e.stopPropagation()}>
+          <div className="bg-gray-900 rounded-t-2xl sm:rounded-2xl border border-white/10 w-full sm:max-w-2xl max-h-[85vh] overflow-y-auto shadow-2xl" onClick={e => e.stopPropagation()}>
             {/* Header */}
             <div className="sticky top-0 z-10 bg-gradient-to-l from-[color:var(--brand)] to-emerald-600 p-4 flex items-center justify-between">
               <div>
