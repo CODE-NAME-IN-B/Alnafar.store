@@ -1,5 +1,5 @@
 // Service Worker for Alnafar Store PWA
-const CACHE_NAME = 'alnafar-store-v2';
+const CACHE_NAME = 'alnafar-store-v3';
 const urlsToCache = [
   '/',
   '/manifest.json',
@@ -91,9 +91,13 @@ self.addEventListener('fetch', (event) => {
     event.respondWith(
       (async () => {
         const cached = await caches.match(request);
+        const cachedIsHtml = cached
+          ? (cached.headers.get('content-type') || '').includes('text/html')
+          : false;
         const network = fetch(request)
           .then((response) => {
-            if (response && response.status === 200) {
+            const ct = (response.headers.get('content-type') || '');
+            if (response && response.status === 200 && !ct.includes('text/html')) {
               const copy = response.clone();
               caches.open(CACHE_NAME)
                 .then((cache) => cache.put(request, copy))
@@ -101,8 +105,8 @@ self.addEventListener('fetch', (event) => {
             }
             return response;
           })
-          .catch(() => cached);
-        return cached || network;
+          .catch(() => (cachedIsHtml ? Response.error() : cached));
+        return cachedIsHtml ? network : (cached || network);
       })()
     );
     return;
@@ -110,7 +114,18 @@ self.addEventListener('fetch', (event) => {
 
   // Other same-origin requests: network-first with cache fallback
   event.respondWith(
-    fetch(request).catch(() => caches.match(request))
+    fetch(request).catch(async () => {
+      const cached = await caches.match(request);
+      const ct = cached ? (cached.headers.get('content-type') || '') : '';
+      const isAssetRequest =
+        request.destination === 'script' ||
+        request.destination === 'style' ||
+        /\.(js|css|json|png|svg|ico|webmanifest|txt|woff2?|ttf|otf)$/i.test(url.pathname);
+      if (cached && ct.includes('text/html') && isAssetRequest) {
+        return Response.error();
+      }
+      return cached;
+    })
   );
 });
 

@@ -168,7 +168,7 @@ function TopList({ onAdd }) {
   return (
     <ul className="space-y-2">
       {details.map((g, idx) => (
-        <li key={g.id} className="flex items-center gap-3 p-2.5 bg-gradient-to-l from-white/5 to-transparent rounded-xl hover:from-purple-500/10 hover:to-transparent border border-white/5 hover:border-purple-500/30 transition-all duration-200 group">
+        <li key={g.id} className="flex items-center gap-3 p-2.5 bg-gradient-to-l from-white/5 to-transparent rounded-xl hover:from-teal-500/10 hover:to-transparent border border-white/5 hover:border-teal-400/30 transition-all duration-200 group">
           {/* رقم الترتيب */}
           <div className={`w-7 h-7 rounded-lg flex items-center justify-center text-xs font-black flex-shrink-0 ${
             idx === 0 ? 'bg-yellow-500/20 text-yellow-400' :
@@ -184,16 +184,16 @@ function TopList({ onAdd }) {
             src={g.image || cover}
             alt={g.title}
             loading="lazy"
-            className="w-11 h-11 object-cover rounded-lg flex-shrink-0 border border-white/10 group-hover:border-purple-500/30 transition-colors"
+            className="w-11 h-11 object-cover rounded-lg flex-shrink-0 border border-white/10 group-hover:border-teal-400/30 transition-colors"
             referrerPolicy="no-referrer"
             onError={(e) => { e.currentTarget.onerror = null; e.currentTarget.src = cover; }}
           />
           
           {/* معلومات اللعبة */}
           <div className="flex-1 min-w-0">
-            <div className="font-semibold truncate text-sm text-white group-hover:text-purple-300 transition-colors" title={g.title}>{g.title}</div>
+            <div className="font-semibold truncate text-sm text-white group-hover:text-teal-300 transition-colors" title={g.title}>{g.title}</div>
             <div className="flex items-center gap-2 mt-0.5">
-              <span className="text-purple-400 font-bold text-xs">{typeof g.price === 'number' ? currency(g.price) : ''}</span>
+              <span className="text-[color:var(--brand)] font-bold text-xs">{typeof g.price === 'number' ? currency(g.price) : ''}</span>
               <span className="text-gray-600 text-[10px]">•</span>
               <span className="text-gray-500 text-[10px]">{g.count} مبيعة</span>
             </div>
@@ -203,7 +203,7 @@ function TopList({ onAdd }) {
           {onAdd && (
             <button
               onClick={() => onAdd(g)}
-              className="w-8 h-8 bg-purple-600/20 hover:bg-purple-600 text-purple-400 hover:text-white rounded-lg font-semibold text-xs transition-all flex items-center justify-center flex-shrink-0 opacity-70 group-hover:opacity-100"
+              className="w-8 h-8 bg-teal-500/15 hover:bg-teal-500/25 text-teal-300 hover:text-white rounded-lg font-semibold text-xs transition-all flex items-center justify-center flex-shrink-0 opacity-70 group-hover:opacity-100"
             >
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 4v16m8-8H4" /></svg>
             </button>
@@ -272,6 +272,156 @@ function BranchSelect({ branches, selectedId, onSelect, compact }) {
       </div>
     </div>
   )
+}
+
+// ── أيقونات الفئات (SVG 24x24) — تُختار حسب اسم الفئة مع أيقونة يد التحكم كافتراضي ──
+function CategoryGlyph({ filled = false, children }) {
+  return (
+    <svg
+      className="w-4 h-4 sm:w-5 sm:h-5 flex-shrink-0"
+      viewBox="0 0 24 24"
+      fill={filled ? 'currentColor' : 'none'}
+      stroke={filled ? 'none' : 'currentColor'}
+      strokeWidth={filled ? 0 : 1.8}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      {children}
+    </svg>
+  )
+}
+
+// PlayStation (Simple Icons)
+const ICON_PS = (
+  <CategoryGlyph filled>
+    <path d="M8.984 2.596v17.547l3.915 1.261V6.688c0-.69.304-1.151.794-.991.636.18.76.814.76 1.505v5.875c2.441 1.193 4.362-.002 4.362-3.152 0-3.237-1.126-4.675-4.438-5.827-1.307-.448-3.728-1.186-5.39-1.502zm4.656 16.241l6.296-2.275c.715-.258.826-.625.246-.818-.586-.192-1.637-.139-2.357.123l-4.205 1.5V14.98l.24-.085s1.201-.42 2.913-.615c1.696-.18 3.785.03 5.437.661 1.848.601 2.04 1.472 1.576 2.072-.465.6-1.622 1.036-1.622 1.036l-8.544 3.107V18.86zM1.807 18.6c-1.9-.545-2.214-1.668-1.352-2.32.801-.586 2.16-1.052 2.16-1.052l5.615-2.013v2.313L4.205 17c-.705.271-.825.632-.239.826.586.195 1.637.15 2.343-.12L8.247 17v2.074c-.12.03-.256.044-.39.073-1.939.331-3.996.196-6.038-.479z" />
+  </CategoryGlyph>
+)
+
+// Xbox-style (كرة + إشارة X)
+const ICON_XBOX = (
+  <CategoryGlyph>
+    <circle cx="12" cy="12" r="9" />
+    <path d="m8.6 8.6 6.8 6.8" />
+    <path d="m15.4 8.6-6.8 6.8" />
+  </CategoryGlyph>
+)
+
+// VR headset (Simple Icons Oculus)
+const ICON_VR = (
+  <CategoryGlyph filled>
+    <path d="M18.135 13.949c-.319.221-.675.355-1.057.416s-.761.049-1.142.049H8.063c-.382 0-.762.014-1.145-.049-.381-.063-.734-.195-1.057-.416-.643-.451-1.027-1.17-1.027-1.951 0-.796.387-1.515 1.029-1.95.314-.225.674-.359 1.049-.42s.75-.061 1.141-.061h7.875c.375 0 .765-.014 1.14.046s.735.194 1.051.405c.645.434 1.02 1.17 1.02 1.949 0 .78-.391 1.5-1.035 1.95l.031.032zm3.174-7.555c-.845-.678-1.812-1.146-2.865-1.398-.6-.146-1.203-.211-1.822-.23-.449-.015-.899-.01-1.364-.01H8.76c-.457 0-.915-.005-1.372.01-.618.021-1.222.083-1.825.23-1.051.254-2.025.723-2.865 1.4C.99 7.761 0 9.82 0 12c0 2.182.99 4.241 2.689 5.606.846.678 1.815 1.146 2.865 1.4.603.146 1.206.211 1.823.229.45.016.9.012 1.365.012h6.496c.449 0 .914.004 1.364-.012.615-.018 1.215-.082 1.814-.229 1.05-.256 2.011-.723 2.866-1.402C23.01 16.24 24 14.18 24 12c0-2.181-.99-4.241-2.691-5.606z" />
+  </CategoryGlyph>
+)
+
+// PC monitor (Lucide monitor)
+const ICON_PC = (
+  <CategoryGlyph>
+    <rect width="20" height="14" x="2" y="3" rx="2" />
+    <line x1="8" x2="16" y1="21" y2="21" />
+    <line x1="12" x2="12" y1="17" y2="21" />
+  </CategoryGlyph>
+)
+
+// Handheld console (Lucide smartphone)
+const ICON_HANDHELD = (
+  <CategoryGlyph>
+    <rect width="14" height="20" x="5" y="2" rx="2" ry="2" />
+    <path d="M12 18h.01" />
+  </CategoryGlyph>
+)
+
+// Kids (Lucide baby)
+const ICON_KIDS = (
+  <CategoryGlyph>
+    <path d="M10 16c.5.3 1.2.5 2 .5s1.5-.2 2-.5" />
+    <path d="M15 12h.01" />
+    <path d="M19.38 6.813A9 9 0 0 1 20.8 10.2a2 2 0 0 1 0 3.6 9 9 0 0 1-17.6 0 2 2 0 0 1 0-3.6A9 9 0 0 1 12 3c2 0 3.5 1.1 3.5 2.5s-.9 2.5-2 2.5c-.8 0-1.5-.4-1.5-1" />
+    <path d="M9 12h.01" />
+  </CategoryGlyph>
+)
+
+// Sports (Lucide trophy)
+const ICON_SPORTS = (
+  <CategoryGlyph>
+    <path d="M10 14.66V17a1 1 0 0 1-1 1 2 2 0 0 0-2 2v2" />
+    <path d="M14 14.66V17a1 1 0 0 0 1 1 2 2 0 0 1 2 2v2" />
+    <path d="M17.916 10H19.5A2.5 2.5 0 0 0 22 7.5V5a1 1 0 0 0-1-1h-3" />
+    <path d="M4 22h16" />
+    <path d="M6 9a6 6 0 0 0 12 0V3a1 1 0 0 0-1-1H7a1 1 0 0 0-1 1z" />
+    <path d="M6.084 10H4.5A2.5 2.5 0 0 1 2 7.5V5a1 1 0 0 1 1-1h3" />
+  </CategoryGlyph>
+)
+
+// Racing (Lucide flag)
+const ICON_RACING = (
+  <CategoryGlyph>
+    <path d="M4 22V4a1 1 0 0 1 .4-.8A6 6 0 0 1 8 2c3 0 5 2 7.333 2q2 0 3.067-.8A1 1 0 0 1 20 4v10a1 1 0 0 1-.4.8A6 6 0 0 1 16 16c-3 0-5-2-8-2a6 6 0 0 0-4 1.528" />
+  </CategoryGlyph>
+)
+
+// Action (Lucide zap)
+const ICON_ACTION = (
+  <CategoryGlyph>
+    <path d="M15.914 4a1.5 1.5 0 0 0-2.474-1.561l-9 9A1.5 1.5 0 0 0 5.5 14h4.002a.5.5 0 0 1 .471.666L8.086 20a1.5 1.5 0 0 0 2.475 1.56l9-9A1.5 1.5 0 0 0 18.5 10h-3.997a.5.5 0 0 1-.472-.667z" />
+  </CategoryGlyph>
+)
+
+// Default (Lucide gamepad-2)
+const ICON_GAMEPAD = (
+  <CategoryGlyph>
+    <line x1="6" x2="10" y1="11" y2="11" />
+    <line x1="8" x2="8" y1="9" y2="13" />
+    <line x1="15" x2="15.01" y1="12" y2="12" />
+    <line x1="18" x2="18.01" y1="10" y2="10" />
+    <path d="M17.32 5H6.68a4 4 0 0 0-3.978 3.59c-.006.052-.01.101-.017.152C2.604 9.416 2 14.456 2 16a3 3 0 0 0 3 3c1 0 1.5-.5 2-1l1.414-1.414A2 2 0 0 1 9.828 16h4.344a2 2 0 0 1 1.414.586L17 18c.5.5 1 1 2 1a3 3 0 0 0 3-3c0-1.545-.604-6.584-.685-7.258-.007-.05-.011-.1-.017-.151A4 4 0 0 0 17.32 5z" />
+  </CategoryGlyph>
+)
+
+const CATEGORY_ICONS = {
+  ps4: ICON_PS,
+  ps5: ICON_PS,
+  playstation: ICON_PS,
+  'بلايستيشن': ICON_PS,
+  xbox: ICON_XBOX,
+  'إكس بوكس': ICON_XBOX,
+  'اكس بوكس': ICON_XBOX,
+  vr: ICON_VR,
+  oculus: ICON_VR,
+  meta: ICON_VR,
+  'واقع': ICON_VR,
+  pc: ICON_PC,
+  'كمبيوتر': ICON_PC,
+  'حاسوب': ICON_PC,
+  nintendo: ICON_HANDHELD,
+  switch: ICON_HANDHELD,
+  psp: ICON_HANDHELD,
+  'نينتندو': ICON_HANDHELD,
+  'سويتش': ICON_HANDHELD,
+  'محمول': ICON_HANDHELD,
+  'أطفال': ICON_KIDS,
+  'اطفال': ICON_KIDS,
+  kids: ICON_KIDS,
+  'رياضة': ICON_SPORTS,
+  'رياضه': ICON_SPORTS,
+  sports: ICON_SPORTS,
+  'سباق': ICON_RACING,
+  'سباقات': ICON_RACING,
+  racing: ICON_RACING,
+  'أكشن': ICON_ACTION,
+  'اكشن': ICON_ACTION,
+  action: ICON_ACTION,
+  __default: ICON_GAMEPAD,
+}
+
+function CategoryIcon({ name }) {
+  const key = String(name || '').trim().toLowerCase()
+  if (CATEGORY_ICONS[key]) return CATEGORY_ICONS[key]
+  for (const k of Object.keys(CATEGORY_ICONS)) {
+    if (k !== '__default' && key && key.includes(k)) return CATEGORY_ICONS[k]
+  }
+  return CATEGORY_ICONS.__default
 }
 
 export default function App() {
@@ -1140,26 +1290,42 @@ export default function App() {
           </div>
 
           {/* Navigation - تمرير أفقي على الهاتف */}
-          <div className="pb-2 -mx-3 px-3 min-[400px]:-mx-4 min-[400px]:px-4 sm:mx-0 sm:px-0 overflow-x-auto scrollbar-hide nav-scroll">
-            <nav className="flex items-center gap-2 sm:gap-3 min-w-max py-0.5">
+            <div className="pb-2 -mx-3 px-3 min-[400px]:-mx-4 min-[400px]:px-4 sm:mx-0 sm:px-0 scroll-px-3 min-[400px]:scroll-px-4 sm:scroll-px-0 overflow-x-auto scrollbar-hide nav-scroll">
+              <nav className="flex items-center gap-2 sm:gap-3 min-w-max py-0.5">
+              <button
+                type="button"
+                onClick={() => commitCategory('')}
+                aria-pressed={String(activeCategory || '') === ''}
+                className={`inline-flex items-center gap-2 px-4 min-h-[44px] rounded-xl font-bold text-sm sm:text-base whitespace-nowrap transition-all duration-200 cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-500/60 ${
+                  String(activeCategory || '') === ''
+                    ? 'bg-gradient-to-r from-[color:var(--brand)] to-emerald-500 text-white shadow-lg shadow-teal-500/30'
+                    : 'bg-white/5 text-gray-300 border border-white/10 hover:bg-white/10 hover:text-white hover:border-teal-400/40'
+                }`}
+              >
+                <CategoryIcon name="" />
+                كل الألعاب
+              </button>
               {(categories || []).map((c) => {
                 const isActive = String(activeCategory) === String(c.id)
                 return (
                   <button
                     key={c.id}
+                    type="button"
                     onClick={() => commitCategory(c.id)}
-                    className={`whitespace-nowrap px-4 py-2 text-sm sm:text-base font-bold rounded-xl transition-all duration-200 cursor-pointer focus:outline-none focus:ring-2 focus:ring-teal-500/50 ${
+                    aria-pressed={isActive}
+                    className={`inline-flex items-center gap-2 px-4 min-h-[44px] rounded-xl font-bold text-sm sm:text-base whitespace-nowrap transition-all duration-200 cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-500/60 ${
                       isActive
-                        ? 'bg-gradient-to-r from-[color:var(--brand)] to-emerald-500 text-white shadow-lg shadow-teal-500/25'
-                        : 'bg-white/5 text-gray-300 hover:bg-white/10 hover:text-white border border-white/10'
+                        ? 'bg-gradient-to-r from-[color:var(--brand)] to-emerald-500 text-white shadow-lg shadow-teal-500/30'
+                        : 'bg-white/5 text-gray-300 border border-white/10 hover:bg-white/10 hover:text-white hover:border-teal-400/40'
                     }`}
                   >
+                    <CategoryIcon name={c.name} />
                     {c.name}
                   </button>
                 )
               })}
-            </nav>
-          </div>
+              </nav>
+            </div>
         </div>
       </header>
 
@@ -1350,46 +1516,24 @@ export default function App() {
               )}
             </div>
 
-            {/* قسم الخدمات - متجاوب */}
-            {services.length > 0 && (
-              <div className="mb-4 sm:mb-6 p-3 min-[400px]:p-4 rounded-xl bg-card border border-white/10">
-                <h3 className="text-base sm:text-lg font-bold text-white mb-2 sm:mb-3">الخدمات</h3>
-                <div className="flex flex-wrap gap-2 sm:gap-3">
-                  {services.map((s) => (
-                    <div key={s.id} className="flex flex-wrap items-center gap-2 px-3 py-2 min-[400px]:px-4 rounded-lg bg-white/10 border border-white/10 hover:border-primary/40 transition-colors">
-                      <span className="text-white font-bold text-sm sm:text-base">{s.title}</span>
-                      <span className="text-primary font-extrabold tabular-nums text-sm sm:text-base">{Number(s.price).toFixed(3)} د.ل</span>
-                      {(hasToken || isGuestMode) && (
-                      <button
-                        onClick={() => addToServicesCart(s)}
-                        className="px-3 py-2 min-h-[40px] bg-primary hover:bg-primary-dark text-black rounded-lg text-sm font-semibold touch-target"
-                      >
-                        إضافة
-                      </button>
-                      )}
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-
             {/* قسم الباقات - متجاوب */}
             {packages.length > 0 && !query && !genreFilter && !seriesFilter && !letterFilter && (
-              <div className="mb-4 sm:mb-6 p-3 min-[400px]:p-4 rounded-2xl bg-gradient-to-br from-indigo-950 via-purple-900/40 to-black border border-purple-500/30 shadow-2xl overflow-hidden relative">
+              <div className="mb-4 sm:mb-6 p-3 min-[400px]:p-4 rounded-2xl bg-gradient-to-br from-teal-950/60 via-[#0b1e26]/80 to-black border border-teal-500/25 shadow-2xl overflow-hidden relative">
                 {/* Decorative background element */}
-                <div className="absolute -top-24 -right-24 w-48 h-48 bg-purple-500/10 rounded-full blur-3xl pointer-events-none"></div>
+                <div className="absolute -top-24 -right-24 w-48 h-48 bg-teal-500/10 rounded-full blur-3xl pointer-events-none"></div>
                 
                 <div className="flex items-center gap-2 mb-4 relative z-10">
-                  <svg className="w-6 h-6 text-purple-400 animate-bounce duration-[3000ms]" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" /></svg>
+                  <span className="w-1 h-5 rounded-full bg-gradient-to-b from-[color:var(--brand)] to-emerald-500" aria-hidden="true"></span>
+                  <svg className="w-6 h-6 text-[color:var(--brand)]" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" /></svg>
                   <h3 className="text-base sm:text-lg font-bold text-white tracking-wide">الباقات الخاصة</h3>
-                  <span className="text-[10px] font-bold text-purple-200 bg-purple-600/50 px-2.5 py-1 rounded-full animate-pulse border border-purple-400/30 shadow-sm shadow-purple-900/50">
+                  <span className="text-[10px] font-bold text-teal-300 bg-teal-500/15 px-2.5 py-1 rounded-full border border-teal-400/30">
                     {packages.length} باقة
                   </span>
                 </div>
                 {/* Horizontal scroll on mobile, grid on larger */}
                 <div className="flex gap-4 overflow-x-auto pb-3 snap-x snap-mandatory sm:grid sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 sm:overflow-visible sm:pb-0 nav-scroll relative z-10">
                   {packages.map(pkg => (
-                    <div key={pkg.id} className="min-w-[240px] max-w-[280px] sm:min-w-0 sm:max-w-none snap-start backdrop-blur-md bg-white/5 rounded-2xl border border-white/10 overflow-hidden flex flex-col group hover:border-purple-400/50 transition-all duration-300 shadow-xl flex-shrink-0">
+                    <div key={pkg.id} className="min-w-[240px] max-w-[280px] sm:min-w-0 sm:max-w-none snap-start backdrop-blur-md bg-white/5 rounded-2xl border border-white/10 overflow-hidden flex flex-col group hover:border-teal-400/50 transition-all duration-300 shadow-xl flex-shrink-0">
                       {/* Header with game thumbnails */}
                       <div className="p-2.5 sm:p-3 bg-gradient-to-r from-gray-800 to-gray-700 border-b border-white/5">
                         <div className="flex items-center gap-2 mb-1.5">
@@ -1409,7 +1553,7 @@ export default function App() {
                           )}
                         </div>
                         <h4 className="font-bold text-white text-sm sm:text-base leading-tight truncate">{pkg.name}</h4>
-                        <p className="text-purple-400 font-bold tabular-nums text-sm mt-0.5">{Number(pkg.price).toFixed(2)} د.ل</p>
+                        <p className="tracking-tight text-[color:var(--brand)] font-bold tabular-nums text-sm mt-0.5">{Number(pkg.price).toFixed(2)} د.ل</p>
                       </div>
                       {/* Games summary */}
                       <div className="px-2.5 sm:px-3 py-2 flex-1">
@@ -1428,7 +1572,7 @@ export default function App() {
                         {(hasToken || isGuestMode) ? (
                         <button
                           onClick={() => addToCartPackage(pkg)}
-                          className="w-full py-3 min-h-[48px] bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 active:scale-[0.96] text-white rounded-xl text-sm font-bold transition-all shadow-lg shadow-purple-900/40 flex items-center justify-center gap-2 touch-target border border-white/10"
+                          className="w-full py-3 min-h-[44px] cursor-pointer bg-gradient-to-r from-[color:var(--brand)] to-emerald-500 hover:from-[color:var(--brand-hover)] hover:to-emerald-400 active:scale-[0.96] text-white rounded-xl text-sm font-bold transition-all shadow-lg shadow-teal-900/40 flex items-center justify-center gap-2 touch-target border border-white/10"
                         >
                           <svg className="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
@@ -1558,6 +1702,33 @@ export default function App() {
                 </div>
               )}
             </div>
+
+            {/* قسم الخدمات الإضافية - أسفل الألعاب */}
+            {services.length > 0 && (
+              <div className="mt-4 sm:mt-6 p-3 min-[400px]:p-4 rounded-xl bg-card border border-white/10">
+                <div className="flex items-center gap-2 mb-2 sm:mb-3">
+                  <span className="w-1 h-5 rounded-full bg-gradient-to-b from-[color:var(--brand)] to-emerald-500" aria-hidden="true"></span>
+                  <h3 className="text-base sm:text-lg font-bold text-white">الخدمات الإضافية</h3>
+                  <span className="text-[10px] font-bold text-teal-300 bg-teal-500/15 px-2 py-0.5 rounded-full border border-teal-400/30">{services.length}</span>
+                </div>
+                <div className="flex flex-wrap gap-2 sm:gap-3">
+                  {services.map((s) => (
+                    <div key={s.id} className="flex flex-wrap items-center gap-2 px-3 py-2 min-[400px]:px-4 rounded-lg bg-white/10 border border-white/10 hover:border-primary/40 transition-colors">
+                      <span className="text-white font-bold text-sm sm:text-base">{s.title}</span>
+                      <span className="text-primary font-extrabold tabular-nums text-sm sm:text-base">{Number(s.price).toFixed(3)} د.ل</span>
+                      {(hasToken || isGuestMode) && (
+                      <button
+                        onClick={() => addToServicesCart(s)}
+                        className="px-4 py-2 min-h-[44px] bg-primary hover:bg-primary-dark text-black rounded-lg text-sm font-bold cursor-pointer touch-target transition-colors"
+                      >
+                        إضافة
+                      </button>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
           </section>
 
           <aside className="hidden lg:block space-y-4 sm:space-y-6 lg:h-fit lg:sticky lg:top-24">
@@ -1567,13 +1738,13 @@ export default function App() {
               {/* Header */}
               <div className="flex items-center justify-between mb-4">
                 <div className="flex items-center gap-2">
-                  <div className="w-8 h-8 bg-purple-500/20 rounded-lg flex items-center justify-center">
-                    <svg className="w-4 h-4 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" /></svg>
+                  <div className="w-8 h-8 bg-teal-500/15 rounded-lg flex items-center justify-center">
+                    <svg className="w-4 h-4 text-teal-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" /></svg>
                   </div>
                   <h2 className="text-lg font-bold text-white">السلة</h2>
                 </div>
                 {cart.length > 0 && (
-                  <span className="bg-purple-500/20 text-purple-400 px-2.5 py-1 rounded-full text-xs font-bold border border-purple-500/30">
+                  <span className="bg-teal-500/15 text-teal-300 px-2.5 py-1 rounded-full text-xs font-bold border border-teal-500/30">
                     {cart.length} {cart.length === 1 ? 'لعبة' : 'ألعاب'}
                   </span>
                 )}
@@ -1594,10 +1765,10 @@ export default function App() {
                   <ul className="space-y-2 max-h-52 overflow-y-auto custom-scrollbar">
                     {cart.map((g, i) => (
                       <li key={`g-${i}`} className="flex items-center gap-3 p-2.5 bg-white/5 hover:bg-white/8 rounded-xl transition-colors group">
-                        <div className="w-2 h-2 bg-purple-500 rounded-full flex-shrink-0"></div>
+                        <div className="w-2 h-2 bg-teal-500 rounded-full flex-shrink-0"></div>
                         <div className="flex-1 min-w-0">
                           <p className="text-sm font-medium truncate text-white" title={g.title}>{g.title}</p>
-                          <p className="text-xs text-purple-400 font-bold">{currency(g.price)}</p>
+                          <p className="text-xs text-[color:var(--brand)] font-bold">{currency(g.price)}</p>
                         </div>
                         <button onClick={() => removeFromCart(i)} className="w-7 h-7 flex items-center justify-center text-gray-500 hover:text-red-400 hover:bg-red-500/10 rounded-lg transition-all opacity-0 group-hover:opacity-100" aria-label="حذف">
                           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
@@ -1824,12 +1995,12 @@ export default function App() {
             {/* Header */}
             <div className="flex items-center justify-between px-5 py-3 border-b border-white/5">
               <div className="flex items-center gap-2">
-                <div className="w-8 h-8 bg-purple-500/20 rounded-lg flex items-center justify-center">
-                  <svg className="w-4 h-4 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" /></svg>
+                <div className="w-8 h-8 bg-teal-500/15 rounded-lg flex items-center justify-center">
+                  <svg className="w-4 h-4 text-teal-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" /></svg>
                 </div>
                 <h2 className="text-lg font-bold text-white">السلة</h2>
                 {cart.length > 0 && (
-                  <span className="bg-purple-500/20 text-purple-400 px-2 py-0.5 rounded-full text-xs font-bold">
+                  <span className="bg-teal-500/15 text-teal-300 px-2 py-0.5 rounded-full text-xs font-bold">
                     {cart.length}
                   </span>
                 )}

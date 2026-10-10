@@ -24,19 +24,17 @@
         },
         {
             "src": "/assets/(.*)",
+            "dest": "/frontend/assets/$1",
             "headers": {
                 "cache-control": "public, max-age=31536000, immutable"
             }
         },
         {
             "src": "/(sw\\.js|manifest\\.json)",
+            "dest": "/frontend/$1",
             "headers": {
                 "cache-control": "no-cache"
             }
-        },
-        {
-            "src": "/assets/(.*)",
-            "dest": "/frontend/assets/$1"
         },
         {
             "src": "/(.*\\.(js|css|json|png|svg|ico|webmanifest|txt|woff2?|ttf|otf))",
