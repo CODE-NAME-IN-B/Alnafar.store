@@ -6,6 +6,7 @@ const path = require('path');
 const fs = require('fs');
 const express = require('express');
 const cors = require('cors');
+const compression = require('compression');
 const { createServer } = require('http');
 // const { Server } = require('socket.io'); (Removed for Vercel)
 const dbAdapter = require('./db-adapter');
@@ -417,6 +418,11 @@ async function initializeDatabase() {
   } catch (e) {
     console.warn('Error migrating genres:', e.message);
   }
+
+  // تنظيف قيم الأنواع غير الموجودة على أي لعبة (تابعة لقاعدة البيانات)
+  try {
+    await run(`DELETE FROM available_genres WHERE name IN ('تقسيم الشاشة','أخرى') AND name NOT IN (SELECT DISTINCT genre FROM games WHERE genre IS NOT NULL)`);
+  } catch (e) { /* idempotent */ }
 
   // Create available_series table to store all available series
   await exec(`CREATE TABLE IF NOT EXISTS available_series (
@@ -960,6 +966,7 @@ app.use(cors({
 }));
 
 // Reduce body size limit for security
+app.use(compression());
 app.use(express.json({ limit: '5mb' }));
 app.use(express.urlencoded({ extended: true, limit: '5mb' }));
 

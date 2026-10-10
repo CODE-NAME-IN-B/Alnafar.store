@@ -51,6 +51,7 @@ function ImageSlider() {
           src={img.src}
           alt={img.alt}
           loading={index === 0 ? 'eager' : 'lazy'}
+          fetchPriority={index === 0 ? 'high' : undefined}
           className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-700 ${
             index === current ? 'opacity-100' : 'opacity-0'
           }`}
@@ -81,7 +82,8 @@ const AR_TO_EN_GENRE = {
   'رعب': 'horror', 'أكشن': 'action', 'مغامرة': 'adventure', 'رياضة': 'sports',
   'سباقات': 'racing', 'سباق': 'racing', 'ألغاز': 'puzzle', 'منصات': 'platformer',
   'عالم مفتوح': 'open world', 'تخفي': 'stealth', 'قتال': 'fighting',
-  'استراتيجية': 'strategy', 'تقمص أدوار': 'rpg', 'أطفال': 'kids', 'تصويب': 'shooter'
+  'استراتيجية': 'strategy', 'تقمص أدوار': 'rpg', 'أطفال': 'kids', 'تصويب': 'shooter',
+  'تعاوني': 'coop', 'محاكاة': 'simulation', 'ألعاب أدوار': 'rpg'
 }
 
 // توحيد اسم النوع القادم من قاعدة البيانات بنفس طريقة توحيد قيم الألعاب (_cls.genre)
@@ -111,6 +113,7 @@ function TopList({ onAdd }) {
   useEffect(() => {
     let cancelled = false
     async function load() {
+      if (window.matchMedia && !window.matchMedia('(min-width:1024px)').matches) return;
       try {
         const r = await api.get('/stats', { params: { public: 1 } })
         const topGames = r.data?.topGames || []
@@ -278,7 +281,7 @@ export default function App() {
   const [gamesLoading, setGamesLoading] = useState(true)
   const [query, setQuery] = useState('')
   const [debouncedQuery, setDebouncedQuery] = useState('')
-  const [activeCategory, setActiveCategory] = useState('')
+  const [activeCategory, setActiveCategory] = useState(() => { try { return localStorage.getItem('activeCategory') || '' } catch { return '' } })
   const [minPrice, setMinPrice] = useState('')
   const [maxPrice, setMaxPrice] = useState('')
   const [cart, setCart] = useState([])
@@ -291,7 +294,6 @@ export default function App() {
   // قوائم الفلاتر المصدرية من قاعدة البيانات (تطابق لوحة التحكم)
   const [genreOptions, setGenreOptions] = useState([])
   const [seriesOptions, setSeriesOptions] = useState([])
-  const [splitOnly, setSplitOnly] = useState(false)
   const [letterFilter, setLetterFilter] = useState('')
   const [customerPhone, setCustomerPhone] = useState('')
   const [customerName, setCustomerName] = useState('')
@@ -314,13 +316,22 @@ export default function App() {
   // حماية المتجر: يجب تسجيل الدخول للوصول إلى نقطة البيع
   const hasToken = !!localStorage.getItem('token')
 
+  // صفحات المتجر فقط (استبعاد لوحة التحكم وصفحة التتبع) — يمنع تحميل بيانات المتجر عليها
+  const isStorePage = !window.location.hash.startsWith('#/admin') && !window.location.hash.startsWith('#/track')
+
+  // تثبيت الفئة المختارة في التخزين المحلي لتفادي تكرار جلب الكتالوج
+  const commitCategory = (id) => {
+    setActiveCategory(id)
+    try { localStorage.setItem('activeCategory', String(id)) } catch { }
+  }
+
   // شاشة البداية (Splash) — تظهر فوق كل شيء ثم تتلاشى
   const [showSplash, setShowSplash] = useState(true)
   const [splashFading, setSplashFading] = useState(false)
 
   useEffect(() => {
-    const fadeTimer = setTimeout(() => setSplashFading(true), 700)
-    const hideTimer = setTimeout(() => setShowSplash(false), 1200)
+    const fadeTimer = setTimeout(() => setSplashFading(true), 450)
+    const hideTimer = setTimeout(() => setShowSplash(false), 800)
     return () => { clearTimeout(fadeTimer); clearTimeout(hideTimer) }
   }, [])
 
@@ -341,6 +352,7 @@ export default function App() {
   const [editingInvoiceData, setEditingInvoiceData] = useState(null)
 
   useEffect(() => {
+    if (!isStorePage) return
     api.get('/services').then(({ data }) => setServices(Array.isArray(data) ? data : [])).catch(() => { })
     api.get('/branches').then(({ data }) => {
       const rows = Array.isArray(data) ? data : (data?.branches || [])
@@ -431,19 +443,21 @@ export default function App() {
   }, [])
 
   useEffect(() => {
+    if (!isStorePage) return
     api.get('/categories', { params: { public: 1 } }).then(r => {
       const data = Array.isArray(r.data) ? r.data : []
       setCategories(data);
       if (!activeCategory && data.length) {
         // Auto-select PS4 category if exists, otherwise first category
         const ps4Category = data.find(c => (c.name || '').toLowerCase().includes('ps4'))
-        setActiveCategory(String(ps4Category?.id || data[0].id))
+        commitCategory(String(ps4Category?.id || data[0].id))
       }
     })
   }, [])
 
   // قوائم الأنواع والسلاسل العامة من قاعدة البيانات (نفس قيم لوحة التحكم)
   useEffect(() => {
+    if (!isStorePage) return
     api.get('/genres').then(r => setGenreOptions(Array.isArray(r.data) ? r.data : [])).catch(() => { })
     api.get('/series').then(r => setSeriesOptions(Array.isArray(r.data) ? r.data : [])).catch(() => { })
   }, [])
@@ -474,6 +488,7 @@ export default function App() {
   }, [debouncedQuery, activeCategory, minPrice, maxPrice])
 
   useEffect(() => {
+    if (!isStorePage) return
     if (activeCategory) {
       api.get(`/packages/active/${activeCategory}`)
         .then(r => setPackages(r.data?.packages || []))
@@ -597,17 +612,13 @@ export default function App() {
 
     let out = classifiedGames.filter(g => {
       // Genre filter
-      if (normalizedGenreFilter === '__others__') {
-        if (g._cls && g._cls.genre) return false
-      } else if (normalizedGenreFilter && (!g._cls || !g._cls.genre || g._cls.genre !== normalizedGenreFilter)) {
+      if (normalizedGenreFilter && (!g._cls || !g._cls.genre || g._cls.genre !== normalizedGenreFilter)) {
         return false
       }
       // Series filter
       if (normalizedSeriesFilter && (!g._cls || !g._cls.series || g._cls.series !== normalizedSeriesFilter)) {
         return false
       }
-      // Split screen filter
-      if (splitOnly && (!g._cls || !g._cls.split)) return false
       // Letter filter
       if (letterFilter) {
         const first = (g.title || '').trim().charAt(0).toUpperCase()
@@ -620,7 +631,7 @@ export default function App() {
     // sort alphabetically by title
     out.sort((a, b) => (a.title || '').localeCompare(b.title || '', undefined, { sensitivity: 'base' }))
     return out
-  }, [classifiedGames, genreFilter, seriesFilter, splitOnly, letterFilter])
+  }, [classifiedGames, genreFilter, seriesFilter, letterFilter])
 
   // All cards same size - aspect ratio detection disabled
   // useEffect(() => {
@@ -694,6 +705,8 @@ export default function App() {
     'action': 'أكشن',
     'stealth': 'تخفي',
     'fighting': 'قتال',
+    'coop': 'تعاوني',
+    'simulation': 'محاكاة',
   }
 
   // Reverse map: Arabic → English for display filtering
@@ -1031,9 +1044,6 @@ export default function App() {
     )
   }
 
-  // Compute current value for the genre select (to support split-only special option)
-  const genreSelectValue = splitOnly ? '__split__' : (genreFilter || '')
-
   return (
     <div className="min-h-screen bg-base text-white">
       {showSplash && <SplashScreen fading={splashFading} />}
@@ -1137,7 +1147,7 @@ export default function App() {
                 return (
                   <button
                     key={c.id}
-                    onClick={() => setActiveCategory(c.id)}
+                    onClick={() => commitCategory(c.id)}
                     className={`whitespace-nowrap px-4 py-2 text-sm sm:text-base font-bold rounded-xl transition-all duration-200 cursor-pointer focus:outline-none focus:ring-2 focus:ring-teal-500/50 ${
                       isActive
                         ? 'bg-gradient-to-r from-[color:var(--brand)] to-emerald-500 text-white shadow-lg shadow-teal-500/25'
@@ -1274,19 +1284,13 @@ export default function App() {
                 {/* Genre and Series filters */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-3">
                   <select
-                    value={genreSelectValue}
-                    onChange={e => {
-                      const v = e.target.value
-                      if (v === '__split__') { setSplitOnly(true); setGenreFilter('') }
-                      else { setSplitOnly(false); setGenreFilter(v) }
-                    }}
+                    value={genreFilter}
+                    onChange={e => setGenreFilter(e.target.value)}
                     aria-label="تصفية حسب النوع"
                     className="w-full cursor-pointer bg-gray-950 border border-gray-700/50 rounded-xl px-3 py-2.5 text-white appearance-none text-sm sm:text-base focus:outline-none focus:ring-2 focus:ring-teal-500/50 focus:border-teal-500/50 transition-all"
                   >
                     <option value="">كل الأنواع</option>
-                    <option value="__split__">تقسيم الشاشة</option>
-                    <option value="__others__">أخرى</option>
-                    {genreOptions.filter(g => g !== 'تقسيم الشاشة' && g !== 'أخرى').map(g => (
+                    {genreOptions.map(g => (
                       <option key={g} value={normalizeGenre(g)}>{genreArLabels[normalizeGenre(g)] || g}</option>
                     ))}
                   </select>
@@ -1461,7 +1465,7 @@ export default function App() {
                   <p className="font-bold text-white mb-1">لا توجد نتائج مطابقة</p>
                   <p className="text-sm text-gray-400 mb-4">جرّب مسح الفلاتر أو البحث باسم آخر</p>
                   <button
-                    onClick={() => { setQuery(''); setGenreFilter(''); setSeriesFilter(''); setLetterFilter(''); setMinPrice(''); setMaxPrice(''); setSplitOnly(false); }}
+                    onClick={() => { setQuery(''); setGenreFilter(''); setSeriesFilter(''); setLetterFilter(''); setMinPrice(''); setMaxPrice(''); }}
                     className="px-5 py-2.5 min-h-[44px] rounded-xl bg-primary hover:bg-primary-dark text-black font-bold cursor-pointer transition-colors duration-200"
                   >
                     مسح الفلاتر
