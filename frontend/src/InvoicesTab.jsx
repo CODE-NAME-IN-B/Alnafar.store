@@ -101,7 +101,7 @@ export default function InvoicesTab() {
       if (Notification.permission === 'granted') {
         new Notification('فاتورة جديدة', {
           body: data.message,
-          icon: '/favicon.svg'
+          icon: '/icon-192x192.png'
         });
       }
     });

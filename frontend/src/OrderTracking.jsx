@@ -101,7 +101,7 @@ export default function OrderTracking({ orderId }) {
             try {
                 const { data } = await api.get('/notifications/vapid-public-key');
                 if (!data.success || !data.publicKey) return;
-                const registration = await navigator.serviceWorker.register('/service-worker.js');
+                const registration = await navigator.serviceWorker.register('/sw.js');
                 await navigator.serviceWorker.ready;
                 let subscription = await registration.pushManager.getSubscription();
                 if (!subscription && Notification.permission === 'granted') {

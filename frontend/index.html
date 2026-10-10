@@ -33,6 +33,12 @@
   <link rel="apple-touch-icon" sizes="192x192" href="/icon-192x192.png" />
   <link rel="apple-touch-icon" sizes="512x512" href="/icon-512x512.png" />
 
+  <!-- iOS Launch / Splash Screens (portrait) -->
+  <link rel="apple-touch-startup-image" media="(device-width: 320px) and (device-height: 568px) and (-webkit-device-pixel-ratio: 2) and (orientation: portrait)" href="/splash/640x1136.png" />
+  <link rel="apple-touch-startup-image" media="(device-width: 375px) and (device-height: 667px) and (-webkit-device-pixel-ratio: 2) and (orientation: portrait)" href="/splash/750x1334.png" />
+  <link rel="apple-touch-startup-image" media="(device-width: 375px) and (device-height: 812px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)" href="/splash/1125x2436.png" />
+  <link rel="apple-touch-startup-image" media="(device-width: 390px) and (device-height: 844px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)" href="/splash/1170x2532.png" />
+
   <!-- PWA Manifest -->
   <link rel="manifest" href="/manifest.json" />
 
@@ -90,102 +96,6 @@
           });
       });
     }
-
-    // PWA Install Prompt — لا تظهر في صفحة التتبع أو عند التثبيت مسبقاً
-    let deferredPrompt;
-    function isAppInstalled() {
-      try {
-        if (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches) return true;
-        if (window.navigator.standalone === true) return true; // iOS
-        if (localStorage.getItem('pwa-dismissed-at')) {
-          const dismissedAt = parseInt(localStorage.getItem('pwa-dismissed-at'), 10);
-          if (!Number.isNaN(dismissedAt) && Date.now() - dismissedAt < 14 * 24 * 60 * 60 * 1000) return true;
-        }
-      } catch (_) {}
-      return false;
-    }
-    window.addEventListener('beforeinstallprompt', (e) => {
-      e.preventDefault();
-      deferredPrompt = e;
-      // لا تظهر في صفحة التتبع أو إذا مثبت مسبقاً
-      if (window.location.hash && window.location.hash.startsWith('#/track/')) return;
-      if (isAppInstalled()) return;
-      showInstallPromotion();
-    });
-
-    function showInstallPromotion() {
-      if (document.getElementById('install-button')) return;
-      if (isAppInstalled()) return;
-      const installButton = document.createElement('button');
-      installButton.id = 'install-button';
-      installButton.setAttribute('aria-label', 'تثبيت التطبيق');
-      installButton.textContent = 'تثبيت التطبيق';
-      installButton.style.cssText = `
-          position: fixed;
-          bottom: calc(20px + env(safe-area-inset-bottom));
-          right: 20px;
-          background: #14b8a6;
-          color: white;
-          border: none;
-          padding: 12px 20px;
-          border-radius: 25px;
-          font-family: Cairo, sans-serif;
-          font-weight: 600;
-          cursor: pointer;
-          box-shadow: 0 4px 12px rgba(20, 184, 166, 0.3);
-          z-index: 1000;
-          transition: all 0.3s ease;
-        `;
-
-      installButton.addEventListener('click', async () => {
-        if (deferredPrompt) {
-          deferredPrompt.prompt();
-          const { outcome } = await deferredPrompt.userChoice;
-          console.log(`User response to the install prompt: ${outcome}`);
-          deferredPrompt = null;
-          installButton.remove();
-        }
-        try { localStorage.setItem('pwa-dismissed-at', String(Date.now())); } catch (_) {}
-      });
-
-      document.body.appendChild(installButton);
-
-      // Auto-hide after 10 seconds
-      setTimeout(() => {
-        if (installButton && installButton.parentNode) {
-          installButton.style.opacity = '0';
-          setTimeout(() => installButton.remove(), 300);
-        }
-      }, 10000);
-    }
-
-    // Handle app installation
-    window.addEventListener('appinstalled', (evt) => {
-      console.log('App was installed');
-      // Hide install button if it exists
-      const installButton = document.getElementById('install-button');
-      if (installButton) {
-        installButton.remove();
-      }
-
-      // Show success message
-      const successMsg = document.createElement('div');
-      successMsg.textContent = 'تم تثبيت التطبيق بنجاح!';
-      successMsg.style.cssText = `
-          position: fixed;
-          top: 20px;
-          right: 20px;
-          background: #10b981;
-          color: white;
-          padding: 12px 20px;
-          border-radius: 8px;
-          font-family: Cairo, sans-serif;
-          z-index: 1001;
-          box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
-        `;
-      document.body.appendChild(successMsg);
-      setTimeout(() => successMsg.remove(), 3000);
-    });
 
     // Simple print function - opens browser print dialog like printatestpage.com
     window.enhancedPrint = function () {

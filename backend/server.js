@@ -1370,7 +1370,7 @@ app.put('/api/invoices/:id/status', authMiddleware, async (req, res) => {
       const payload = JSON.stringify({
         title: 'طلبك جاهز!',
         body: `فاتورتك رقم ${updated.invoice_number} أصبحت جاهزة للاستلام.`,
-        icon: '/favicon.svg',
+        icon: '/icon-192x192.png',
         url: `/#/track/${encodeURIComponent(updated.invoice_number)}`
       });
 

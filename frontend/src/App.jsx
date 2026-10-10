@@ -2,6 +2,7 @@ import React, { lazy, Suspense, useEffect, useMemo, useState } from 'react'
 import { api, loadAuthFromStorage, setActiveBranchId, setAuthToken } from './api'
 import socket from './socket'
 import OrderTracking from './OrderTracking'
+import InstallPrompt from './InstallPrompt'
 import { preloadLogo } from './utils/logoCache'
 import Loader from './Loader'
 import logo from '../assites/logo.png'
@@ -10,6 +11,23 @@ import cover2 from '../assites/cover2.jpg'
 
 const Admin = lazy(() => import('./Admin'))
 const Invoice = lazy(() => import('./Invoice'))
+
+function SplashScreen({ fading }) {
+  return (
+    <div
+      className={`fixed inset-0 z-[9999] flex flex-col items-center justify-center transition-opacity duration-500 ${fading ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}
+      style={{ backgroundColor: '#0f1724' }}
+      role="status"
+      aria-label="جارٍ التحميل"
+    >
+      <img src={logo} alt="" className="h-24 w-24 object-contain animate-pulse" />
+      <h1 className="mt-5 text-2xl font-extrabold bg-gradient-to-r from-teal-400 to-emerald-400 bg-clip-text text-transparent">
+        متجر النفار
+      </h1>
+      <div className="mt-6 w-40 loader-bar" />
+    </div>
+  )
+}
 
 function ImageSlider() {
   const images = [
@@ -296,6 +314,16 @@ export default function App() {
   // حماية المتجر: يجب تسجيل الدخول للوصول إلى نقطة البيع
   const hasToken = !!localStorage.getItem('token')
 
+  // شاشة البداية (Splash) — تظهر فوق كل شيء ثم تتلاشى
+  const [showSplash, setShowSplash] = useState(true)
+  const [splashFading, setSplashFading] = useState(false)
+
+  useEffect(() => {
+    const fadeTimer = setTimeout(() => setSplashFading(true), 700)
+    const hideTimer = setTimeout(() => setShowSplash(false), 1200)
+    return () => { clearTimeout(fadeTimer); clearTimeout(hideTimer) }
+  }, [])
+
   // Load auth token from storage on mount
   useEffect(() => { loadAuthFromStorage(); setActiveBranchId(null) }, [])
 
@@ -389,7 +417,7 @@ export default function App() {
       if (Notification.permission === 'granted') {
         new Notification('لعبة جديدة', {
           body: `تم إضافة: ${data.game.title}`,
-          icon: '/favicon.svg'
+          icon: '/icon-192x192.png'
         });
       }
     };
@@ -861,6 +889,7 @@ export default function App() {
   if (!hasToken && !isGuestMode && !showLogin) {
     return (
       <div className="min-h-screen bg-base text-white relative overflow-hidden flex items-center justify-center p-4 sm:p-6">
+        {showSplash && <SplashScreen fading={splashFading} />}
         {/* Animated ambient background */}
         <div aria-hidden="true" className="fixed inset-0 pointer-events-none">
           <div className="absolute -top-40 -right-32 w-[55%] h-[55%] rounded-full blur-[150px] animate-pulse" style={{ background: 'rgba(20,184,166,0.18)' }}></div>
@@ -874,7 +903,7 @@ export default function App() {
             <div className="absolute -top-16 -left-16 w-48 h-48 bg-primary/20 rounded-full blur-3xl" aria-hidden="true"></div>
             <div className="relative">
               <div className="flex items-center gap-3 mb-10">
-                <div className="w-14 h-14 rounded-2xl bg-white/95 flex items-center justify-center shadow-lg shrink-0">
+                <div className="w-14 h-14 rounded-2xl bg-teal-500/10 border border-teal-500/20 backdrop-blur-sm flex items-center justify-center shadow-lg shrink-0">
                   <img src={logo} alt="شعار متجر النفار" className="w-11 h-11 object-contain" />
                 </div>
                 <div>
@@ -906,7 +935,7 @@ export default function App() {
           {/* Form panel */}
           <div className="p-6 sm:p-8">
             <div className="lg:hidden flex flex-col items-center text-center mb-6">
-              <div className="w-16 h-16 rounded-2xl bg-white/95 flex items-center justify-center shadow-lg mb-3">
+              <div className="w-16 h-16 rounded-2xl bg-teal-500/10 border border-teal-500/20 backdrop-blur-sm flex items-center justify-center shadow-lg mb-3">
                 <img src={logo} alt="شعار متجر النفار" className="w-12 h-12 object-contain" />
               </div>
               <h1 className="text-xl font-extrabold bg-gradient-to-r from-primary to-emerald-400 bg-clip-text text-transparent">متجر النفار</h1>
@@ -1007,6 +1036,7 @@ export default function App() {
 
   return (
     <div className="min-h-screen bg-base text-white safe-area-inset">
+      {showSplash && <SplashScreen fading={splashFading} />}
       {/* Header */}
       <header className="bg-gradient-to-r from-gray-900 to-black border-b border-white/10 sticky top-0 z-50 safe-area-inset">
         {editingInvoiceData && (
@@ -1025,7 +1055,7 @@ export default function App() {
             </button>
           </div>
         )}
-        <div className="w-full px-3 min-[400px]:px-4 sm:px-4 md:px-5 lg:px-6 xl:px-8 max-w-[100vw]">
+        <div className="w-full px-3 min-[400px]:px-4 sm:px-4 md:px-5 lg:px-6 xl:px-8 max-w-full">
           {/* Top row - Logo, Cart (mobile), Login */}
           <div className="h-12 min-[400px]:h-14 sm:h-16 flex items-center justify-between gap-2">
             <div className="flex items-center gap-2 min-[400px]:gap-3 min-w-0">
@@ -1707,7 +1737,7 @@ export default function App() {
             style={{ background: 'rgba(17,24,39,0.85)', backdropFilter: 'blur(20px)' }}
           >
             <div className="text-center">
-              <div className="w-14 h-14 mx-auto mb-3 rounded-2xl bg-white/95 flex items-center justify-center shadow-lg">
+              <div className="w-14 h-14 mx-auto mb-3 rounded-2xl bg-teal-500/10 border border-teal-500/20 backdrop-blur-sm flex items-center justify-center shadow-lg">
                 <img src={logo} alt="شعار متجر النفار" className="w-11 h-11 object-contain" />
               </div>
               <h3 className="text-xl font-bold text-white mb-1">تسجيل الدخول</h3>
@@ -1967,6 +1997,9 @@ export default function App() {
           </div>
         </div>
       )}
+
+      {/* زر تثبيت التطبيق (PWA) */}
+      <InstallPrompt />
     </div>
   )
 }

@@ -9,6 +9,7 @@ import { showToast as showToastShared } from './utils/toast'
 import DailyReportTab from './DailyReportTab'
 import GenreSeriesManager from './GenreSeriesManager'
 import logo from '../assites/logo.png'
+import InstallPrompt from './InstallPrompt'
 import UsersTab from './UsersTab'
 import PackagesTab from './PackagesTab'
 import BranchesTab from './BranchesTab'
@@ -132,7 +133,7 @@ export default function Admin() {
             <div className="absolute -top-16 -left-16 w-48 h-48 rounded-full blur-3xl" style={{ background: 'rgba(20,184,166,0.2)' }} aria-hidden="true"></div>
             <div className="relative">
               <div className="flex items-center gap-3 mb-10">
-                <div className="w-14 h-14 bg-white rounded-2xl shadow-lg overflow-hidden flex items-center justify-center shrink-0">
+                <div className="w-14 h-14 bg-teal-500/10 border border-teal-500/20 rounded-2xl shadow-lg overflow-hidden flex items-center justify-center shrink-0">
                   <img src={logo} alt="شعار متجر النفار" className="w-11 h-11 object-contain" />
                 </div>
                 <div>
@@ -163,7 +164,7 @@ export default function Admin() {
           {/* Form panel */}
           <div className="p-6 sm:p-8">
             <div className="lg:hidden flex flex-col items-center text-center mb-6">
-              <div className="w-16 h-16 bg-white rounded-2xl shadow-lg overflow-hidden flex items-center justify-center mb-3">
+              <div className="w-16 h-16 bg-teal-500/10 border border-teal-500/20 rounded-2xl shadow-lg overflow-hidden flex items-center justify-center mb-3">
                 <img src={logo} alt="شعار متجر النفار" className="w-12 h-12 object-contain" />
               </div>
               <h1 className="text-xl font-extrabold" style={{ color: 'var(--brand)' }}>لوحة التحكم</h1>
@@ -263,7 +264,7 @@ export default function Admin() {
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5" /></svg>
               </button>
 
-              <div className="w-9 h-9 sm:w-10 sm:h-10 flex-shrink-0 bg-white rounded-xl overflow-hidden shadow-lg">
+              <div className="w-9 h-9 sm:w-10 sm:h-10 flex-shrink-0 bg-teal-500/10 border border-teal-500/20 rounded-xl overflow-hidden shadow-lg">
                 <img src={logo} alt="شعار المتجر" className="w-full h-full object-contain" />
               </div>
               <div className="hidden sm:block">
@@ -342,7 +343,7 @@ export default function Admin() {
               {/* Mobile Header */}
               <div className="flex items-center justify-between gap-3 p-4 pb-2 md:hidden border-b border-gray-700/50">
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 flex-shrink-0 bg-white rounded-xl overflow-hidden shadow-lg">
+                  <div className="w-10 h-10 flex-shrink-0 bg-teal-500/10 border border-teal-500/20 rounded-xl overflow-hidden shadow-lg">
                     <img src={logo} alt="شعار المتجر" className="w-full h-full object-contain" />
                   </div>
                   <div className="min-w-0">
@@ -404,6 +405,9 @@ export default function Admin() {
           </main>
         </div>
       </div>
+
+      {/* زر تثبيت التطبيق (PWA) */}
+      <InstallPrompt />
     </div>
   )
 }
