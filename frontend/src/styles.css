@@ -1007,14 +1007,14 @@ select optgroup {
 /* Safe area support for PWA and devices with notches */
 @supports (padding: max(0px)) {
     .safe-area-inset {
-        padding-left: max(1rem, env(safe-area-inset-left));
-        padding-right: max(1rem, env(safe-area-inset-right));
+        padding-left: env(safe-area-inset-left);
+        padding-right: env(safe-area-inset-right);
     }
 
     header {
         padding-top: max(0.5rem, env(safe-area-inset-top));
-        padding-left: max(0.5rem, env(safe-area-inset-left));
-        padding-right: max(0.5rem, env(safe-area-inset-right));
+        padding-left: env(safe-area-inset-left);
+        padding-right: env(safe-area-inset-right);
     }
 
     /* Bottom nav / fixed buttons avoid home indicator */

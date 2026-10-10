@@ -1035,10 +1035,10 @@ export default function App() {
   const genreSelectValue = splitOnly ? '__split__' : (genreFilter || '')
 
   return (
-    <div className="min-h-screen bg-base text-white safe-area-inset">
+    <div className="min-h-screen bg-base text-white">
       {showSplash && <SplashScreen fading={splashFading} />}
       {/* Header */}
-      <header className="bg-gradient-to-r from-gray-900 to-black border-b border-white/10 sticky top-0 z-50 safe-area-inset">
+      <header className="bg-gradient-to-r from-gray-900 to-black border-b border-white/10 sticky top-0 z-50">
         {editingInvoiceData && (
           <div className="bg-yellow-600 text-black px-4 py-2 flex items-center justify-between text-xs sm:text-sm font-bold">
             <div className="flex items-center gap-2">
@@ -1130,7 +1130,7 @@ export default function App() {
           </div>
 
           {/* Navigation - تمرير أفقي على الهاتف */}
-          <div className="pb-2 -mx-3 px-3 sm:mx-0 sm:px-0 overflow-x-auto scrollbar-hide nav-scroll">
+          <div className="pb-2 -mx-3 px-3 min-[400px]:-mx-4 min-[400px]:px-4 sm:mx-0 sm:px-0 overflow-x-auto scrollbar-hide nav-scroll">
             <nav className="flex items-center gap-2 sm:gap-3 min-w-max py-0.5">
               {(categories || []).map((c) => {
                 const isActive = String(activeCategory) === String(c.id)
@@ -1318,7 +1318,7 @@ export default function App() {
         <div className="grid grid-cols-1 lg:grid-cols-[1fr_280px] xl:grid-cols-[1fr_320px] 2xl:grid-cols-[1fr_380px] gap-4 sm:gap-6 lg:gap-8">
           <section className="w-full">
             {/* فهرس A–Z — صف واحد قابل للتمرير مع أهداف لمس مضغوطة (no-touch-resize) */}
-            <div className="mb-2 min-[400px]:mb-3 sm:mb-4 -mx-3 px-3 overflow-x-auto nav-scroll">
+            <div className="mb-2 min-[400px]:mb-3 sm:mb-4 -mx-3 px-3 min-[400px]:-mx-4 min-[400px]:px-4 sm:mx-0 sm:px-0 overflow-x-auto nav-scroll">
               <div className="flex items-center gap-1 min-w-max py-0.5" role="group" aria-label="فهرس الحروف">
                 {['#', 'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z'].map(ch => (
                   <button
