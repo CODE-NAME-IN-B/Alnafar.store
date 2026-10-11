@@ -128,6 +128,15 @@ export default function InvoicesTab() {
   const [gameSearch, setGameSearch] = useState('')
   const [gameCategory, setGameCategory] = useState('')
   const [serviceSearch, setServiceSearch] = useState('')
+  const [chooserGame, setChooserGame] = useState(null)
+
+  // إغلاق نافذة اختيار نسخة اللعبة بمفتاح Escape
+  useEffect(() => {
+    if (!chooserGame) return
+    const onKey = (e) => { if (e.key === 'Escape') setChooserGame(null) }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [chooserGame])
   const [dateFrom, setDateFrom] = useState(() => new Date().toISOString().split('T')[0])
   const [dateTo, setDateTo] = useState(() => new Date().toISOString().split('T')[0])
   const [payingAll, setPayingAll] = useState(false)
@@ -391,10 +400,22 @@ export default function InvoicesTab() {
     setEditingInvoice({ ...editingInvoice, items })
   }
 
-  const addGameToInvoice = (game) => {
+  const requestAddGameToInvoice = (game) => {
     if (!editingInvoice) return
-    const items = [...(editingInvoice.items || []), { title: game.title, price: game.price, size_gb: game.size_gb, type: 'game' }]
+    const ps4Id = (categories || []).find(c => String(c.name).toLowerCase() === 'ps4')?.id ?? 1
+    if (Number(game.category_id) === Number(ps4Id)) { setChooserGame(game) }
+    else { addGameToInvoice(game) }
+  }
+
+  const addGameToInvoice = (game) => {
+    addGameVariantToInvoice(game, undefined, game.price)
+  }
+
+  const addGameVariantToInvoice = (game, platform, price) => {
+    if (!editingInvoice) return
+    const items = [...(editingInvoice.items || []), { title: game.title, price: Number(price), size_gb: game.size_gb, type: 'game', ...(platform && { platform }) }]
     setEditingInvoice({ ...editingInvoice, items })
+    setChooserGame(null)
     setShowGamePicker(false)
     setGameSearch('')
   }
@@ -992,6 +1013,9 @@ export default function InvoicesTab() {
                     <div key={i} className="flex items-center gap-2 bg-gray-800/80 rounded-lg px-3 py-2 border border-white/5">
                       <span className={`w-2 h-2 rounded-full flex-shrink-0 ${item.type === 'service' ? 'bg-sky-400' : 'bg-emerald-400'}`}></span>
                       <span className="flex-1 text-white text-sm truncate">{item.title}</span>
+                      {item.platform && (
+                        <span className="text-[10px] font-bold text-teal-300 bg-teal-500/15 border border-teal-400/30 rounded-full px-2 py-0.5 whitespace-nowrap">{item.platform === 'PS5' ? 'فايف (معدل)' : 'فور'}</span>
+                      )}
                       <span className="text-xs text-gray-400 font-mono">{currency(item.price)}</span>
                       <button onClick={() => removeItemFromEdit(i)} className="w-8 h-8 flex items-center justify-center text-red-400 hover:text-red-300 hover:bg-red-500/10 rounded-md transition-all cursor-pointer" aria-label="حذف العنصر">
                         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M6 18L18 6M6 6l12 12" /></svg>
@@ -1044,7 +1068,7 @@ export default function InvoicesTab() {
             </div>
             <div className="flex-1 overflow-y-auto p-2">
               {filteredGames.map(game => (
-                <button key={game.id} onClick={() => addGameToInvoice(game)} className="w-full flex items-center gap-3 p-3 rounded-xl hover:bg-white/5 transition-colors text-right cursor-pointer">
+                <button key={game.id} onClick={() => requestAddGameToInvoice(game)} className="w-full flex items-center gap-3 p-3 rounded-xl hover:bg-white/5 transition-colors text-right cursor-pointer">
                   <div className="flex-1 min-w-0">
                     <p className="text-white text-sm font-medium truncate">{game.title}</p>
                     <p className="text-gray-500 text-xs">{game.size_gb > 0 ? `${game.size_gb} GB` : ''}</p>
@@ -1053,6 +1077,48 @@ export default function InvoicesTab() {
                 </button>
               ))}
               {filteredGames.length === 0 && <div className="text-center py-8 text-gray-500 text-sm">لا توجد نتائج</div>}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* مودال اختيار نسخة اللعبة (فور/فايف) */}
+      {chooserGame && (
+        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-[60] p-4" onClick={() => setChooserGame(null)}>
+          <div role="dialog" aria-modal="true" aria-label="اختر نسخة اللعبة" className="bg-gray-900 border border-white/10 rounded-2xl p-5 sm:p-6 max-w-md w-full shadow-2xl relative" onClick={e => e.stopPropagation()}>
+            <div className="flex items-center justify-between mb-4 pb-3 border-b border-white/10">
+              <h3 className="text-lg sm:text-xl font-bold text-white truncate pr-2">{chooserGame.title}</h3>
+              <button onClick={() => setChooserGame(null)} className="text-gray-400 hover:text-white p-1 rounded-lg hover:bg-white/10 transition-colors cursor-pointer" aria-label="إغلاق">
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+              </button>
+            </div>
+            <p className="text-sm text-gray-400 mb-4">اللعبة متوفرة على نسختين — اختر المنصة:</p>
+            <div className="space-y-3">
+              <button
+                type="button"
+                onClick={() => addGameVariantToInvoice(chooserGame, 'PS4', 10)}
+                className="w-full flex items-center gap-3 px-4 py-4 min-h-[44px] rounded-xl border border-white/10 bg-white/5 hover:border-teal-400/40 hover:bg-white/10 transition-all duration-200 cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-500/50"
+              >
+                <span className="text-white">
+                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.6} d="M10.5 6h-6a.5.5 0 00-.5.5v8.25l-.325 3.675a1.625 1.625 0 003.25 0L6.75 15h-6a2 2 0 01-2-2V6.5A1.5 1.5 0 01.5 5h10a1.5 1.5 0 011.5 1.5v9.25l-.325 3.675a1.625 1.625 0 003.25 0L15 14.75V8.25A2.25 2.25 0 0012.75 6h-2.25z" /></svg>
+                </span>
+                <span className="flex-1 text-right text-white font-bold">الفور (PS4)</span>
+                <span className="text-teal-300 font-bold tabular-nums whitespace-nowrap">10.00 د.ل</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => addGameVariantToInvoice(chooserGame, 'PS5', 20)}
+                className="w-full flex items-center gap-3 px-4 py-4 min-h-[44px] rounded-xl border border-teal-500/40 bg-teal-500/10 hover:border-teal-400/60 hover:bg-teal-500/15 transition-all duration-200 cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-500/50"
+              >
+                <span className="text-teal-300">
+                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.6} d="M10.5 6h-6a.5.5 0 00-.5.5v8.25l-.325 3.675a1.625 1.625 0 003.25 0L6.75 15h-6a2 2 0 01-2-2V6.5A1.5 1.5 0 01.5 5h10a1.5 1.5 0 011.5 1.5v9.25l-.325 3.675a1.625 1.625 0 003.25 0L15 14.75V8.25A2.25 2.25 0 0012.75 6h-2.25z" /></svg>
+                </span>
+                <span className="flex-1 text-right text-white font-bold">الفايف (PS5)</span>
+                <span className="text-teal-300 font-bold tabular-nums whitespace-nowrap">20.00 د.ل</span>
+              </button>
+              <button type="button" onClick={() => setChooserGame(null)} className="w-full py-3 min-h-[44px] rounded-xl border border-white/10 text-gray-300 font-medium hover:bg-white/5 transition-all cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-500/50">
+                إلغاء
+              </button>
             </div>
           </div>
         </div>
