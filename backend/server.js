@@ -469,6 +469,7 @@ async function initializeDatabase() {
   try { await run('ALTER TABLE games ADD COLUMN series TEXT'); } catch (e) { }
   try { await run('ALTER TABLE games ADD COLUMN features TEXT'); } catch (e) { }
   try { await run('ALTER TABLE games ADD COLUMN size_gb REAL DEFAULT 0'); } catch (e) { }
+  try { await run('ALTER TABLE games ADD COLUMN price_ps5 REAL'); } catch (e) { }
 
   await exec(`CREATE TABLE IF NOT EXISTS orders (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -2469,7 +2470,7 @@ app.get('/api/games/batch', async (req, res) => {
       .filter(n => Number.isFinite(n));
     if (ids.length === 0) return res.json([]);
     const placeholders = ids.map(() => '?').join(',');
-    const rows = await all(`SELECT id, title, image, price FROM games WHERE id IN (${placeholders})`, ids);
+    const rows = await all(`SELECT id, title, image, price, category_id, size_gb, price_ps5 FROM games WHERE id IN (${placeholders})`, ids);
     res.json(rows);
   } catch (e) {
     res.status(500).json({ error: 'Failed to fetch games batch', message: e.message });
@@ -2491,7 +2492,7 @@ app.get('/api/games/:id', async (req, res) => {
 
 app.post('/api/games', authMiddleware, async (req, res) => {
   try {
-    const { title, image, description, price, size_gb, category_id, genre, series, features } = req.body;
+    const { title, image, description, price, price_ps5, size_gb, category_id, genre, series, features } = req.body;
     if (!title || !image || typeof price !== 'number') {
       return res.status(400).json({ message: 'Missing fields' });
     }
@@ -2499,8 +2500,8 @@ app.post('/api/games', authMiddleware, async (req, res) => {
     // INSERT ... RETURNING id — يعيد معرف اللعبة مباشرة وبنفس الجلسة.
     // last_insert_rowid() عبر استعلام منفصل خطأ هنا: (1) إضافات genres/series اللاحقة تتسرّب إليه، (2) غير موثوق مع Turso HTTP.
     const inserted = await get(
-      'INSERT INTO games (title, image, description, price, size_gb, category_id, genre, series, features) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?) RETURNING id',
-      [title, image, description || '', price, size_gb ? Number(size_gb) : 0, category_id || null, genre || null, series || null, features || null]
+      'INSERT INTO games (title, image, description, price, price_ps5, size_gb, category_id, genre, series, features) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?) RETURNING id',
+      [title, image, description || '', price, price_ps5 ? Number(price_ps5) : null, size_gb ? Number(size_gb) : 0, category_id || null, genre || null, series || null, features || null]
     );
     const newGameId = inserted ? inserted.id : null;
     if (!newGameId) {
@@ -2566,10 +2567,10 @@ app.post('/api/games', authMiddleware, async (req, res) => {
 app.put('/api/games/:id', authMiddleware, async (req, res) => {
   try {
     const { id } = req.params;
-    const { title, image, description, price, size_gb, category_id, genre, series, features } = req.body;
+    const { title, image, description, price, price_ps5, size_gb, category_id, genre, series, features } = req.body;
 
-    await run('UPDATE games SET title = ?, image = ?, description = ?, price = ?, size_gb = ?, category_id = ?, genre = ?, series = ?, features = ? WHERE id = ?',
-      [title, image, description || '', price, size_gb ? Number(size_gb) : 0, category_id || null, genre || null, series || null, features || null, id]);
+    await run('UPDATE games SET title = ?, image = ?, description = ?, price = ?, price_ps5 = ?, size_gb = ?, category_id = ?, genre = ?, series = ?, features = ? WHERE id = ?',
+      [title, image, description || '', price, price_ps5 ? Number(price_ps5) : null, size_gb ? Number(size_gb) : 0, category_id || null, genre || null, series || null, features || null, id]);
 
     // Add genre to available_genres if it's new
     if (genre && genre.trim()) {

@@ -21,7 +21,7 @@ function currency(num) {
 const inputCls = "w-full bg-gray-950 border border-gray-700/50 rounded-xl px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-teal-500/50 transition-all text-sm sm:text-base"
 
 export default function GamesTab() {
-  const empty = { title: '', image: '', description: '', price: '', size_gb: '', category_id: '', genre: '', series: '', features: '' }
+  const empty = { title: '', image: '', description: '', price: '', price_ps5: '', size_gb: '', category_id: '', genre: '', series: '', features: '' }
   const [items, setItems] = useState([])
   const [categories, setCategories] = useState([])
   const [series, setSeries] = useState([])
@@ -79,6 +79,7 @@ export default function GamesTab() {
       const payload = {
         ...form,
         price: Number(form.price),
+        price_ps5: form.price_ps5 ? Number(form.price_ps5) : null,
         size_gb: form.size_gb ? Number(form.size_gb) : 0,
         category_id: form.category_id ? Number(form.category_id) : null,
         genre: form.genre || null,
@@ -134,6 +135,7 @@ export default function GamesTab() {
     setForm({
       ...game,
       price: String(game.price),
+      price_ps5: game.price_ps5 != null ? String(game.price_ps5) : '',
       size_gb: game.size_gb ? String(game.size_gb) : '',
       genre: game.genre || '',
       series: game.series || '',
@@ -257,6 +259,9 @@ export default function GamesTab() {
                     {categories.find(c => c.id === game.category_id)?.name || 'غير محدد'}
                   </span>
                   <span className="text-teal-400 font-bold text-xs sm:text-sm shrink-0 tabular-nums">{currency(game.price)}</span>
+                  {(game.price_ps5 != null && game.price_ps5 !== '') && (
+                    <span className="text-[10px] text-gray-500 tabular-nums shrink-0">فايف: {currency(Number(game.price_ps5))}</span>
+                  )}
                 </div>
                 <div className="flex items-center gap-1.5 flex-wrap mb-2">
                   {game.genre && (
@@ -371,7 +376,7 @@ export default function GamesTab() {
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-sm font-semibold text-gray-300 mb-2">السعر (د.ل)</label>
+                    <label className="block text-sm font-semibold text-gray-300 mb-2">سعر الفور (PS4) (د.ل)</label>
                     <input
                       type="number"
                       step="0.001"
@@ -380,6 +385,11 @@ export default function GamesTab() {
                       value={form.price}
                       onChange={e => setForm({ ...form, price: e.target.value })}
                     />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-300 mb-2">سعر الفايف (PS5) (د.ل)</label>
+                    <input type="number" step="0.001" className={inputCls} placeholder="مثال: 20.000" value={form.price_ps5} onChange={e => setForm({ ...form, price_ps5: e.target.value })} />
                   </div>
 
                   <div>

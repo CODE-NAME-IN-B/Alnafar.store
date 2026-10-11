@@ -12,6 +12,9 @@ import cover2 from '../assites/cover2.jpg'
 const Admin = lazy(() => import('./Admin'))
 const Invoice = lazy(() => import('./Invoice'))
 
+const ps5PriceOf = (game) => (game && game.price_ps5 != null && game.price_ps5 !== '' ? Number(game.price_ps5) : Number(game.price) * 2)
+const formatDinar = (n) => Number(n).toFixed(2).replace(/\.00$/, '')
+
 function SplashScreen({ fading }) {
   return (
     <div
@@ -2181,21 +2184,21 @@ export default function App() {
             <div className="space-y-3">
               <button
                 type="button"
-                onClick={() => addToCartVariant(chooserGame, 'PS4', 10)}
+                onClick={() => addToCartVariant(chooserGame, 'PS4', chooserGame.price)}
                 className="w-full flex items-center gap-3 px-4 py-4 min-h-[44px] rounded-xl border border-white/10 bg-white/5 hover:border-teal-400/40 hover:bg-white/10 transition-all duration-200 cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-500/50"
               >
                 <span className="text-white"><CategoryIcon name="PS4" /></span>
                 <span className="flex-1 text-right text-white font-bold">الفور (PS4)</span>
-                <span className="text-teal-300 font-bold tabular-nums whitespace-nowrap">10.00 د.ل</span>
+                <span className="text-teal-300 font-bold tabular-nums whitespace-nowrap">{formatDinar(chooserGame.price)} د.ل</span>
               </button>
               <button
                 type="button"
-                onClick={() => addToCartVariant(chooserGame, 'PS5', 20)}
+                onClick={() => addToCartVariant(chooserGame, 'PS5', ps5PriceOf(chooserGame))}
                 className="w-full flex items-center gap-3 px-4 py-4 min-h-[44px] rounded-xl border border-teal-500/40 bg-teal-500/10 hover:border-teal-400/60 hover:bg-teal-500/15 transition-all duration-200 cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-500/50"
               >
                 <span className="text-teal-300"><CategoryIcon name="PS5" /></span>
                 <span className="flex-1 text-right text-white font-bold">الفايف (PS5)</span>
-                <span className="text-teal-300 font-bold tabular-nums whitespace-nowrap">20.00 د.ل</span>
+                <span className="text-teal-300 font-bold tabular-nums whitespace-nowrap">{formatDinar(ps5PriceOf(chooserGame))} د.ل</span>
               </button>
               <button
                 type="button"
