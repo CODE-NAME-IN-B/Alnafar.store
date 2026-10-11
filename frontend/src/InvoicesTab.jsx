@@ -850,7 +850,12 @@ export default function InvoicesTab() {
                               <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={1.6} viewBox="0 0 24 24">{meta.icon}</svg>
                             </span>
                             <div className="flex-1 min-w-0">
-                              <p className="text-sm font-semibold text-white truncate">{item.title}</p>
+                              <div className="flex items-center gap-1.5">
+                                <p className="text-sm font-semibold text-white truncate">{item.title}</p>
+                                {item.platform && (
+                                  <span className="text-[10px] font-bold text-teal-300 bg-teal-500/15 border border-teal-400/30 rounded-full px-2 py-0.5 whitespace-nowrap">{item.platform === 'PS5' ? 'فايف (معدل)' : 'فور'}</span>
+                                )}
+                              </div>
                               {sub && <p className="text-[11px] text-gray-500">{sub}</p>}
                             </div>
                             <span className="text-sm font-mono tabular-nums text-gray-200 whitespace-nowrap">{currency(item.price)}</span>

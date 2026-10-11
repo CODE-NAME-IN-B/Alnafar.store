@@ -52,7 +52,7 @@ export default function Invoice({ cart, total, totalSize = 0, onClose, onSuccess
       const finalTotal = total - discount;
       const invoiceData = {
         customerInfo,
-        items: cart.map(({ id, title, price, size_gb, type, items }) => ({ ...(id !== undefined && { id }), title, price, size_gb, ...(type && { type }), ...(items && { items }) })),
+        items: cart.map(({ id, title, price, size_gb, type, items, platform }) => ({ ...(id !== undefined && { id }), title, price, size_gb, ...(type && { type }), ...(items && { items }), ...(platform && { platform }) })),
         total,
         totalSize,
         estimatedMinutes,
@@ -203,7 +203,12 @@ export default function Invoice({ cart, total, totalSize = 0, onClose, onSuccess
                   {cart.filter(i => i.type !== 'service').map((item, index) => (
                     <div key={index} className="flex justify-between items-center py-2 px-2 bg-white/3 rounded-lg">
                       <div className="flex-1 min-w-0">
-                        <p className="text-white font-medium text-sm truncate">{item.title}</p>
+                        <div className="flex items-center gap-1.5">
+                          <p className="text-white font-medium text-sm truncate">{item.title}</p>
+                          {item.platform && (
+                            <span className="text-[10px] font-bold text-teal-300 bg-teal-500/15 border border-teal-400/30 rounded-full px-2 py-0.5 whitespace-nowrap">{item.platform === 'PS5' ? 'فايف (معدل)' : 'فور'}</span>
+                          )}
+                        </div>
                       </div>
                       <span className="text-purple-400 font-bold text-sm tabular-nums mr-2">{currency(item.price)}</span>
                     </div>

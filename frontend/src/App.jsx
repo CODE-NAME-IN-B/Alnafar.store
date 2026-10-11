@@ -142,6 +142,8 @@ function TopList({ onAdd }) {
               title: g.title || t.title || (t.gameId ? `لعبة #${t.gameId}` : null),
               image: g.image || '',
               price: typeof g.price === 'number' ? g.price : 0,
+              category_id: g.category_id,
+              size_gb: g.size_gb,
               count: t.count
             }
           })
@@ -456,6 +458,7 @@ export default function App() {
   const [showInvoice, setShowInvoice] = useState(false)
   const [showMobileCart, setShowMobileCart] = useState(false)
   const [viewingPackage, setViewingPackage] = useState(null)
+  const [chooserGame, setChooserGame] = useState(null)
   const [isGuestMode, setIsGuestMode] = useState(localStorage.getItem('isGuest') === 'true')
   const [storePhone, setStorePhone] = useState('')
   const [branches, setBranches] = useState([])
@@ -882,7 +885,7 @@ export default function App() {
       // يشمل معرّف اللعبة الرقمي فقط (يتجاهل معرّفات الباقات pkg_*) حتى تُحتسب المبيعات في الإحصائيات
       ...cart.map(g => ({
         ...(g.id !== undefined && g.id !== null && String(g.id).trim() !== '' && !String(g.id).startsWith('pkg_') ? { id: g.id } : {}),
-        title: g.title, price: Number(g.price) || 0, size_gb: Number(g.size_gb) || 0, type: g.type || 'game', items: g.packageGames
+        title: g.title, price: Number(g.price) || 0, size_gb: Number(g.size_gb) || 0, type: g.type || 'game', items: g.packageGames, platform: g.platform
       })),
       ...servicesCart.map(s => ({ title: s.title, price: Number(s.price) || 0, type: 'service' }))
     ],
@@ -913,6 +916,16 @@ export default function App() {
   function addToCart(game) {
     setCart(prev => [...prev, game])
     playAddFeedback()
+  }
+  function requestAddGame(game) {
+    const ps4Id = (categories || []).find(c => String(c.name).toLowerCase() === 'ps4')?.id ?? 1
+    if (Number(game.category_id) === Number(ps4Id)) { setChooserGame(game) }
+    else { addToCart(game) }
+  }
+  function addToCartVariant(game, platform, price) {
+    setCart(prev => [...prev, { ...game, price: Number(price), platform }])
+    playAddFeedback()
+    setChooserGame(null)
   }
   function addToCartPackage(pkg) {
     const pkgSize = pkg.packageGames ? pkg.packageGames.reduce((acc, g) => acc + (Number(g.size_gb) || 0), 0) : 0;
@@ -973,7 +986,7 @@ export default function App() {
     if (cart.length > 0) {
       msg += '📦 *الألعاب:*\n'
       cart.forEach((g, i) => {
-        msg += `${i + 1}. ${g.title}\n`
+        msg += `${i + 1}. ${g.title}${g.platform ? (g.platform === 'PS5' ? ' (فايف)' : ' (فور)') : ''}\n`
         msg += `   💰 ${currency(g.price)} | 📀 ${g.size_gb || 0} GB\n`
       })
     }
@@ -1679,7 +1692,7 @@ export default function App() {
                         {/* زر السلة */}
                         {(hasToken || isGuestMode) && (
                           <button
-                            onClick={() => addToCart(game)}
+                            onClick={() => requestAddGame(game)}
                             className="mt-3 w-full bg-gradient-to-r from-[color:var(--brand)] to-emerald-500 hover:from-[color:var(--brand-hover)] hover:to-emerald-400 text-white font-bold py-2.5 px-4 rounded-xl transition-all duration-300 hover:shadow-[0_0_20px_rgba(20,184,166,0.5)] active:scale-[0.97] flex items-center justify-center gap-2 text-sm cursor-pointer"
                           >
                             <svg className="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1770,7 +1783,12 @@ export default function App() {
                         <div className="w-2 h-2 bg-teal-500 rounded-full flex-shrink-0"></div>
                         <div className="flex-1 min-w-0">
                           <p className="text-sm font-medium truncate text-white" title={g.title}>{g.title}</p>
-                          <p className="text-xs text-[color:var(--brand)] font-bold">{currency(g.price)}</p>
+                          <div className="flex items-center gap-1.5">
+                            <p className="text-xs text-[color:var(--brand)] font-bold">{currency(g.price)}</p>
+                            {g.platform && (
+                              <span className="text-[10px] font-bold text-teal-300 bg-teal-500/15 border border-teal-400/30 rounded-full px-2 py-0.5">{g.platform === 'PS5' ? 'فايف (معدل)' : 'فور'}</span>
+                            )}
+                          </div>
                         </div>
                         <button onClick={() => removeFromCart(i)} className="w-7 h-7 flex items-center justify-center text-gray-500 hover:text-red-400 hover:bg-red-500/10 rounded-lg transition-all opacity-0 group-hover:opacity-100" aria-label="حذف">
                           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
@@ -1854,7 +1872,7 @@ export default function App() {
             {/* الأكثر طلباً - يظهر من شاشة lg فما فوق */}
             <div className="hidden lg:block bg-card rounded-xl shadow-sm border border-white/10 p-4 xl:p-5 h-[60vh] min-h-[280px] overflow-auto toplist-scroll">
               <h2 className="text-lg xl:text-xl font-bold mb-3 xl:mb-4">الأكثر طلباً</h2>
-              <TopList onAdd={(hasToken || isGuestMode) ? addToCart : null} />
+              <TopList onAdd={(hasToken || isGuestMode) ? requestAddGame : null} />
             </div>
           </aside>
         </div>
@@ -2038,7 +2056,12 @@ export default function App() {
                         <div className="w-2 h-2 bg-primary rounded-full flex-shrink-0"></div>
                         <div className="flex-1 min-w-0">
                           <p className="font-medium truncate text-white text-sm" title={g.title}>{g.title}</p>
-                          <p className="text-primary font-bold text-xs">{currency(g.price)}</p>
+                          <div className="flex items-center gap-1.5">
+                            <p className="text-primary font-bold text-xs">{currency(g.price)}</p>
+                            {g.platform && (
+                              <span className="text-[10px] font-bold text-teal-300 bg-teal-500/15 border border-teal-400/30 rounded-full px-2 py-0.5">{g.platform === 'PS5' ? 'فايف (معدل)' : 'فور'}</span>
+                            )}
+                          </div>
                         </div>
                         <button onClick={() => removeFromCart(i)} className="w-8 h-8 flex items-center justify-center text-gray-500 hover:text-red-400 hover:bg-red-500/10 rounded-lg transition-all" aria-label="حذف من السلة">
                           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
@@ -2132,6 +2155,50 @@ export default function App() {
             onSuccess={handleInvoiceSuccess}
           />
         </Suspense>
+      )}
+      {chooserGame && (
+        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4" onClick={() => setChooserGame(null)}>
+          <div role="dialog" aria-modal="true" aria-label="اختر نسخة اللعبة" className="bg-gray-900 border border-white/10 rounded-2xl p-5 sm:p-6 max-w-md w-full shadow-2xl relative" onClick={e => e.stopPropagation()}>
+            <div className="flex items-center justify-between mb-4 pb-3 border-b border-white/10">
+              <h3 className="text-lg sm:text-xl font-bold text-white truncate pr-2">{chooserGame.title}</h3>
+              <button
+                onClick={() => setChooserGame(null)}
+                className="text-gray-400 hover:text-white p-1 rounded-lg hover:bg-white/10 transition-colors cursor-pointer"
+                aria-label="إغلاق"
+              >
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+              </button>
+            </div>
+            <p className="text-sm text-gray-400 mb-4">اللعبة متوفرة على نسختين — اختر المنصة:</p>
+            <div className="space-y-3">
+              <button
+                type="button"
+                onClick={() => addToCartVariant(chooserGame, 'PS4', 10)}
+                className="w-full flex items-center gap-3 px-4 py-4 min-h-[44px] rounded-xl border border-white/10 bg-white/5 hover:border-teal-400/40 hover:bg-white/10 transition-all duration-200 cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-500/50"
+              >
+                <span className="text-white"><CategoryIcon name="PS4" /></span>
+                <span className="flex-1 text-right text-white font-bold">الفور (PS4)</span>
+                <span className="text-teal-300 font-bold tabular-nums whitespace-nowrap">10.00 د.ل</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => addToCartVariant(chooserGame, 'PS5', 20)}
+                className="w-full flex items-center gap-3 px-4 py-4 min-h-[44px] rounded-xl border border-teal-500/40 bg-teal-500/10 hover:border-teal-400/60 hover:bg-teal-500/15 transition-all duration-200 cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-500/50"
+              >
+                <span className="text-teal-300"><CategoryIcon name="PS5" /></span>
+                <span className="flex-1 text-right text-white font-bold">الفايف (PS5)</span>
+                <span className="text-teal-300 font-bold tabular-nums whitespace-nowrap">20.00 د.ل</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setChooserGame(null)}
+                className="w-full py-3 min-h-[44px] rounded-xl border border-white/10 text-gray-300 font-medium hover:bg-white/5 transition-all cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-500/50"
+              >
+                إلغاء
+              </button>
+            </div>
+          </div>
+        </div>
       )}
       {viewingPackage && (
         <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4" onClick={() => setViewingPackage(null)}>
