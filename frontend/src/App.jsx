@@ -459,6 +459,14 @@ export default function App() {
   const [showMobileCart, setShowMobileCart] = useState(false)
   const [viewingPackage, setViewingPackage] = useState(null)
   const [chooserGame, setChooserGame] = useState(null)
+
+  // إغلاق نافذة اختيار النسخة بمفتاح Escape
+  useEffect(() => {
+    if (!chooserGame) return
+    const onKey = (e) => { if (e.key === 'Escape') setChooserGame(null) }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [chooserGame])
   const [isGuestMode, setIsGuestMode] = useState(localStorage.getItem('isGuest') === 'true')
   const [storePhone, setStorePhone] = useState('')
   const [branches, setBranches] = useState([])
