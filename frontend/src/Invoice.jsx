@@ -7,7 +7,7 @@ function currency(num) {
   return new Intl.NumberFormat('ar-LY', { style: 'currency', currency: 'LYD' }).format(num)
 }
 
-export default function Invoice({ cart, total, totalSize = 0, onClose, onSuccess }) {
+export default function Invoice({ cart, total, totalSize = 0, branchId = null, onClose, onSuccess }) {
   // If we are editing, we might have initial data passed in or available via cart items
   const isEditing = !!localStorage.getItem('editing_invoice')
   const editingData = isEditing ? JSON.parse(localStorage.getItem('editing_invoice')) : null
@@ -60,7 +60,9 @@ export default function Invoice({ cart, total, totalSize = 0, onClose, onSuccess
         finalTotal,
         paidAmount,
         date: new Date().toISOString(),
-        status: paidAmount >= finalTotal ? 'completed' : 'pending'
+        status: paidAmount >= finalTotal ? 'completed' : 'pending',
+        // الفرع المحدد في المتجر — يلزم حفظ الفاتورة في بيانات ذلك الفرع
+        ...(branchId != null && { branch_id: Number(branchId) })
       }
 
       // إذا كنا في وضع التعديل، نستخدم PUT بدلاً من POST

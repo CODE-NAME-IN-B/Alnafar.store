@@ -19,6 +19,7 @@ const webpush = require('web-push');
 const { authMiddleware, optionalAuthMiddleware, requireAdmin, requireRole, signToken, JWT_SECRET_ACTIVE } = require('./middleware/auth');
 const { loginRateLimit, apiWriteRateLimit, publicOrderRateLimit, uploadRateLimit, aiRateLimit } = require('./middleware/rateLimit');
 const { initAudit, auditLog } = require('./middleware/audit');
+const { resolveInvoiceBranchId } = require('./invoice-branch');
 
 // Web Push setup - VAPID keys MUST come from environment variables
 const VAPID_PUBLIC_KEY = process.env.VAPID_PUBLIC_KEY;
@@ -2952,9 +2953,6 @@ app.post('/api/invoices', optionalAuthMiddleware, publicOrderRateLimit, async (r
       date
     } = req.body;
 
-    // نسبة الفاتورة للفرع: فرع المستخدم المسجّل يفوز دائماً، وإلا الفرع المرسل من الطلب العام، وإلا الفرع الرئيسي
-    const invoiceBranchId = req.user ? (Number(req.user.branch_id) || 1) : (Number(req.body.branch_id) || 1);
-
     const createdAt = date || new Date().toISOString();
     const computedFinal = finalTotal || (total - discount);
     const status = paidAmount <= 0 ? 'pending' : (paidAmount >= computedFinal ? 'completed' : 'pending');
@@ -2970,6 +2968,25 @@ app.post('/api/invoices', optionalAuthMiddleware, publicOrderRateLimit, async (r
     if (!Array.isArray(items) || items.length === 0) {
       return res.status(400).json({ message: 'يجب أن تحتوي الفاتورة على عنصر واحد على الأقل' });
     }
+
+    // نسبة الفاتورة للفرع: الأدمن الرئيسي يحترم الفرع المختار في الطلب (body.branch_id أو ?branchId=)
+    // حتى تُحفظ فواتير الفرع الآخر في بياناته، ومستخدم الفرع مقيّد دائماً بفرعه، والزائر يحترم الطلب وإلا الرئيسي.
+    // فرع المستخدم يُقرأ من قاعدة البيانات لتفادي توكن قديم بعد نقله بين الفروع.
+    let dbBranchId = null;
+    if (req.user && req.user.id != null) {
+      try {
+        const dbUser = await get('SELECT branch_id FROM users WHERE id = ?', [req.user.id]);
+        if (dbUser) dbBranchId = dbUser.branch_id;
+      } catch (branchErr) {
+        console.warn('تعذّر قراءة فرع المستخدم من قاعدة البيانات، يُعتمد فرع التوكن:', branchErr.message);
+      }
+    }
+    const invoiceBranchId = resolveInvoiceBranchId({
+      user: req.user,
+      bodyBranchId: req.body?.branch_id,
+      queryBranchId: req.query?.branchId,
+      dbBranchId
+    });
 
     // الحصول على رقم الفاتورة اليومي التسلسلي مع معالجة الأخطاء
     let invoiceNumberResult;
