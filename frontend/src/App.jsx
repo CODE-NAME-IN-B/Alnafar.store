@@ -12,7 +12,31 @@ import cover2 from '../assites/cover2.jpg'
 const Admin = lazy(() => import('./Admin'))
 const Invoice = lazy(() => import('./Invoice'))
 
+// Helper function for Web Push notifications (from OrderTracking.jsx)
+function urlBase64ToUint8Array(base64String) {
+  const padding = '='.repeat((4 - base64String.length % 4) % 4);
+  const base64 = (base64String + padding)
+    .replace(/-/g, '+')
+    .replace(/_/g, '/');
+  
+  const rawData = window.atob(base64);
+  const outputArray = new Uint8Array(rawData.length);
+  
+  for (let i = 0; i < rawData.length; ++i) {
+    outputArray[i] = rawData.charCodeAt(i);
+  }
+  return outputArray;
+}
+
 const ps5PriceOf = (game) => (game && game.price_ps5 != null && game.price_ps5 !== '' ? Number(game.price_ps5) : Number(game.price) * 2)
+// السعر المعروض للزبون: لعبة PS5 تخزّن سعرها في price، والبيانات القديمة قد تحفظه في price_ps5
+const mainPriceOf = (game) => {
+  if (!game) return 0
+  const p = Number(game.price) || 0
+  const p5 = game.price_ps5 != null && game.price_ps5 !== '' ? Number(game.price_ps5) : null
+  if (p <= 0 && p5 != null) return p5
+  return p
+}
 const formatDinar = (n) => Number(n).toFixed(2).replace(/\.00$/, '')
 
 function SplashScreen({ fading }) {
@@ -463,6 +487,60 @@ export default function App() {
   const [viewingPackage, setViewingPackage] = useState(null)
   const [chooserGame, setChooserGame] = useState(null)
 
+  // Game notification states (NEW)
+  const [gameNotification, setGameNotification] = useState(null)
+  const [showGameNotification, setShowGameNotification] = useState(false)
+  const [newGameSubs, setNewGameSubs] = useState([])
+  const [notifPermission, setNotifPermission] = useState(
+    typeof Notification !== 'undefined' ? Notification.permission : 'denied'
+  )
+
+  // الاشتراك في إشعارات الألعاب الجديدة (Web Push)
+  async function subscribeToGameNews() {
+    if (!('serviceWorker' in navigator) || !('PushManager' in window) || typeof Notification === 'undefined') return false
+    if (Notification.permission !== 'granted') return false
+    try {
+      const { data } = await api.get('/notifications/vapid-public-key')
+      if (!data.success || !data.publicKey) return false
+      const registration = await navigator.serviceWorker.register('/sw.js')
+      await navigator.serviceWorker.ready
+      let subscription = await registration.pushManager.getSubscription()
+      if (!subscription) {
+        const convertedVapidKey = urlBase64ToUint8Array(data.publicKey)
+        subscription = await registration.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: convertedVapidKey })
+      }
+      if (subscription) {
+        // نُرسل نوع الاشتراك game_news ليصل إشعار اللعبة لكل مشترك
+        await api.post('/notifications/subscribe', { orderId: 'game_news', subscription })
+        setNewGameSubs(prev => [...prev, subscription])
+        return true
+      }
+    } catch (error) {
+      console.error('Game news subscription error:', error)
+    }
+    return false
+  }
+
+  // طلب إذن الإشعارات ثم الاشتراك
+  const requestGameNotificationPermission = async () => {
+    try {
+      const permission = await Notification.requestPermission()
+      setNotifPermission(permission)
+      if (permission === 'granted') {
+        await subscribeToGameNews()
+        showToast('تم تفعيل إشعارات الألعاب الجديدة')
+      }
+    } catch (error) {
+      console.error('Notification error:', error)
+    }
+  }
+
+  // إذا كان الإذن ممنوحًا مسبقًا، نشترك تلقائيًا
+  useEffect(() => {
+    if (Notification.permission === 'granted') subscribeToGameNews()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
   // إغلاق نافذة اختيار النسخة بمفتاح Escape
   useEffect(() => {
     if (!chooserGame) return
@@ -590,6 +668,12 @@ export default function App() {
     const handleGameAdded = (data) => {
       console.log('🎮 لعبة جديدة:', data.message);
       setGames(prevGames => [data.game, ...prevGames]);
+      
+      // عرض إشعار داخل التطبيق (يساعد تلقائياً)
+      setGameNotification(data.game);
+      setShowGameNotification(true);
+      
+      // إرسال إشعار فوري للمستخدمين المشتركين
       if (Notification.permission === 'granted') {
         new Notification('لعبة جديدة', {
           body: `تم إضافة: ${data.game.title}`,
@@ -931,7 +1015,11 @@ export default function App() {
   function requestAddGame(game) {
     const ps4Id = (categories || []).find(c => String(c.name).toLowerCase() === 'ps4')?.id ?? 1
     if (Number(game.category_id) === Number(ps4Id)) { setChooserGame(game) }
-    else { addToCart(game) }
+    else {
+      // ألعاب PS5 (وغيرها): تُضاف مباشرة بالسعر الصحيح (يدعم البيانات القديمة التي تحفظ السعر في price_ps5)
+      setCart(prev => [...prev, { ...game, price: mainPriceOf(game) }])
+      playAddFeedback()
+    }
   }
   function addToCartVariant(game, platform, price) {
     setCart(prev => [...prev, { ...game, price: Number(price), platform }])
@@ -1695,9 +1783,18 @@ export default function App() {
                       <div className="mt-auto">
                         <div className="flex items-center justify-between">
                           <div className="flex items-baseline gap-1">
-                            <span className="text-[color:var(--brand)] font-black text-lg sm:text-xl tabular-nums">{game.price.toFixed(3)}</span>
+                            <span className="text-[color:var(--brand)] font-black text-lg sm:text-xl tabular-nums">{mainPriceOf(game).toFixed(3)}</span>
                             <span className="text-gray-500 text-xs font-medium">د.ل</span>
                           </div>
+                          {categoryName && (
+                            <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${
+                              String(categoryName).toLowerCase().includes('ps5')
+                                ? 'text-teal-300 bg-teal-500/15 border-teal-400/30'
+                                : 'text-blue-300 bg-blue-500/15 border-blue-400/30'
+                            }`}>
+                              {categoryName}
+                            </span>
+                          )}
                         </div>
                         
                         {/* زر السلة */}
@@ -2162,6 +2259,7 @@ export default function App() {
             cart={combinedCartForInvoice}
             total={total}
             totalSize={totalSize}
+            branchId={selectedBranchId}
             onClose={handleInvoiceClose}
             onSuccess={handleInvoiceSuccess}
           />
@@ -2255,6 +2353,113 @@ export default function App() {
 
       {/* زر تثبيت التطبيق (PWA) */}
       <InstallPrompt />
+
+      {/* Game Notification Component */}
+      {showGameNotification && gameNotification && (
+        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4" onClick={() => setShowGameNotification(false)}>
+          <div className="bg-gray-900 border border-teal-500/30 rounded-2xl p-6 max-w-md w-full shadow-2xl relative" onClick={e => e.stopPropagation()}>
+            <div className="flex items-center justify-between mb-4 pb-3 border-b border-white/10">
+              <h3 className="text-xl font-bold text-white truncate pr-2">لعبة جديدة</h3>
+              <button
+                onClick={() => setShowGameNotification(false)}
+                className="text-gray-400 hover:text-white p-1 rounded-lg hover:bg-white/10 transition-colors"
+                aria-label="إغلاق"
+              >
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+            <div className="space-y-4">
+              {gameNotification.image && (
+                <img 
+                  src={gameNotification.image} 
+                  alt={gameNotification.title} 
+                  className="w-full h-48 object-cover rounded-lg mb-4"
+                  referrerPolicy="no-referrer"
+                  onError={(e) => { e.currentTarget.onerror = null; e.currentTarget.style.display = 'none'; }}
+                />
+              )}
+              <div>
+                <h4 className="text-lg font-bold text-white mb-2">{gameNotification.title}</h4>
+                <div className="flex items-center justify-between gap-4 mb-2">
+                  <span className="text-teal-400 font-bold text-lg tabular-nums">
+                    {currency(gameNotification.price)} د.ل
+                  </span>
+                  {gameNotification.price_ps5 && (
+                    <span className="text-purple-400 font-semibold text-sm">
+                      فايف: {currency(Number(gameNotification.price_ps5))} د.ل
+                    </span>
+                  )}
+                </div>
+                {gameNotification.category && (
+                  <div className="flex items-center gap-2 mt-2">
+                    <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-blue-500/15 text-blue-400 rounded-full text-xs font-semibold border border-blue-500/20">
+                      {gameNotification.category}
+                    </span>
+                  </div>
+                )}
+              </div>
+              <div className="pt-4 border-t border-white/10">
+                <p className="text-sm text-gray-400 mb-3">لعبة جديدة متاحة الآن في متجر النفار</p>
+                <button
+                  onClick={() => setShowGameNotification(false)}
+                  className="w-full py-3 min-h-[44px] bg-gradient-to-r from-teal-500 to-emerald-500 hover:from-teal-600 hover:to-emerald-600 transition-all text-white font-bold rounded-xl shadow-lg shadow-teal-500/30"
+                >
+                  تصفح الألعاب
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Game notification banner at top */}
+      {gameNotification && (
+        <div className="fixed top-4 right-4 z-50 bg-gradient-to-r from-teal-500/20 to-emerald-500/20 border border-teal-400/30 rounded-xl p-4 backdrop-blur-xl shadow-2xl max-w-sm animate-slide-up">
+          <div className="flex items-center gap-3">
+            <div className="bg-teal-500/20 p-2 rounded-lg">
+              <svg className="w-5 h-5 text-teal-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6l4 2" />
+                <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="2" fill="none" />
+              </svg>
+            </div>
+            <div className="flex-1">
+              <h4 className="font-bold text-white">لعبة جديدة</h4>
+              <p className="text-sm text-gray-300">تمت إضافة "{gameNotification.title}"</p>
+            </div>
+            <button
+              onClick={() => setShowGameNotification(true)}
+              className="text-teal-300 hover:text-teal-200 font-medium text-sm underline"
+            >
+              عرض
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Notification permission banner (NEW) */}
+      {notifPermission === 'default' && (
+        <div className="fixed bottom-4 left-4 z-50 bg-gray-900/80 backdrop-blur-xl border border-indigo-500/30 rounded-2xl p-4 shadow-2xl max-w-sm">
+          <div className="flex items-center gap-3">
+            <div className="bg-indigo-500/20 p-2 rounded-lg">
+              <svg className="w-5 h-5 text-indigo-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+              </svg>
+            </div>
+            <div className="flex-1">
+              <p className="font-bold text-white mb-1">تفعيل تنبيهات الألعاب الجديدة</p>
+              <p className="text-sm text-gray-400">احصل على إشعار عند إضافة لعبة جديدة</p>
+            </div>
+            <button
+              onClick={requestGameNotificationPermission}
+              className="px-4 py-2 bg-gradient-to-r from-indigo-500 to-purple-500 hover:from-indigo-600 hover:to-purple-600 transition-all text-white font-bold rounded-lg text-sm shadow-lg shadow-indigo-500/30"
+            >
+              تفعيل
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

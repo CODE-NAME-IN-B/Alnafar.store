@@ -172,12 +172,13 @@ self.addEventListener('push', function (event) {
 
   const options = {
     body: data.body,
-    icon: '/icon-192x192.png',
-    badge: '/icon-192x192.png',
+    icon: data.icon || '/icon-192x192.png',
+    badge: data.badge || '/icon-192x192.png',
     vibrate: [200, 100, 200, 100, 200],
-    requireInteraction: true,
-    tag: 'order-status-' + (data.url ? data.url.split('/').pop() : 'update'),
-    renotify: true,
+    requireInteraction: data.requireInteraction !== undefined ? data.requireInteraction : true,
+    // احترم الوسم المخصص (مثل إشعار لعبة جديدة) وإلا وسم حالة الطلب
+    tag: data.tag || ('order-status-' + (data.url ? data.url.split('/').pop() : 'update')),
+    renotify: data.renotify !== undefined ? data.renotify : true,
     data: {
       url: data.url
     }

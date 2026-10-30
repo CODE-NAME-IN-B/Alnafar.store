@@ -816,6 +816,58 @@ function broadcastUpdate(event, data) {
   console.log(`[Socket.IO Bypass] Event: ${event}`);
 }
 
+// إرسال إشعار Web Push لكل المشتركين في إشعارات الألعاب الجديدة (order_id = 'game_news')
+async function sendGameAddedPush(game) {
+  if (!VAPID_PUBLIC_KEY || !VAPID_PRIVATE_KEY) {
+    console.warn('[Push] VAPID غير مُهيأ — تم تخطي إشعار اللعبة الجديدة');
+    return { sent: 0, total: 0 };
+  }
+
+  const subs = await all(
+    "SELECT id, subscription_data FROM push_subscriptions WHERE order_id = 'game_news'"
+  );
+  if (!subs.length) return { sent: 0, total: 0 };
+
+  // جلب اسم الفئة لعرضه في الإشعار
+  let categoryName = '';
+  if (game.category_id) {
+    try {
+      const cat = await get('SELECT name FROM categories WHERE id = ?', [game.category_id]);
+      categoryName = cat?.name || '';
+    } catch (_) { /* تجاهل */ }
+  }
+
+  const payload = JSON.stringify({
+    title: '🎮 لعبة جديدة في المتجر!',
+    body: categoryName
+      ? `أُضيفت "${game.title}" في قسم ${categoryName}`
+      : `أُضيفت "${game.title}" إلى المتجر`,
+    icon: '/icon-192x192.png',
+    badge: '/icon-192x192.png',
+    tag: 'game-added-' + game.id,
+    renotify: true,
+    url: '/#/'
+  });
+
+  let sent = 0;
+  await Promise.allSettled(subs.map(async (s) => {
+    try {
+      await webpush.sendNotification(JSON.parse(s.subscription_data), payload);
+      sent++;
+    } catch (err) {
+      // حذف الاشتراك المنتهي الصلاحية (404/410) حتى لا يتراكم
+      const statusCode = err && err.statusCode;
+      if (statusCode === 404 || statusCode === 410) {
+        try { await run('DELETE FROM push_subscriptions WHERE id = ?', [s.id]); } catch (_) { /* تجاهل */ }
+      }
+      console.error('[Push] فشل إرسال لاشتراك:', statusCode || err.message);
+    }
+  }));
+
+  console.log(`[Push] إشعار اللعبة "${game.title}": أُرسل إلى ${sent} من ${subs.length}`);
+  return { sent, total: subs.length };
+}
+
 // دالة للتحقق من حالة قاعدة البيانات
 async function checkDatabaseHealth() {
   try {
@@ -2555,6 +2607,11 @@ app.post('/api/games', authMiddleware, async (req, res) => {
       game: newGame,
       message: 'تم إضافة لعبة جديدة'
     });
+
+    // إرسال إشعار Web Push لكل المشتركين في إشعارات الألعاب الجديدة
+    sendGameAddedPush(newGame).catch(err =>
+      console.error('[Push] فشل إرسال إشعار اللعبة الجديدة:', err.message)
+    );
 
     console.log('[POST /api/games] ✅ Game added:', { id: newGame.id, title, category_id: newGame.category_id, genre, series, features, size_gb: newGame.size_gb });
     await auditLog(req, 'game_created', 'game', newGame.id, null, { title, price, category_id });
