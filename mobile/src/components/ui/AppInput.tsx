@@ -60,7 +60,7 @@ export default function AppInput({
       >
         {icon ? (
           <View style={styles.iconSlot}>
-            <Icon name={icon} size={18} color={focused ? '#2dd4bf' : '#64748b'} />
+            <Icon name={icon} size={18} color={focused ? '#2dd4bf' : '#94a3b8'} />
           </View>
         ) : null}
         <TextInput
@@ -68,7 +68,7 @@ export default function AppInput({
           value={value}
           onChangeText={onChangeText}
           placeholder={placeholder}
-          placeholderTextColor="#64748b"
+          placeholderTextColor="#94a3b8"
           multiline={multiline}
           keyboardType={keyboard}
           secureTextEntry={hidden}

@@ -14,6 +14,7 @@ import {
   type InvoiceRecord,
 } from '@/api/invoices';
 import { apiErrorText } from '@/api/client';
+import { formatInvoiceCode } from '@/components/ui/LtrText';
 import { useAppStore } from '@/stores/app';
 import { useAuthStore } from '@/stores/auth';
 import { useCartStore, type CartItem } from '@/stores/cart';
@@ -97,7 +98,7 @@ export default function AdminInvoicesScreen() {
     if (rem <= 0) return;
     try {
       await recordInvoicePayment(inv.id, rem);
-      showToast(`تم تسديد المتبقي للفاتورة #${inv.invoice_number}`);
+      showToast(`تم تسديد المتبقي للفاتورة ${formatInvoiceCode(inv.invoice_number)}`);
       await invoicesQuery.refetch();
       await summaryQuery.refetch();
     } catch (err) {
@@ -108,7 +109,7 @@ export default function AdminInvoicesScreen() {
   const handleMarkUnpaid = async (inv: InvoiceRecord) => {
     try {
       await markInvoiceUnpaid(inv.id);
-      showToast(`أُعيدت الفاتورة #${inv.invoice_number} إلى غير مدفوع`);
+      showToast(`أُعيدت الفاتورة ${formatInvoiceCode(inv.invoice_number)} إلى غير مدفوع`);
       await invoicesQuery.refetch();
       await summaryQuery.refetch();
     } catch (err) {
@@ -141,7 +142,7 @@ export default function AdminInvoicesScreen() {
       },
       cartItems
     );
-    showToast(`جاهز لتعديل الفاتورة #${inv.invoice_number} في المتجر`);
+    showToast(`جاهز لتعديل الفاتورة ${formatInvoiceCode(inv.invoice_number)} في المتجر`);
     router.push('/(store)/cart');
   };
 
@@ -171,7 +172,7 @@ export default function AdminInvoicesScreen() {
               value={date}
               onChangeText={setDate}
               placeholder="YYYY-MM-DD"
-              placeholderTextColor="#64748b"
+              placeholderTextColor="#94a3b8"
               style={styles.dateInput}
             />
           </View>
@@ -198,12 +199,12 @@ export default function AdminInvoicesScreen() {
         {/* شريط البحث وزر تسديد الكل */}
         <View style={styles.searchRow}>
           <View style={styles.searchBox}>
-            <Icon name="search" size={16} color="#64748b" />
+            <Icon name="search" size={16} color="#94a3b8" />
             <TextInput
               value={searchQ}
               onChangeText={setSearchQ}
               placeholder="بحث برقم الفاتورة أو اسم العميل أو الهاتف..."
-              placeholderTextColor="#64748b"
+              placeholderTextColor="#94a3b8"
               textAlign="right"
               style={styles.searchInput}
             />

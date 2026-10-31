@@ -78,12 +78,12 @@ export default function AdminGamesScreen() {
       <View style={styles.header}>
         <View style={styles.searchRow}>
           <View style={styles.searchBox}>
-            <Icon name="search" size={16} color="#64748b" />
+            <Icon name="search" size={16} color="#94a3b8" />
             <TextInput
               value={searchQ}
               onChangeText={setSearchQ}
               placeholder="ابحث عن لعبة في المكتبة..."
-              placeholderTextColor="#64748b"
+              placeholderTextColor="#94a3b8"
               textAlign="right"
               style={styles.searchInput}
             />

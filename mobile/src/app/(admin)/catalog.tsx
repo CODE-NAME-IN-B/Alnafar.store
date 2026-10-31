@@ -175,7 +175,7 @@ export default function AdminCatalogScreen() {
                 value={newCatName}
                 onChangeText={setNewCatName}
                 placeholder="اسم تصنيف جديد (مثل PS5)..."
-                placeholderTextColor="#64748b"
+                placeholderTextColor="#94a3b8"
                 textAlign="right"
                 style={[styles.inputBox, styles.flex1]}
               />
@@ -230,7 +230,7 @@ export default function AdminCatalogScreen() {
                 value={newSvcTitle}
                 onChangeText={setNewSvcTitle}
                 placeholder="عنوان الخدمة..."
-                placeholderTextColor="#64748b"
+                placeholderTextColor="#94a3b8"
                 textAlign="right"
                 style={[styles.inputBox, { flex: 2 }]}
               />
@@ -238,7 +238,7 @@ export default function AdminCatalogScreen() {
                 value={newSvcPrice}
                 onChangeText={setNewSvcPrice}
                 placeholder="السعر"
-                placeholderTextColor="#64748b"
+                placeholderTextColor="#94a3b8"
                 keyboardType="numeric"
                 textAlign="right"
                 style={[styles.inputBox, styles.flex1]}

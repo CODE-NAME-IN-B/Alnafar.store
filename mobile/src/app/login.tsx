@@ -85,7 +85,7 @@ export default function LoginScreen() {
             <View style={styles.logoFrame}>
               <Image source={LOGO} style={styles.logo} resizeMode="cover" />
             </View>
-            <Text style={styles.brandTitle}>الشارده ستور</Text>
+            <Text style={styles.brandTitle}>الشاردة ستور</Text>
             <Text style={styles.brandSubtitle}>النفار للألعاب • بلايستيشن و PC</Text>
           </View>
 
@@ -325,7 +325,7 @@ const styles = StyleSheet.create({
   },
   dividerLabel: {
     fontFamily: FONT.medium,
-    color: '#64748b',
+    color: '#94a3b8',
     fontSize: 12,
     includeFontPadding: false,
   },

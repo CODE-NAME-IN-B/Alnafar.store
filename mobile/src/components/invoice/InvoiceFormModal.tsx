@@ -19,6 +19,7 @@ import {
 import { useAppStore } from '@/stores/app';
 import { estimateMinutes } from '@/lib/estimate';
 import { formatDinar } from '@/lib/money';
+import { formatInvoiceCode } from '@/components/ui/LtrText';
 import { FONT } from '@/lib/fonts';
 import { showToast } from '@/lib/toast';
 import type { InvoiceItemInput } from '@/api/types';
@@ -59,6 +60,8 @@ export default function InvoiceFormModal({
 
   useEffect(() => {
     if (!visible) return;
+    // إعادة تهيئة استمارة الفاتورة عند فتح النافذة أو تغيّر الهدف (نموذج نافذة مقصود، وليس حالة مشتقة للعرض)
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setName(editingDraft?.customer_name ?? '');
     setPhone(editingDraft?.customer_phone ?? '');
     setNotes(editingDraft?.notes ?? '');
@@ -138,7 +141,7 @@ export default function InvoiceFormModal({
     <ModalSheet
       visible={visible}
       onClose={onClose}
-      title={editingDraft ? `تعديل الفاتورة #${editingDraft.invoice_number}` : 'إنشاء فاتورة جديدة'}
+      title={editingDraft ? `تعديل الفاتورة ${formatInvoiceCode(editingDraft.invoice_number)}` : 'إنشاء فاتورة جديدة'}
     >
       <ScrollView
         style={{ maxHeight: 450 }}

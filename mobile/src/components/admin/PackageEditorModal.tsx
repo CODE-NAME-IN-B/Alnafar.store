@@ -44,6 +44,8 @@ export default function PackageEditorModal({
 
   useEffect(() => {
     if (!visible) return;
+    // إعادة تهيئة استمارة عند فتح نافذة التحرير (نموذج نافذة مقصود، وليس حالة مشتقة للعرض)
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setName(pkg?.name ?? '');
     setPriceText(pkg?.price != null ? String(pkg.price) : '');
     setCategoryId(Number(pkg?.category_id ?? categories[0]?.id ?? 1));
@@ -156,7 +158,7 @@ export default function PackageEditorModal({
             value={searchQ}
             onChangeText={setSearchQ}
             placeholder="ابحث داخل ألعاب الفئة..."
-            placeholderTextColor="#64748b"
+            placeholderTextColor="#94a3b8"
             textAlign="right"
             style={{
               backgroundColor: '#0b1220',
@@ -200,7 +202,7 @@ export default function PackageEditorModal({
                     >
                       {g.title}
                     </Text>
-                    <Text style={{ color: chosen ? '#2dd4bf' : '#64748b', fontFamily: FONT.bold }}>
+                    <Text style={{ color: chosen ? '#2dd4bf' : '#94a3b8', fontFamily: FONT.bold }}>
                       {chosen ? '✓ مضافة' : '+'}
                     </Text>
                   </Pressable>

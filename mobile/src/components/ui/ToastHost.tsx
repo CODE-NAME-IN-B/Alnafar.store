@@ -1,5 +1,5 @@
 import { Text, View } from 'react-native';
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Animated } from 'react-native';
 import { registerToast, type ToastKind } from '@/lib/toast';
 
@@ -13,20 +13,27 @@ export default function ToastHost() {
     kind: ToastKind;
     id: number;
   } | null>(null);
+  // react-hooks/refs: Animated.Value ثابتة قصداً وليست قراءة ref للعرض (نمط شائع مسموح)
+  // eslint-disable-next-line react-hooks/refs
   const opacity = useRef(new Animated.Value(0)).current;
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  registerToast((message, kind) => {
-    if (timer.current) clearTimeout(timer.current);
-    setState({ message, kind, id: Date.now() });
-    opacity.setValue(0);
-    Animated.timing(opacity, { toValue: 1, duration: 160, useNativeDriver: true }).start();
-    timer.current = setTimeout(() => {
-      Animated.timing(opacity, { toValue: 0, duration: 220, useNativeDriver: true }).start(() =>
-        setState(null)
-      );
-    }, 3000);
-  });
+  // التسجيل داخل أثر (وليس render) — الاستدعاء الفعلي يحدث من معالجات أحداث
+  useEffect(() => {
+    registerToast((message, kind) => {
+      if (timer.current) clearTimeout(timer.current);
+      setState((prev) => ({ message, kind, id: (prev?.id ?? 0) + 1 }));
+      opacity.setValue(0);
+      Animated.timing(opacity, { toValue: 1, duration: 160, useNativeDriver: true }).start();
+      timer.current = setTimeout(() => {
+        Animated.timing(opacity, { toValue: 0, duration: 220, useNativeDriver: true }).start(
+          (finished) => {
+            if (finished) setState(null);
+          }
+        );
+      }, 3000);
+    });
+  }, [opacity]);
 
   if (!state) return null;
 

@@ -4,6 +4,7 @@ import { StyleSheet, Text, View } from 'react-native';
 import { useAppStore } from '@/stores/app';
 import { useAuthStore } from '@/stores/auth';
 import { useCartStore, cartCount } from '@/stores/cart';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import LoginScreen from '../login';
 import Icon, { IconName } from '@/components/ui/Icon';
 import { FONT } from '@/lib/fonts';
@@ -22,7 +23,7 @@ function TabIcon({
       <Icon
         name={icon}
         size={22}
-        color={focused ? '#2dd4bf' : '#64748b'}
+        color={focused ? '#2dd4bf' : '#94a3b8'}
         strokeWidth={focused ? 2.2 : 1.8}
       />
       {badge && badge > 0 ? (
@@ -43,6 +44,7 @@ export default function StoreLayout() {
   const authReady = useAuthStore((s) => s.ready);
   const items = useCartStore((s) => s.items);
   const count = cartCount(items);
+  const insets = useSafeAreaInsets();
 
   useEffect(() => {
     if (appReady && !selectedBranchId) {
@@ -63,12 +65,13 @@ export default function StoreLayout() {
           backgroundColor: '#090f1d',
           borderTopColor: '#1e293b',
           borderTopWidth: 1,
-          height: 66,
-          paddingBottom: 9,
+          // S2/V4: احترام شريط الإيماءات بالكامل (Arabic RTL + Android gesture bar)
+          height: 66 + Math.max(insets.bottom, 8),
+          paddingBottom: Math.max(insets.bottom, 8),
           paddingTop: 7,
         },
         tabBarActiveTintColor: '#2dd4bf',
-        tabBarInactiveTintColor: '#64748b',
+        tabBarInactiveTintColor: '#94a3b8',
         tabBarLabelStyle: {
           fontFamily: FONT.bold,
           fontSize: 12,

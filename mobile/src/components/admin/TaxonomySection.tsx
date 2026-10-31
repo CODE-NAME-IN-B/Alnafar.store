@@ -25,7 +25,7 @@ export default function TaxonomySection({ genres, seriesList, runAction }: Props
           value={newGenre}
           onChangeText={setNewGenre}
           placeholder="نوع جديد (مثل رعب، تقسيم الشاشة)..."
-          placeholderTextColor="#64748b"
+          placeholderTextColor="#94a3b8"
           textAlign="right"
           style={[inputBox, { flex: 1 }]}
         />
@@ -71,7 +71,7 @@ export default function TaxonomySection({ genres, seriesList, runAction }: Props
           value={newSeries}
           onChangeText={setNewSeries}
           placeholder="سلسلة جديدة (مثل Resident Evil)..."
-          placeholderTextColor="#64748b"
+          placeholderTextColor="#94a3b8"
           textAlign="right"
           style={[inputBox, { flex: 1 }]}
         />

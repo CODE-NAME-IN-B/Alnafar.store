@@ -67,7 +67,7 @@ export default function BranchGate() {
               textAlign: 'center',
             }}
           >
-            مرحباً بك في الشارده ستور
+            مرحباً بك في الشاردة ستور
           </AppText>
           <AppText
             style={{

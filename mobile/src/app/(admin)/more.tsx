@@ -16,6 +16,7 @@ import AppButton from '@/components/ui/AppButton';
 import Chip from '@/components/ui/Chip';
 import KeyboardScroll from '@/components/ui/KeyboardScroll';
 import { EmptyState, ErrorState, LoadingState } from '@/components/ui/StateView';
+import { formatArabicDate } from '@/components/ui/LtrText';
 import { FONT } from '@/lib/fonts';
 import { formatDinar } from '@/lib/money';
 import { showToast } from '@/lib/toast';
@@ -61,7 +62,9 @@ export default function AdminMoreScreen() {
   useEffect(() => {
     const s = invSettingsQ.data;
     if (!s) return;
-    setStoreName(s.store_name ?? 'الشارده للإلكترونيات');
+    // إعادة تهيئة استمارة من إعدادات السيرفر عند وصولها (نموذج استمارة، وليس حالة مشتقة للعرض)
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setStoreName(s.store_name ?? 'الشاردة ستور');
     setStoreNameEn(s.store_name_english ?? 'Alnafar Store');
     setStoreAddress(s.store_address ?? '');
     setStorePhone(s.store_phone ?? '');
@@ -285,7 +288,7 @@ export default function AdminMoreScreen() {
                     </Text>
                     <Text style={styles.auditSub}>
                       المستخدم: {log.username || log.user_id || 'نظام'} •{' '}
-                      {log.created_at}
+                      {formatArabicDate(log.created_at)}
                     </Text>
                   </View>
                 </View>

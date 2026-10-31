@@ -111,7 +111,7 @@ const styles = StyleSheet.create({
   },
   subHeading: {
     fontFamily: FONT.medium,
-    color: '#64748b',
+    color: '#94a3b8',
     fontSize: 11,
     includeFontPadding: false,
   },

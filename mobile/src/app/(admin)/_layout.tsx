@@ -109,7 +109,7 @@ export default function AdminLayout() {
         screenOptions={{
           headerShown: false,
           tabBarActiveTintColor: '#2dd4bf',
-          tabBarInactiveTintColor: '#64748b',
+          tabBarInactiveTintColor: '#94a3b8',
           tabBarHideOnKeyboard: true,
           tabBarStyle: {
             backgroundColor: '#0f172a',
@@ -206,7 +206,7 @@ const styles = StyleSheet.create({
     includeFontPadding: false,
   },
   subtitle: {
-    color: '#64748b',
+    color: '#94a3b8',
     fontFamily: FONT.medium,
     fontSize: 11,
     includeFontPadding: false,

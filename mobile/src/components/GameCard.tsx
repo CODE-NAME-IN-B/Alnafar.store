@@ -13,6 +13,8 @@ interface Props {
   game: Game;
   categories?: Category[];
   onPress: (game: Game) => void;
+  /** وضع القائمة المضغوطة للكاشير (7–8 ألعاب في الشاشة) */
+  compact?: boolean;
 }
 
 const SPLIT_PATTERNS = [/split/i, /شاشة\s*مقسومة/, /لاعبين/, /2\s*player/i, /co-?op/i];
@@ -22,7 +24,7 @@ export function hasSplitScreen(game: Game): boolean {
   return SPLIT_PATTERNS.some((re) => re.test(hay));
 }
 
-export default function GameCard({ game, categories = [], onPress }: Props) {
+export default function GameCard({ game, categories = [], onPress, compact = false }: Props) {
   const cartItems = useCartStore((s) => s.items);
 
   const inCart = useMemo(
@@ -50,6 +52,52 @@ export default function GameCard({ game, categories = [], onPress }: Props) {
     if (sLabel && gLabel && sLabel !== gLabel) return `${sLabel} • ${gLabel}`;
     return sLabel || gLabel || 'أكشن ومغامرة';
   }, [game]);
+
+  const compactPriceLine = useMemo(() => {
+    if (!isPs4) return formatDinar(mainPriceOf(game));
+    return `فور ${formatDinar(mainPriceOf(game))} • فايف ${formatDinar(ps5PriceOf(game))}`;
+  }, [game, isPs4]);
+
+  if (compact) {
+    return (
+      <Pressable
+        onPress={() => onPress(game)}
+        accessibilityRole="button"
+        style={[styles.cardRow, inCart && styles.cardInCart]}
+      >
+        <View style={styles.rowThumbWrap}>
+          {game.image ? (
+            <Image
+              source={{ uri: game.image }}
+              style={styles.rowThumbImg}
+              resizeMode="cover"
+            />
+          ) : (
+            <View style={styles.rowThumbFallback}>
+              <Icon name="gamepad" size={22} color="#334155" />
+            </View>
+          )}
+        </View>
+
+        <View style={styles.rowInfo}>
+          <Text numberOfLines={1} style={styles.title}>
+            {game.title}
+          </Text>
+          <Text numberOfLines={1} style={styles.rowPriceLine}>
+            {compactPriceLine}
+          </Text>
+        </View>
+
+        <View style={[styles.rowAddBtn, inCart && styles.rowAddBtnInCart]}>
+          <Icon
+            name={inCart ? 'check' : 'plus'}
+            size={18}
+            color={inCart ? '#042f2e' : '#2dd4bf'}
+          />
+        </View>
+      </Pressable>
+    );
+  }
 
   return (
     <Pressable
@@ -147,6 +195,60 @@ export default function GameCard({ game, categories = [], onPress }: Props) {
 }
 
 const styles = StyleSheet.create({
+  /* ==== الوضع المضغوط: صف أفقي ~68dp === */
+  cardRow: {
+    flexDirection: ROW,
+    alignItems: 'center',
+    gap: 10,
+    backgroundColor: '#131d31',
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#1e293b',
+    padding: 8,
+  },
+  rowThumbWrap: {
+    width: 52,
+    height: 52,
+    borderRadius: 10,
+    overflow: 'hidden',
+    backgroundColor: '#090f1d',
+  },
+  rowThumbImg: {
+    width: '100%',
+    height: '100%',
+  },
+  rowThumbFallback: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  rowInfo: {
+    flex: 1,
+    gap: 3,
+  },
+  rowPriceLine: {
+    fontFamily: FONT.semibold,
+    color: '#5eead4',
+    fontSize: 12,
+    writingDirection: 'ltr',
+    textAlignVertical: 'center',
+    includeFontPadding: false,
+  },
+  rowAddBtn: {
+    width: 44,
+    height: 44,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#17253e',
+    borderWidth: 1,
+    borderColor: '#2dd4bf44',
+  },
+  rowAddBtnInCart: {
+    backgroundColor: '#14b8a6',
+    borderColor: '#2dd4bf',
+  },
+  /* ==== بطاقة الشبكة 3:4 ==== */
   card: {
     flex: 1,
     backgroundColor: '#131d31',
@@ -280,31 +382,32 @@ const styles = StyleSheet.create({
     color: '#2dd4bf',
     fontSize: 11,
     includeFontPadding: false,
+    textAlign: 'left',
   },
   priceBadgePs5: {
     flex: 1,
-    flexDirection: ROW,
     alignItems: 'center',
     justifyContent: 'center',
     gap: 3,
     paddingVertical: 5,
     paddingHorizontal: 4,
     borderRadius: 8,
-    backgroundColor: 'rgba(139, 92, 246, 0.16)',
+    backgroundColor: 'rgba(45, 212, 191, 0.10)',
     borderWidth: 1,
-    borderColor: 'rgba(139, 92, 246, 0.45)',
+    borderColor: 'rgba(45, 212, 191, 0.5)',
   },
   priceLabelPs5: {
     fontFamily: FONT.semibold,
-    color: '#ddd6fe',
+    color: '#5eead4',
     fontSize: 10,
     includeFontPadding: false,
   },
   priceValPs5: {
     fontFamily: FONT.bold,
-    color: '#c4b5fd',
+    color: '#2dd4bf',
     fontSize: 11,
     includeFontPadding: false,
+    textAlign: 'left',
   },
   priceSingleWrap: {
     flex: 1,

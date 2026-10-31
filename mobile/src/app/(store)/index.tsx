@@ -39,7 +39,6 @@ import QrScannerModal from '@/components/track/QrScannerModal';
 import Chip from '@/components/ui/Chip';
 import Icon from '@/components/ui/Icon';
 import { EmptyState, ErrorState, LoadingState } from '@/components/ui/StateView';
-import { ENGLISH_LETTERS } from '@/lib/arabic';
 import { FONT } from '@/lib/fonts';
 import { ROW } from '@/lib/rtl';
 
@@ -60,6 +59,9 @@ export default function StoreHomeScreen() {
   const [servicesOpen, setServicesOpen] = useState(false);
   const [trackOpen, setTrackOpen] = useState(false);
   const [pickingGame, setPickingGame] = useState<Game | null>(null);
+  /* U4: وضع القائمة المضغوطة للكاشير — 7-8 ألعاب في الشاشة الواحدة */
+  const [cashierCompact, setCashierCompact] = useState(false);
+  const compactMode = Boolean(token) && cashierCompact;
 
   const gamesQ = useQuery({
     queryKey: ['games', 'all'],
@@ -121,7 +123,7 @@ export default function StoreHomeScreen() {
             <Image source={LOGO} style={styles.brandLogo} />
             <View style={styles.brandTextCol}>
               <Text style={styles.brandTitle} numberOfLines={1}>
-                الشارده ستور
+                الشاردة ستور
               </Text>
               <View style={styles.statusRow}>
                 <View
@@ -190,12 +192,12 @@ export default function StoreHomeScreen() {
 
         {/* Search + Filter Row */}
         <View style={styles.searchBar}>
-          <Icon name="search" size={18} color="#64748b" />
+          <Icon name="search" size={18} color="#94a3b8" />
           <TextInput
             value={query}
             onChangeText={setQuery}
             placeholder="ابحث عن لعبة أو سلسلة..."
-            placeholderTextColor="#64748b"
+            placeholderTextColor="#94a3b8"
             textAlign="right"
             style={styles.searchInput}
           />
@@ -263,10 +265,12 @@ export default function StoreHomeScreen() {
       ) : (
         <FlatList
           data={filtered}
+          // إعادة بناء صفوف القائمة عند التبديل بين الشبكة والمضغوطة (U4)
+          key={compactMode ? 'compact-list' : 'grid'}
           keyExtractor={(g) => String(g.id)}
-          numColumns={2}
-          columnWrapperStyle={styles.gridRow}
-          contentContainerStyle={styles.listContent}
+          numColumns={compactMode ? 1 : 2}
+          columnWrapperStyle={compactMode ? undefined : styles.gridRow}
+          contentContainerStyle={compactMode ? styles.listCompact : styles.listContent}
           refreshControl={
             <RefreshControl
               refreshing={gamesQ.isFetching}
@@ -308,82 +312,74 @@ export default function StoreHomeScreen() {
                 />
               ) : null}
 
-              {/* English Alphabetical Index Bar (# A B C ... Z) */}
-              <View style={styles.alphaBarWrap}>
-                <View style={styles.alphaHeadRow}>
-                  <View style={styles.alphaTitleRow}>
-                    <Icon name="gamepad" size={15} color="#2dd4bf" />
-                    <Text style={styles.alphaTitle}>
-                      قائمة الألعاب (مرتبة أبجدياً A – Z)
-                    </Text>
-                  </View>
-                  <Text style={styles.alphaCount}>{filtered.length} لعبة</Text>
+              {/* رأس قسم الألعاب: العدّاد + مفتاح الشبكة/القائمة المضغوطة للكاشير (U4)
+                  ملاحظة: فلتر الأحرف A-Z انتقل إلى نافذة الفلترة (قرار معتمد) */}
+              <View style={styles.gamesHeadRow}>
+                <View style={styles.gamesHeadTitle}>
+                  <Icon name="gamepad" size={15} color="#2dd4bf" />
+                  <Text style={styles.gamesHeadText}>الألعاب</Text>
+                  <Text style={styles.gamesHeadCount}>{filtered.length}</Text>
                 </View>
-
-                <ScrollView
-                  horizontal
-                  showsHorizontalScrollIndicator={false}
-                  contentContainerStyle={styles.alphaScroll}
-                >
-                  <Pressable
-                    onPress={() => setFilters((f) => ({ ...f, letter: null }))}
-                    style={[
-                      styles.letterPill,
-                      filters.letter === null && styles.letterPillActive,
-                    ]}
-                  >
-                    <Text
-                      style={[
-                        styles.letterPillText,
-                        filters.letter === null && styles.letterPillTextActive,
-                      ]}
+                {Boolean(token) ? (
+                  <View style={styles.viewToggle}>
+                    <Pressable
+                      onPress={() => setCashierCompact(false)}
+                      accessibilityRole="button"
+                      accessibilityState={{ selected: !cashierCompact }}
+                      style={[styles.viewToggleBtn, !cashierCompact && styles.viewToggleOn]}
                     >
-                      الكل
-                    </Text>
-                  </Pressable>
-                  {ENGLISH_LETTERS.map((ltr) => {
-                    const active = filters.letter === ltr;
-                    return (
-                      <Pressable
-                        key={ltr}
-                        onPress={() =>
-                          setFilters((f) => ({
-                            ...f,
-                            letter: active ? null : ltr,
-                          }))
-                        }
+                      <Icon
+                        name="grid"
+                        size={13}
+                        color={!cashierCompact ? '#042f2e' : '#94a3b8'}
+                      />
+                      <Text
                         style={[
-                          styles.letterPill,
-                          active && styles.letterPillActive,
+                          styles.viewToggleText,
+                          !cashierCompact && styles.viewToggleTextOn,
                         ]}
                       >
-                        <Text
-                          style={[
-                            styles.letterPillText,
-                            active && styles.letterPillTextActive,
-                          ]}
-                        >
-                          {ltr}
-                        </Text>
-                      </Pressable>
-                    );
-                  })}
-                </ScrollView>
+                        شبكة
+                      </Text>
+                    </Pressable>
+                    <Pressable
+                      onPress={() => setCashierCompact(true)}
+                      accessibilityRole="button"
+                      accessibilityState={{ selected: cashierCompact }}
+                      style={[styles.viewToggleBtn, cashierCompact && styles.viewToggleOn]}
+                    >
+                      <Icon
+                        name="list"
+                        size={13}
+                        color={cashierCompact ? '#042f2e' : '#94a3b8'}
+                      />
+                      <Text
+                        style={[
+                          styles.viewToggleText,
+                          cashierCompact && styles.viewToggleTextOn,
+                        ]}
+                      >
+                        مضغوطة
+                      </Text>
+                    </Pressable>
+                  </View>
+                ) : null}
               </View>
             </View>
           }
           ListEmptyComponent={
             <EmptyState
-              message="لا توجد ألعاب مطابقة — جرّب تغيير البحث أو اختيار حرف آخر"
+              message="لا توجد ألعاب مطابقة — جرّب تغيير البحث أو فلترة النافذة"
               icon="gamepad"
             />
           }
           renderItem={({ item }) => (
-            <View style={styles.cardCell}>
+            <View style={compactMode ? styles.compactCell : styles.cardCell}>
               <GameCard
                 game={item}
                 categories={categories}
                 onPress={handlePressGame}
+                compact={compactMode}
               />
             </View>
           )}
@@ -589,64 +585,67 @@ const styles = StyleSheet.create({
     paddingTop: 12,
     paddingBottom: 28,
   },
-  alphaBarWrap: {
-    backgroundColor: '#0e1729',
-    borderRadius: 14,
-    borderWidth: 1,
-    borderColor: '#1e293b',
-    padding: 10,
-    marginBottom: 12,
-    gap: 8,
-  },
-  alphaHeadRow: {
+  gamesHeadRow: {
     flexDirection: ROW,
     alignItems: 'center',
     justifyContent: 'space-between',
+    gap: 8,
+    marginTop: 2,
+    marginBottom: 10,
   },
-  alphaTitleRow: {
+  gamesHeadTitle: {
     flexDirection: ROW,
     alignItems: 'center',
     gap: 6,
+    flexShrink: 1,
   },
-  alphaTitle: {
+  gamesHeadText: {
     fontFamily: FONT.bold,
     color: '#f8fafc',
     fontSize: 13,
     includeFontPadding: false,
   },
-  alphaCount: {
-    fontFamily: FONT.semibold,
+  gamesHeadCount: {
+    fontFamily: FONT.bold,
     color: '#2dd4bf',
     fontSize: 11,
     includeFontPadding: false,
+    backgroundColor: 'rgba(20, 184, 166, 0.14)',
+    borderColor: 'rgba(20, 184, 166, 0.35)',
+    borderWidth: 1,
+    borderRadius: 9,
+    paddingHorizontal: 7,
+    paddingVertical: 2,
+    overflow: 'hidden',
   },
-  alphaScroll: {
-    flexDirection: 'row',
+  viewToggle: {
+    flexDirection: ROW,
     alignItems: 'center',
-    gap: 6,
-  },
-  letterPill: {
-    minWidth: 34,
-    height: 34,
-    paddingHorizontal: 10,
-    borderRadius: 10,
     backgroundColor: '#131d31',
+    borderRadius: 10,
     borderWidth: 1,
     borderColor: '#1e293b',
+    padding: 2,
+    gap: 2,
+  },
+  viewToggleBtn: {
+    flexDirection: ROW,
     alignItems: 'center',
-    justifyContent: 'center',
+    gap: 4,
+    paddingHorizontal: 10,
+    minHeight: 40,
+    borderRadius: 8,
   },
-  letterPillActive: {
+  viewToggleOn: {
     backgroundColor: '#14b8a6',
-    borderColor: '#2dd4bf',
   },
-  letterPillText: {
+  viewToggleText: {
     fontFamily: FONT.bold,
-    color: '#cbd5e1',
-    fontSize: 12,
+    color: '#94a3b8',
+    fontSize: 11,
     includeFontPadding: false,
   },
-  letterPillTextActive: {
+  viewToggleTextOn: {
     color: '#042f2e',
   },
   gridRow: {
@@ -656,5 +655,14 @@ const styles = StyleSheet.create({
   cardCell: {
     flex: 1,
     maxWidth: '50%',
+  },
+  compactCell: {
+    width: '100%',
+    marginBottom: 8,
+  },
+  listCompact: {
+    paddingHorizontal: 12,
+    paddingTop: 2,
+    paddingBottom: 28,
   },
 });

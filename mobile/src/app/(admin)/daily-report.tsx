@@ -120,7 +120,7 @@ export default function AdminDailyReportScreen() {
               value={date}
               onChangeText={setDate}
               placeholder="YYYY-MM-DD"
-              placeholderTextColor="#64748b"
+              placeholderTextColor="#94a3b8"
               style={{
                 color: '#f8fafc',
                 fontFamily: FONT.bold,
@@ -243,7 +243,7 @@ export default function AdminDailyReportScreen() {
                   value={closeNotes}
                   onChangeText={setCloseNotes}
                   placeholder="ملاحظات إغلاق اليوم (اختياري)..."
-                  placeholderTextColor="#64748b"
+                  placeholderTextColor="#94a3b8"
                   textAlign="right"
                   style={[inputBox, { width: '100%' }]}
                 />

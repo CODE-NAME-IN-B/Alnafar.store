@@ -15,6 +15,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useMutation, useQuery } from '@tanstack/react-query';
 import { router } from 'expo-router';
 import { fetchBranches } from '@/api/branches';
+import { formatInvoiceCode } from '@/components/ui/LtrText';
 import { fetchInvoiceSettings } from '@/api/settings';
 import { submitOrder } from '@/api/orders';
 import { InvoiceRecord } from '@/api/invoices';
@@ -231,7 +232,7 @@ export default function CartScreen() {
                   <AppButton
                     label={
                       editingInvoice
-                        ? `حفظ التعديلات على الفاتورة #${editingInvoice.invoice_number}`
+                        ? `حفظ التعديلات على الفاتورة ${formatInvoiceCode(editingInvoice.invoice_number)}`
                         : 'إنشاء فاتورة وطباعتها'
                     }
                     icon="printer"

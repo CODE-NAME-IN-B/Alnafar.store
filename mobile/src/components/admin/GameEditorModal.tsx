@@ -69,6 +69,8 @@ export default function GameEditorModal({
   useEffect(() => {
     if (!visible) return;
     const defaultCat = game?.category_id ?? categories[0]?.id ?? 1;
+    // إعادة تهيئة استمارة عند فتح نافذة التحرير (نموذج نافذة مقصود، وليس حالة مشتقة للعرض)
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setCategoryId(Number(defaultCat));
     setTitle(game?.title ?? '');
     setImage(game?.image ?? '');

@@ -4,6 +4,7 @@ import Icon, { type IconName } from '@/components/ui/Icon';
 import { FONT } from '@/lib/fonts';
 import { formatDinar } from '@/lib/money';
 import { statusLabel } from '@/lib/statuses';
+import { formatArabicDate } from '@/components/ui/LtrText';
 import { ROW } from '@/lib/rtl';
 
 interface Props {
@@ -73,7 +74,7 @@ export default function AdminInvoiceCard({
           {statusLabel(inv.status)})
         </Text>
         <Text style={styles.dateText}>
-          {inv.created_at ? inv.created_at.slice(0, 10) : ''}
+          {formatArabicDate(inv.created_at)}
         </Text>
       </View>
 
@@ -235,7 +236,7 @@ const styles = StyleSheet.create({
     includeFontPadding: false,
   },
   dateText: {
-    color: '#64748b',
+    color: '#94a3b8',
     fontFamily: FONT.medium,
     fontSize: 11,
     includeFontPadding: false,

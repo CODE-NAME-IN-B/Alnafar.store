@@ -1,20 +1,20 @@
 import type { ExpoConfig } from 'expo/config';
 
 /**
- * إعدادات تطبيق «الشارده ستور».
+ * إعدادات تطبيق «الشاردة ستور».
  * لا أسرار هنا إطلاقاً — المتغير الوحيد المعروف للتطبيق هو EXPO_PUBLIC_API_BASE.
  */
 const API_BASE = process.env.EXPO_PUBLIC_API_BASE ?? 'https://alnafar-store.vercel.app/api';
 
 const config: ExpoConfig = {
-  name: 'الشارده ستور',
+  name: 'الشاردة ستور',
   slug: 'alsharida-store',
   version: '1.0.0',
   orientation: 'portrait',
   scheme: 'alsharida',
   userInterfaceStyle: 'dark',
   description:
-    'تطبيق الشارده ستور — متجر ألعاب النفار: استعراض الألعاب والباقات وإرسال الطلبات وتتبعها',
+    'تطبيق الشاردة ستور — متجر ألعاب النفار: استعراض الألعاب والباقات وإرسال الطلبات وتتبعها',
   icon: './assets/_brand/icon.png',
   primaryColor: '#0f1724',
   android: {

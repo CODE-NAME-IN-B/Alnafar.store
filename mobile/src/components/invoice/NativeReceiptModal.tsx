@@ -107,7 +107,7 @@ export default function NativeReceiptModal({ visible, invoice, onClose }: Props)
           {storeAddr ? (
             <Text
               style={{
-                color: '#64748b',
+                color: '#94a3b8',
                 fontFamily: FONT.regular,
                 fontSize: 11,
                 textAlign: 'center',
@@ -157,7 +157,7 @@ export default function NativeReceiptModal({ visible, invoice, onClose }: Props)
           <View style={dashedLine} />
 
           {discount > 0 ? (
-            <Text style={{ color: '#64748b', fontFamily: FONT.regular, fontSize: 12 }}>
+            <Text style={{ color: '#94a3b8', fontFamily: FONT.regular, fontSize: 12 }}>
               الخصم: {formatDinar(discount)}
             </Text>
           ) : null}
@@ -202,7 +202,7 @@ export default function NativeReceiptModal({ visible, invoice, onClose }: Props)
 
           <View style={{ marginVertical: 10, alignItems: 'center', gap: 4 }}>
             <QRCode value={trackingUrl} size={110} />
-            <Text style={{ color: '#64748b', fontFamily: FONT.regular, fontSize: 11 }}>
+            <Text style={{ color: '#94a3b8', fontFamily: FONT.regular, fontSize: 11 }}>
               امسح الرمز لتتبع حالة الطلب
             </Text>
           </View>

@@ -64,7 +64,7 @@ export default function HeroSection({
           <View style={styles.bannerTextWrap}>
             <View style={styles.promoPill}>
               <Icon name="sparkles" size={12} color="#2dd4bf" />
-              <Text style={styles.promoPillText}>الشارده ستور — النفار للألعاب</Text>
+              <Text style={styles.promoPillText}>الشاردة ستور — النفار للألعاب</Text>
             </View>
             <Text style={styles.bannerTitle}>اختر الألعاب التي تريدها</Text>
             <Text style={styles.bannerSub}>
@@ -340,7 +340,7 @@ const styles = StyleSheet.create({
   },
   sectionHint: {
     fontFamily: FONT.medium,
-    color: '#64748b',
+    color: '#94a3b8',
     fontSize: 11,
     includeFontPadding: false,
   },
