@@ -7,18 +7,17 @@ import type { PrintImageAssets } from './printAssets';
  * توليد HTML داخلي لـ `expo-print` فقط (لتحويل الفاتورة إلى PDF أو إرسالها لطابعة النظام).
  * لا يُعرض هذا الـ HTML داخل التطبيق إطلاقاً (القاعدة 1).
  *
- * القسم 5 (U7): مطابقة عرض الورق المختار (58mm/80mm)، خط واضح، شعار + QR،
- * ورقم فاتورة كامل معزول الاتجاه بصيغة واحدة، واسم «الشاردة ستور» + Alnafar Store.
+ * قسم الطباعة المضغوطة (طلب المستخدم بعد التجربة الفعلية): مطابقة إيصال الموقع —
+ * بدون شعار ولا صور، الحد الأدنى من الورق:
+ * الاسم/العنوان، رقم الفاتورة، الزبون، البنود، الإجمالي + حالة الدفع، QR، هاتف المحل.
  */
 
 /** الاسم العربي الموحّد الرسمي (قرار معتمد: «الشاردة» بالتاء المربوطة) */
 export const DEFAULT_STORE_NAME_AR = 'الشاردة ستور';
 export const DEFAULT_STORE_NAME_EN = 'Alnafar Store';
 
-const AR_FONT =
-  "'Cairo','Segoe UI',Tahoma,sans-serif";
-
 export interface ReceiptHtmlContext {
+  /** محفوظ للتوافق — النسخة المضغوطة لا تضمّن شعوراً لتقليل استهلاك الورق */
   assets?: PrintImageAssets;
   /** SVG داخلي لرمز QR (من buildTrackQrSvg) — إفراغه يلغي القسم */
   qrSvg?: string;
@@ -45,13 +44,10 @@ export function buildReceiptHtml(
   const fs = String(settings.font_size || 'normal').toLowerCase();
 
   let fontSize = '12px';
-  let titleSize = '17px';
   if (paperMM < 100) {
     fontSize = fs === 'large' ? '13px' : fs === 'small' ? '11px' : '12px';
-    titleSize = fs === 'large' ? '19px' : fs === 'small' ? '16px' : '17px';
   } else {
     fontSize = fs === 'large' ? '15px' : fs === 'small' ? '13px' : '14px';
-    titleSize = fs === 'large' ? '21px' : '18px';
   }
 
   const { ar: storeName, en: storeNameEn } = resolveStoreNames(settings);
@@ -60,7 +56,6 @@ export function buildReceiptHtml(
   const footerMsg = (settings.footer_message || '').trim();
 
   const fullNumber = String(invoice.invoice_number || '').trim();
-  const dailyNo = fullNumber.includes('-') ? fullNumber.split('-')[1] ?? fullNumber : fullNumber;
 
   const items = parseInvoiceItems(invoice.items);
   const totalPrice =
@@ -69,97 +64,76 @@ export function buildReceiptHtml(
   const discount = Number(invoice.discount) || 0;
   const finalTotal = Math.max(0, totalPrice - discount);
   const paidAmount = Number(invoice.paid_amount ?? finalTotal);
-  const remaining = Math.max(0, finalTotal - paidAmount);
-
   const isFullyPaid = paidAmount >= finalTotal && finalTotal > 0;
   const isPartial = paidAmount > 0 && !isFullyPaid;
-  const statusText = isFullyPaid
-    ? 'مدفوع بالكامل'
-    : isPartial
-      ? `المتبقي: ${formatDinar(remaining)}`
-      : 'غير مدفوع (آجل)';
+  const statusTag = isFullyPaid ? 'مدفوع' : isPartial ? 'دفع جزئي' : 'غير مدفوع (آجل)';
   const statusClass = isFullyPaid ? 'ok' : 'due';
 
-  const { assets = {}, qrSvg = '' } = context;
-  const headerImg = assets.headerDataUri
-    ? `<div class="brandimg"><img src="${assets.headerDataUri}" alt="شعار المتجر" /></div>`
-    : assets.logoDataUri
-      ? `<div class="brandimg round"><img src="${assets.logoDataUri}" alt="شعار المتجر" /></div>`
-      : '';
+  const { qrSvg = '' } = context;
 
   const itemsRows = items
     .map(
-      (item) => `
-      <tr>
-        <td>${escapeHtml(item.title)}${item.platform ? ` (${escapeHtml(item.platform)})` : ''}</td>
-        <td class="money">${escapeHtml(
+      (item) =>
+        `<div class="it"><span class="t">${escapeHtml(item.title)}${
+          item.platform ? ` (${escapeHtml(item.platform)})` : ''
+        }${
+          Number(item.quantity) > 1 ? ` ×${Number(item.quantity)}` : ''
+        }</span><span class="m">${escapeHtml(
           formatDinar(Number(item.price) * (Number(item.quantity) || 1)),
-        )}</td>
-      </tr>`,
+        )}</span></div>`,
     )
     .join('');
 
-  const qrBlock = qrSvg
-    ? `<div class="qr">${qrSvg}<div class="qrcap">امسح الرمز لتتبع حالة الطلب</div></div>`
-    : '';
+  const remainingLine = isPartial ? ` (${formatDinar(Math.max(0, finalTotal - paidAmount))} متبقية)` : '';
 
   return `<!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
   <meta charset="UTF-8">
-  <title>فاتورة ${escapeHtml(dailyNo)}</title>
+  <title>فاتورة ${escapeHtml(fullNumber || '')}</title>
   <style>
     *{margin:0;padding:0;box-sizing:border-box}
-    html,body{width:${paperMM}mm;max-width:${paperMM}mm;font-family:${AR_FONT};background:#fff;color:#14171c;font-size:${fontSize};line-height:1.45;direction:rtl}
-    @page{margin:1.5mm}
-    .r{width:100%;padding:2mm;text-align:center}
-    .brandimg img{width:${paperMM <= 58 ? 30 : 40}mm;height:auto;display:block;margin:0 auto 1mm}
-    .brandimg.round img{width:18mm;height:18mm;border-radius:50%;background:#fff}
-    .bn{font-size:${titleSize};font-weight:900;color:#14171c}
-    .be{font-size:${Math.max(9, parseInt(fontSize, 10) - 3)}px;font-weight:600;color:#37454f;letter-spacing:0.2px;margin-bottom:0.5mm}
-    .addr{font-size:${Math.max(9, parseInt(fontSize, 10) - 3)}px;color:#37454f;margin-bottom:0.5mm}
-    .ltr{direction:ltr;unicode-bidi:isolate;display:inline-block;font-variant-numeric:tabular-nums}
-    .sep{border:none;border-top:1px dashed #8a949c;margin:1.5mm 0}
-    .on{font-size:${titleSize};font-weight:800;margin:1mm 0;color:#14171c}
-    .on .ltr{font-weight:800}
-    .cn{font-weight:800;margin-top:0.5mm}
-    .cp{color:#37454f}
-    table{width:100%;border-collapse:collapse;margin:1mm 0}
-    td{text-align:right;padding:0.8mm 0;font-size:${fontSize}}
-    td.money{text-align:left;font-weight:800;direction:ltr;unicode-bidi:isolate}
-    .discount{font-size:${fontSize};color:#37454f}
-    .total{font-size:${titleSize};font-weight:900;margin:1.5mm 0;padding:1mm;border:1.5px solid #14171c;border-radius:1mm}
-    .status{font-weight:800;margin:1mm 0;padding:0.5mm 1.5mm;border-radius:1mm;display:inline-block}
-    .status.ok{color:#166534;background:#f0fdf4;border:1px solid #bbf7d0}
-    .status.due{color:#b91c1c;background:#fef2f2;border:1px solid #fecaca}
-    .qr{margin:1mm 0;display:flex;flex-direction:column;align-items:center;gap:0.5mm}
-    .qr svg{width:22mm;height:22mm}
-    .qrcap{font-size:${Math.max(9, parseInt(fontSize, 10) - 3)}px;color:#37454f}
-    .ft{padding-top:0.6mm;border-top:1px dashed #8a949c;font-size:${Math.max(9, parseInt(fontSize, 10) - 3)}px;color:#37454f;margin-top:1mm}
+    html,body{width:${paperMM}mm;max-width:${paperMM}mm;font-family:Tahoma,Arial,sans-serif;background:#fff;color:#14171c;font-size:${fontSize};line-height:1.3;direction:rtl}
+    @page{margin:1mm}
+    .r{width:100%;padding:1.5mm;text-align:center}
+    .bn{font-size:${fontSize === '12px' ? '15px' : '17px'};font-weight:900}
+    .be{font-size:9px;color:#37454f}
+    .l{border:none;border-top:1px dashed #8a949c;margin:1mm 0}
+    .ltr{direction:ltr;display:inline-block}
+    .no{font-size:${fontSize === '12px' ? '14px' : '15px'};font-weight:800}
+    .who{font-weight:700}
+    .phone{font-size:${Math.max(9, parseInt(fontSize, 10) - 3)}px;color:#37454f;font-family:'DejaVu Sans Mono',monospace}
+    .it{display:flex;justify-content:space-between;gap:2mm;padding:0.4mm 0;text-align:right}
+    .it .t{flex:1}
+    .it .m{font-weight:700;direction:ltr;white-space:nowrap}
+    .tot{font-size:${fontSize === '12px' ? '16px' : '18px'};font-weight:900;margin-top:0.8mm}
+    .tag{font-weight:800;display:inline-block;padding:0.3mm 1.5mm;border-radius:1mm;margin-top:0.6mm}
+    .tag.ok{color:#166534;background:#f0fdf4;border:1px solid #bbf7d0}
+    .tag.due{color:#b91c1c;background:#fef2f2;border:1px solid #fecaca}
+    .qr{margin:1mm auto 0;display:flex;flex-direction:column;align-items:center;gap:0.3mm}
+    .qr svg{width:${paperMM <= 58 ? 19 : 24}mm;height:${paperMM <= 58 ? 19 : 24}mm}
+    .qrcap{font-size:8px;color:#37454f}
+    .ft{font-size:8px;color:#37454f;margin-top:0.8mm}
   </style>
 </head>
 <body>
   <div class="r">
-    ${headerImg}
     <div class="bn">${escapeHtml(storeName)}</div>
     <div class="be"><bdi dir="ltr">${escapeHtml(storeNameEn)}</bdi></div>
-    ${storeAddr ? `<div class="addr">${escapeHtml(storeAddr)}</div>` : ''}
-    <hr class="sep" />
-    <div class="on"><span class="ltr">#${escapeHtml(fullNumber)}</span></div>
-    <div class="cn">${escapeHtml(invoice.customer_name || 'عميل نقدي')}</div>
-    ${invoice.customer_phone ? `<div class="cp"><bdi dir="ltr">${escapeHtml(invoice.customer_phone)}</bdi></div>` : ''}
-    <hr class="sep" />
-    ${itemsRows ? `<table>${itemsRows}</table>` : '<div class="addr">لا توجد بنود في هذه الفاتورة</div>'}
-    ${
-      discount > 0
-        ? `<div class="discount">الخصم: ${escapeHtml(formatDinar(discount))}</div>`
-        : ''
-    }
-    <div class="total">${escapeHtml(formatDinar(finalTotal))}</div>
-    <div class="status ${statusClass}"><bdi>${escapeHtml(statusText)}</bdi></div>
-    ${qrBlock}
+    ${storeAddr ? `<div class="be">${escapeHtml(storeAddr)}</div>` : ''}
+    <hr class="l" />
+    <div class="no"><span class="ltr">#${escapeHtml(fullNumber)}</span></div>
+    <div class="who">${escapeHtml(invoice.customer_name || 'عميل نقدي')}</div>
+    ${invoice.customer_phone ? `<div class="phone"><bdi dir="ltr">${escapeHtml(invoice.customer_phone)}</bdi></div>` : ''}
+    <hr class="l" />
+    ${itemsRows}
+    ${discount > 0 ? `<div class="it"><span class="t">الخصم</span><span class="m">${escapeHtml(formatDinar(discount))}</span></div>` : ''}
+    <hr class="l" />
+    <div class="tot">${escapeHtml(formatDinar(finalTotal))}${remainingLine}</div>
+    <div class="tag ${statusClass}"><bdi>${escapeHtml(statusTag)}</bdi></div>
+    ${qrSvg ? `<div class="qr">${qrSvg}<div class="qrcap">امسح لمتابعة الطلب</div></div>` : ''}
     ${footerMsg ? `<div class="ft">${escapeHtml(footerMsg)}</div>` : ''}
-    ${storePhone ? `<div class="ft"><bdi dir="ltr">${escapeHtml(storePhone)}</bdi></div>` : ''}
+    ${storePhone ? `<div class="phone ft"><bdi dir="ltr">${escapeHtml(storePhone)}</bdi></div>` : ''}
   </div>
 </body>
 </html>`;

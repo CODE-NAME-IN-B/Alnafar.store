@@ -5,7 +5,6 @@ import { markInvoicePrinted, type InvoiceRecord } from '@/api/invoices';
 import { fetchInvoiceSettings } from '@/api/settings';
 import { buildReceiptHtml, paperWidthPx } from './receiptHtml';
 import { buildTrackQrSvg } from './receiptQr';
-import { loadPrintImageAssets } from './printAssets';
 
 /**
  * واجهة موحدة للطباعة الحرارية والـ PDF (القسم 5 من الخطة).
@@ -19,16 +18,13 @@ export interface PrinterDriver {
   shareInvoicePdf(invoice: InvoiceRecord, settings?: InvoiceSettings): Promise<void>;
 }
 
-/** قراءة الإعدادات مرة واحدة، وبناء HTML الفاتورة مع الشعار ورمز QR (U7) */
+/** قراءة الإعدادات مرة واحدة، وبناء HTML الفاتورة المضغوطة مع رمز QR */
 async function composeReceiptHtml(invoice: InvoiceRecord, settings?: InvoiceSettings) {
   const resolvedSettings = (await fetchInvoiceSettings()) as InvoiceSettings;
   if (settings) Object.assign(resolvedSettings, settings);
-  const [assets, qrSvg] = await Promise.all([
-    loadPrintImageAssets(),
-    Promise.resolve(buildTrackQrSvg(invoice.invoice_number)),
-  ]);
+  const qrSvg = buildTrackQrSvg(invoice.invoice_number);
   return {
-    html: buildReceiptHtml(invoice, resolvedSettings, { assets, qrSvg }),
+    html: buildReceiptHtml(invoice, resolvedSettings, { qrSvg }),
     paperMM: Number(resolvedSettings.paper_width) || 58,
   };
 }

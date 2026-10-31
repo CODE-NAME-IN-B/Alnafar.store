@@ -1,5 +1,4 @@
 import { useState } from 'react';
-import { Image } from 'expo-image';
 import { ScrollView, Text, View } from 'react-native';
 import QRCode from 'react-native-qrcode-svg';
 import { useQuery } from '@tanstack/react-query';
@@ -83,25 +82,20 @@ export default function NativeReceiptModal({ visible, invoice, onClose }: Props)
   return (
     <ModalSheet visible={visible} onClose={onClose} title={`فاتورة ${formatInvoiceCode(invoice.invoice_number)}`}>
       <ScrollView style={{ maxHeight: 460 }} showsVerticalScrollIndicator={false}>
-        {/* بطاقة إيصال حراري أصلية */}
+        {/* بطاقة إيصال حراري أصلية (مطابقة للمطبوع المضغوط — بلا شعار) */}
         <View
           style={{
             backgroundColor: '#ffffff',
             borderRadius: 16,
             padding: 16,
             alignItems: 'center',
-            gap: 6,
+            gap: 5,
           }}
         >
-          <Image
-            source={require('../../../assets/_brand/invoice-header.png')}
-            style={{ width: 140, height: 42 }}
-            contentFit="contain"
-          />
-          <Text style={{ color: '#0f1724', fontFamily: FONT.bold, fontSize: 18 }}>
+          <Text style={{ color: '#0f1724', fontFamily: FONT.bold, fontSize: 17 }}>
             {storeName}
           </Text>
-          <Text style={{ color: '#475569', fontFamily: FONT.medium, fontSize: 12 }}>
+          <Text style={{ color: '#475569', fontFamily: FONT.medium, fontSize: 11 }}>
             {storeNameEn}
           </Text>
           {storeAddr ? (

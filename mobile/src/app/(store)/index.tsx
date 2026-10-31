@@ -146,45 +146,56 @@ export default function StoreHomeScreen() {
           <View style={styles.actionsRow}>
             <Pressable
               onPress={() => setTrackOpen(true)}
-              style={styles.actionPill}
+              accessibilityRole="button"
+              accessibilityLabel="تتبع الطلب بمسح QR"
+              hitSlop={6}
+              style={styles.headerActionBtn}
             >
-              <Icon name="qr" size={14} color="#2dd4bf" />
-              <Text style={styles.actionPillText}>تتبع</Text>
+              <Icon name="qr" size={17} color="#5eead4" />
             </Pressable>
 
             <Pressable
               onPress={() => setServicesOpen(true)}
-              style={[styles.actionPill, styles.actionPillPurple]}
+              accessibilityRole="button"
+              accessibilityLabel="الخدمات الإضافية"
+              hitSlop={6}
+              style={styles.headerActionBtn}
             >
-              <Icon name="sparkles" size={14} color="#c4b5fd" />
-              <Text style={styles.actionPillTextPurple}>الخدمات</Text>
+              <Icon name="sparkles" size={17} color="#5eead4" />
             </Pressable>
 
             {token ? (
               <>
                 <Pressable
                   onPress={() => router.push('/(admin)')}
-                  style={[styles.actionPill, styles.actionPillTeal]}
+                  accessibilityRole="button"
+                  accessibilityLabel="لوحة الإدارة"
+                  hitSlop={6}
+                  style={styles.headerActionBtn}
                 >
-                  <Icon name="settings" size={14} color="#2dd4bf" />
-                  <Text style={styles.actionPillText}>الإدارة</Text>
+                  <Icon name="settings" size={17} color="#5eead4" />
                 </Pressable>
                 <Pressable
                   onPress={async () => {
                     await logout();
                   }}
-                  style={styles.logoutIconBtn}
+                  accessibilityRole="button"
+                  accessibilityLabel="تسجيل الخروج"
+                  hitSlop={6}
+                  style={[styles.headerActionBtn, styles.headerActionDanger]}
                 >
-                  <Icon name="logout" size={15} color="#fda4af" />
+                  <Icon name="logout" size={16} color="#fda4af" />
                 </Pressable>
               </>
             ) : (
               <Pressable
                 onPress={() => router.push('/login')}
-                style={[styles.actionPill, styles.actionPillTeal]}
+                accessibilityRole="button"
+                accessibilityLabel="تسجيل الدخول"
+                hitSlop={6}
+                style={styles.headerActionBtn}
               >
-                <Icon name="user" size={14} color="#2dd4bf" />
-                <Text style={styles.actionPillText}>دخول</Text>
+                <Icon name="user" size={17} color="#5eead4" />
               </Pressable>
             )}
           </View>
@@ -489,47 +500,21 @@ const styles = StyleSheet.create({
     flexDirection: ROW,
     alignItems: 'center',
     gap: 6,
+    flexShrink: 0,
   },
-  actionPill: {
-    flexDirection: ROW,
+  headerActionBtn: {
+    width: 40,
+    height: 40,
+    borderRadius: 12,
     alignItems: 'center',
-    gap: 4,
-    paddingHorizontal: 9,
-    paddingVertical: 7,
-    borderRadius: 10,
+    justifyContent: 'center',
     backgroundColor: '#131d31',
     borderWidth: 1,
     borderColor: '#1e293b',
   },
-  actionPillPurple: {
-    borderColor: 'rgba(139, 92, 246, 0.45)',
-    backgroundColor: 'rgba(124, 58, 237, 0.14)',
-  },
-  actionPillTeal: {
-    borderColor: 'rgba(20, 184, 166, 0.45)',
-    backgroundColor: 'rgba(20, 184, 166, 0.12)',
-  },
-  actionPillText: {
-    fontFamily: FONT.bold,
-    color: '#5eead4',
-    fontSize: 11,
-    includeFontPadding: false,
-  },
-  actionPillTextPurple: {
-    fontFamily: FONT.bold,
-    color: '#ddd6fe',
-    fontSize: 11,
-    includeFontPadding: false,
-  },
-  logoutIconBtn: {
-    width: 32,
-    height: 32,
-    borderRadius: 10,
-    backgroundColor: '#2a1215',
-    borderWidth: 1,
-    borderColor: '#7f1d1d',
-    alignItems: 'center',
-    justifyContent: 'center',
+  headerActionDanger: {
+    borderColor: 'rgba(239, 68, 68, 0.35)',
+    backgroundColor: 'rgba(239, 68, 68, 0.10)',
   },
   searchBar: {
     flexDirection: ROW,

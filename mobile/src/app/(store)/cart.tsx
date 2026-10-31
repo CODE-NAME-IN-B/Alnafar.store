@@ -17,7 +17,7 @@ import { router } from 'expo-router';
 import { fetchBranches } from '@/api/branches';
 import { formatInvoiceCode } from '@/components/ui/LtrText';
 import { fetchInvoiceSettings } from '@/api/settings';
-import { submitOrder } from '@/api/orders';
+import { submitOrder, trackOrder } from '@/api/orders';
 import { InvoiceRecord } from '@/api/invoices';
 import {
   cartTotal,
@@ -77,6 +77,43 @@ export default function CartScreen() {
   const sizeGb = cartTotalSizeGb(items);
   const isCashier = Boolean(token);
 
+  /* مثل الموقع: بعد إنشاء الفاتورة تفتح واجهة الطباعة مباشرة مع رقمها من التتبع */
+  const openReceiptAfterSubmit = async (orderId: number) => {
+    try {
+      const tracked = await trackOrder(orderId);
+      setReceiptInvoice({
+        id: orderId,
+        invoice_number: tracked.invoice_number,
+        customer_name: tracked.customer_name ?? null,
+        customer_phone: tracked.customer_phone ?? null,
+        status: tracked.status,
+        total: tracked.total,
+        discount: tracked.discount ?? null,
+        final_total: tracked.final_total ?? null,
+        paid_amount: tracked.paid_amount ?? null,
+        items: (tracked.items ?? []).map((it) => ({
+          title: it.title,
+          price: it.price,
+          type: 'game' as const,
+          size_gb: it.size_gb ?? null,
+          quantity: it.quantity ?? 1,
+        })),
+      });
+    } catch {
+      Alert.alert(
+        'تم إصدار الفاتورة',
+        `رقم الطلب: #${orderId}\nيمكنك متابعة حالة الطلب من شاشة التتبع.`,
+        [
+          {
+            text: 'فتح التتبع',
+            onPress: () => router.push(`/track/${encodeURIComponent(String(orderId))}`),
+          },
+          { text: 'حسناً' },
+        ]
+      );
+    }
+  };
+
   const orderM = useMutation({
     mutationFn: () =>
       submitOrder({
@@ -93,19 +130,8 @@ export default function CartScreen() {
           '0910683599',
       }),
     onSuccess: (res) => {
-      const orderNum = String(res.id);
       clear();
-      Alert.alert(
-        'تم إرسال الطلب',
-        `رقم الطلب: #${orderNum}\nيمكنك متابعة حالة الطلب من صفحة التتبع.`,
-        [
-          {
-            text: 'فتح صفحة التتبع',
-            onPress: () => router.push(`/track/${encodeURIComponent(orderNum)}`),
-          },
-          { text: 'حسناً' },
-        ]
-      );
+      void openReceiptAfterSubmit(res.id);
     },
     onError: (e: unknown) => {
       Alert.alert('خطأ', e instanceof Error ? e.message : 'فشل إرسال الطلب');
