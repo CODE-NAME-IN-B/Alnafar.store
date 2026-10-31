@@ -1,0 +1,13 @@
+appId: store.alsharida.app
+---
+- launchApp
+- assertVisible: "مرحباً بك في الشارده ستور"
+- tapOn: "تصفح الفرع الرئيسي (يمكن تغييره لاحقاً)"
+- assertVisible: "الشارده ستور"
+- tapOn: "الباقات"
+- assertVisible: "الباقات"
+- tapOn: "السلة"
+- assertVisible: "السلة"
+- tapOn: "المتجر"
+- tapOn: "تتبع / QR"
+- assertVisible: "تتبع الطلب / مسح QR"

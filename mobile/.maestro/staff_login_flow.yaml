@@ -1,0 +1,14 @@
+appId: store.alsharida.app
+---
+- launchApp
+- runFlow:
+    when:
+      visible: "مرحباً بك في الشارده ستور"
+    commands:
+      - tapOn: "تصفح الفرع الرئيسي (يمكن تغييره لاحقاً)"
+- tapOn: "دخول"
+- assertVisible: "دخول العاملين"
+- assertVisible: "اسم المستخدم"
+- assertVisible: "كلمة المرور"
+- tapOn: "← رجوع إلى المتجر"
+- assertVisible: "الشارده ستور"
