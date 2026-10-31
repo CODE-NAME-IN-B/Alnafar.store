@@ -1,41 +1,73 @@
-import { Pressable, Text, type StyleProp, type ViewStyle } from 'react-native';
+import React from 'react';
+import { Pressable, StyleSheet, Text, ViewStyle } from 'react-native';
 import { FONT } from '@/lib/fonts';
+import { colors, tokens, triggerLightHaptic } from '@/lib/colors';
 
 interface Props {
   label: string;
   active?: boolean;
   onPress?: () => void;
-  style?: StyleProp<ViewStyle>;
-  /** لون نشاط مخصص (افتراضي teal) */
+  style?: ViewStyle;
+  /** محتفظ به للتوافق فقط — لون التفعيل موحّد بلون العلامة الأخضر المزرق */
   accent?: string;
 }
 
-/** شريحة فلترة صغيرة (فئات، أنواع، حروف...) */
-export default function Chip({ label, active = false, onPress, style, accent = '#14b8a6' }: Props) {
+export function Chip({ label, active, onPress, style }: Props) {
+  const handlePress = () => {
+    if (!onPress) return;
+    triggerLightHaptic();
+    onPress();
+  };
+
   return (
     <Pressable
-      onPress={onPress}
-      style={[
-        {
-          paddingHorizontal: 14,
-          paddingVertical: 7,
-          borderRadius: 100,
-          backgroundColor: active ? accent : '#1b2740',
-          borderWidth: 1,
-          borderColor: active ? accent : 'rgba(255,255,255,0.08)',
-        },
-        style,
-      ]}
+      onPress={handlePress}
+      accessibilityRole="button"
+      accessibilityState={{ selected: Boolean(active) }}
+      style={[styles.chip, active ? styles.chipActive : styles.chipIdle, style]}
     >
       <Text
-        style={{
-          color: active ? '#062b27' : '#cbd5e1',
-          fontFamily: active ? FONT.bold : FONT.medium,
-          fontSize: 13,
-        }}
+        style={[styles.text, active ? styles.textActive : styles.textIdle]}
+        numberOfLines={1}
       >
         {label}
       </Text>
     </Pressable>
   );
 }
+
+export default Chip;
+
+const styles = StyleSheet.create({
+  chip: {
+    minHeight: 38,
+    paddingHorizontal: 15,
+    paddingVertical: 7,
+    borderRadius: tokens.radius.pill,
+    borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  chipActive: {
+    backgroundColor: colors.brand,
+    borderColor: colors.brandLight,
+  },
+  chipIdle: {
+    backgroundColor: colors.elevated,
+    borderColor: colors.borderSubtle,
+  },
+  text: {
+    fontSize: 13,
+    letterSpacing: 0,
+    includeFontPadding: false,
+    textAlign: 'center',
+  },
+  textActive: {
+    fontFamily: FONT.bold,
+    color: colors.brandDark,
+  },
+  textIdle: {
+    fontFamily: FONT.semibold,
+    color: colors.dim,
+  },
+});

@@ -4,6 +4,7 @@ import { router, useLocalSearchParams } from 'expo-router';
 import { useQuery } from '@tanstack/react-query';
 import Screen from '@/components/ui/Screen';
 import AppText from '@/components/ui/AppText';
+import Icon from '@/components/ui/Icon';
 import { LoadingState, ErrorState, EmptyState } from '@/components/ui/StateView';
 import QrScannerModal from '@/components/track/QrScannerModal';
 import { ItemSection, StatusCard, TotalsCard } from '@/components/track/TrackCards';
@@ -88,28 +89,44 @@ export default function TrackScreen() {
   return (
     <Screen>
       <View style={headerRow}>
-        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
-          <Pressable onPress={() => router.replace('/(store)')} accessibilityLabel="عودة للمتجر">
-            <Text style={{ color: '#14b8a6', fontFamily: FONT.bold, fontSize: 14 }}>← المتجر</Text>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+          <Pressable
+            onPress={() => router.replace('/(store)')}
+            accessibilityLabel="عودة للمتجر"
+            style={topActionBtn}
+          >
+            <Icon name="store" size={15} color="#2dd4bf" />
+            <Text style={{ color: '#2dd4bf', fontFamily: FONT.bold, fontSize: 13 }}>المتجر</Text>
           </Pressable>
-          <AppText style={{ color: '#f1f5f9', fontFamily: FONT.bold, fontSize: 18 }}>
+          <AppText style={{ color: '#f8fafc', fontFamily: FONT.bold, fontSize: 18 }}>
             تتبع الطلب
           </AppText>
         </View>
-        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
-          <Pressable onPress={() => setQrOpen(true)} accessibilityLabel="مسح QR آخر">
-            <Text style={{ color: '#a78bfa', fontFamily: FONT.bold, fontSize: 13 }}>📷 QR</Text>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+          <Pressable
+            onPress={() => setQrOpen(true)}
+            accessibilityLabel="مسح QR آخر"
+            style={[topActionBtn, { borderColor: 'rgba(167,139,250,0.4)' }]}
+          >
+            <Icon name="qr" size={15} color="#c4b5fd" />
+            <Text style={{ color: '#c4b5fd', fontFamily: FONT.bold, fontSize: 12 }}>مسح QR</Text>
           </Pressable>
-          <Pressable onPress={() => refetch()} accessible accessibilityLabel="تحديث الحالة">
-            <Text style={{ color: '#14b8a6', fontFamily: FONT.medium, fontSize: 14 }}>تحديث ⟲</Text>
+          <Pressable
+            onPress={() => refetch()}
+            accessible
+            accessibilityLabel="تحديث الحالة"
+            style={topActionBtn}
+          >
+            <Icon name="refresh" size={15} color="#2dd4bf" />
+            <Text style={{ color: '#2dd4bf', fontFamily: FONT.bold, fontSize: 12 }}>تحديث</Text>
           </Pressable>
         </View>
       </View>
 
       {!trackingKey ? (
         <EmptyState
-          message="لا يوجد رقم طلب — امسح رمز QR أو أدخل الرقم"
-          icon="🔍"
+          message="لا يوجد رقم طلب — امسح رمز QR من الفاتورة أو أدخل الرقم"
+          icon="qr"
           actionLabel="إدخال رقم أو مسح QR"
           onAction={() => setQrOpen(true)}
         />
@@ -140,10 +157,10 @@ export default function TrackScreen() {
 
           {token ? (
             <View style={staffCard}>
-              <AppText style={{ color: '#94a3b8', fontFamily: FONT.bold, fontSize: 13 }}>
+              <AppText style={{ color: '#cbd5e1', fontFamily: FONT.bold, fontSize: 13 }}>
                 تحكم الموظف: تغيير حالة الطلب
               </AppText>
-              <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6 }}>
+              <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
                 {STAFF_STATUSES.map((st) => {
                   const active = data.status === st;
                   return (
@@ -152,15 +169,17 @@ export default function TrackScreen() {
                       disabled={busyStatus || active}
                       onPress={() => void handleStatusChange(st)}
                       style={{
-                        backgroundColor: active ? '#14b8a6' : '#1b2740',
-                        borderRadius: 8,
-                        paddingHorizontal: 10,
-                        paddingVertical: 6,
+                        backgroundColor: active ? '#14b8a6' : '#1b2b48',
+                        borderRadius: 10,
+                        borderWidth: 1,
+                        borderColor: active ? '#2dd4bf' : 'rgba(255,255,255,0.1)',
+                        paddingHorizontal: 12,
+                        paddingVertical: 7,
                       }}
                     >
                       <Text
                         style={{
-                          color: active ? '#062b27' : '#f1f5f9',
+                          color: active ? '#ffffff' : '#f8fafc',
                           fontFamily: FONT.bold,
                           fontSize: 12,
                         }}
@@ -196,23 +215,37 @@ const headerRow = {
   flexDirection: 'row' as const,
   alignItems: 'center' as const,
   justifyContent: 'space-between' as const,
-  paddingHorizontal: 16,
-  paddingTop: 8,
-  paddingBottom: 6,
+  paddingHorizontal: 14,
+  paddingVertical: 10,
+  backgroundColor: '#121c2e',
+  borderBottomWidth: 1,
+  borderBottomColor: 'rgba(255,255,255,0.08)',
+};
+
+const topActionBtn = {
+  flexDirection: 'row' as const,
+  alignItems: 'center' as const,
+  gap: 5,
+  backgroundColor: '#1b2b48',
+  borderRadius: 10,
+  borderWidth: 1,
+  borderColor: 'rgba(45,212,191,0.35)',
+  paddingHorizontal: 10,
+  paddingVertical: 6,
 };
 
 const staffCard = {
   backgroundColor: '#141e30',
-  borderRadius: 12,
+  borderRadius: 14,
   borderWidth: 1,
-  borderColor: 'rgba(255,255,255,0.06)',
+  borderColor: 'rgba(255,255,255,0.1)',
   padding: 14,
   marginTop: 12,
-  gap: 8,
+  gap: 10,
 } as const;
 
 const footnote = {
-  color: '#64748b',
+  color: '#94a3b8',
   fontFamily: FONT.regular,
   fontSize: 12,
   textAlign: 'center' as const,

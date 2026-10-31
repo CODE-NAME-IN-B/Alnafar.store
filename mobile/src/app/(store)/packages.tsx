@@ -7,6 +7,8 @@ import { fetchActivePackages } from '@/api/packages';
 import { useAppStore } from '@/stores/app';
 import { addPackageToCart } from '@/features/cartActions';
 import PackageDetailsSheet from '@/components/store/PackageDetailsSheet';
+import Screen from '@/components/ui/Screen';
+import Icon from '@/components/ui/Icon';
 import Chip from '@/components/ui/Chip';
 import AppText from '@/components/ui/AppText';
 import { LoadingState, ErrorState, EmptyState } from '@/components/ui/StateView';
@@ -15,7 +17,7 @@ import { formatDinar } from '@/lib/money';
 import { showToast } from '@/lib/toast';
 import type { StorePackage } from '@/api/types';
 
-/** شاشة الباقات مع زر «عرض الألعاب» قبل الشراء */
+/** شاشة الباقات مع زر «عرض الألعاب» قبل الشراء — متباينة وواضحة بالكامل */
 export default function PackagesScreen() {
   const activeCategoryId = useAppStore((s) => s.activeCategoryId);
   const setActiveCategory = useAppStore((s) => s.setActiveCategory);
@@ -40,7 +42,6 @@ export default function PackagesScreen() {
     enabled: activeCategoryId != null,
   });
 
-  // فئة أول افتراضية للمستخدم الجديد
   useEffect(() => {
     if (activeCategoryId == null && categories.data && categories.data.length) {
       setActiveCategory(categories.data[0].id);
@@ -48,35 +49,46 @@ export default function PackagesScreen() {
   }, [activeCategoryId, categories.data, setActiveCategory]);
 
   return (
-    <View style={{ flex: 1, backgroundColor: '#0f1724' }}>
-      <View style={{ paddingHorizontal: 16, paddingTop: 10 }}>
-        <AppText style={{ color: '#f1f5f9', fontFamily: FONT.bold, fontSize: 20 }}>
-          الباقات
-        </AppText>
-        <AppText
-          style={{ color: '#94a3b8', fontFamily: FONT.regular, fontSize: 13, marginTop: 4 }}
-        >
-          باقات اقتصادية — تستطيع رؤية ألعابها بالتفصيل قبل الشراء
-        </AppText>
-      </View>
+    <Screen edges={['top']}>
+      <View
+        style={{
+          backgroundColor: '#0f172a',
+          borderBottomWidth: 1,
+          borderBottomColor: '#1e293b',
+          paddingHorizontal: 14,
+          paddingTop: 12,
+          paddingBottom: 12,
+          gap: 10,
+        }}
+      >
+        <View>
+          <AppText style={{ color: '#f8fafc', fontFamily: FONT.bold, fontSize: 18 }}>
+            الباقات الاقتصادية
+          </AppText>
+          <AppText
+            style={{ color: '#94a3b8', fontFamily: FONT.regular, fontSize: 12.5, marginTop: 2 }}
+          >
+            باقات مختارة — عاين جميع الألعاب داخل الباقة قبل إضافتها للسلة
+          </AppText>
+        </View>
 
-      {categories.data && categories.data.length ? (
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={{ gap: 8, paddingHorizontal: 16, paddingVertical: 12 }}
-        >
-          {categories.data.map((cat) => (
-            <Chip
-              key={cat.id}
-              label={cat.name}
-              active={activeCategoryId === cat.id}
-              onPress={() => setActiveCategory(cat.id)}
-              accent="#8a5cff"
-            />
-          ))}
-        </ScrollView>
-      ) : null}
+        {categories.data && categories.data.length ? (
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={{ gap: 8 }}
+          >
+            {categories.data.map((cat) => (
+              <Chip
+                key={cat.id}
+                label={cat.name}
+                active={activeCategoryId === cat.id}
+                onPress={() => setActiveCategory(cat.id)}
+              />
+            ))}
+          </ScrollView>
+        ) : null}
+      </View>
 
       {activeCategoryId == null ? (
         <LoadingState message="جاري جلب الفئات..." />
@@ -95,12 +107,12 @@ export default function PackagesScreen() {
           renderItem={({ item }) => (
             <PackageCard pkg={item} onDetails={setDetails} onAdd={addPack} />
           )}
-          contentContainerStyle={{ paddingHorizontal: 14, paddingVertical: 6 }}
+          contentContainerStyle={{ paddingHorizontal: 12, paddingTop: 10, paddingBottom: 24 }}
           showsVerticalScrollIndicator={false}
         />
       ) : (
         <View style={{ flex: 1, justifyContent: 'center' }}>
-          <EmptyState message="لا باقات نشطة لهذه الفئة حالياً" icon="📦" />
+          <EmptyState message="لا باقات نشطة لهذه الفئة حالياً" icon="package" />
         </View>
       )}
 
@@ -113,16 +125,16 @@ export default function PackagesScreen() {
           setDetails(null);
         }}
       />
-    </View>
+    </Screen>
   );
 }
 
 const pkgCard = {
-  backgroundColor: '#141e30',
-  borderRadius: 14,
+  backgroundColor: '#131c2e',
+  borderRadius: 16,
   borderWidth: 1,
-  borderColor: 'rgba(255,255,255,0.06)',
-  padding: 16,
+  borderColor: '#1e293b',
+  padding: 14,
   marginVertical: 6,
 } as const;
 
@@ -138,65 +150,108 @@ function PackageCard({
   const gameCount = pkg.packageGames?.length ?? 0;
   return (
     <View style={pkgCard}>
-      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
         <View
           style={{
             width: 46,
             height: 46,
             borderRadius: 12,
-            backgroundColor: 'rgba(138,92,255,0.16)',
+            backgroundColor: 'rgba(20,184,166,0.14)',
+            borderWidth: 1,
+            borderColor: 'rgba(45,212,191,0.3)',
             alignItems: 'center',
             justifyContent: 'center',
           }}
         >
-          <Text style={{ fontSize: 22 }}>📦</Text>
+          <Icon name="package" size={22} color="#2dd4bf" />
         </View>
         <View style={{ flex: 1 }}>
-          {/* اسم الباقة */}
-          <Text style={{ color: '#f1f5f9', fontFamily: FONT.bold, fontSize: 16 }}>
+          <Text
+            style={{
+              color: '#f8fafc',
+              fontFamily: FONT.bold,
+              fontSize: 15,
+              textAlign: 'right',
+            }}
+          >
             {pkg.name}
           </Text>
-          {/* وصف الباقة */}
-          <Text style={{ color: '#94a3b8', fontFamily: FONT.regular, fontSize: 12 }}>
-            {gameCount} لعبة داخل الباقة
+          <Text
+            style={{
+              color: '#94a3b8',
+              fontFamily: FONT.regular,
+              fontSize: 12,
+              textAlign: 'right',
+              marginTop: 2,
+            }}
+          >
+            تحتوي على {gameCount} لعبة مختارة
           </Text>
         </View>
-        {/* سعر الباقة */}
-        <Text style={{ color: '#a78bfa', fontFamily: FONT.bold, fontSize: 17 }}>
-          {formatDinar(Number(pkg.price))}
-        </Text>
+        <View
+          style={{
+            backgroundColor: '#1e293b',
+            borderRadius: 10,
+            borderWidth: 1,
+            borderColor: '#334155',
+            paddingHorizontal: 10,
+            paddingVertical: 6,
+          }}
+        >
+          <Text style={{ color: '#2dd4bf', fontFamily: FONT.bold, fontSize: 14 }}>
+            {formatDinar(Number(pkg.price))}
+          </Text>
+        </View>
       </View>
 
-      <View style={{ flexDirection: 'row', gap: 10, marginTop: 14 }}>
+      <View style={{ flexDirection: 'row', gap: 10, marginTop: 12 }}>
         <Pressable
           onPress={() => onDetails(pkg)}
+          android_ripple={{ color: 'rgba(255,255,255,0.15)', borderless: false }}
           style={{
             flex: 1,
-            borderRadius: 10,
-            backgroundColor: '#1b2740',
-            paddingVertical: 11,
+            minHeight: 44,
+            borderRadius: 11,
+            backgroundColor: '#1e293b',
+            paddingVertical: 10,
+            flexDirection: 'row',
             alignItems: 'center',
+            justifyContent: 'center',
+            gap: 6,
             borderWidth: 1,
-            borderColor: 'rgba(255,255,255,0.08)',
+            borderColor: '#334155',
           }}
           accessible
           accessibilityLabel={`عرض ألعاب الباقة ${pkg.name}`}
         >
-          <Text style={{ color: '#f1f5f9', fontFamily: FONT.bold }}>عرض الألعاب</Text>
+          <Icon name="eye" size={16} color="#e2e8f0" />
+          <Text style={{ color: '#f8fafc', fontFamily: FONT.bold, fontSize: 13.5 }}>
+            عرض الألعاب
+          </Text>
         </Pressable>
         <Pressable
           onPress={() => onAdd(pkg)}
+          android_ripple={{ color: 'rgba(255,255,255,0.18)', borderless: false }}
           style={{
             flex: 1,
-            borderRadius: 10,
+            minHeight: 44,
+            borderRadius: 11,
             backgroundColor: '#14b8a6',
-            paddingVertical: 11,
+            borderWidth: 1,
+            borderColor: '#14b8a6',
+            paddingVertical: 10,
+            flexDirection: 'row',
             alignItems: 'center',
+            justifyContent: 'center',
+            gap: 6,
           }}
           accessible
           accessibilityLabel={`إضافة الباقة ${pkg.name} إلى السلة`}
         >
-          <Text style={{ color: '#062b27', fontFamily: FONT.bold }}>أضف إلى السلة</Text>
+          <Icon name="plus" size={16} color="#ffffff" strokeWidth={2.3} />
+          <Text style={{ color: '#ffffff', fontFamily: FONT.bold, fontSize: 13.5 }}>
+            أضف إلى السلة
+          </Text>
         </Pressable>
       </View>
     </View>

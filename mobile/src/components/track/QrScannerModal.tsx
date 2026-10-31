@@ -5,6 +5,7 @@ import ModalSheet from '@/components/ui/ModalSheet';
 import AppInput from '@/components/ui/AppInput';
 import AppButton from '@/components/ui/AppButton';
 import AppText from '@/components/ui/AppText';
+import Icon from '@/components/ui/Icon';
 import { FONT } from '@/lib/fonts';
 
 interface Props {
@@ -18,7 +19,6 @@ export function extractTrackingId(raw: string): string | null {
   const trimmed = raw.trim();
   if (!trimmed) return null;
 
-  // روابط مثل https://.../#/track/20261031-001 أو /t/12 أو alsharida://track/12
   const trackMatch = trimmed.match(/(?:\/track\/|\/t\/)([^/?#\s]+)/i);
   if (trackMatch?.[1]) {
     try {
@@ -28,7 +28,6 @@ export function extractTrackingId(raw: string): string | null {
     }
   }
 
-  // رقم فاتورة مباشر مثل 20261031-001 أو 15
   if (/^[A-Za-z0-9_-]{1,32}$/.test(trimmed)) {
     return trimmed;
   }
@@ -82,48 +81,40 @@ export default function QrScannerModal({ visible, onClose, onResolved }: Props) 
           label="رقم الفاتورة أو الطلب"
           placeholder="مثال: 15 أو 20261031-001"
           value={manualId}
+          icon="invoice"
           onChangeText={(v) => {
             setManualId(v);
             if (scanError) setScanError(null);
           }}
+          returnKeyType="done"
+          onSubmitEditing={handleManualSubmit}
         />
 
         {scanError ? (
-          <AppText style={{ color: '#ef4444', fontFamily: FONT.regular, fontSize: 13 }}>
+          <AppText style={{ color: '#f87171', fontFamily: FONT.medium, fontSize: 13 }}>
             {scanError}
           </AppText>
         ) : null}
 
-        <AppButton label="تتبع بالرقم" onPress={handleManualSubmit} />
+        <AppButton label="تتبع بالرقم" icon="search" onPress={handleManualSubmit} />
 
         <View
           style={{
             height: 1,
-            backgroundColor: 'rgba(255,255,255,0.08)',
+            backgroundColor: 'rgba(255,255,255,0.1)',
             marginVertical: 4,
           }}
         />
 
         {!cameraOpen ? (
-          <Pressable
+          <AppButton
+            label="مسح رمز QR من الفاتورة الورقية"
+            variant="secondary"
+            icon="camera"
             onPress={() => {
               void handleOpenCamera();
             }}
-            style={{
-              backgroundColor: '#1b2740',
-              borderRadius: 12,
-              borderWidth: 1,
-              borderColor: 'rgba(20,184,166,0.35)',
-              paddingVertical: 14,
-              alignItems: 'center',
-            }}
-            accessible
-            accessibilityLabel="مسح رمز QR بالكاميرا"
-          >
-            <Text style={{ color: '#2dd4bf', fontFamily: FONT.bold, fontSize: 15 }}>
-              📷 مسح رمز QR من الفاتورة الورقية
-            </Text>
-          </Pressable>
+          />
         ) : (
           <View style={{ gap: 10 }}>
             <View
@@ -131,7 +122,7 @@ export default function QrScannerModal({ visible, onClose, onResolved }: Props) 
                 height: 230,
                 borderRadius: 14,
                 overflow: 'hidden',
-                borderWidth: 1,
+                borderWidth: 1.5,
                 borderColor: '#14b8a6',
                 backgroundColor: '#0b1220',
               }}
@@ -153,9 +144,16 @@ export default function QrScannerModal({ visible, onClose, onResolved }: Props) 
             </View>
             <Pressable
               onPress={() => setCameraOpen(false)}
-              style={{ paddingVertical: 8, alignItems: 'center' }}
+              style={{
+                paddingVertical: 10,
+                alignItems: 'center',
+                flexDirection: 'row',
+                justifyContent: 'center',
+                gap: 6,
+              }}
             >
-              <Text style={{ color: '#94a3b8', fontFamily: FONT.medium }}>إغلاق الكاميرا</Text>
+              <Icon name="close" size={16} color="#cbd5e1" />
+              <Text style={{ color: '#cbd5e1', fontFamily: FONT.bold }}>إغلاق الكاميرا</Text>
             </Pressable>
           </View>
         )}

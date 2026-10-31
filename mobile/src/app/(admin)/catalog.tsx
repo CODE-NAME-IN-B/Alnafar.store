@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Pressable, ScrollView, Text, TextInput, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { useQuery } from '@tanstack/react-query';
 import {
   createCategory,
@@ -18,13 +18,17 @@ import { apiErrorText } from '@/api/client';
 import PackageEditorModal from '@/components/admin/PackageEditorModal';
 import TaxonomySection from '@/components/admin/TaxonomySection';
 import Chip from '@/components/ui/Chip';
+import AppButton from '@/components/ui/AppButton';
+import Icon from '@/components/ui/Icon';
+import KeyboardScroll from '@/components/ui/KeyboardScroll';
+import { EmptyState, LoadingState } from '@/components/ui/StateView';
 import { FONT } from '@/lib/fonts';
 import { formatDinar } from '@/lib/money';
 import { showToast } from '@/lib/toast';
+import { ROW } from '@/lib/rtl';
 
 type SectionKey = 'packages' | 'categories' | 'services' | 'taxonomy';
 
-/** تبويب إدارة الأقسام والباقات والخدمات والأنواع والسلاسل */
 export default function AdminCatalogScreen() {
   const [section, setSection] = useState<SectionKey>('packages');
   const [editingPkg, setEditingPkg] = useState<AdminPackage | null>(null);
@@ -60,71 +64,120 @@ export default function AdminCatalogScreen() {
   };
 
   return (
-    <View style={{ flex: 1, backgroundColor: '#0f1724' }}>
-      <View style={{ padding: 12, backgroundColor: '#101929' }}>
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8 }}>
-          <Chip label="📦 الباقات" active={section === 'packages'} onPress={() => setSection('packages')} />
-          <Chip label="🏷️ التصنيفات" active={section === 'categories'} onPress={() => setSection('categories')} />
-          <Chip label="🔧 الخدمات" active={section === 'services'} onPress={() => setSection('services')} />
-          <Chip label="🗂️ الأنواع والسلاسل" active={section === 'taxonomy'} onPress={() => setSection('taxonomy')} />
+    <View style={styles.screen}>
+      <View style={styles.tabsHeader}>
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.tabsScroll}
+        >
+          <Chip
+            label="الباقات"
+            active={section === 'packages'}
+            onPress={() => setSection('packages')}
+          />
+          <Chip
+            label="التصنيفات"
+            active={section === 'categories'}
+            onPress={() => setSection('categories')}
+          />
+          <Chip
+            label="الخدمات"
+            active={section === 'services'}
+            onPress={() => setSection('services')}
+          />
+          <Chip
+            label="الأنواع والسلاسل"
+            active={section === 'taxonomy'}
+            onPress={() => setSection('taxonomy')}
+          />
         </ScrollView>
       </View>
 
-      <ScrollView contentContainerStyle={{ padding: 14, gap: 10 }}>
+      <KeyboardScroll contentStyle={{ padding: 14, gap: 10 }} extraBottomPadding={36}>
         {section === 'packages' ? (
           <>
-            <Pressable
+            <AppButton
+              label="إنشاء باقة جديدة"
+              icon="plus"
               onPress={() => {
                 setEditingPkg(null);
                 setPkgModalOpen(true);
               }}
-              style={primaryBarBtn}
-            >
-              <Text style={{ color: '#062b27', fontFamily: FONT.bold }}>+ إنشاء باقة جديدة</Text>
-            </Pressable>
-            {(packagesQ.data ?? []).map((pkg) => {
-              const count = (pkg.games ?? pkg.packageGames ?? []).length;
-              return (
-                <View key={pkg.id} style={cardRow}>
-                  <View style={{ flex: 1 }}>
-                    <Text style={{ color: '#f1f5f9', fontFamily: FONT.bold, fontSize: 15 }}>
-                      {pkg.name} {!pkg.is_active ? ' (مخفية)' : ''}
-                    </Text>
-                    <Text style={{ color: '#a78bfa', fontFamily: FONT.medium, fontSize: 12 }}>
-                      {formatDinar(Number(pkg.price))} • {count} لعبة
-                    </Text>
+            />
+
+            {packagesQ.isLoading ? (
+              <LoadingState message="جاري جلب الباقات..." />
+            ) : !(packagesQ.data ?? []).length ? (
+              <EmptyState message="لا توجد باقات حالياً" icon="package" />
+            ) : (
+              (packagesQ.data ?? []).map((pkg) => {
+                const pkgGames = pkg.games ?? pkg.packageGames ?? [];
+                const count = pkgGames.length;
+                return (
+                  <View key={pkg.id} style={styles.pkgCard}>
+                    <View style={styles.cardTopRow}>
+                      <View style={styles.flex1}>
+                        <Text style={styles.cardTitle}>
+                          {pkg.name} {!pkg.is_active ? ' (مخفية)' : ''}
+                        </Text>
+                        <Text style={styles.pkgPrice}>
+                          {formatDinar(Number(pkg.price))} • {count} لعبة
+                        </Text>
+                      </View>
+                      <View style={styles.btnGroup}>
+                        <SmallBtn
+                          label="تعديل"
+                          color="#2dd4bf"
+                          onPress={() => {
+                            setEditingPkg(pkg);
+                            setPkgModalOpen(true);
+                          }}
+                        />
+                        <SmallBtn
+                          label="حذف"
+                          color="#fca5a5"
+                          onPress={() =>
+                            void runAction(() => deletePackage(pkg.id), 'حُذفت الباقة')
+                          }
+                        />
+                      </View>
+                    </View>
+                    {pkgGames.length > 0 ? (
+                      <View style={styles.gamesTagsWrap}>
+                        {pkgGames.slice(0, 6).map((g) => (
+                          <View key={g.id} style={styles.gameTag}>
+                            <Text style={styles.gameTagText} numberOfLines={1}>
+                              {g.title}
+                            </Text>
+                          </View>
+                        ))}
+                        {pkgGames.length > 6 ? (
+                          <View style={styles.gameTag}>
+                            <Text style={styles.gameTagText}>
+                              +{pkgGames.length - 6} أخرى
+                            </Text>
+                          </View>
+                        ) : null}
+                      </View>
+                    ) : null}
                   </View>
-                  <View style={{ flexDirection: 'row', gap: 6 }}>
-                    <SmallBtn
-                      label="تعديل"
-                      color="#14b8a6"
-                      onPress={() => {
-                        setEditingPkg(pkg);
-                        setPkgModalOpen(true);
-                      }}
-                    />
-                    <SmallBtn
-                      label="حذف"
-                      color="#ef4444"
-                      onPress={() => void runAction(() => deletePackage(pkg.id), 'حُذفت الباقة')}
-                    />
-                  </View>
-                </View>
-              );
-            })}
+                );
+              })
+            )}
           </>
         ) : null}
 
         {section === 'categories' ? (
           <>
-            <View style={{ flexDirection: 'row', gap: 8 }}>
+            <View style={styles.addRow}>
               <TextInput
                 value={newCatName}
                 onChangeText={setNewCatName}
                 placeholder="اسم تصنيف جديد (مثل PS5)..."
                 placeholderTextColor="#64748b"
                 textAlign="right"
-                style={[inputBox, { flex: 1 }]}
+                style={[styles.inputBox, styles.flex1]}
               />
               <Pressable
                 onPress={() => {
@@ -135,20 +188,21 @@ export default function AdminCatalogScreen() {
                     await createCategory(name, true);
                   }, 'أضيف التصنيف');
                 }}
-                style={addBtn}
+                style={styles.addBtn}
               >
-                <Text style={{ color: '#062b27', fontFamily: FONT.bold }}>+ إضافة</Text>
+                <Icon name="plus" size={16} color="#042f2e" strokeWidth={2.4} />
+                <Text style={styles.addBtnText}>إضافة</Text>
               </Pressable>
             </View>
             {(categoriesQ.data ?? []).map((cat) => (
-              <View key={cat.id} style={cardRow}>
-                <Text style={{ color: '#f1f5f9', fontFamily: FONT.bold, flex: 1 }}>
+              <View key={cat.id} style={styles.cardRow}>
+                <Text style={[styles.cardTitle, styles.flex1]}>
                   {cat.name} {!cat.is_visible ? ' (مخفي)' : ''}
                 </Text>
-                <View style={{ flexDirection: 'row', gap: 6 }}>
+                <View style={styles.btnGroup}>
                   <SmallBtn
                     label={cat.is_visible ? 'إخفاء' : 'إظهار'}
-                    color="#f59e0b"
+                    color="#fbbf24"
                     onPress={() =>
                       void runAction(
                         () => updateCategory(cat.id, { is_visible: !cat.is_visible }),
@@ -158,8 +212,10 @@ export default function AdminCatalogScreen() {
                   />
                   <SmallBtn
                     label="حذف"
-                    color="#ef4444"
-                    onPress={() => void runAction(() => deleteCategory(cat.id), 'حُذف التصنيف')}
+                    color="#fca5a5"
+                    onPress={() =>
+                      void runAction(() => deleteCategory(cat.id), 'حُذف التصنيف')
+                    }
                   />
                 </View>
               </View>
@@ -169,14 +225,14 @@ export default function AdminCatalogScreen() {
 
         {section === 'services' ? (
           <>
-            <View style={{ flexDirection: 'row', gap: 8 }}>
+            <View style={styles.addRow}>
               <TextInput
                 value={newSvcTitle}
                 onChangeText={setNewSvcTitle}
                 placeholder="عنوان الخدمة..."
                 placeholderTextColor="#64748b"
                 textAlign="right"
-                style={[inputBox, { flex: 2 }]}
+                style={[styles.inputBox, { flex: 2 }]}
               />
               <TextInput
                 value={newSvcPrice}
@@ -184,7 +240,8 @@ export default function AdminCatalogScreen() {
                 placeholder="السعر"
                 placeholderTextColor="#64748b"
                 keyboardType="numeric"
-                style={[inputBox, { flex: 1 }]}
+                textAlign="right"
+                style={[styles.inputBox, styles.flex1]}
               />
               <Pressable
                 onPress={() => {
@@ -197,25 +254,26 @@ export default function AdminCatalogScreen() {
                     await createService({ title: t, price: p, is_active: true });
                   }, 'أضيفت الخدمة');
                 }}
-                style={addBtn}
+                style={styles.addBtn}
               >
-                <Text style={{ color: '#062b27', fontFamily: FONT.bold }}>+ إضافة</Text>
+                <Icon name="plus" size={16} color="#042f2e" strokeWidth={2.4} />
+                <Text style={styles.addBtnText}>إضافة</Text>
               </Pressable>
             </View>
             {(servicesQ.data ?? []).map((svc) => (
-              <View key={svc.id} style={cardRow}>
-                <View style={{ flex: 1 }}>
-                  <Text style={{ color: '#f1f5f9', fontFamily: FONT.bold }}>
+              <View key={svc.id} style={styles.cardRow}>
+                <View style={styles.flex1}>
+                  <Text style={styles.cardTitle}>
                     {svc.title} {!svc.is_active ? ' (معطلة)' : ''}
                   </Text>
-                  <Text style={{ color: '#2dd4bf', fontFamily: FONT.medium, fontSize: 12 }}>
+                  <Text style={styles.svcPrice}>
                     {formatDinar(Number(svc.price))}
                   </Text>
                 </View>
-                <View style={{ flexDirection: 'row', gap: 6 }}>
+                <View style={styles.btnGroup}>
                   <SmallBtn
                     label={svc.is_active ? 'تعطيل' : 'تفعيل'}
-                    color="#f59e0b"
+                    color="#fbbf24"
                     onPress={() =>
                       void runAction(
                         () => updateService(svc.id, { is_active: !svc.is_active }),
@@ -225,8 +283,10 @@ export default function AdminCatalogScreen() {
                   />
                   <SmallBtn
                     label="حذف"
-                    color="#ef4444"
-                    onPress={() => void runAction(() => deleteService(svc.id), 'حُذفت الخدمة')}
+                    color="#fca5a5"
+                    onPress={() =>
+                      void runAction(() => deleteService(svc.id), 'حُذفت الخدمة')
+                    }
                   />
                 </View>
               </View>
@@ -241,7 +301,7 @@ export default function AdminCatalogScreen() {
             runAction={runAction}
           />
         ) : null}
-      </ScrollView>
+      </KeyboardScroll>
 
       <PackageEditorModal
         visible={pkgModalOpen}
@@ -257,57 +317,159 @@ export default function AdminCatalogScreen() {
   );
 }
 
-function SmallBtn({ label, color, onPress }: { label: string; color: string; onPress: () => void }) {
+function SmallBtn({
+  label,
+  color,
+  onPress,
+}: {
+  label: string;
+  color: string;
+  onPress: () => void;
+}) {
   return (
-    <Pressable
-      onPress={onPress}
-      style={{
-        backgroundColor: '#0b1220',
-        borderWidth: 1,
-        borderColor: color,
-        borderRadius: 8,
-        paddingHorizontal: 10,
-        paddingVertical: 5,
-      }}
-    >
-      <Text style={{ color, fontFamily: FONT.bold, fontSize: 11 }}>{label}</Text>
+    <Pressable onPress={onPress} style={[styles.smallBtn, { borderColor: color }]}>
+      <Text style={[styles.smallBtnText, { color }]}>{label}</Text>
     </Pressable>
   );
 }
 
-const cardRow = {
-  flexDirection: 'row' as const,
-  alignItems: 'center' as const,
-  justifyContent: 'space-between' as const,
-  backgroundColor: '#141e30',
-  borderRadius: 12,
-  borderWidth: 1,
-  borderColor: 'rgba(255,255,255,0.06)',
-  padding: 12,
-  gap: 8,
-};
-
-const inputBox = {
-  backgroundColor: '#141e30',
-  borderRadius: 8,
-  borderWidth: 1,
-  borderColor: 'rgba(255,255,255,0.08)',
-  color: '#f1f5f9',
-  fontFamily: FONT.regular,
-  paddingHorizontal: 10,
-  paddingVertical: 8,
-} as const;
-
-const addBtn = {
-  backgroundColor: '#14b8a6',
-  borderRadius: 8,
-  paddingHorizontal: 14,
-  justifyContent: 'center' as const,
-};
-
-const primaryBarBtn = {
-  backgroundColor: '#14b8a6',
-  borderRadius: 10,
-  paddingVertical: 11,
-  alignItems: 'center' as const,
-};
+const styles = StyleSheet.create({
+  screen: {
+    flex: 1,
+    backgroundColor: '#090d16',
+  },
+  flex1: { flex: 1 },
+  tabsHeader: {
+    padding: 12,
+    backgroundColor: '#0f172a',
+    borderBottomWidth: 1,
+    borderBottomColor: '#1e293b',
+  },
+  tabsScroll: {
+    flexDirection: ROW,
+    gap: 8,
+  },
+  pkgCard: {
+    backgroundColor: '#131c2e',
+    borderRadius: 15,
+    borderWidth: 1,
+    borderColor: '#1e293b',
+    padding: 14,
+    gap: 10,
+  },
+  cardTopRow: {
+    flexDirection: ROW,
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 8,
+  },
+  cardRow: {
+    flexDirection: ROW,
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: '#131c2e',
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: '#1e293b',
+    padding: 14,
+    gap: 8,
+  },
+  cardTitle: {
+    color: '#f8fafc',
+    fontFamily: FONT.bold,
+    fontSize: 15,
+    textAlign: 'right',
+    writingDirection: 'rtl',
+    includeFontPadding: false,
+  },
+  pkgPrice: {
+    color: '#c4b5fd',
+    fontFamily: FONT.bold,
+    fontSize: 12.5,
+    textAlign: 'right',
+    writingDirection: 'rtl',
+    marginTop: 2,
+    includeFontPadding: false,
+  },
+  svcPrice: {
+    color: '#2dd4bf',
+    fontFamily: FONT.bold,
+    fontSize: 12.5,
+    textAlign: 'right',
+    writingDirection: 'rtl',
+    marginTop: 2,
+    includeFontPadding: false,
+  },
+  gamesTagsWrap: {
+    flexDirection: ROW,
+    flexWrap: 'wrap',
+    gap: 6,
+    borderTopWidth: 1,
+    borderTopColor: '#1e293b',
+    paddingTop: 8,
+  },
+  gameTag: {
+    backgroundColor: '#0b1324',
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#1e293b',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    maxWidth: 160,
+  },
+  gameTagText: {
+    fontFamily: FONT.medium,
+    color: '#cbd5e1',
+    fontSize: 11,
+    includeFontPadding: false,
+  },
+  btnGroup: {
+    flexDirection: ROW,
+    gap: 6,
+  },
+  smallBtn: {
+    backgroundColor: '#0b1220',
+    borderWidth: 1,
+    borderRadius: 9,
+    paddingHorizontal: 11,
+    paddingVertical: 7,
+  },
+  smallBtnText: {
+    fontFamily: FONT.bold,
+    fontSize: 11.5,
+    includeFontPadding: false,
+  },
+  addRow: {
+    flexDirection: ROW,
+    gap: 8,
+  },
+  inputBox: {
+    backgroundColor: '#131c2e',
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#1e293b',
+    color: '#f8fafc',
+    fontFamily: FONT.medium,
+    paddingHorizontal: 12,
+    paddingVertical: 9,
+    writingDirection: 'rtl',
+    includeFontPadding: false,
+  },
+  addBtn: {
+    flexDirection: ROW,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 5,
+    backgroundColor: '#14b8a6',
+    borderWidth: 1,
+    borderColor: '#2dd4bf',
+    borderRadius: 12,
+    paddingHorizontal: 14,
+  },
+  addBtnText: {
+    color: '#042f2e',
+    fontFamily: FONT.bold,
+    fontSize: 13,
+    includeFontPadding: false,
+  },
+});

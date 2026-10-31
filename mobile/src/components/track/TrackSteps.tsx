@@ -1,4 +1,5 @@
 import { Text, View } from 'react-native';
+import Icon from '@/components/ui/Icon';
 import { FONT } from '@/lib/fonts';
 import { TRACK_STEPS, stepIndexFor, type OrderStatus } from '@/lib/statuses';
 
@@ -16,24 +17,38 @@ export default function TrackSteps({ status }: { status: OrderStatus }) {
             <View style={{ alignItems: 'center' }}>
               <View
                 style={{
-                  width: 30,
-                  height: 30,
-                  borderRadius: 15,
+                  width: 32,
+                  height: 32,
+                  borderRadius: 16,
                   alignItems: 'center',
                   justifyContent: 'center',
-                  backgroundColor: stepDone ? '#14b8a6' : stepActive ? 'rgba(20,184,166,0.25)' : '#1b2740',
-                  borderWidth: 1,
-                  borderColor: stepDone ? '#14b8a6' : 'rgba(255,255,255,0.08)',
+                  backgroundColor: stepDone
+                    ? '#14b8a6'
+                    : stepActive
+                      ? 'rgba(20,184,166,0.25)'
+                      : '#1b2b48',
+                  borderWidth: 1.5,
+                  borderColor: stepDone || stepActive ? '#2dd4bf' : 'rgba(255,255,255,0.12)',
                 }}
               >
-                <Text style={{ color: stepDone ? '#062b27' : '#64748b', fontFamily: FONT.bold }}>
-                  {stepDone ? '✓' : String(index + 1)}
-                </Text>
+                {stepDone ? (
+                  <Icon name="check" size={16} color="#ffffff" strokeWidth={2.5} />
+                ) : (
+                  <Text
+                    style={{
+                      color: stepActive ? '#2dd4bf' : '#94a3b8',
+                      fontFamily: FONT.bold,
+                      fontSize: 13,
+                    }}
+                  >
+                    {String(index + 1)}
+                  </Text>
+                )}
               </View>
               <Text
                 style={{
-                  color: stepDone || stepActive ? '#f1f5f9' : '#64748b',
-                  fontFamily: FONT.medium,
+                  color: stepDone || stepActive ? '#f8fafc' : '#94a3b8',
+                  fontFamily: FONT.bold,
                   fontSize: 11,
                   marginTop: 6,
                   textAlign: 'center',
@@ -47,7 +62,7 @@ export default function TrackSteps({ status }: { status: OrderStatus }) {
                 style={{
                   flex: 1,
                   height: 2,
-                  backgroundColor: index < done - 1 ? '#14b8a6' : '#1b2740',
+                  backgroundColor: index < done - 1 ? '#14b8a6' : '#1b2b48',
                   marginHorizontal: 6,
                   marginBottom: 20,
                 }}

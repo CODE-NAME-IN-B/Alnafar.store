@@ -5,6 +5,7 @@ import ModalSheet from '@/components/ui/ModalSheet';
 import AppInput from '@/components/ui/AppInput';
 import AppButton from '@/components/ui/AppButton';
 import Chip from '@/components/ui/Chip';
+import Icon from '@/components/ui/Icon';
 import {
   analyzeGameGenreAi,
   classifyGameByTitle,
@@ -189,10 +190,14 @@ export default function GameEditorModal({
       onClose={onClose}
       title={game ? `تعديل: ${game.title}` : 'إضافة لعبة جديدة'}
     >
-      <ScrollView style={{ maxHeight: 470 }} showsVerticalScrollIndicator={false}>
+      <ScrollView
+        style={{ maxHeight: 470 }}
+        showsVerticalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled"
+        automaticallyAdjustKeyboardInsets
+      >
         <View style={{ gap: 10 }}>
-          {/* اختيار المنصة/الفئة أولاً كما في الواجهة */}
-          <Text style={{ color: '#94a3b8', fontFamily: FONT.bold, fontSize: 12 }}>
+          <Text style={{ color: '#cbd5e1', fontFamily: FONT.bold, fontSize: 12, textAlign: 'right' }}>
             المنصة / الفئة *
           </Text>
           <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 6 }}>
@@ -212,10 +217,11 @@ export default function GameEditorModal({
           <View style={{ flexDirection: 'row', gap: 8 }}>
             <Pressable
               onPress={() => void handleGeminiFill()}
-              style={[toolBtn, { borderColor: '#8a5cff', flex: 1 }]}
+              style={[toolBtn, { borderColor: 'rgba(167,139,250,0.45)', backgroundColor: 'rgba(138,92,255,0.12)', flex: 1 }]}
             >
+              <Icon name="sparkles" size={16} color="#c4b5fd" />
               <Text style={{ color: '#c4b5fd', fontFamily: FONT.bold, fontSize: 12 }}>
-                {busyAi ? 'جاري التحليل...' : '🤖 تعبئة ذكية (Gemini)'}
+                {busyAi ? 'جاري التحليل...' : 'تعبئة ذكية (Gemini)'}
               </Text>
             </Pressable>
             <Pressable
@@ -229,10 +235,11 @@ export default function GameEditorModal({
                 }
                 setCameraOpen((v) => !v);
               }}
-              style={[toolBtn, { borderColor: '#14b8a6', flex: 1 }]}
+              style={[toolBtn, { borderColor: 'rgba(45,212,191,0.45)', backgroundColor: 'rgba(20,184,166,0.12)', flex: 1 }]}
             >
+              <Icon name="camera" size={16} color="#2dd4bf" />
               <Text style={{ color: '#2dd4bf', fontFamily: FONT.bold, fontSize: 12 }}>
-                {busyUpload ? 'جاري الرفع...' : '📷 تصوير ورفع غلاف'}
+                {busyUpload ? 'جاري الرفع...' : 'تصوير ورفع غلاف'}
               </Text>
             </Pressable>
           </View>
@@ -242,7 +249,7 @@ export default function GameEditorModal({
               <View style={{ height: 180, borderRadius: 12, overflow: 'hidden' }}>
                 <CameraView ref={cameraRef} style={{ flex: 1 }} facing="back" />
               </View>
-              <AppButton label="التقاط ورفع الصورة" onPress={handleCaptureCover} loading={busyUpload} />
+              <AppButton label="التقاط ورفع الصورة" icon="camera" onPress={handleCaptureCover} loading={busyUpload} />
             </View>
           ) : null}
 
@@ -312,6 +319,7 @@ export default function GameEditorModal({
 
           <AppButton
             label={game ? 'حفظ التعديلات' : 'إضافة اللعبة للمتجر'}
+            icon="check"
             onPress={handleSave}
             loading={busySave}
           />
@@ -322,9 +330,11 @@ export default function GameEditorModal({
 }
 
 const toolBtn = {
-  backgroundColor: '#0b1220',
+  flexDirection: 'row',
+  justifyContent: 'center',
+  gap: 6,
   borderWidth: 1,
-  borderRadius: 10,
-  paddingVertical: 10,
+  borderRadius: 12,
+  paddingVertical: 11,
   alignItems: 'center',
 } as const;

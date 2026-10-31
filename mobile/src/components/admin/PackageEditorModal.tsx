@@ -99,7 +99,12 @@ export default function PackageEditorModal({
       onClose={onClose}
       title={pkg ? `تعديل باقة: ${pkg.name}` : 'إنشاء باقة جديدة'}
     >
-      <ScrollView style={{ maxHeight: 460 }} showsVerticalScrollIndicator={false}>
+      <ScrollView
+        style={{ maxHeight: 460 }}
+        showsVerticalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled"
+        automaticallyAdjustKeyboardInsets
+      >
         <View style={{ gap: 10 }}>
           <AppInput label="اسم الباقة *" placeholder="باقة كرة القدم" value={name} onChangeText={setName} />
           <AppInput

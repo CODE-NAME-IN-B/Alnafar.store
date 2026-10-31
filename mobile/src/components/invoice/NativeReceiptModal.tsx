@@ -5,6 +5,7 @@ import QRCode from 'react-native-qrcode-svg';
 import { useQuery } from '@tanstack/react-query';
 import ModalSheet from '@/components/ui/ModalSheet';
 import AppButton from '@/components/ui/AppButton';
+import Icon from '@/components/ui/Icon';
 import { fetchInvoiceSettings } from '@/api/settings';
 import { parseInvoiceItems, type InvoiceRecord } from '@/api/invoices';
 import { getPrinterDriver } from '@/print/PrinterDriver';
@@ -12,6 +13,7 @@ import { FONT } from '@/lib/fonts';
 import { formatDinar } from '@/lib/money';
 import { API_BASE } from '@/lib/env';
 import { showToast } from '@/lib/toast';
+import { formatInvoiceCode, LtrText } from '@/components/ui/LtrText';
 
 interface Props {
   visible: boolean;
@@ -37,7 +39,7 @@ export default function NativeReceiptModal({ visible, invoice, onClose }: Props)
   if (!invoice) return null;
 
   const settings = settingsQuery.data ?? {};
-  const storeName = (settings.store_name || '').trim() || 'الشارده للإلكترونيات';
+  const storeName = (settings.store_name || '').trim() || 'الشاردة ستور';
   const storeNameEn = (settings.store_name_english || '').trim() || 'Alnafar Store';
   const storeAddr = (settings.store_address || '').trim();
   const storePhone = (settings.store_phone || '').trim();
@@ -79,13 +81,13 @@ export default function NativeReceiptModal({ visible, invoice, onClose }: Props)
   };
 
   return (
-    <ModalSheet visible={visible} onClose={onClose} title={`فاتورة #${invoice.invoice_number}`}>
+    <ModalSheet visible={visible} onClose={onClose} title={`فاتورة ${formatInvoiceCode(invoice.invoice_number)}`}>
       <ScrollView style={{ maxHeight: 460 }} showsVerticalScrollIndicator={false}>
         {/* بطاقة إيصال حراري أصلية */}
         <View
           style={{
             backgroundColor: '#ffffff',
-            borderRadius: 14,
+            borderRadius: 16,
             padding: 16,
             alignItems: 'center',
             gap: 6,
@@ -117,9 +119,9 @@ export default function NativeReceiptModal({ visible, invoice, onClose }: Props)
 
           <View style={dashedLine} />
 
-          <Text style={{ color: '#0f1724', fontFamily: FONT.bold, fontSize: 16 }}>
-            #{invoice.invoice_number}
-          </Text>
+          <LtrText style={{ color: '#0f1724', fontSize: 16 }}>
+            {formatInvoiceCode(invoice.invoice_number)}
+          </LtrText>
           <Text style={{ color: '#1e293b', fontFamily: FONT.bold, fontSize: 14 }}>
             {invoice.customer_name || 'عميل نقدي'}
           </Text>
@@ -206,20 +208,24 @@ export default function NativeReceiptModal({ visible, invoice, onClose }: Props)
           </View>
 
           {storePhone ? (
-            <Text style={{ color: '#475569', fontFamily: FONT.medium, fontSize: 11 }}>
-              📞 {storePhone}
-            </Text>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5 }}>
+              <Icon name="phone" size={13} color="#475569" />
+              <Text style={{ color: '#475569', fontFamily: FONT.medium, fontSize: 11 }}>
+                {storePhone}
+              </Text>
+            </View>
           ) : null}
         </View>
       </ScrollView>
 
       <View style={{ flexDirection: 'row', gap: 10, marginTop: 14 }}>
         <View style={{ flex: 1 }}>
-          <AppButton label="🖨️ طباعة" onPress={handlePrint} loading={printing} />
+          <AppButton label="طباعة" icon="printer" onPress={handlePrint} loading={printing} />
         </View>
         <View style={{ flex: 1 }}>
           <AppButton
-            label="📄 مشاركة PDF"
+            label="مشاركة PDF"
+            icon="share"
             variant="secondary"
             onPress={handleSharePdf}
             loading={sharing}

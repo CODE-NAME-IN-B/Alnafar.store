@@ -15,6 +15,7 @@ import { apiErrorText } from '@/api/client';
 import AppInput from '@/components/ui/AppInput';
 import AppButton from '@/components/ui/AppButton';
 import Chip from '@/components/ui/Chip';
+import Icon from '@/components/ui/Icon';
 import { FONT } from '@/lib/fonts';
 import { showToast } from '@/lib/toast';
 
@@ -34,7 +35,6 @@ export default function UsersBranchesSection({ mode }: Props) {
     queryFn: fetchBranches,
   });
 
-  // نموذج إضافة مستخدم
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [fullName, setFullName] = useState('');
@@ -42,7 +42,6 @@ export default function UsersBranchesSection({ mode }: Props) {
   const [userBranchId, setUserBranchId] = useState<number>(1);
   const [busyUser, setBusyUser] = useState(false);
 
-  // نموذج إضافة فرع
   const [branchName, setBranchName] = useState('');
   const [branchAddress, setBranchAddress] = useState('');
   const [branchPhone, setBranchPhone] = useState('');
@@ -103,7 +102,7 @@ export default function UsersBranchesSection({ mode }: Props) {
     return (
       <View style={{ gap: 10 }}>
         <View style={card}>
-          <Text style={{ color: '#f1f5f9', fontFamily: FONT.bold, fontSize: 15 }}>
+          <Text style={{ color: '#f8fafc', fontFamily: FONT.bold, fontSize: 15, textAlign: 'right' }}>
             إضافة مستخدم جديد
           </Text>
           <AppInput label="اسم المستخدم *" placeholder="staff2" value={username} onChangeText={setUsername} />
@@ -129,16 +128,16 @@ export default function UsersBranchesSection({ mode }: Props) {
               />
             ))}
           </ScrollView>
-          <AppButton label="إنشاء حساب المستخدم" onPress={handleAddUser} loading={busyUser} />
+          <AppButton label="إنشاء حساب المستخدم" icon="plus" onPress={handleAddUser} loading={busyUser} />
         </View>
 
         {(usersQ.data ?? []).map((u) => (
           <View key={u.id} style={[card, { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }]}>
             <View style={{ flex: 1 }}>
-              <Text style={{ color: '#f1f5f9', fontFamily: FONT.bold, fontSize: 14 }}>
+              <Text style={{ color: '#f8fafc', fontFamily: FONT.bold, fontSize: 14, textAlign: 'right' }}>
                 {u.full_name || u.username} (@{u.username})
               </Text>
-              <Text style={{ color: '#94a3b8', fontFamily: FONT.regular, fontSize: 12 }}>
+              <Text style={{ color: '#94a3b8', fontFamily: FONT.regular, fontSize: 12, textAlign: 'right' }}>
                 الدور: {u.role === 'admin' ? 'مدير' : 'موظف'} • فرع #{u.branch_id ?? 1}{' '}
                 {u.is_active === 0 ? '• معطّل' : ''}
               </Text>
@@ -186,7 +185,7 @@ export default function UsersBranchesSection({ mode }: Props) {
   return (
     <View style={{ gap: 10 }}>
       <View style={card}>
-        <Text style={{ color: '#f1f5f9', fontFamily: FONT.bold, fontSize: 15 }}>
+        <Text style={{ color: '#f8fafc', fontFamily: FONT.bold, fontSize: 15, textAlign: 'right' }}>
           إضافة فرع جديد
         </Text>
         <AppInput label="اسم الفرع *" placeholder="فرع وسط البلاد" value={branchName} onChangeText={setBranchName} />
@@ -198,24 +197,27 @@ export default function UsersBranchesSection({ mode }: Props) {
           value={branchPhone}
           onChangeText={setBranchPhone}
         />
-        <AppButton label="إنشاء الفرع" onPress={handleAddBranch} loading={busyBranch} />
+        <AppButton label="إنشاء الفرع" icon="plus" onPress={handleAddBranch} loading={busyBranch} />
       </View>
 
       {(branchesQ.data ?? []).map((b) => (
         <View key={b.id} style={[card, { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }]}>
           <View style={{ flex: 1 }}>
-            <Text style={{ color: '#f1f5f9', fontFamily: FONT.bold, fontSize: 14 }}>
+            <Text style={{ color: '#f8fafc', fontFamily: FONT.bold, fontSize: 14, textAlign: 'right' }}>
               {b.name} {b.is_main ? '• رئيسي' : ''} {!b.is_active ? '• متوقف' : ''}
             </Text>
             {b.address ? (
-              <Text style={{ color: '#94a3b8', fontFamily: FONT.regular, fontSize: 12 }}>
+              <Text style={{ color: '#94a3b8', fontFamily: FONT.regular, fontSize: 12, textAlign: 'right' }}>
                 {b.address}
               </Text>
             ) : null}
             {b.phone ? (
-              <Text style={{ color: '#2dd4bf', fontFamily: FONT.medium, fontSize: 12 }}>
-                📞 {b.phone}
-              </Text>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5, marginTop: 2 }}>
+                <Icon name="phone" size={13} color="#2dd4bf" />
+                <Text style={{ color: '#2dd4bf', fontFamily: FONT.medium, fontSize: 12 }}>
+                  {b.phone}
+                </Text>
+              </View>
             ) : null}
           </View>
           {!b.is_main ? (
@@ -260,10 +262,10 @@ export default function UsersBranchesSection({ mode }: Props) {
 
 const card = {
   backgroundColor: '#141e30',
-  borderRadius: 12,
+  borderRadius: 14,
   borderWidth: 1,
-  borderColor: 'rgba(255,255,255,0.06)',
-  padding: 12,
+  borderColor: 'rgba(255,255,255,0.08)',
+  padding: 14,
   gap: 8,
 } as const;
 

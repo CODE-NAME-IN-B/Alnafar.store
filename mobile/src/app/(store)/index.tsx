@@ -1,328 +1,660 @@
-import { useEffect, useMemo, useState } from 'react';
-import { Pressable, ScrollView, Text, TextInput, View } from 'react-native';
-import { Image } from 'expo-image';
-import { router } from 'expo-router';
-import { FlashList } from '@shopify/flash-list';
+import React, { useMemo, useState } from 'react';
+import {
+  FlatList,
+  Image,
+  Pressable,
+  RefreshControl,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  View,
+} from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useQuery } from '@tanstack/react-query';
+import { router } from 'expo-router';
 import { fetchGames } from '@/api/games';
 import { fetchCategories, fetchGenres, fetchSeries } from '@/api/categories';
-import { healthCheck } from '@/api/auth';
+import { fetchBranches } from '@/api/branches';
+import { fetchHealth } from '@/api/settings';
+import { fetchPublicTopGames } from '@/api/stats';
+import { Game } from '@/api/types';
 import { useAppStore } from '@/stores/app';
 import { useAuthStore } from '@/stores/auth';
-import { useCartStore } from '@/stores/cart';
-import { isPs4Game, mainPriceOf, ps5PriceOf } from '@/lib/gamePrices';
 import { addGameToCart } from '@/features/cartActions';
+import { isPs4Game, mainPriceOf, ps5PriceOf } from '@/lib/gamePrices';
+import { showToast } from '@/lib/toast';
 import GameCard from '@/components/GameCard';
-import TopList from '@/components/store/TopList';
-import ServicesSheet from '@/components/store/ServicesSheet';
 import VersionPickerModal from '@/components/store/VersionPickerModal';
+import TopList from '@/components/store/TopList';
+import HeroSection from '@/components/store/HeroSection';
 import FilterSheet, {
   EMPTY_FILTERS,
+  StoreFilters,
   applyFilters,
-  type Filters,
+  countActiveFilters,
 } from '@/components/store/FilterSheet';
+import ServicesSheet from '@/components/store/ServicesSheet';
 import QrScannerModal from '@/components/track/QrScannerModal';
-import { LoadingState, ErrorState, EmptyState } from '@/components/ui/StateView';
 import Chip from '@/components/ui/Chip';
+import Icon from '@/components/ui/Icon';
+import { EmptyState, ErrorState, LoadingState } from '@/components/ui/StateView';
+import { ENGLISH_LETTERS } from '@/lib/arabic';
 import { FONT } from '@/lib/fonts';
-import { showToast } from '@/lib/toast';
-import type { Game } from '@/api/types';
+import { ROW } from '@/lib/rtl';
 
-const header = {
-  flexDirection: 'row',
-  alignItems: 'center',
-  justifyContent: 'space-between',
-  paddingHorizontal: 14,
-  paddingTop: 10,
-  paddingBottom: 8,
-} as const;
+const LOGO = require('../../../assets/_brand/logo.png');
 
-const searchBox = {
-  flexDirection: 'row',
-  alignItems: 'center',
-  backgroundColor: '#10203a',
-  borderRadius: 10,
-  borderWidth: 1,
-  borderColor: 'rgba(255,255,255,0.08)',
-  paddingHorizontal: 12,
-} as const;
-
-const actionBtn = {
-  backgroundColor: '#141e30',
-  borderRadius: 8,
-  borderWidth: 1,
-  borderColor: 'rgba(255,255,255,0.08)',
-  paddingHorizontal: 10,
-  paddingVertical: 6,
-} as const;
-
-/** شاشة المتجر: رأس + شريط الأكثر طلباً + فئات + بحث + فلاتر + شبكة ألعاب */
-export default function StoreHome() {
+export default function StoreHomeScreen() {
+  const selectedBranchId = useAppStore((s) => s.selectedBranchId);
+  const selectBranch = useAppStore((s) => s.selectBranch);
   const activeCategoryId = useAppStore((s) => s.activeCategoryId);
   const setActiveCategory = useAppStore((s) => s.setActiveCategory);
-  const clearBranch = useAppStore((s) => s.clearBranch);
   const token = useAuthStore((s) => s.token);
-  const editingInvoice = useCartStore((s) => s.editingInvoice);
-  const cancelEditingInvoice = useCartStore((s) => s.cancelEditingInvoice);
+  const user = useAuthStore((s) => s.user);
+  const logout = useAuthStore((s) => s.logout);
 
-  const [queryInput, setQueryInput] = useState('');
-  const [searchQ, setSearchQ] = useState('');
-  const [filters, setFilters] = useState<Filters>(EMPTY_FILTERS);
-  const [pickerGame, setPickerGame] = useState<Game | null>(null);
-  const [filterSheetOpen, setFilterSheetOpen] = useState(false);
+  const [query, setQuery] = useState('');
+  const [filters, setFilters] = useState<StoreFilters>(EMPTY_FILTERS);
+  const [filterOpen, setFilterOpen] = useState(false);
   const [servicesOpen, setServicesOpen] = useState(false);
-  const [qrOpen, setQrOpen] = useState(false);
+  const [trackOpen, setTrackOpen] = useState(false);
+  const [pickingGame, setPickingGame] = useState<Game | null>(null);
 
-  useEffect(() => {
-    const timer = setTimeout(() => setSearchQ(queryInput.trim()), 450);
-    return () => clearTimeout(timer);
-  }, [queryInput]);
-
-  const games = useQuery({
-    queryKey: ['games', { q: searchQ, category: activeCategoryId }],
-    queryFn: () => fetchGames({ q: searchQ || undefined, category: activeCategoryId }),
+  const gamesQ = useQuery({
+    queryKey: ['games', 'all'],
+    queryFn: () => fetchGames({ limit: 1000 }),
   });
-
-  const categories = useQuery({
+  const categoriesQ = useQuery({
     queryKey: ['categories'],
     queryFn: () => fetchCategories(true),
   });
-  const genres = useQuery({ queryKey: ['genres'], queryFn: fetchGenres });
-  const seriesList = useQuery({ queryKey: ['series'], queryFn: fetchSeries });
-  const health = useQuery({
+  const branchesQ = useQuery({
+    queryKey: ['branches'],
+    queryFn: fetchBranches,
+  });
+  const topQ = useQuery({
+    queryKey: ['public-top-games'],
+    queryFn: fetchPublicTopGames,
+  });
+  const genresQ = useQuery({
+    queryKey: ['games-genres'],
+    queryFn: fetchGenres,
+  });
+  const seriesQ = useQuery({
+    queryKey: ['games-series'],
+    queryFn: fetchSeries,
+  });
+  const healthQ = useQuery({
     queryKey: ['health'],
-    queryFn: healthCheck,
-    staleTime: 5 * 60_000,
+    queryFn: fetchHealth,
+    refetchInterval: 60_000,
   });
 
-  const visible = useMemo(() => {
-    if (!games.data) return [];
-    return applyFilters(games.data, filters, searchQ);
-  }, [games.data, filters, searchQ]);
+  const games = useMemo(() => gamesQ.data ?? [], [gamesQ.data]);
+  const categories = useMemo(() => categoriesQ.data ?? [], [categoriesQ.data]);
+  const branches = useMemo(() => branchesQ.data ?? [], [branchesQ.data]);
 
-  const activeFilterCount = Object.values(filters).filter(Boolean).length;
+  const filtered = useMemo(
+    () => applyFilters(games, filters, activeCategoryId, query),
+    [games, filters, activeCategoryId, query]
+  );
 
-  const handleOpenGame = (game: Game) => {
-    const cats = categories.data ?? [];
-    if (isPs4Game(game, cats)) {
-      setPickerGame(game);
+  const handlePressGame = (game: Game) => {
+    if (isPs4Game(game, categories)) {
+      setPickingGame(game);
     } else {
       addGameToCart(game, 'PS5', mainPriceOf(game));
-      showToast('أضيفت اللعبة للسلة');
+      showToast(`أضيفت: ${game.title}`);
     }
   };
 
-  const onPickVersion = (platform: 'PS4' | 'PS5') => {
-    const game = pickerGame;
-    setPickerGame(null);
-    if (!game) return;
-    const price = platform === 'PS4' ? Number(game.price) : ps5PriceOf(game);
-    addGameToCart(game, platform, price);
-    showToast('أضيفت اللعبة للسلة');
-  };
+  const activeFilterCount = countActiveFilters(filters);
+  const healthy = Boolean(healthQ.data?.ok);
 
   return (
-    <View style={{ flex: 1, backgroundColor: '#0f1724' }}>
-      {/* رأس الشاشة */}
-      <View style={header}>
-        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, flex: 1 }}>
-          <Image
-            source={require('../../../assets/_brand/logo.png')}
-            style={{ width: 38, height: 38, borderRadius: 10 }}
-            contentFit="contain"
-            accessibilityLabel="شعار النفار"
-          />
-          <View style={{ flex: 1 }}>
-            <Text style={{ color: '#f1f5f9', fontFamily: FONT.bold, fontSize: 16 }}>
-              الشارده ستور
-            </Text>
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5 }}>
-              <View
-                style={{
-                  width: 7,
-                  height: 7,
-                  borderRadius: 4,
-                  backgroundColor: health.data?.ok ? '#22c55e' : '#64748b',
-                }}
-              />
-              <Text style={{ color: '#64748b', fontFamily: FONT.regular, fontSize: 11 }}>
-                {health.data?.ok ? 'الخدمة متصلة' : 'جاري الاتصال...'}
+    <SafeAreaView style={styles.safe} edges={['top']}>
+      {/* Compact Sticky Header */}
+      <View style={styles.header}>
+        <View style={styles.topBar}>
+          <View style={styles.brandRow}>
+            <Image source={LOGO} style={styles.brandLogo} />
+            <View style={styles.brandTextCol}>
+              <Text style={styles.brandTitle} numberOfLines={1}>
+                الشارده ستور
               </Text>
+              <View style={styles.statusRow}>
+                <View
+                  style={[
+                    styles.statusDot,
+                    { backgroundColor: healthy ? '#22c55e' : '#eab308' },
+                  ]}
+                />
+                <Text style={styles.statusText} numberOfLines={1}>
+                  {token && user
+                    ? `كاشير: ${user.username}`
+                    : healthy
+                    ? 'متصل بالخادم'
+                    : 'جاري الاتصال...'}
+                </Text>
+              </View>
             </View>
+          </View>
+
+          <View style={styles.actionsRow}>
+            <Pressable
+              onPress={() => setTrackOpen(true)}
+              style={styles.actionPill}
+            >
+              <Icon name="qr" size={14} color="#2dd4bf" />
+              <Text style={styles.actionPillText}>تتبع</Text>
+            </Pressable>
+
+            <Pressable
+              onPress={() => setServicesOpen(true)}
+              style={[styles.actionPill, styles.actionPillPurple]}
+            >
+              <Icon name="sparkles" size={14} color="#c4b5fd" />
+              <Text style={styles.actionPillTextPurple}>الخدمات</Text>
+            </Pressable>
+
+            {token ? (
+              <>
+                <Pressable
+                  onPress={() => router.push('/(admin)')}
+                  style={[styles.actionPill, styles.actionPillTeal]}
+                >
+                  <Icon name="settings" size={14} color="#2dd4bf" />
+                  <Text style={styles.actionPillText}>الإدارة</Text>
+                </Pressable>
+                <Pressable
+                  onPress={async () => {
+                    await logout();
+                  }}
+                  style={styles.logoutIconBtn}
+                >
+                  <Icon name="logout" size={15} color="#fda4af" />
+                </Pressable>
+              </>
+            ) : (
+              <Pressable
+                onPress={() => router.push('/login')}
+                style={[styles.actionPill, styles.actionPillTeal]}
+              >
+                <Icon name="user" size={14} color="#2dd4bf" />
+                <Text style={styles.actionPillText}>دخول</Text>
+              </Pressable>
+            )}
           </View>
         </View>
 
-        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-          <Pressable onPress={() => setQrOpen(true)} style={actionBtn} accessibilityLabel="تتبع طلب">
-            <Text style={{ color: '#2dd4bf', fontFamily: FONT.bold, fontSize: 12 }}>تتبع / QR</Text>
-          </Pressable>
-          <Pressable onPress={() => setServicesOpen(true)} style={actionBtn} accessibilityLabel="الخدمات">
-            <Text style={{ color: '#a78bfa', fontFamily: FONT.bold, fontSize: 12 }}>الخدمات</Text>
-          </Pressable>
-          <Pressable
-            onPress={() => router.push(token ? '/(admin)' : '/login')}
-            style={actionBtn}
-            accessibilityLabel={token ? 'لوحة الإدارة' : 'دخول العاملين'}
-          >
-            <Text style={{ color: '#f1f5f9', fontFamily: FONT.medium, fontSize: 12 }}>
-              {token ? 'الإدارة' : 'دخول'}
-            </Text>
-          </Pressable>
-          <Pressable onPress={clearBranch} style={actionBtn} accessibilityLabel="تغيير الفرع">
-            <Text style={{ color: '#94a3b8', fontFamily: FONT.regular, fontSize: 11 }}>الفرع</Text>
-          </Pressable>
-        </View>
-      </View>
-
-      {/* شريط تعديل فاتورة قائمة للموظف */}
-      {editingInvoice ? (
-        <View
-          style={{
-            flexDirection: 'row',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            backgroundColor: 'rgba(138,92,255,0.18)',
-            borderColor: 'rgba(138,92,255,0.4)',
-            borderWidth: 1,
-            marginHorizontal: 14,
-            marginBottom: 6,
-            borderRadius: 10,
-            paddingHorizontal: 12,
-            paddingVertical: 8,
-          }}
-        >
-          <Text style={{ color: '#e9d5ff', fontFamily: FONT.bold, fontSize: 12 }}>
-            وضع تعديل الفاتورة #{editingInvoice.invoice_number}
-          </Text>
-          <Pressable onPress={cancelEditingInvoice}>
-            <Text style={{ color: '#fca5a5', fontFamily: FONT.bold, fontSize: 12 }}>إلغاء</Text>
-          </Pressable>
-        </View>
-      ) : null}
-
-      {/* بحث + زر فلاتر + فئات */}
-      <View style={{ paddingHorizontal: 14, gap: 8 }}>
-        <View style={searchBox}>
+        {/* Search + Filter Row */}
+        <View style={styles.searchBar}>
+          <Icon name="search" size={18} color="#64748b" />
           <TextInput
-            value={queryInput}
-            onChangeText={setQueryInput}
-            placeholder="ابحث عن لعبة..."
+            value={query}
+            onChangeText={setQuery}
+            placeholder="ابحث عن لعبة أو سلسلة..."
             placeholderTextColor="#64748b"
             textAlign="right"
-            style={{ flex: 1, color: '#f1f5f9', fontFamily: FONT.regular, paddingVertical: 8 }}
+            style={styles.searchInput}
           />
-          {queryInput ? (
-            <Pressable onPress={() => setQueryInput('')} accessibilityLabel="مسح البحث">
-              <Text style={{ color: '#64748b', paddingHorizontal: 8 }}>✕</Text>
+          {query ? (
+            <Pressable onPress={() => setQuery('')} hitSlop={8}>
+              <Icon name="close" size={16} color="#94a3b8" />
             </Pressable>
           ) : null}
           <Pressable
-            onPress={() => setFilterSheetOpen(true)}
-            accessibilityLabel="فتح الفلاتر"
-            style={{
-              backgroundColor: activeFilterCount ? '#14b8a6' : '#1b2740',
-              borderRadius: 8,
-              paddingHorizontal: 12,
-              paddingVertical: 6,
-              marginStart: 8,
-            }}
+            onPress={() => setFilterOpen(true)}
+            style={[
+              styles.filterBtn,
+              activeFilterCount > 0 && styles.filterBtnActive,
+            ]}
           >
+            <Icon
+              name="filter"
+              size={14}
+              color={activeFilterCount > 0 ? '#042f2e' : '#e2e8f0'}
+            />
             <Text
-              style={{
-                color: activeFilterCount ? '#062b27' : '#94a3b8',
-                fontFamily: FONT.bold,
-                fontSize: 13,
-              }}
+              style={[
+                styles.filterBtnText,
+                activeFilterCount > 0 && styles.filterBtnTextActive,
+              ]}
             >
-              فلترة{activeFilterCount ? ` ${activeFilterCount}` : ''}
+              {activeFilterCount > 0 ? `فلترة (${activeFilterCount})` : 'فلترة'}
             </Text>
           </Pressable>
         </View>
 
-        {categories.data && categories.data.length ? (
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={{ gap: 8, paddingBottom: 2 }}
-          >
+        {/* Category Strip */}
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.catScroll}
+        >
+          <Chip
+            label="الكل"
+            accent="purple"
+            active={activeCategoryId === null}
+            onPress={() => setActiveCategory(null)}
+          />
+          {categories.map((c) => (
             <Chip
-              label="الكل"
-              active={!activeCategoryId}
-              onPress={() => setActiveCategory(null)}
-              accent="#8a5cff"
+              key={c.id}
+              label={c.name}
+              accent="purple"
+              active={activeCategoryId === c.id}
+              onPress={() =>
+                setActiveCategory(activeCategoryId === c.id ? null : c.id)
+              }
             />
-            {categories.data.map((cat) => (
-              <Chip
-                key={cat.id}
-                label={cat.name}
-                active={activeCategoryId === cat.id}
-                onPress={() => setActiveCategory(cat.id)}
-                accent="#8a5cff"
-              />
-            ))}
-          </ScrollView>
-        ) : null}
+          ))}
+        </ScrollView>
       </View>
 
-      {/* شبكة الألعاب */}
-      {games.isLoading ? (
-        <LoadingState message="جاري جلب الألعاب..." />
-      ) : games.isError ? (
+      {gamesQ.isLoading ? (
+        <LoadingState message="جاري تحميل الألعاب..." />
+      ) : gamesQ.isError ? (
         <ErrorState
-          message="تعذر جلب مكتبة الألعاب"
-          hint="تحقق من الاتصال بالإنترنت ثم حاول"
-          onRetry={() => games.refetch()}
-        />
-      ) : visible.length ? (
-        <FlashList
-          data={visible}
-          numColumns={2}
-          keyExtractor={(game) => String(game.id)}
-          ListHeaderComponent={!searchQ && !activeFilterCount ? <TopList onSelectGame={handleOpenGame} /> : null}
-          renderItem={({ item }) => (
-            <GameCard game={item} categories={categories.data ?? []} onOpen={handleOpenGame} />
-          )}
-          contentContainerStyle={{ paddingHorizontal: 8, paddingVertical: 8 }}
-          showsVerticalScrollIndicator={false}
+          message="تعذر تحميل قائمة الألعاب"
+          onRetry={() => gamesQ.refetch()}
         />
       ) : (
-        <View style={{ flex: 1, justifyContent: 'center' }}>
-          <EmptyState
-            message="لا ألعاب مطابقة — جرّب فئة أخرى أو امسح الفلاتر"
-            icon="🕹️"
-            actionLabel={filters !== EMPTY_FILTERS ? 'مسح الفلاتر' : undefined}
-            onAction={() => setFilters(EMPTY_FILTERS)}
-          />
-        </View>
+        <FlatList
+          data={filtered}
+          keyExtractor={(g) => String(g.id)}
+          numColumns={2}
+          columnWrapperStyle={styles.gridRow}
+          contentContainerStyle={styles.listContent}
+          refreshControl={
+            <RefreshControl
+              refreshing={gamesQ.isFetching}
+              onRefresh={() => {
+                gamesQ.refetch();
+                topQ.refetch();
+                branchesQ.refetch();
+              }}
+              tintColor="#14b8a6"
+            />
+          }
+          ListHeaderComponent={
+            <View>
+              {/* Hero Promotional Banner & Branches/Cashier Section */}
+              <HeroSection
+                branches={branches}
+                selectedBranchId={selectedBranchId}
+                onSelectBranch={(id) => selectBranch(id)}
+                isCashier={Boolean(token)}
+                onOpenAdmin={() => router.push('/(admin)')}
+              />
+
+              {/* Top 10 Games */}
+              {!query && activeFilterCount === 0 && activeCategoryId === null ? (
+                <TopList
+                  items={topQ.data ?? []}
+                  onSelect={(topItem) => {
+                    const found = games.find((g) => g.id === topItem.id) ?? {
+                      id: topItem.id,
+                      title: topItem.title,
+                      image: topItem.image,
+                      price: topItem.price,
+                      price_ps5: topItem.price_ps5,
+                      category_id: topItem.category_id,
+                      size_gb: topItem.size_gb,
+                    };
+                    handlePressGame(found);
+                  }}
+                />
+              ) : null}
+
+              {/* English Alphabetical Index Bar (# A B C ... Z) */}
+              <View style={styles.alphaBarWrap}>
+                <View style={styles.alphaHeadRow}>
+                  <View style={styles.alphaTitleRow}>
+                    <Icon name="gamepad" size={15} color="#2dd4bf" />
+                    <Text style={styles.alphaTitle}>
+                      قائمة الألعاب (مرتبة أبجدياً A – Z)
+                    </Text>
+                  </View>
+                  <Text style={styles.alphaCount}>{filtered.length} لعبة</Text>
+                </View>
+
+                <ScrollView
+                  horizontal
+                  showsHorizontalScrollIndicator={false}
+                  contentContainerStyle={styles.alphaScroll}
+                >
+                  <Pressable
+                    onPress={() => setFilters((f) => ({ ...f, letter: null }))}
+                    style={[
+                      styles.letterPill,
+                      filters.letter === null && styles.letterPillActive,
+                    ]}
+                  >
+                    <Text
+                      style={[
+                        styles.letterPillText,
+                        filters.letter === null && styles.letterPillTextActive,
+                      ]}
+                    >
+                      الكل
+                    </Text>
+                  </Pressable>
+                  {ENGLISH_LETTERS.map((ltr) => {
+                    const active = filters.letter === ltr;
+                    return (
+                      <Pressable
+                        key={ltr}
+                        onPress={() =>
+                          setFilters((f) => ({
+                            ...f,
+                            letter: active ? null : ltr,
+                          }))
+                        }
+                        style={[
+                          styles.letterPill,
+                          active && styles.letterPillActive,
+                        ]}
+                      >
+                        <Text
+                          style={[
+                            styles.letterPillText,
+                            active && styles.letterPillTextActive,
+                          ]}
+                        >
+                          {ltr}
+                        </Text>
+                      </Pressable>
+                    );
+                  })}
+                </ScrollView>
+              </View>
+            </View>
+          }
+          ListEmptyComponent={
+            <EmptyState
+              message="لا توجد ألعاب مطابقة — جرّب تغيير البحث أو اختيار حرف آخر"
+              icon="gamepad"
+            />
+          }
+          renderItem={({ item }) => (
+            <View style={styles.cardCell}>
+              <GameCard
+                game={item}
+                categories={categories}
+                onPress={handlePressGame}
+              />
+            </View>
+          )}
+        />
       )}
 
       <VersionPickerModal
-        visible={!!pickerGame}
-        game={pickerGame}
-        onClose={() => setPickerGame(null)}
-        onPick={onPickVersion}
+        visible={Boolean(pickingGame)}
+        game={pickingGame}
+        onClose={() => setPickingGame(null)}
+        onPick={(platform) => {
+          if (!pickingGame) return;
+          const unitPrice =
+            platform === 'PS5' ? ps5PriceOf(pickingGame) : mainPriceOf(pickingGame);
+          addGameToCart(pickingGame, platform, unitPrice);
+          showToast(`أضيفت: ${pickingGame.title}`);
+          setPickingGame(null);
+        }}
       />
 
       <FilterSheet
-        visible={filterSheetOpen}
-        onClose={() => setFilterSheetOpen(false)}
-        value={filters}
+        visible={filterOpen}
+        onClose={() => setFilterOpen(false)}
+        games={games}
+        filters={filters}
         onChange={setFilters}
-        genres={genres.data ?? []}
-        seriesList={seriesList.data ?? []}
-        games={games.data ?? []}
+        extraGenres={genresQ.data ?? []}
+        extraSeries={seriesQ.data ?? []}
       />
 
-      <ServicesSheet visible={servicesOpen} onClose={() => setServicesOpen(false)} />
+      <ServicesSheet
+        visible={servicesOpen}
+        onClose={() => setServicesOpen(false)}
+      />
 
       <QrScannerModal
-        visible={qrOpen}
-        onClose={() => setQrOpen(false)}
+        visible={trackOpen}
+        onClose={() => setTrackOpen(false)}
         onResolved={(orderId) => {
-          setQrOpen(false);
+          setTrackOpen(false);
           router.push(`/track/${encodeURIComponent(orderId)}`);
         }}
       />
-    </View>
+    </SafeAreaView>
   );
 }
+
+const styles = StyleSheet.create({
+  safe: {
+    flex: 1,
+    backgroundColor: '#090f1d',
+  },
+  header: {
+    paddingHorizontal: 14,
+    paddingTop: 8,
+    paddingBottom: 10,
+    backgroundColor: '#090f1d',
+    borderBottomWidth: 1,
+    borderBottomColor: '#1e293b',
+    gap: 10,
+  },
+  topBar: {
+    flexDirection: ROW,
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 8,
+  },
+  brandRow: {
+    flexDirection: ROW,
+    alignItems: 'center',
+    gap: 9,
+    flexShrink: 1,
+  },
+  brandLogo: {
+    width: 38,
+    height: 38,
+    borderRadius: 11,
+    borderWidth: 1.5,
+    borderColor: '#14b8a6',
+  },
+  brandTextCol: {
+    alignItems: 'flex-end',
+  },
+  brandTitle: {
+    fontFamily: FONT.bold,
+    color: '#f8fafc',
+    fontSize: 15,
+    includeFontPadding: false,
+  },
+  statusRow: {
+    flexDirection: ROW,
+    alignItems: 'center',
+    gap: 5,
+  },
+  statusDot: {
+    width: 7,
+    height: 7,
+    borderRadius: 999,
+  },
+  statusText: {
+    fontFamily: FONT.medium,
+    color: '#94a3b8',
+    fontSize: 10,
+    includeFontPadding: false,
+  },
+  actionsRow: {
+    flexDirection: ROW,
+    alignItems: 'center',
+    gap: 6,
+  },
+  actionPill: {
+    flexDirection: ROW,
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: 9,
+    paddingVertical: 7,
+    borderRadius: 10,
+    backgroundColor: '#131d31',
+    borderWidth: 1,
+    borderColor: '#1e293b',
+  },
+  actionPillPurple: {
+    borderColor: 'rgba(139, 92, 246, 0.45)',
+    backgroundColor: 'rgba(124, 58, 237, 0.14)',
+  },
+  actionPillTeal: {
+    borderColor: 'rgba(20, 184, 166, 0.45)',
+    backgroundColor: 'rgba(20, 184, 166, 0.12)',
+  },
+  actionPillText: {
+    fontFamily: FONT.bold,
+    color: '#5eead4',
+    fontSize: 11,
+    includeFontPadding: false,
+  },
+  actionPillTextPurple: {
+    fontFamily: FONT.bold,
+    color: '#ddd6fe',
+    fontSize: 11,
+    includeFontPadding: false,
+  },
+  logoutIconBtn: {
+    width: 32,
+    height: 32,
+    borderRadius: 10,
+    backgroundColor: '#2a1215',
+    borderWidth: 1,
+    borderColor: '#7f1d1d',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  searchBar: {
+    flexDirection: ROW,
+    alignItems: 'center',
+    backgroundColor: '#131d31',
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: '#1e293b',
+    paddingHorizontal: 12,
+    height: 46,
+    gap: 8,
+  },
+  searchInput: {
+    flex: 1,
+    fontFamily: FONT.medium,
+    color: '#f8fafc',
+    fontSize: 13,
+    paddingVertical: 6,
+    writingDirection: 'rtl',
+    includeFontPadding: false,
+  },
+  filterBtn: {
+    flexDirection: ROW,
+    alignItems: 'center',
+    gap: 5,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 10,
+    backgroundColor: '#1e293b',
+    borderWidth: 1,
+    borderColor: '#334155',
+  },
+  filterBtnActive: {
+    backgroundColor: '#14b8a6',
+    borderColor: '#2dd4bf',
+  },
+  filterBtnText: {
+    fontFamily: FONT.bold,
+    color: '#e2e8f0',
+    fontSize: 11,
+    includeFontPadding: false,
+  },
+  filterBtnTextActive: {
+    color: '#042f2e',
+  },
+  catScroll: {
+    flexDirection: ROW,
+    gap: 8,
+    paddingVertical: 2,
+  },
+  listContent: {
+    paddingHorizontal: 12,
+    paddingTop: 12,
+    paddingBottom: 28,
+  },
+  alphaBarWrap: {
+    backgroundColor: '#0e1729',
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: '#1e293b',
+    padding: 10,
+    marginBottom: 12,
+    gap: 8,
+  },
+  alphaHeadRow: {
+    flexDirection: ROW,
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  alphaTitleRow: {
+    flexDirection: ROW,
+    alignItems: 'center',
+    gap: 6,
+  },
+  alphaTitle: {
+    fontFamily: FONT.bold,
+    color: '#f8fafc',
+    fontSize: 13,
+    includeFontPadding: false,
+  },
+  alphaCount: {
+    fontFamily: FONT.semibold,
+    color: '#2dd4bf',
+    fontSize: 11,
+    includeFontPadding: false,
+  },
+  alphaScroll: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  letterPill: {
+    minWidth: 34,
+    height: 34,
+    paddingHorizontal: 10,
+    borderRadius: 10,
+    backgroundColor: '#131d31',
+    borderWidth: 1,
+    borderColor: '#1e293b',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  letterPillActive: {
+    backgroundColor: '#14b8a6',
+    borderColor: '#2dd4bf',
+  },
+  letterPillText: {
+    fontFamily: FONT.bold,
+    color: '#cbd5e1',
+    fontSize: 12,
+    includeFontPadding: false,
+  },
+  letterPillTextActive: {
+    color: '#042f2e',
+  },
+  gridRow: {
+    gap: 10,
+    marginBottom: 10,
+  },
+  cardCell: {
+    flex: 1,
+    maxWidth: '50%',
+  },
+});

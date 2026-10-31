@@ -83,11 +83,23 @@ const STATUS_MESSAGES: Record<number, string> = {
   503: 'الخادم يستعد، حاول بعد لحظات',
 };
 
+const SERVER_MESSAGE_MAP: Record<string, string> = {
+  'Invalid credentials': 'اسم المستخدم أو كلمة المرور غير صحيحة',
+  'Missing credentials': 'الرجاء إدخال اسم المستخدم وكلمة المرور',
+  'Missing token': 'الرجاء تسجيل الدخول أولاً',
+  'Invalid token': 'انتهت الجلسة، الرجاء تسجيل الدخول من جديد',
+  Forbidden: 'لا تملك صلاحية لهذا الإجراء',
+  'Login failed': 'فشل تسجيل الدخول في الخادم، حاول لاحقاً',
+  'Service initializing, please retry': 'الخادم يستعد الآن، أعد المحاولة بعد لحظات',
+};
+
 export function apiErrorText(error: unknown): string {
   if (error instanceof AxiosError) {
     const data = error.response?.data as { message?: string } | undefined;
-    if (data?.message) return data.message;
-    if (!error.response) return 'تعذر الاتصال بالخدمة، تحقق من الإنترنت';
+    if (data?.message) {
+      return SERVER_MESSAGE_MAP[data.message] ?? data.message;
+    }
+    if (!error.response) return 'تعذر الاتصال بخادم المتجر، تحقق من الإنترنت';
     return STATUS_MESSAGES[error.response.status] ?? 'حدث خطأ غير متوقع';
   }
   return 'حدث خطأ غير متوقع';

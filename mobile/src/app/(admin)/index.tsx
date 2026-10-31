@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Pressable, Text, TextInput, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { router } from 'expo-router';
 import { FlashList } from '@shopify/flash-list';
 import { useQuery } from '@tanstack/react-query';
@@ -21,15 +21,16 @@ import AdminInvoiceCard from '@/components/admin/AdminInvoiceCard';
 import NativeReceiptModal from '@/components/invoice/NativeReceiptModal';
 import { EmptyState, ErrorState, LoadingState } from '@/components/ui/StateView';
 import Chip from '@/components/ui/Chip';
+import Icon from '@/components/ui/Icon';
 import { FONT } from '@/lib/fonts';
 import { formatDinar } from '@/lib/money';
 import { showToast } from '@/lib/toast';
+import { ROW } from '@/lib/rtl';
 
 function todayIso(): string {
   return new Date().toISOString().slice(0, 10);
 }
 
-/** تبويب الفواتير في لوحة الإدارة: بطاقات، تسديد مفرد ومجمّع، طباعة وتعديل */
 export default function AdminInvoicesScreen() {
   const branchScope = useAppStore((s) => s.adminScopeBranchId);
   const user = useAuthStore((s) => s.user);
@@ -98,6 +99,7 @@ export default function AdminInvoicesScreen() {
       await recordInvoicePayment(inv.id, rem);
       showToast(`تم تسديد المتبقي للفاتورة #${inv.invoice_number}`);
       await invoicesQuery.refetch();
+      await summaryQuery.refetch();
     } catch (err) {
       showToast(apiErrorText(err), 'error');
     }
@@ -108,6 +110,7 @@ export default function AdminInvoicesScreen() {
       await markInvoiceUnpaid(inv.id);
       showToast(`أُعيدت الفاتورة #${inv.invoice_number} إلى غير مدفوع`);
       await invoicesQuery.refetch();
+      await summaryQuery.refetch();
     } catch (err) {
       showToast(apiErrorText(err), 'error');
     }
@@ -139,7 +142,7 @@ export default function AdminInvoicesScreen() {
       cartItems
     );
     showToast(`جاهز لتعديل الفاتورة #${inv.invoice_number} في المتجر`);
-    router.push('/(store)');
+    router.push('/(store)/cart');
   };
 
   const handleDelete = async (inv: InvoiceRecord) => {
@@ -147,22 +150,31 @@ export default function AdminInvoicesScreen() {
       await deleteInvoice(inv.id);
       showToast('حُذفت الفاتورة');
       await invoicesQuery.refetch();
+      await summaryQuery.refetch();
     } catch (err) {
       showToast(apiErrorText(err), 'error');
     }
   };
 
   return (
-    <View style={{ flex: 1, backgroundColor: '#0f1724' }}>
-      <View style={{ padding: 12, gap: 8, backgroundColor: '#101929' }}>
-        <View style={{ flexDirection: 'row', gap: 8, alignItems: 'center' }}>
-          <TextInput
-            value={date}
-            onChangeText={setDate}
-            placeholder="YYYY-MM-DD"
-            placeholderTextColor="#64748b"
-            style={inputBox}
-          />
+    <View style={styles.screen}>
+      <View style={styles.filterHeader}>
+        {/* شريط التاريخ والفلاتر */}
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.dateScroll}
+        >
+          <View style={styles.dateInputWrap}>
+            <Icon name="calendar" size={14} color="#2dd4bf" />
+            <TextInput
+              value={date}
+              onChangeText={setDate}
+              placeholder="YYYY-MM-DD"
+              placeholderTextColor="#64748b"
+              style={styles.dateInput}
+            />
+          </View>
           <Chip
             label="اليوم"
             active={!unpaidOnly && date === todayIso()}
@@ -171,43 +183,61 @@ export default function AdminInvoicesScreen() {
               setDate(todayIso());
             }}
           />
-          <Chip label="كل الآجل" active={unpaidOnly} onPress={() => setUnpaidOnly((v) => !v)} />
+          <Chip
+            label="كل الآجل"
+            active={unpaidOnly}
+            onPress={() => setUnpaidOnly((v) => !v)}
+          />
           <Chip
             label="مع المرحّل"
             active={includeUnpaid && !unpaidOnly}
             onPress={() => setIncludeUnpaid((v) => !v)}
           />
-        </View>
+        </ScrollView>
 
-        <View style={{ flexDirection: 'row', gap: 8 }}>
-          <TextInput
-            value={searchQ}
-            onChangeText={setSearchQ}
-            placeholder="بحث برقم الفاتورة أو اسم العميل أو الهاتف..."
-            placeholderTextColor="#64748b"
-            textAlign="right"
-            style={[inputBox, { flex: 1 }]}
-          />
+        {/* شريط البحث وزر تسديد الكل */}
+        <View style={styles.searchRow}>
+          <View style={styles.searchBox}>
+            <Icon name="search" size={16} color="#64748b" />
+            <TextInput
+              value={searchQ}
+              onChangeText={setSearchQ}
+              placeholder="بحث برقم الفاتورة أو اسم العميل أو الهاتف..."
+              placeholderTextColor="#64748b"
+              textAlign="right"
+              style={styles.searchInput}
+            />
+            {searchQ ? (
+              <Pressable onPress={() => setSearchQ('')} hitSlop={8}>
+                <Icon name="close" size={15} color="#94a3b8" />
+              </Pressable>
+            ) : null}
+          </View>
           <Pressable
             onPress={() => void handleBulkPay()}
-            style={{
-              backgroundColor: '#22c55e',
-              borderRadius: 8,
-              paddingHorizontal: 12,
-              justifyContent: 'center',
-            }}
+            style={styles.bulkPayBtn}
           >
-            <Text style={{ color: '#052e16', fontFamily: FONT.bold, fontSize: 12 }}>
+            <Icon name="cash" size={15} color="#042f2e" />
+            <Text style={styles.bulkPayText}>
               {busyBulk ? '...' : 'تسديد الكل'}
             </Text>
           </Pressable>
         </View>
 
         {summaryQuery.data ? (
-          <View style={{ flexDirection: 'row', gap: 8 }}>
-            <MiniStat label="فواتير اليوم" value={String(summaryQuery.data.todayInvoices)} />
-            <MiniStat label="مبيعات اليوم" value={formatDinar(summaryQuery.data.todayRevenue)} />
-            <MiniStat label="المحصّل" value={formatDinar(summaryQuery.data.todayCollectedRevenue)} />
+          <View style={styles.statsRow}>
+            <MiniStat
+              label="فواتير اليوم"
+              value={String(summaryQuery.data.todayInvoices)}
+            />
+            <MiniStat
+              label="مبيعات اليوم"
+              value={formatDinar(summaryQuery.data.todayRevenue)}
+            />
+            <MiniStat
+              label="المحصّل"
+              value={formatDinar(summaryQuery.data.todayCollectedRevenue)}
+            />
           </View>
         ) : null}
       </View>
@@ -215,10 +245,16 @@ export default function AdminInvoicesScreen() {
       {invoicesQuery.isLoading ? (
         <LoadingState message="جاري جلب الفواتير..." />
       ) : invoicesQuery.isError ? (
-        <ErrorState message="تعذر جلب الفواتير" onRetry={() => invoicesQuery.refetch()} />
+        <ErrorState
+          message="تعذر جلب الفواتير"
+          onRetry={() => invoicesQuery.refetch()}
+        />
       ) : !filtered.length ? (
-        <View style={{ flex: 1, justifyContent: 'center' }}>
-          <EmptyState message="لا توجد فواتير مطابقة للبحث أو التاريخ" icon="🧾" />
+        <View style={styles.emptyWrap}>
+          <EmptyState
+            message="لا توجد فواتير مطابقة للبحث أو التاريخ"
+            icon="invoice"
+          />
         </View>
       ) : (
         <FlashList
@@ -250,21 +286,124 @@ export default function AdminInvoicesScreen() {
 
 function MiniStat({ label, value }: { label: string; value: string }) {
   return (
-    <View style={{ flex: 1, backgroundColor: '#141e30', borderRadius: 8, padding: 8, alignItems: 'center' }}>
-      <Text style={{ color: '#94a3b8', fontFamily: FONT.regular, fontSize: 10 }}>{label}</Text>
-      <Text style={{ color: '#2dd4bf', fontFamily: FONT.bold, fontSize: 12 }}>{value}</Text>
+    <View style={styles.miniStat}>
+      <Text style={styles.miniStatLabel}>{label}</Text>
+      <Text style={styles.miniStatVal}>{value}</Text>
     </View>
   );
 }
 
-const inputBox = {
-  backgroundColor: '#141e30',
-  borderRadius: 8,
-  borderWidth: 1,
-  borderColor: 'rgba(255,255,255,0.08)',
-  color: '#f1f5f9',
-  fontFamily: FONT.regular,
-  paddingHorizontal: 10,
-  paddingVertical: 6,
-  minWidth: 110,
-} as const;
+const styles = StyleSheet.create({
+  screen: {
+    flex: 1,
+    backgroundColor: '#090d16',
+  },
+  filterHeader: {
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    gap: 8,
+    backgroundColor: '#0f172a',
+    borderBottomWidth: 1,
+    borderBottomColor: '#1e293b',
+  },
+  dateScroll: {
+    flexDirection: ROW,
+    gap: 6,
+    alignItems: 'center',
+  },
+  dateInputWrap: {
+    flexDirection: ROW,
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: '#131c2e',
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: '#1e293b',
+    paddingHorizontal: 10,
+    height: 36,
+  },
+  dateInput: {
+    color: '#f8fafc',
+    fontFamily: FONT.bold,
+    fontSize: 12.5,
+    minWidth: 88,
+    paddingVertical: 2,
+    includeFontPadding: false,
+  },
+  searchRow: {
+    flexDirection: ROW,
+    gap: 8,
+    alignItems: 'center',
+  },
+  searchBox: {
+    flex: 1,
+    flexDirection: ROW,
+    alignItems: 'center',
+    backgroundColor: '#131c2e',
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#1e293b',
+    paddingHorizontal: 10,
+    height: 42,
+    gap: 6,
+  },
+  searchInput: {
+    flex: 1,
+    color: '#f8fafc',
+    fontFamily: FONT.medium,
+    fontSize: 13,
+    paddingVertical: 4,
+    writingDirection: 'rtl',
+    includeFontPadding: false,
+  },
+  bulkPayBtn: {
+    flexDirection: ROW,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    backgroundColor: '#10b981',
+    borderWidth: 1,
+    borderColor: '#34d399',
+    borderRadius: 12,
+    paddingHorizontal: 14,
+    height: 42,
+  },
+  bulkPayText: {
+    color: '#042f2e',
+    fontFamily: FONT.bold,
+    fontSize: 12.5,
+    includeFontPadding: false,
+  },
+  statsRow: {
+    flexDirection: ROW,
+    gap: 6,
+  },
+  miniStat: {
+    flex: 1,
+    backgroundColor: '#131c2e',
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: '#1e293b',
+    paddingVertical: 6,
+    paddingHorizontal: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 2,
+  },
+  miniStatLabel: {
+    color: '#94a3b8',
+    fontFamily: FONT.medium,
+    fontSize: 10.5,
+    includeFontPadding: false,
+  },
+  miniStatVal: {
+    color: '#2dd4bf',
+    fontFamily: FONT.bold,
+    fontSize: 13,
+    includeFontPadding: false,
+  },
+  emptyWrap: {
+    flex: 1,
+    justifyContent: 'center',
+  },
+});

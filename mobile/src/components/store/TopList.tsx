@@ -1,136 +1,204 @@
-import { Image } from 'expo-image';
-import { Pressable, ScrollView, Text, View } from 'react-native';
-import { useQuery } from '@tanstack/react-query';
-import { fetchPublicTopGames } from '@/api/stats';
-import { FONT } from '@/lib/fonts';
+import React from 'react';
+import {
+  FlatList,
+  Image,
+  Pressable,
+  StyleSheet,
+  Text,
+  View,
+} from 'react-native';
+import { ResolvedTopGame } from '@/api/stats';
 import { formatDinar } from '@/lib/money';
-import type { Game } from '@/api/types';
+import { mainPriceOf } from '@/lib/gamePrices';
+import Icon from '@/components/ui/Icon';
+import { FONT } from '@/lib/fonts';
+import { ROW } from '@/lib/rtl';
 
 interface Props {
-  onSelectGame: (game: Game) => void;
+  items: ResolvedTopGame[];
+  onSelect: (game: ResolvedTopGame) => void;
 }
 
-/** شريط الألعاب الأكثر طلباً في المتجر (TopList) */
-export default function TopList({ onSelectGame }: Props) {
-  const { data } = useQuery({
-    queryKey: ['public-top-games'],
-    queryFn: fetchPublicTopGames,
-    staleTime: 5 * 60_000,
-  });
-
-  if (!data || data.length === 0) return null;
+export default function TopList({ items, onSelect }: Props) {
+  if (!items.length) return null;
 
   return (
-    <View style={{ paddingTop: 6, paddingBottom: 4 }}>
-      <View
-        style={{
-          flexDirection: 'row',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          paddingHorizontal: 14,
-          marginBottom: 6,
-        }}
-      >
-        <Text style={{ color: '#f1f5f9', fontFamily: FONT.bold, fontSize: 14 }}>
-          🔥 الأكثر طلباً
-        </Text>
-        <Text style={{ color: '#64748b', fontFamily: FONT.regular, fontSize: 11 }}>
-          اسحب لاستعراض القائمة
-        </Text>
+    <View style={styles.wrap}>
+      <View style={styles.headerRow}>
+        <View style={styles.titleWrap}>
+          <View style={styles.fireIconWrap}>
+            <Icon name="fire" size={16} color="#fb923c" />
+          </View>
+          <Text style={styles.heading}>الأكثر طلباً</Text>
+        </View>
+        <Text style={styles.subHeading}>أعلى الألعاب مبيعاً</Text>
       </View>
-
-      <ScrollView
+      <FlatList
+        data={items}
         horizontal
+        inverted
         showsHorizontalScrollIndicator={false}
-        contentContainerStyle={{ gap: 8, paddingHorizontal: 14 }}
-      >
-        {data.map((g, idx) => {
-          const rankBg =
-            idx === 0
-              ? 'rgba(234,179,8,0.2)'
-              : idx === 1
-                ? 'rgba(148,163,184,0.2)'
-                : idx === 2
-                  ? 'rgba(249,115,22,0.2)'
-                  : 'rgba(255,255,255,0.06)';
-          const rankFg =
-            idx === 0
-              ? '#facc15'
-              : idx === 1
-                ? '#cbd5e1'
-                : idx === 2
-                  ? '#fb923c'
-                  : '#94a3b8';
-
-          return (
-            <Pressable
-              key={`${g.id}-${idx}`}
-              onPress={() =>
-                onSelectGame({
-                  id: g.id,
-                  title: g.title,
-                  image: g.image,
-                  price: g.price,
-                  price_ps5: g.price_ps5,
-                  category_id: g.category_id,
-                  size_gb: g.size_gb,
-                })
-              }
-              style={{
-                flexDirection: 'row',
-                alignItems: 'center',
-                gap: 8,
-                backgroundColor: '#141e30',
-                borderRadius: 12,
-                borderWidth: 1,
-                borderColor: 'rgba(20,184,166,0.2)',
-                padding: 8,
-                width: 215,
-              }}
-              accessible
-              accessibilityLabel={`إضافة ${g.title} من الأكثر طلباً`}
-            >
-              <View
-                style={{
-                  width: 24,
-                  height: 24,
-                  borderRadius: 7,
-                  backgroundColor: rankBg,
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                }}
-              >
-                <Text style={{ color: rankFg, fontFamily: FONT.bold, fontSize: 12 }}>
-                  {idx + 1}
-                </Text>
-              </View>
-
-              <Image
-                source={{ uri: g.image }}
-                style={{ width: 40, height: 40, borderRadius: 8, backgroundColor: '#0b1220' }}
-                contentFit="cover"
-              />
-
-              <View style={{ flex: 1 }}>
-                <Text
-                  numberOfLines={1}
-                  style={{ color: '#f1f5f9', fontFamily: FONT.bold, fontSize: 12 }}
-                >
-                  {g.title}
-                </Text>
-                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 2 }}>
-                  <Text style={{ color: '#2dd4bf', fontFamily: FONT.bold, fontSize: 11 }}>
-                    {formatDinar(g.price)}
-                  </Text>
-                  <Text style={{ color: '#64748b', fontFamily: FONT.regular, fontSize: 10 }}>
-                    • {g.count} طلب
-                  </Text>
+        keyExtractor={(it) => String(it.id)}
+        contentContainerStyle={styles.listContent}
+        ItemSeparatorComponent={() => <View style={styles.sep} />}
+        renderItem={({ item, index }) => (
+          <Pressable onPress={() => onSelect(item)} style={styles.card}>
+            <View style={styles.thumbWrap}>
+              {item.image ? (
+                <Image
+                  source={{ uri: item.image }}
+                  style={styles.thumb}
+                  resizeMode="cover"
+                />
+              ) : (
+                <View style={styles.thumbFallback}>
+                  <Icon name="gamepad" size={20} color="#475569" />
                 </View>
+              )}
+              <View style={[styles.rankBadge, index < 3 && styles.rankBadgeTop]}>
+                <Text style={[styles.rankText, index < 3 && styles.rankTextTop]}>
+                  #{index + 1}
+                </Text>
               </View>
-            </Pressable>
-          );
-        })}
-      </ScrollView>
+            </View>
+
+            <View style={styles.cardBody}>
+              <Text numberOfLines={1} style={styles.title}>
+                {item.title}
+              </Text>
+              <View style={styles.metaRow}>
+                <Text style={styles.price}>{formatDinar(mainPriceOf(item))}</Text>
+                <Text style={styles.countText}>{item.count} طلب</Text>
+              </View>
+            </View>
+          </Pressable>
+        )}
+      />
     </View>
   );
 }
+
+const styles = StyleSheet.create({
+  wrap: {
+    marginBottom: 14,
+  },
+  headerRow: {
+    flexDirection: ROW,
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 10,
+  },
+  titleWrap: {
+    flexDirection: ROW,
+    alignItems: 'center',
+    gap: 8,
+  },
+  fireIconWrap: {
+    width: 28,
+    height: 28,
+    borderRadius: 9,
+    backgroundColor: 'rgba(251, 146, 60, 0.14)',
+    borderWidth: 1,
+    borderColor: 'rgba(251, 146, 60, 0.35)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  heading: {
+    fontFamily: FONT.bold,
+    color: '#f8fafc',
+    fontSize: 16,
+    includeFontPadding: false,
+  },
+  subHeading: {
+    fontFamily: FONT.medium,
+    color: '#64748b',
+    fontSize: 11,
+    includeFontPadding: false,
+  },
+  listContent: {
+    paddingVertical: 2,
+  },
+  sep: { width: 10 },
+  card: {
+    width: 215,
+    flexDirection: ROW,
+    alignItems: 'center',
+    gap: 10,
+    backgroundColor: '#131d31',
+    borderRadius: 14,
+    padding: 9,
+    borderWidth: 1,
+    borderColor: '#1e293b',
+  },
+  thumbWrap: {
+    width: 56,
+    height: 68,
+    borderRadius: 10,
+    overflow: 'hidden',
+    backgroundColor: '#090f1d',
+    position: 'relative',
+  },
+  thumb: {
+    width: '100%',
+    height: '100%',
+  },
+  thumbFallback: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  rankBadge: {
+    position: 'absolute',
+    top: 4,
+    right: 4,
+    paddingHorizontal: 5,
+    paddingVertical: 1,
+    borderRadius: 6,
+    backgroundColor: 'rgba(15, 23, 42, 0.9)',
+    borderWidth: 1,
+    borderColor: '#334155',
+  },
+  rankBadgeTop: {
+    backgroundColor: '#f59e0b',
+    borderColor: '#fbbf24',
+  },
+  rankText: {
+    fontFamily: FONT.bold,
+    color: '#cbd5e1',
+    fontSize: 10,
+    includeFontPadding: false,
+  },
+  rankTextTop: {
+    color: '#090f1d',
+  },
+  cardBody: {
+    flex: 1,
+    justifyContent: 'center',
+    gap: 5,
+  },
+  title: {
+    fontFamily: FONT.bold,
+    color: '#f8fafc',
+    fontSize: 13,
+    textAlign: 'right',
+    writingDirection: 'rtl',
+    includeFontPadding: false,
+  },
+  metaRow: {
+    flexDirection: ROW,
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  price: {
+    fontFamily: FONT.bold,
+    color: '#2dd4bf',
+    fontSize: 12,
+    includeFontPadding: false,
+  },
+  countText: {
+    fontFamily: FONT.medium,
+    color: '#94a3b8',
+    fontSize: 11,
+    includeFontPadding: false,
+  },
+});

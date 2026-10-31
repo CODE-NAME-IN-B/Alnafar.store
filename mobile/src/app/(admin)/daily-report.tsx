@@ -13,6 +13,7 @@ import { useAppStore } from '@/stores/app';
 import { useAuthStore } from '@/stores/auth';
 import Chip from '@/components/ui/Chip';
 import AppButton from '@/components/ui/AppButton';
+import Icon from '@/components/ui/Icon';
 import { EmptyState, ErrorState, LoadingState } from '@/components/ui/StateView';
 import { FONT } from '@/lib/fonts';
 import { formatDinar } from '@/lib/money';
@@ -96,21 +97,46 @@ export default function AdminDailyReportScreen() {
     >
       {/* شريط التاريخ والترقيم */}
       <View style={card}>
-        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-          <TextInput
-            value={date}
-            onChangeText={setDate}
-            placeholder="YYYY-MM-DD"
-            placeholderTextColor="#64748b"
-            style={inputBox}
-          />
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}
+        >
+          <View
+            style={{
+              flexDirection: 'row',
+              alignItems: 'center',
+              gap: 6,
+              backgroundColor: '#0b1220',
+              borderRadius: 10,
+              borderWidth: 1,
+              borderColor: 'rgba(255,255,255,0.1)',
+              paddingHorizontal: 10,
+              minHeight: 38,
+            }}
+          >
+            <Icon name="calendar" size={15} color="#2dd4bf" />
+            <TextInput
+              value={date}
+              onChangeText={setDate}
+              placeholder="YYYY-MM-DD"
+              placeholderTextColor="#64748b"
+              style={{
+                color: '#f8fafc',
+                fontFamily: FONT.bold,
+                fontSize: 13,
+                minWidth: 92,
+                paddingVertical: 4,
+              }}
+            />
+          </View>
           <Chip label="اليوم" active={date === todayIso()} onPress={() => setDate(todayIso())} />
           <Chip
             label="مع الآجل المرحّل"
             active={includeUnpaid}
             onPress={() => setIncludeUnpaid((v) => !v)}
           />
-        </View>
+        </ScrollView>
 
         {numberingQuery.data ? (
           <View
@@ -118,18 +144,30 @@ export default function AdminDailyReportScreen() {
               flexDirection: 'row',
               justifyContent: 'space-between',
               alignItems: 'center',
-              marginTop: 8,
-              paddingTop: 8,
+              marginTop: 10,
+              paddingTop: 10,
               borderTopWidth: 1,
               borderTopColor: 'rgba(255,255,255,0.08)',
             }}
           >
-            <Text style={{ color: '#94a3b8', fontFamily: FONT.medium, fontSize: 12 }}>
+            <Text style={{ color: '#cbd5e1', fontFamily: FONT.medium, fontSize: 12 }}>
               رقم الفاتورة التالي اليوم: #{numberingQuery.data.nextInvoiceNumber}
             </Text>
             {isAdmin ? (
-              <Pressable onPress={() => void handleResetNumbering()}>
-                <Text style={{ color: '#f59e0b', fontFamily: FONT.bold, fontSize: 12 }}>
+              <Pressable
+                onPress={() => void handleResetNumbering()}
+                style={{
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  gap: 5,
+                  backgroundColor: 'rgba(245,158,11,0.14)',
+                  borderRadius: 8,
+                  paddingHorizontal: 10,
+                  paddingVertical: 5,
+                }}
+              >
+                <Icon name="refresh" size={14} color="#fbbf24" />
+                <Text style={{ color: '#fbbf24', fontFamily: FONT.bold, fontSize: 12 }}>
                   تصفير الترقيم
                 </Text>
               </Pressable>
@@ -160,19 +198,27 @@ export default function AdminDailyReportScreen() {
           {/* حالة الجرد وإغلاقه */}
           <View style={card}>
             <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-              <Text style={{ color: '#f1f5f9', fontFamily: FONT.bold, fontSize: 15 }}>
+              <Text style={{ color: '#f8fafc', fontFamily: FONT.bold, fontSize: 15 }}>
                 حالة جرد {report.date}
               </Text>
               <View
                 style={{
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  gap: 5,
                   backgroundColor: report.is_closed
                     ? 'rgba(239,68,68,0.18)'
                     : 'rgba(34,197,94,0.18)',
-                  borderRadius: 6,
+                  borderRadius: 8,
                   paddingHorizontal: 10,
                   paddingVertical: 4,
                 }}
               >
+                <Icon
+                  name={report.is_closed ? 'lock' : 'check'}
+                  size={13}
+                  color={report.is_closed ? '#fca5a5' : '#86efac'}
+                />
                 <Text
                   style={{
                     color: report.is_closed ? '#fca5a5' : '#86efac',
@@ -186,13 +232,13 @@ export default function AdminDailyReportScreen() {
             </View>
 
             {report.notes ? (
-              <Text style={{ color: '#94a3b8', fontFamily: FONT.regular, fontSize: 12, marginTop: 4 }}>
+              <Text style={{ color: '#cbd5e1', fontFamily: FONT.regular, fontSize: 12, marginTop: 6 }}>
                 ملاحظة الإغلاق: {report.notes}
               </Text>
             ) : null}
 
             {!report.is_closed ? (
-              <View style={{ gap: 8, marginTop: 10 }}>
+              <View style={{ gap: 10, marginTop: 12 }}>
                 <TextInput
                   value={closeNotes}
                   onChangeText={setCloseNotes}
@@ -202,7 +248,8 @@ export default function AdminDailyReportScreen() {
                   style={[inputBox, { width: '100%' }]}
                 />
                 <AppButton
-                  label="🔒 إغلاق الجرد اليومي"
+                  label="إغلاق الجرد اليومي"
+                  icon="lock"
                   onPress={handleCloseDay}
                   loading={busyClose}
                 />
@@ -211,11 +258,11 @@ export default function AdminDailyReportScreen() {
           </View>
 
           {/* فواتير اليوم */}
-          <Text style={{ color: '#f1f5f9', fontFamily: FONT.bold, fontSize: 15 }}>
+          <Text style={{ color: '#f8fafc', fontFamily: FONT.bold, fontSize: 15, textAlign: 'right' }}>
             فواتير الجرد ({allInvoices.length})
           </Text>
           {!allInvoices.length ? (
-            <EmptyState message="لا توجد فواتير مسجلة في هذا التاريخ" icon="📊" />
+            <EmptyState message="لا توجد فواتير مسجلة في هذا التاريخ" icon="report" />
           ) : (
             <View style={{ gap: 8 }}>
               {allInvoices.map((inv) => {
@@ -227,12 +274,19 @@ export default function AdminDailyReportScreen() {
                     style={[card, { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }]}
                   >
                     <View style={{ flex: 1 }}>
-                      <Text style={{ color: '#f1f5f9', fontFamily: FONT.bold, fontSize: 14 }}>
+                      <Text style={{ color: '#f8fafc', fontFamily: FONT.bold, fontSize: 14, textAlign: 'right' }}>
                         #{inv.invoice_number} • {inv.customer_name || 'عميل نقدي'}
                         {inv.isCarried ? ' (آجل مرحّل)' : ''}
                       </Text>
-                      <Text style={{ color: rem > 0 ? '#f59e0b' : '#22c55e', fontFamily: FONT.regular, fontSize: 12 }}>
-                        {rem > 0 ? `متبقي: ${formatDinar(rem)}` : 'خالص'}
+                      <Text
+                        style={{
+                          color: rem > 0 ? '#fbbf24' : '#4ade80',
+                          fontFamily: FONT.medium,
+                          fontSize: 12,
+                          textAlign: 'right',
+                        }}
+                      >
+                        {rem > 0 ? `متبقي: ${formatDinar(rem)}` : 'مدفوع بالكامل'}
                       </Text>
                     </View>
                     <Text style={{ color: '#2dd4bf', fontFamily: FONT.bold, fontSize: 14 }}>
@@ -249,7 +303,7 @@ export default function AdminDailyReportScreen() {
       {/* سجل تقارير الأيام السابقة */}
       {historyQuery.data && historyQuery.data.length ? (
         <View style={{ gap: 8, marginTop: 8 }}>
-          <Text style={{ color: '#f1f5f9', fontFamily: FONT.bold, fontSize: 15 }}>
+          <Text style={{ color: '#f8fafc', fontFamily: FONT.bold, fontSize: 15, textAlign: 'right' }}>
             الأيام السابقة
           </Text>
           {historyQuery.data.slice(0, 10).map((r) => (
@@ -262,14 +316,17 @@ export default function AdminDailyReportScreen() {
                   flexDirection: 'row',
                   justifyContent: 'space-between',
                   alignItems: 'center',
-                  borderColor: r.date === date ? '#14b8a6' : 'rgba(255,255,255,0.06)',
+                  borderColor: r.date === date ? '#14b8a6' : 'rgba(255,255,255,0.08)',
                 },
               ]}
             >
               <View>
-                <Text style={{ color: '#f1f5f9', fontFamily: FONT.bold, fontSize: 14 }}>
-                  {r.date} {r.is_closed ? '🔒' : ''}
-                </Text>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                  <Text style={{ color: '#f8fafc', fontFamily: FONT.bold, fontSize: 14 }}>
+                    {r.date}
+                  </Text>
+                  {r.is_closed ? <Icon name="lock" size={14} color="#94a3b8" /> : null}
+                </View>
                 <Text style={{ color: '#94a3b8', fontFamily: FONT.regular, fontSize: 12 }}>
                   {r.total_invoices} فاتورة
                 </Text>
@@ -301,19 +358,22 @@ function StatBox({
       style={{
         width: '48%',
         backgroundColor: '#141e30',
-        borderRadius: 10,
+        borderRadius: 12,
         borderWidth: 1,
-        borderColor: 'rgba(255,255,255,0.06)',
-        padding: 10,
+        borderColor: 'rgba(255,255,255,0.08)',
+        padding: 12,
       }}
     >
-      <Text style={{ color: '#94a3b8', fontFamily: FONT.regular, fontSize: 11 }}>{label}</Text>
+      <Text style={{ color: '#cbd5e1', fontFamily: FONT.regular, fontSize: 11, textAlign: 'right' }}>
+        {label}
+      </Text>
       <Text
         style={{
-          color: warn ? '#f59e0b' : highlight ? '#14b8a6' : '#f1f5f9',
+          color: warn ? '#fbbf24' : highlight ? '#2dd4bf' : '#f8fafc',
           fontFamily: FONT.bold,
           fontSize: 15,
-          marginTop: 2,
+          marginTop: 4,
+          textAlign: 'right',
         }}
       >
         {value}
@@ -324,20 +384,20 @@ function StatBox({
 
 const card = {
   backgroundColor: '#141e30',
-  borderRadius: 12,
+  borderRadius: 14,
   borderWidth: 1,
-  borderColor: 'rgba(255,255,255,0.06)',
-  padding: 12,
+  borderColor: 'rgba(255,255,255,0.08)',
+  padding: 14,
 } as const;
 
 const inputBox = {
   backgroundColor: '#0b1220',
-  borderRadius: 8,
+  borderRadius: 10,
   borderWidth: 1,
-  borderColor: 'rgba(255,255,255,0.08)',
-  color: '#f1f5f9',
+  borderColor: 'rgba(255,255,255,0.1)',
+  color: '#f8fafc',
   fontFamily: FONT.regular,
-  paddingHorizontal: 10,
-  paddingVertical: 6,
+  paddingHorizontal: 12,
+  paddingVertical: 8,
   minWidth: 115,
 } as const;

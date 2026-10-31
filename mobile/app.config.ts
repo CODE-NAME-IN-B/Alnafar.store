@@ -24,7 +24,7 @@ const config: ExpoConfig = {
       foregroundImage: './assets/_brand/icon-maskable.png',
       backgroundColor: '#0f1724',
     },
-    softwareKeyboardLayoutMode: 'pan',
+    softwareKeyboardLayoutMode: 'resize',
   },
   ios: {
     bundleIdentifier: 'store.alsharida.app',
@@ -33,6 +33,7 @@ const config: ExpoConfig = {
   assetBundlePatterns: ['assets/**'],
   plugins: [
     'expo-router',
+    'expo-asset',
     [
       'expo-localization',
       {

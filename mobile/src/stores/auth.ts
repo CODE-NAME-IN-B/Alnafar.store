@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import * as authApi from '../api/auth';
+import { apiErrorText } from '../api/client';
 import type { AuthUser } from '../api/types';
 import { showToast } from '../lib/toast';
 import { jsonGet, jsonSet, secureDelete, secureGet, secureSet } from '../lib/storage';
@@ -15,6 +16,8 @@ interface AuthState {
   guest: boolean;
   /** اكتملت قراءة التخزين عند الإقلاع */
   ready: boolean;
+  /** آخر رسالة خطأ مفصلة عند تسجيل الدخول */
+  lastError: string | null;
   hydrate: () => Promise<void>;
   loginWithPassword: (username: string, password: string) => Promise<boolean>;
   enterGuest: () => void;
@@ -27,6 +30,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   user: null,
   guest: false,
   ready: false,
+  lastError: null,
 
   hydrate: async () => {
     const [token, user, guest] = await Promise.all([
@@ -38,6 +42,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   },
 
   loginWithPassword: async (username, password) => {
+    set({ lastError: null });
     try {
       const token = await authApi.login(username, password);
       await secureSet(TOKEN_KEY, token);
@@ -45,15 +50,12 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       const me = await authApi.fetchMe();
       await jsonSet(USER_KEY, me);
       await jsonSet(GUEST_KEY, false);
-      set({ user: me, guest: false });
+      set({ user: me, guest: false, lastError: null });
       return true;
     } catch (error) {
-      showToast(
-        error instanceof Error && error.message
-          ? 'فشل تسجيل الدخول، تحقق من الاسم وكلمة المرور'
-          : 'تعذر تسجيل الدخول',
-        'error'
-      );
+      const msg = apiErrorText(error);
+      set({ lastError: msg });
+      showToast(msg, 'error');
       return false;
     }
   },

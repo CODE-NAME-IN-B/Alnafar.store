@@ -1,311 +1,560 @@
-import { useState } from 'react';
-import { Linking, Pressable, ScrollView, Text, View } from 'react-native';
+import React, { useMemo, useState } from 'react';
+import {
+  Alert,
+  FlatList,
+  KeyboardAvoidingView,
+  Linking,
+  Platform,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
+} from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { useMutation, useQuery } from '@tanstack/react-query';
 import { router } from 'expo-router';
-import { Controller, useForm } from 'react-hook-form';
-import { useQuery } from '@tanstack/react-query';
-import Screen from '@/components/ui/Screen';
-import AppText from '@/components/ui/AppText';
-import AppButton from '@/components/ui/AppButton';
-import AppInput from '@/components/ui/AppInput';
-import ModalSheet from '@/components/ui/ModalSheet';
-import { EmptyState } from '@/components/ui/StateView';
+import { fetchBranches } from '@/api/branches';
+import { fetchInvoiceSettings } from '@/api/settings';
+import { submitOrder } from '@/api/orders';
+import { InvoiceRecord } from '@/api/invoices';
+import {
+  cartTotal,
+  cartTotalSizeGb,
+  useCartStore,
+} from '@/stores/cart';
+import { useAppStore } from '@/stores/app';
+import { useAuthStore } from '@/stores/auth';
 import CartRow from '@/components/store/CartRow';
 import InvoiceFormModal from '@/components/invoice/InvoiceFormModal';
 import NativeReceiptModal from '@/components/invoice/NativeReceiptModal';
-import { cartTotal, cartTotalSizeGb, useCartStore, type CartItem } from '@/stores/cart';
-import { useAuthStore } from '@/stores/auth';
-import { useAppStore } from '@/stores/app';
-import { submitOrder } from '@/api/orders';
-import { fetchBranches } from '@/api/branches';
-import { fetchSettings } from '@/api/settings';
-import type { InvoiceRecord } from '@/api/invoices';
-import { FONT } from '@/lib/fonts';
+import AppButton from '@/components/ui/AppButton';
+import Icon from '@/components/ui/Icon';
+import { EmptyState } from '@/components/ui/StateView';
 import { formatDinar } from '@/lib/money';
+import { buildOrderMessage, whatsappLink } from '@/lib/whatsapp';
 import { estimateMinutes } from '@/lib/estimate';
-import { buildOrderMessage, whatsappLink, type MessageItem } from '@/lib/whatsapp';
-import { apiErrorText } from '@/api/client';
-import { showToast } from '@/lib/toast';
+import { FONT } from '@/lib/fonts';
+import { ROW } from '@/lib/rtl';
 
-/** شاشة السلة: بنود + إنشاء فاتورة للموظف أو إرسال طلب للزبون */
 export default function CartScreen() {
   const items = useCartStore((s) => s.items);
   const editingInvoice = useCartStore((s) => s.editingInvoice);
-  const removeItem = useCartStore((s) => s.removeItem);
   const decrement = useCartStore((s) => s.decrement);
+  const removeItem = useCartStore((s) => s.removeItem);
   const clear = useCartStore((s) => s.clear);
-  const token = useAuthStore((s) => s.token);
+  const cancelEditingInvoice = useCartStore((s) => s.cancelEditingInvoice);
+
   const selectedBranchId = useAppStore((s) => s.selectedBranchId);
+  const selectBranch = useAppStore((s) => s.selectBranch);
+  const token = useAuthStore((s) => s.token);
+  const user = useAuthStore((s) => s.user);
 
-  const total = cartTotal(items);
-  const totalSize = cartTotalSizeGb(items);
-  const minutes = estimateMinutes(totalSize);
+  const [invoiceOpen, setInvoiceOpen] = useState(false);
+  const [receiptInvoice, setReceiptInvoice] = useState<InvoiceRecord | null>(null);
 
-  const [busy, setBusy] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [invoiceModalOpen, setInvoiceModalOpen] = useState(false);
-  const [savedInvoice, setSavedInvoice] = useState<InvoiceRecord | null>(null);
-  const [success, setSuccess] = useState<{
-    id: number;
-    items: CartItem[];
-    total: number;
-  } | null>(null);
-
-  const settings = useQuery({
-    queryKey: ['settings'],
-    queryFn: fetchSettings,
-    staleTime: 10 * 60_000,
+  const settingsQ = useQuery({
+    queryKey: ['invoice-settings'],
+    queryFn: fetchInvoiceSettings,
   });
-  const branches = useQuery({
+  const branchesQ = useQuery({
     queryKey: ['branches'],
     queryFn: fetchBranches,
-    staleTime: 5 * 60_000,
   });
 
-  const selectedBranch = (branches.data ?? []).find(
-    (b) => Number(b.id) === Number(selectedBranchId)
+  const branches = useMemo(() => branchesQ.data ?? [], [branchesQ.data]);
+  const branch = useMemo(
+    () =>
+      branches.find((b) => b.id === selectedBranchId) ??
+      branches.find((b) => b.is_main) ??
+      branches[0] ??
+      null,
+    [branches, selectedBranchId]
   );
-  const waPhone = (
-    selectedBranch?.phone ||
-    settings.data?.whatsapp_number ||
-    '218920595447'
-  ).replace(/[^\d]/g, '');
 
-  const { control, handleSubmit } = useForm<{ name: string; phone: string }>({
-    defaultValues: { name: '', phone: '' },
-  });
+  const total = cartTotal(items);
+  const sizeGb = cartTotalSizeGb(items);
+  const isCashier = Boolean(token);
 
-  const onSubmit = handleSubmit(async (values) => {
-    const phone = values.phone.replace(/\D/g, '');
-    if (phone.length < 8) {
-      setError('رقم الهاتف غير صحيح');
-      return;
-    }
-    if (!items.length) return;
-
-    setBusy(true);
-    setError(null);
-    try {
-      const result = await submitOrder({
-        games: items.map(toPayloadItem),
-        customer_name: values.name.trim() || null,
-        customer_phone: phone,
-      });
-      setSuccess({ id: result.id, items: [...items], total });
+  const orderM = useMutation({
+    mutationFn: () =>
+      submitOrder({
+        games: items.map((it) => ({
+          title: it.title,
+          price: it.price,
+          type: it.type,
+          size_gb: it.sizeGb ?? null,
+          quantity: it.quantity,
+        })),
+        customer_phone:
+          branch?.phone?.split('-')[0]?.trim() ||
+          settingsQ.data?.store_phone ||
+          '0910683599',
+      }),
+    onSuccess: (res) => {
+      const orderNum = String(res.id);
       clear();
-    } catch (err) {
-      setError(apiErrorText(err));
-    } finally {
-      setBusy(false);
-    }
+      Alert.alert(
+        'تم إرسال الطلب',
+        `رقم الطلب: #${orderNum}\nيمكنك متابعة حالة الطلب من صفحة التتبع.`,
+        [
+          {
+            text: 'فتح صفحة التتبع',
+            onPress: () => router.push(`/track/${encodeURIComponent(orderNum)}`),
+          },
+          { text: 'حسناً' },
+        ]
+      );
+    },
+    onError: (e: unknown) => {
+      Alert.alert('خطأ', e instanceof Error ? e.message : 'فشل إرسال الطلب');
+    },
   });
+
+  const sendWhatsApp = () => {
+    const rawPhone =
+      branch?.phone?.split('-')[0]?.trim() ||
+      settingsQ.data?.store_phone ||
+      '0910683599';
+    const msg = buildOrderMessage(
+      items.map((it) => ({
+        title: `${it.title}${it.platform ? ` (${it.platform === 'PS5' ? 'فايف' : 'فور'})` : ''}`,
+        price: it.price * it.quantity,
+        sizeGb: it.sizeGb,
+        quantity: it.quantity,
+      })),
+      total
+    );
+    const url = whatsappLink(rawPhone, msg);
+    Linking.openURL(url).catch(() =>
+      Alert.alert('خطأ', 'تعذر فتح تطبيق واتساب')
+    );
+  };
+
+  if (!items.length) {
+    return (
+      <SafeAreaView style={styles.safe} edges={['top']}>
+        <EmptyState
+          message={
+            isCashier
+              ? 'قائمة الفاتورة فارغة — اختر الألعاب من المتجر لإصدار فاتورة كاشير جديدة'
+              : 'السلة فارغة — أضف ألعاباً أو باقات من المتجر للبدء في طلبك'
+          }
+          icon="cart"
+          actionLabel="تصفح الألعاب"
+          onAction={() => router.navigate('/(store)')}
+        />
+      </SafeAreaView>
+    );
+  }
 
   return (
-    <Screen>
-      <View style={headerRow}>
-        <AppText style={{ color: '#f1f5f9', fontFamily: FONT.bold, fontSize: 18 }}>السلة</AppText>
-        {items.length ? (
-          <Pressable
-            onPress={() => {
-              clear();
-              showToast('فُرّغت السلة');
-            }}
-          >
-            <Text style={{ color: '#ef4444', fontFamily: FONT.medium }}>تفريغ</Text>
+    <SafeAreaView style={styles.safe} edges={['top']}>
+      <KeyboardAvoidingView
+        style={styles.flex}
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      >
+        <View style={styles.header}>
+          <View style={styles.headerTitleRow}>
+            <Text style={styles.headerTitle}>
+              {isCashier ? 'فاتورة الكاشير' : 'سلة الطلبات'} ({items.length})
+            </Text>
+            {isCashier && user ? (
+              <View style={styles.cashierPill}>
+                <Icon name="printer" size={12} color="#042f2e" />
+                <Text style={styles.cashierPillText}>كاشير: {user.username}</Text>
+              </View>
+            ) : null}
+          </View>
+          <Pressable onPress={clear} style={styles.clearBtn}>
+            <Icon name="trash" size={14} color="#fda4af" />
+            <Text style={styles.clearText}>تفريغ</Text>
           </Pressable>
-        ) : null}
-      </View>
-
-      {!items.length ? (
-        <View style={{ flex: 1, justifyContent: 'center' }}>
-          <EmptyState
-            message="سلتك فارغة — تصفّح ألعابنا وأضف ما يناسبك"
-            icon="🛒"
-            actionLabel="تصفح المتجر"
-            onAction={() => router.replace('/(store)')}
-          />
         </View>
-      ) : (
-        <ScrollView
-          contentContainerStyle={{ padding: 16, gap: 10 }}
-          showsVerticalScrollIndicator={false}
-        >
-          {items.map((item) => (
+
+        {editingInvoice ? (
+          <View style={styles.editBanner}>
+            <View style={styles.flex1}>
+              <Text style={styles.editBannerTitle}>
+                تعديل الفاتورة #{editingInvoice.invoice_number}
+              </Text>
+              <Text style={styles.editBannerSub}>
+                عدّل العناصر ثم اضغط &quot;حفظ التعديلات على الفاتورة&quot; بالأسفل
+              </Text>
+            </View>
+            <Pressable
+              onPress={cancelEditingInvoice}
+              style={styles.cancelEditBtn}
+            >
+              <Text style={styles.cancelEditText}>إلغاء</Text>
+            </Pressable>
+          </View>
+        ) : null}
+
+        <FlatList
+          data={items}
+          keyExtractor={(it) => it.key}
+          contentContainerStyle={styles.listContent}
+          renderItem={({ item }) => (
             <CartRow
-              key={item.key}
               item={item}
               onDecrement={() => decrement(item.key)}
               onRemove={() => removeItem(item.key)}
             />
-          ))}
+          )}
+          ListFooterComponent={
+            <View style={styles.footerCard}>
+              {/* Totals Summary */}
+              <View style={styles.summaryRow}>
+                <Text style={styles.summaryLabel}>الإجمالي الكلي</Text>
+                <Text style={styles.summaryValue}>{formatDinar(total)}</Text>
+              </View>
+              {sizeGb > 0 ? (
+                <View style={styles.summarySubRow}>
+                  <Text style={styles.summarySubLabel}>الحجم التقريبي</Text>
+                  <Text style={styles.summarySubValue}>
+                    {Math.round(sizeGb)} GB (~{estimateMinutes(sizeGb)} دقيقة)
+                  </Text>
+                </View>
+              ) : null}
 
-          <View style={summary}>
-            <Row label="عدد العناصر" value={String(items.length)} />
-            <Row label="الإجمالي" value={formatDinar(total)} strong />
-            <Row label="إجمالي الحجم" value={`${Math.round(totalSize)} GB`} />
-            <Row label="التجهيز التقديري" value={`${minutes} دقيقة`} />
-          </View>
+              {/* CASHIER ONLY VIEW vs GUEST ONLY VIEW */}
+              {isCashier ? (
+                <View style={styles.cashierSection}>
+                  <View style={styles.cashierHintBox}>
+                    <Icon name="invoice" size={16} color="#2dd4bf" />
+                    <Text style={styles.cashierHintText}>
+                      وضع الكاشير: اضغط بالأسفل لإدخال اسم العميل أو الخصم وحالة الدفع وطباعة الفاتورة فوراً.
+                    </Text>
+                  </View>
 
-          {token ? (
-            <View style={[summary, { borderColor: 'rgba(138,92,255,0.35)' }]}>
-              <AppText style={{ color: '#c4b5fd', fontFamily: FONT.bold, fontSize: 14 }}>
-                {editingInvoice
-                  ? `تعديل الفاتورة #${editingInvoice.invoice_number}`
-                  : 'خيار الموظف / الكاشير'}
-              </AppText>
-              <AppButton
-                label={
-                  editingInvoice
-                    ? `حفظ التعديلات على الفاتورة #${editingInvoice.invoice_number}`
-                    : '🧾 إنشاء فاتورة وطباعتها'
-                }
-                onPress={() => setInvoiceModalOpen(true)}
-              />
+                  <AppButton
+                    label={
+                      editingInvoice
+                        ? `حفظ التعديلات على الفاتورة #${editingInvoice.invoice_number}`
+                        : 'إنشاء فاتورة وطباعتها'
+                    }
+                    icon="printer"
+                    onPress={() => setInvoiceOpen(true)}
+                  />
+                </View>
+              ) : (
+                <View style={styles.guestSection}>
+                  {/* Branch selector for Guest order */}
+                  {branches.length > 0 ? (
+                    <View style={styles.branchPickWrap}>
+                      <Text style={styles.sectionTitle}>
+                        أرسل الطلب إلى الفرع:
+                      </Text>
+                      <ScrollView
+                        horizontal
+                        showsHorizontalScrollIndicator={false}
+                        contentContainerStyle={styles.branchPillsRow}
+                      >
+                        {branches.map((b) => {
+                          const active = (branch?.id ?? selectedBranchId) === b.id;
+                          return (
+                            <Pressable
+                              key={b.id}
+                              onPress={() => selectBranch(b.id)}
+                              style={[
+                                styles.branchPill,
+                                active && styles.branchPillActive,
+                              ]}
+                            >
+                              <Text
+                                style={[
+                                  styles.branchPillText,
+                                  active && styles.branchPillTextActive,
+                                ]}
+                              >
+                                {b.name}
+                              </Text>
+                            </Pressable>
+                          );
+                        })}
+                      </ScrollView>
+                    </View>
+                  ) : null}
+
+                  <View style={styles.actionsCol}>
+                    <Pressable onPress={sendWhatsApp} style={styles.waBtn}>
+                      <Icon name="phone" size={18} color="#052e16" />
+                      <Text style={styles.waBtnText}>
+                        إرسال الطلب عبر واتساب
+                      </Text>
+                    </Pressable>
+
+                    <AppButton
+                      label="إرسال الطلب للمتجر (مع تتبع QR)"
+                      icon="qr"
+                      variant="secondary"
+                      loading={orderM.isPending}
+                      onPress={() => orderM.mutate()}
+                    />
+                  </View>
+                </View>
+              )}
             </View>
-          ) : null}
+          }
+        />
 
-          <AppText style={{ color: '#f1f5f9', fontFamily: FONT.bold, fontSize: 16, marginTop: 6 }}>
-            بيانات طلب الزبون
-          </AppText>
-          <Controller
-            control={control}
-            name="name"
-            render={({ field: { value, onChange } }) => (
-              <AppInput
-                label="الاسم (اختياري)"
-                placeholder="اسم الزبون"
-                value={value}
-                onChangeText={onChange}
-              />
-            )}
-          />
-          <Controller
-            control={control}
-            name="phone"
-            render={({ field: { value, onChange } }) => (
-              <AppInput
-                label="رقم الهاتف *"
-                placeholder="09X XXX XXXX"
-                value={value}
-                keyboard="phone-pad"
-                onChangeText={onChange}
-                error={error}
-              />
-            )}
-          />
+        <InvoiceFormModal
+          visible={invoiceOpen}
+          onClose={() => setInvoiceOpen(false)}
+          items={items}
+          editingDraft={editingInvoice}
+          onSaved={(inv) => {
+            setInvoiceOpen(false);
+            clear();
+            setReceiptInvoice(inv);
+          }}
+        />
 
-          <View style={{ marginTop: 6, gap: 8, marginBottom: 36 }}>
-            <AppButton
-              label="إرسال الطلب"
-              onPress={onSubmit}
-              loading={busy}
-              testID="order-submit"
-            />
-            <AppButton
-              label={`إرسال عبر واتساب (${selectedBranch?.name || 'الفرع الرئيسي'})`}
-              variant="secondary"
-              onPress={() => {
-                const msg = buildOrderMessage(items.map(toMessageItem), total);
-                Linking.openURL(whatsappLink(waPhone, msg)).catch(() =>
-                  showToast('تعذر فتح واتساب', 'error')
-                );
-              }}
-            />
-          </View>
-        </ScrollView>
-      )}
-
-      <InvoiceFormModal
-        visible={invoiceModalOpen}
-        items={items}
-        editingDraft={editingInvoice}
-        onClose={() => setInvoiceModalOpen(false)}
-        onSaved={(inv) => {
-          setInvoiceModalOpen(false);
-          clear();
-          setSavedInvoice(inv);
-        }}
-      />
-
-      <NativeReceiptModal
-        visible={!!savedInvoice}
-        invoice={savedInvoice}
-        onClose={() => setSavedInvoice(null)}
-      />
-
-      <ModalSheet visible={!!success} onClose={() => setSuccess(null)} title="تم إرسال الطلب">
-        {success ? (
-          <View style={{ gap: 12 }}>
-            <AppText style={{ color: '#22c55e', fontFamily: FONT.bold, fontSize: 16 }}>
-              استلمنا طلبك رقم {success.id}
-            </AppText>
-            <AppButton
-              label="تتبع حالة الطلب الآن"
-              onPress={() => {
-                const id = success.id;
-                setSuccess(null);
-                router.push(`/track/${id}`);
-              }}
-            />
-            <AppButton
-              label="متابعة عبر واتساب"
-              variant="secondary"
-              onPress={() => {
-                const msg = buildOrderMessage(success.items.map(toMessageItem), success.total);
-                Linking.openURL(whatsappLink(waPhone, msg)).catch(() =>
-                  showToast('تعذر فتح واتساب', 'error')
-                );
-              }}
-            />
-          </View>
-        ) : null}
-      </ModalSheet>
-    </Screen>
+        <NativeReceiptModal
+          visible={Boolean(receiptInvoice)}
+          invoice={receiptInvoice}
+          onClose={() => setReceiptInvoice(null)}
+        />
+      </KeyboardAvoidingView>
+    </SafeAreaView>
   );
 }
 
-function toPayloadItem(item: CartItem) {
-  return {
-    title: item.title,
-    price: item.price,
-    type: item.type,
-    size_gb: item.type === 'game' ? item.sizeGb ?? null : null,
-    quantity: item.quantity,
-  };
-}
-
-function toMessageItem(item: CartItem): MessageItem {
-  return {
-    title: item.title,
-    price: item.price * item.quantity,
-    sizeGb: item.type === 'game' ? item.sizeGb ?? null : null,
-    quantity: item.quantity,
-  };
-}
-
-const headerRow = {
-  flexDirection: 'row' as const,
-  justifyContent: 'space-between' as const,
-  alignItems: 'center' as const,
-  paddingHorizontal: 16,
-  paddingBottom: 10,
-};
-
-const summary = {
-  backgroundColor: '#141e30',
-  borderRadius: 12,
-  borderWidth: 1,
-  borderColor: 'rgba(255,255,255,0.06)',
-  padding: 14,
-  gap: 8,
-} as const;
-
-function Row({ label, value, strong = false }: { label: string; value: string; strong?: boolean }) {
-  return (
-    <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
-      <AppText style={{ color: '#94a3b8', fontFamily: FONT.regular }}>{label}</AppText>
-      <AppText style={{ color: strong ? '#14b8a6' : '#f1f5f9', fontFamily: FONT.bold }}>
-        {value}
-      </AppText>
-    </View>
-  );
-}
+const styles = StyleSheet.create({
+  safe: {
+    flex: 1,
+    backgroundColor: '#090f1d',
+  },
+  flex: { flex: 1 },
+  flex1: { flex: 1 },
+  header: {
+    flexDirection: ROW,
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#1e293b',
+  },
+  headerTitleRow: {
+    flexDirection: ROW,
+    alignItems: 'center',
+    gap: 8,
+  },
+  headerTitle: {
+    fontFamily: FONT.bold,
+    color: '#f8fafc',
+    fontSize: 18,
+    includeFontPadding: false,
+  },
+  cashierPill: {
+    flexDirection: ROW,
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: '#2dd4bf',
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 999,
+  },
+  cashierPillText: {
+    fontFamily: FONT.bold,
+    color: '#042f2e',
+    fontSize: 11,
+    includeFontPadding: false,
+  },
+  clearBtn: {
+    flexDirection: ROW,
+    alignItems: 'center',
+    gap: 5,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 10,
+    backgroundColor: '#2a1215',
+    borderWidth: 1,
+    borderColor: '#7f1d1d',
+  },
+  clearText: {
+    fontFamily: FONT.bold,
+    color: '#fda4af',
+    fontSize: 12,
+    includeFontPadding: false,
+  },
+  editBanner: {
+    flexDirection: ROW,
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: '#2e1065',
+    borderBottomWidth: 1,
+    borderBottomColor: '#7c3aed',
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    gap: 10,
+  },
+  editBannerTitle: {
+    fontFamily: FONT.bold,
+    color: '#ddd6fe',
+    fontSize: 13,
+    textAlign: 'right',
+    writingDirection: 'rtl',
+    includeFontPadding: false,
+  },
+  editBannerSub: {
+    fontFamily: FONT.regular,
+    color: '#c4b5fd',
+    fontSize: 11,
+    textAlign: 'right',
+    writingDirection: 'rtl',
+    includeFontPadding: false,
+  },
+  cancelEditBtn: {
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 8,
+    backgroundColor: '#4c1d95',
+  },
+  cancelEditText: {
+    fontFamily: FONT.bold,
+    color: '#f5f3ff',
+    fontSize: 11,
+    includeFontPadding: false,
+  },
+  listContent: {
+    padding: 16,
+    paddingBottom: 32,
+  },
+  footerCard: {
+    backgroundColor: '#131d31',
+    borderRadius: 20,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: '#1e293b',
+    marginTop: 6,
+  },
+  summaryRow: {
+    flexDirection: ROW,
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 4,
+  },
+  summaryLabel: {
+    fontFamily: FONT.bold,
+    color: '#cbd5e1',
+    fontSize: 15,
+    includeFontPadding: false,
+  },
+  summaryValue: {
+    fontFamily: FONT.bold,
+    color: '#2dd4bf',
+    fontSize: 22,
+    includeFontPadding: false,
+  },
+  summarySubRow: {
+    flexDirection: ROW,
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 12,
+  },
+  summarySubLabel: {
+    fontFamily: FONT.regular,
+    color: '#94a3b8',
+    fontSize: 12,
+    includeFontPadding: false,
+  },
+  summarySubValue: {
+    fontFamily: FONT.semibold,
+    color: '#cbd5e1',
+    fontSize: 12,
+    includeFontPadding: false,
+  },
+  cashierSection: {
+    borderTopWidth: 1,
+    borderTopColor: '#1e293b',
+    paddingTop: 14,
+    gap: 12,
+  },
+  cashierHintBox: {
+    flexDirection: ROW,
+    alignItems: 'center',
+    gap: 8,
+    backgroundColor: '#072a28',
+    borderWidth: 1,
+    borderColor: '#14b8a6',
+    borderRadius: 12,
+    padding: 12,
+  },
+  cashierHintText: {
+    flex: 1,
+    fontFamily: FONT.medium,
+    color: '#ccfbf1',
+    fontSize: 12,
+    textAlign: 'right',
+    writingDirection: 'rtl',
+    includeFontPadding: false,
+  },
+  guestSection: {
+    borderTopWidth: 1,
+    borderTopColor: '#1e293b',
+    paddingTop: 14,
+    gap: 14,
+  },
+  branchPickWrap: {
+    gap: 8,
+  },
+  branchPillsRow: {
+    flexDirection: ROW,
+    gap: 8,
+  },
+  branchPill: {
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 12,
+    backgroundColor: '#0b1324',
+    borderWidth: 1.5,
+    borderColor: '#1e293b',
+  },
+  branchPillActive: {
+    backgroundColor: '#082f2d',
+    borderColor: '#14b8a6',
+  },
+  branchPillText: {
+    fontFamily: FONT.semibold,
+    color: '#cbd5e1',
+    fontSize: 12,
+    includeFontPadding: false,
+  },
+  branchPillTextActive: {
+    fontFamily: FONT.bold,
+    color: '#5eead4',
+  },
+  sectionTitle: {
+    fontFamily: FONT.bold,
+    color: '#f8fafc',
+    fontSize: 14,
+    textAlign: 'right',
+    writingDirection: 'rtl',
+    includeFontPadding: false,
+  },
+  actionsCol: {
+    gap: 10,
+    marginTop: 4,
+  },
+  waBtn: {
+    flexDirection: ROW,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    minHeight: 50,
+    borderRadius: 14,
+    backgroundColor: '#22c55e',
+    borderWidth: 1,
+    borderColor: '#4ade80',
+    paddingHorizontal: 16,
+  },
+  waBtnText: {
+    fontFamily: FONT.bold,
+    color: '#052e16',
+    fontSize: 15,
+    includeFontPadding: false,
+  },
+});

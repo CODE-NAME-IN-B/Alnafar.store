@@ -140,18 +140,25 @@ export default function InvoiceFormModal({
       onClose={onClose}
       title={editingDraft ? `تعديل الفاتورة #${editingDraft.invoice_number}` : 'إنشاء فاتورة جديدة'}
     >
-      <ScrollView style={{ maxHeight: 450 }} showsVerticalScrollIndicator={false}>
+      <ScrollView
+        style={{ maxHeight: 450 }}
+        showsVerticalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled"
+        automaticallyAdjustKeyboardInsets
+      >
         <View style={{ gap: 10 }}>
           <AppInput
             label="اسم العميل *"
             placeholder="أدخل الاسم الكامل"
             value={name}
+            icon="user"
             onChangeText={setName}
           />
           <AppInput
             label="رقم الهاتف *"
             placeholder="09X XXX XXXX"
             keyboard="phone-pad"
+            icon="phone"
             value={phone}
             onChangeText={setPhone}
           />
@@ -192,19 +199,19 @@ export default function InvoiceFormModal({
             <QuickPayBtn
               label="الكل (خالص)"
               active={paidAmount === finalTotal}
-              color="#22c55e"
+              color="#16a34a"
               onPress={() => setPaidText(String(finalTotal))}
             />
             <QuickPayBtn
               label="نصف القيمة"
               active={paidAmount === finalTotal / 2 && finalTotal > 0}
-              color="#3b82f6"
+              color="#2563eb"
               onPress={() => setPaidText(String(finalTotal / 2))}
             />
             <QuickPayBtn
               label="آجل (0)"
               active={paidAmount === 0}
-              color="#f59e0b"
+              color="#d97706"
               onPress={() => setPaidText('0')}
             />
           </View>
@@ -212,8 +219,10 @@ export default function InvoiceFormModal({
           {/* ملخص الأرقام */}
           <View
             style={{
-              backgroundColor: '#0b1220',
+              backgroundColor: '#0f1829',
               borderRadius: 12,
+              borderWidth: 1,
+              borderColor: 'rgba(255,255,255,0.08)',
               padding: 12,
               gap: 6,
             }}
@@ -227,11 +236,12 @@ export default function InvoiceFormModal({
           </View>
 
           {error ? (
-            <AppText style={{ color: '#ef4444', fontFamily: FONT.regular }}>{error}</AppText>
+            <AppText style={{ color: '#f87171', fontFamily: FONT.medium }}>{error}</AppText>
           ) : null}
 
           <AppButton
             label={editingDraft ? 'حفظ التعديلات وفتح الفاتورة' : 'إنشاء الفاتورة والمعاينة للطباعة'}
+            icon="printer"
             onPress={handleSave}
             loading={busy}
           />
@@ -257,15 +267,17 @@ function QuickPayBtn({
       onPress={onPress}
       style={{
         flex: 1,
-        backgroundColor: active ? color : '#1b2740',
-        borderRadius: 8,
-        paddingVertical: 8,
+        backgroundColor: active ? color : '#1b2b48',
+        borderRadius: 10,
+        borderWidth: 1,
+        borderColor: active ? 'rgba(255,255,255,0.35)' : 'rgba(255,255,255,0.1)',
+        paddingVertical: 9,
         alignItems: 'center',
       }}
     >
       <Text
         style={{
-          color: active ? '#062b27' : '#f1f5f9',
+          color: '#ffffff',
           fontFamily: FONT.bold,
           fontSize: 12,
         }}
@@ -289,10 +301,10 @@ function SummaryLine({
 }) {
   return (
     <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
-      <Text style={{ color: '#94a3b8', fontFamily: FONT.regular, fontSize: 12 }}>{label}</Text>
+      <Text style={{ color: '#cbd5e1', fontFamily: FONT.regular, fontSize: 12 }}>{label}</Text>
       <Text
         style={{
-          color: warn ? '#f59e0b' : highlight ? '#14b8a6' : '#f1f5f9',
+          color: warn ? '#fbbf24' : highlight ? '#2dd4bf' : '#f8fafc',
           fontFamily: FONT.bold,
           fontSize: 13,
         }}

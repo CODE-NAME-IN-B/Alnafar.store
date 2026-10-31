@@ -1,5 +1,6 @@
 import { api } from './client';
-import type { AuthUser, Branch, InvoiceSettings } from './types';
+import { fetchGamesBatch } from './games';
+import type { AuthUser, Branch, GameSlim, InvoiceSettings } from './types';
 import type { InvoiceRecord } from './invoices';
 
 export * from './adminCatalog';
@@ -167,8 +168,95 @@ export async function fetchDashboardStats(
 ): Promise<DashboardStats> {
   const params: Record<string, string | number> = {};
   if (branchId != null) params.branchId = branchId;
-  const { data } = await api.get<{ stats: DashboardStats }>('/stats/dashboard', { params });
-  return data.stats;
+
+  const [summaryOut, statsOut] = await Promise.allSettled([
+    api.get<{
+      success: boolean;
+      summary: {
+        totalInvoices: number;
+        totalRevenue: number;
+        collectedRevenue: number;
+        todayInvoices: number;
+        todayRevenue: number;
+        todayCollectedRevenue: number;
+      };
+    }>('/invoices-summary', { params }),
+    api.get<{
+      totalOrders?: number;
+      totalGames?: number;
+      topGames?: Array<{ gameId: number | null; title?: string; count: number }>;
+    }>('/stats', { params }),
+  ]);
+
+  const summary =
+    summaryOut.status === 'fulfilled' && summaryOut.value.data?.summary
+      ? summaryOut.value.data.summary
+      : {
+          totalInvoices: 0,
+          totalRevenue: 0,
+          collectedRevenue: 0,
+          todayInvoices: 0,
+          todayRevenue: 0,
+          todayCollectedRevenue: 0,
+        };
+
+  const stats =
+    statsOut.status === 'fulfilled' && statsOut.value.data
+      ? statsOut.value.data
+      : { totalOrders: 0, totalGames: 0, topGames: [] };
+
+  const rawTop = Array.isArray(stats.topGames) ? stats.topGames : [];
+  const topIds = rawTop
+    .map((item) => Number(item.gameId))
+    .filter((n) => Number.isFinite(n) && n > 0);
+
+  let batchList: GameSlim[] = [];
+  if (topIds.length > 0) {
+    try {
+      batchList = await fetchGamesBatch(topIds);
+    } catch {
+      batchList = [];
+    }
+  }
+
+  const gameMap = new Map<number, { title: string; price: number }>();
+  for (const g of batchList) {
+    gameMap.set(Number(g.id), { title: g.title, price: Number(g.price) || 0 });
+  }
+
+  const topGames = rawTop.map((item) => {
+    const found = item.gameId != null ? gameMap.get(Number(item.gameId)) : undefined;
+    const title = found?.title ?? item.title ?? `لعبة #${item.gameId ?? ''}`;
+    const unitPrice = found?.price ?? 0;
+    return {
+      title,
+      count: Number(item.count) || 0,
+      revenue: (Number(item.count) || 0) * unitPrice,
+    };
+  });
+
+  return {
+    today: {
+      orders: Number(summary.todayInvoices) || 0,
+      revenue: Number(summary.todayRevenue) || 0,
+      collected: Number(summary.todayCollectedRevenue) || 0,
+      discounts: 0,
+    },
+    month: {
+      orders: Number(summary.totalInvoices) || Number(stats.totalOrders) || 0,
+      revenue: Number(summary.totalRevenue) || 0,
+      collected: Number(summary.collectedRevenue) || 0,
+    },
+    pendingOrders: Math.max(
+      0,
+      (Number(summary.totalRevenue) || 0) - (Number(summary.collectedRevenue) || 0) > 0 ? 1 : 0
+    ),
+    totalGames: Number(stats.totalGames) || 0,
+    totalUsers: 0,
+    last7Days: [],
+    ordersByStatus: [],
+    topGames,
+  };
 }
 
 export async function fetchAuditLogs(page = 1, limit = 50): Promise<AuditLogEntry[]> {

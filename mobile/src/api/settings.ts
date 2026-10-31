@@ -1,5 +1,11 @@
 import { api } from './client';
-import type { InvoiceSettings, Service } from './types';
+import type { HealthInfo, InvoiceSettings, Service } from './types';
+
+/** فحص حالة الخادم وقاعدة البيانات */
+export async function fetchHealth(): Promise<HealthInfo> {
+  const { data } = await api.get<HealthInfo>('/health');
+  return data;
+}
 
 /** إعدادات الفاتورة — نقطة دخول عامة (تحمل اسم المتجر على الفواتير) */
 export async function fetchInvoiceSettings(): Promise<InvoiceSettings> {
