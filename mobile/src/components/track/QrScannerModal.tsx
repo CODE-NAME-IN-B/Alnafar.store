@@ -74,7 +74,7 @@ export default function QrScannerModal({ visible, onClose, onResolved }: Props) 
         setScanError(null);
         onClose();
       }}
-      title="تتبع الطلب / مسح QR"
+      title="تتبع الطلب"
     >
       <View style={{ gap: 12 }}>
         <AppInput

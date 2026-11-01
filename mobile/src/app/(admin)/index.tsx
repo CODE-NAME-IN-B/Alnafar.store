@@ -197,9 +197,20 @@ export default function AdminInvoicesScreen() {
             active={includeUnpaid && !unpaidOnly}
             onPress={() => setIncludeUnpaid((v) => !v)}
           />
+          <Pressable
+            onPress={() => void handleBulkPay()}
+            style={styles.bulkPayBtn}
+            accessibilityRole="button"
+            accessibilityLabel="تسديد كل الفواتير غير المدفوعة"
+          >
+            <Icon name="cash" size={14} color="#042f2e" />
+            <Text style={styles.bulkPayText}>
+              {busyBulk ? '...' : 'تسديد الكل'}
+            </Text>
+          </Pressable>
         </ScrollView>
 
-        {/* شريط البحث وزر تسديد الكل */}
+        {/* شريط البحث */}
         <View style={styles.searchRow}>
           <View style={styles.searchBox}>
             <Icon name="search" size={16} color="#94a3b8" />
@@ -217,17 +228,6 @@ export default function AdminInvoicesScreen() {
               </Pressable>
             ) : null}
           </View>
-          <Pressable
-            onPress={() => void handleBulkPay()}
-            style={styles.bulkPayBtn}
-            accessibilityRole="button"
-            accessibilityLabel="تسديد كل الفواتير غير المدفوعة"
-          >
-            <Icon name="cash" size={15} color="#042f2e" />
-            <Text style={styles.bulkPayText}>
-              {busyBulk ? '...' : 'تسديد الكل'}
-            </Text>
-          </Pressable>
         </View>
 
         {summaryQuery.data ? (
@@ -366,18 +366,18 @@ const styles = StyleSheet.create({
     flexDirection: ROW,
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 6,
+    gap: 5,
     backgroundColor: '#14b8a6',
     borderWidth: 1,
     borderColor: '#2dd4bf',
-    borderRadius: 12,
-    paddingHorizontal: 14,
-    height: 42,
+    borderRadius: 10,
+    paddingHorizontal: 12,
+    height: 34,
   },
   bulkPayText: {
     color: '#042f2e',
     fontFamily: FONT.bold,
-    fontSize: 12.5,
+    fontSize: 12,
     includeFontPadding: false,
   },
   statsRow: {
