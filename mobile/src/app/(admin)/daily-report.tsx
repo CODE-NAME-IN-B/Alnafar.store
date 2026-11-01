@@ -130,9 +130,10 @@ export default function AdminDailyReportScreen() {
               }}
             />
           </View>
-          <Chip label="اليوم" active={date === todayIso()} onPress={() => setDate(todayIso())} />
+          <Chip label="اليوم" compact active={date === todayIso()} onPress={() => setDate(todayIso())} />
           <Chip
             label="مع الآجل المرحّل"
+            compact
             active={includeUnpaid}
             onPress={() => setIncludeUnpaid((v) => !v)}
           />

@@ -342,6 +342,7 @@ export default function CartScreen() {
           visible={Boolean(receiptInvoice)}
           invoice={receiptInvoice}
           onClose={() => setReceiptInvoice(null)}
+          autoPrint
         />
       </KeyboardAvoidingView>
     </SafeAreaView>
@@ -411,16 +412,16 @@ const styles = StyleSheet.create({
     flexDirection: ROW,
     alignItems: 'center',
     justifyContent: 'space-between',
-    backgroundColor: '#2e1065',
+    backgroundColor: 'rgba(20,184,166,0.14)',
     borderBottomWidth: 1,
-    borderBottomColor: '#7c3aed',
+    borderBottomColor: 'rgba(45,212,191,0.4)',
     paddingHorizontal: 16,
     paddingVertical: 10,
     gap: 10,
   },
   editBannerTitle: {
     fontFamily: FONT.bold,
-    color: '#ddd6fe',
+    color: '#5eead4',
     fontSize: 13,
     textAlign: 'right',
     writingDirection: 'rtl',
@@ -428,7 +429,7 @@ const styles = StyleSheet.create({
   },
   editBannerSub: {
     fontFamily: FONT.regular,
-    color: '#c4b5fd',
+    color: '#cbd5e1',
     fontSize: 11,
     textAlign: 'right',
     writingDirection: 'rtl',

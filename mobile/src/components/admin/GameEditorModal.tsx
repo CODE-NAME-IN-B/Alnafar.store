@@ -219,10 +219,10 @@ export default function GameEditorModal({
           <View style={{ flexDirection: 'row', gap: 8 }}>
             <Pressable
               onPress={() => void handleGeminiFill()}
-              style={[toolBtn, { borderColor: 'rgba(167,139,250,0.45)', backgroundColor: 'rgba(138,92,255,0.12)', flex: 1 }]}
+              style={[toolBtn, { borderColor: 'rgba(45,212,191,0.45)', backgroundColor: 'rgba(20,184,166,0.12)', flex: 1 }]}
             >
-              <Icon name="sparkles" size={16} color="#c4b5fd" />
-              <Text style={{ color: '#c4b5fd', fontFamily: FONT.bold, fontSize: 12 }}>
+              <Icon name="sparkles" size={16} color="#2dd4bf" />
+              <Text style={{ color: '#2dd4bf', fontFamily: FONT.bold, fontSize: 12 }}>
                 {busyAi ? 'جاري التحليل...' : 'تعبئة ذكية (Gemini)'}
               </Text>
             </Pressable>

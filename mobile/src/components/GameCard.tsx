@@ -121,8 +121,21 @@ export default function GameCard({ game, categories = [], onPress, compact = fal
         {catLabels.length > 0 ? (
           <View style={styles.catBadgesWrap}>
             {catLabels.slice(0, 2).map((lbl) => (
-              <View key={lbl} style={styles.catBadge}>
-                <Text style={styles.catBadgeText}>{lbl}</Text>
+              <View
+                key={lbl}
+                style={[
+                  styles.catBadge,
+                  /PS5|فايف/.test(lbl) && styles.catBadgePs5,
+                ]}
+              >
+                <Text
+                  style={[
+                    styles.catBadgeText,
+                    !/PS5|فايف/.test(lbl) && styles.catBadgeNeutral,
+                  ]}
+                >
+                  {lbl}
+                </Text>
               </View>
             ))}
           </View>
@@ -290,7 +303,13 @@ const styles = StyleSheet.create({
     borderRadius: 7,
     backgroundColor: 'rgba(15, 23, 42, 0.88)',
     borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.18)',
+  },
+  catBadgePs5: {
     borderColor: 'rgba(139, 92, 246, 0.55)',
+  },
+  catBadgeNeutral: {
+    color: '#cbd5e1',
   },
   catBadgeText: {
     fontFamily: FONT.bold,

@@ -116,7 +116,7 @@ export default function BranchGate() {
                       borderRadius: 14,
                       backgroundColor: isMain
                         ? 'rgba(20,184,166,0.18)'
-                        : 'rgba(138,92,255,0.15)',
+                        : 'rgba(255,255,255,0.06)',
                       alignItems: 'center',
                       justifyContent: 'center',
                     }}
@@ -124,7 +124,7 @@ export default function BranchGate() {
                     <Icon
                       name="branch"
                       size={22}
-                      color={isMain ? '#2dd4bf' : '#a78bfa'}
+                      color={isMain ? '#2dd4bf' : '#94a3b8'}
                     />
                   </View>
 

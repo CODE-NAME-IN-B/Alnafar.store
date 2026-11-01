@@ -32,13 +32,13 @@ export default function PackageDetailsSheet({ visible, pkg, onClose, onAdd }: Pr
               paddingVertical: 10,
               marginBottom: 12,
               borderWidth: 1,
-              borderColor: 'rgba(167,139,250,0.3)',
+              borderColor: 'rgba(255,255,255,0.1)',
             }}
           >
             <AppText style={{ color: '#cbd5e1', fontFamily: FONT.bold, fontSize: 13 }}>
               عدد الألعاب: {pkg.packageGames.length}
             </AppText>
-            <AppText style={{ color: '#c4b5fd', fontFamily: FONT.bold, fontSize: 15 }}>
+            <AppText style={{ color: '#2dd4bf', fontFamily: FONT.bold, fontSize: 15 }}>
               السعر: {formatDinar(Number(pkg.price))}
             </AppText>
           </View>

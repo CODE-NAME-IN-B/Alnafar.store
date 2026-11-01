@@ -106,10 +106,10 @@ export default function TrackScreen() {
           <Pressable
             onPress={() => setQrOpen(true)}
             accessibilityLabel="مسح QR آخر"
-            style={[topActionBtn, { borderColor: 'rgba(167,139,250,0.4)' }]}
+            style={[topActionBtn, { borderColor: 'rgba(45,212,191,0.4)' }]}
           >
-            <Icon name="qr" size={15} color="#c4b5fd" />
-            <Text style={{ color: '#c4b5fd', fontFamily: FONT.bold, fontSize: 12 }}>مسح QR</Text>
+            <Icon name="qr" size={15} color="#2dd4bf" />
+            <Text style={{ color: '#2dd4bf', fontFamily: FONT.bold, fontSize: 12 }}>مسح QR</Text>
           </Pressable>
           <Pressable
             onPress={() => refetch()}

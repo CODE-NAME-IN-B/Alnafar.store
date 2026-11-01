@@ -112,6 +112,7 @@ export default function AdminGamesScreen() {
         >
           <Chip
             label={`الكل (${sortedGames.length})`}
+            compact
             active={!catFilter}
             onPress={() => setCatFilter(null)}
           />
@@ -119,6 +120,7 @@ export default function AdminGamesScreen() {
             <Chip
               key={c.id}
               label={c.name}
+              compact
               active={catFilter === c.id}
               onPress={() => setCatFilter(catFilter === c.id ? null : c.id)}
             />

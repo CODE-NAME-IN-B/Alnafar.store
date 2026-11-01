@@ -157,7 +157,7 @@ export default function LoginScreen() {
           {/* Prominent Guest Button */}
           <Pressable onPress={handleGuest} style={styles.guestBtn}>
             <View style={styles.guestIconWrap}>
-              <Icon name="store" size={20} color="#c4b5fd" />
+              <Icon name="store" size={20} color="#2dd4bf" />
             </View>
             <View style={styles.guestTextCol}>
               <Text style={styles.guestTitle}>دخول كضيف — تصفح المتجر الآن</Text>
@@ -165,7 +165,7 @@ export default function LoginScreen() {
                 استعرض جميع الألعاب والأسعار وأرسل طلبك عبر واتساب
               </Text>
             </View>
-            <Icon name="arrow-left" size={18} color="#c4b5fd" />
+            <Icon name="arrow-left" size={18} color="#2dd4bf" />
           </Pressable>
         </ScrollView>
       </KeyboardAvoidingView>
@@ -333,9 +333,9 @@ const styles = StyleSheet.create({
     flexDirection: ROW,
     alignItems: 'center',
     gap: 12,
-    backgroundColor: '#171430',
+    backgroundColor: 'rgba(20,184,166,0.12)',
     borderWidth: 1.5,
-    borderColor: '#7c3aed',
+    borderColor: 'rgba(45,212,191,0.45)',
     borderRadius: 18,
     paddingHorizontal: 14,
     paddingVertical: 14,
@@ -344,9 +344,9 @@ const styles = StyleSheet.create({
     width: 44,
     height: 44,
     borderRadius: 13,
-    backgroundColor: 'rgba(124, 58, 237, 0.22)',
+    backgroundColor: 'rgba(20, 184, 166, 0.18)',
     borderWidth: 1,
-    borderColor: 'rgba(167, 139, 250, 0.4)',
+    borderColor: 'rgba(45, 212, 191, 0.45)',
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -363,7 +363,7 @@ const styles = StyleSheet.create({
   },
   guestSubtitle: {
     fontFamily: FONT.regular,
-    color: '#c4b5fd',
+    color: '#94a3b8',
     fontSize: 11,
     marginTop: 2,
     textAlign: 'right',

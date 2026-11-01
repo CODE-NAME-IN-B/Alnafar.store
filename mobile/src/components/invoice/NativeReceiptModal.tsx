@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { ScrollView, Text, View } from 'react-native';
 import QRCode from 'react-native-qrcode-svg';
 import { useQuery } from '@tanstack/react-query';
@@ -18,13 +18,15 @@ interface Props {
   visible: boolean;
   invoice: InvoiceRecord | null;
   onClose: () => void;
+  /** فتح حوار الطباعة تلقائياً عند الفتح — تدفق الكاشير بعد إنشاء الفاتورة مباشرة */
+  autoPrint?: boolean;
 }
 
 /**
  * شاشة الفاتورة الأصلية (مكونات React Native أصلية 100%).
  * تقرأ اسم المتجر والعنوان والهاتف من `/api/invoice-settings` وتعرض QR أصلياً.
  */
-export default function NativeReceiptModal({ visible, invoice, onClose }: Props) {
+export default function NativeReceiptModal({ visible, invoice, onClose, autoPrint }: Props) {
   const [printing, setPrinting] = useState(false);
   const [sharing, setSharing] = useState(false);
 
@@ -34,6 +36,42 @@ export default function NativeReceiptModal({ visible, invoice, onClose }: Props)
     staleTime: 5 * 60_000,
     enabled: visible,
   });
+
+  const autoPrintDone = useRef<string | null>(null);
+
+  const handlePrint = async () => {
+    if (!invoice) return;
+    setPrinting(true);
+    try {
+      await getPrinterDriver().printInvoice(invoice, settingsQuery.data ?? {});
+      showToast('تم إرسال الفاتورة للطباعة');
+    } catch {
+      showToast('تعذر الطباعة، جرّب مشاركة PDF', 'error');
+    } finally {
+      setPrinting(false);
+    }
+  };
+
+  const handleSharePdf = async () => {
+    if (!invoice) return;
+    setSharing(true);
+    try {
+      await getPrinterDriver().shareInvoicePdf(invoice, settingsQuery.data ?? {});
+    } catch {
+      showToast('تعذر إنشاء ملف PDF', 'error');
+    } finally {
+      setSharing(false);
+    }
+  };
+
+  /* طباعة فورية عند الفتح (تدفق الكاشير): مرة واحدة لكل فاتورة بعد جلب إعدادات المتجر */
+  useEffect(() => {
+    if (!autoPrint || !visible || !invoice || !settingsQuery.data) return;
+    if (autoPrintDone.current === String(invoice.id)) return;
+    autoPrintDone.current = String(invoice.id);
+    void handlePrint();
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- يقرأ handlePrint بما يغطيه invoice.id من الاعتماديات
+  }, [autoPrint, visible, invoice?.id, settingsQuery.data]);
 
   if (!invoice) return null;
 
@@ -55,29 +93,6 @@ export default function NativeReceiptModal({ visible, invoice, onClose }: Props)
 
   const webOrigin = API_BASE.replace(/\/api\/?$/, '');
   const trackingUrl = `${webOrigin}/#/track/${encodeURIComponent(String(invoice.invoice_number))}`;
-
-  const handlePrint = async () => {
-    setPrinting(true);
-    try {
-      await getPrinterDriver().printInvoice(invoice, settings);
-      showToast('تم إرسال الفاتورة للطباعة');
-    } catch {
-      showToast('تعذر الطباعة، جرّب مشاركة PDF', 'error');
-    } finally {
-      setPrinting(false);
-    }
-  };
-
-  const handleSharePdf = async () => {
-    setSharing(true);
-    try {
-      await getPrinterDriver().shareInvoicePdf(invoice, settings);
-    } catch {
-      showToast('تعذر إنشاء ملف PDF', 'error');
-    } finally {
-      setSharing(false);
-    }
-  };
 
   return (
     <ModalSheet visible={visible} onClose={onClose} title={`فاتورة ${formatInvoiceCode(invoice.invoice_number)}`}>

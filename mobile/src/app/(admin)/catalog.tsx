@@ -383,7 +383,7 @@ const styles = StyleSheet.create({
     includeFontPadding: false,
   },
   pkgPrice: {
-    color: '#c4b5fd',
+    color: '#2dd4bf',
     fontFamily: FONT.bold,
     fontSize: 12.5,
     textAlign: 'right',
