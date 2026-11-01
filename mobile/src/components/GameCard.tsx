@@ -63,6 +63,7 @@ export default function GameCard({ game, categories = [], onPress, compact = fal
       <Pressable
         onPress={() => onPress(game)}
         accessibilityRole="button"
+        android_ripple={{ color: 'rgba(255,255,255,0.10)', borderless: false, foreground: true }}
         style={[styles.cardRow, inCart && styles.cardInCart]}
       >
         <View style={styles.rowThumbWrap}>
@@ -102,6 +103,7 @@ export default function GameCard({ game, categories = [], onPress, compact = fal
   return (
     <Pressable
       onPress={() => onPress(game)}
+      android_ripple={{ color: 'rgba(255,255,255,0.10)', borderless: false, foreground: true }}
       style={[styles.card, inCart && styles.cardInCart]}
     >
       <View style={styles.coverWrap}>

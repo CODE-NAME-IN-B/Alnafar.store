@@ -1,5 +1,6 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
+  Animated,
   FlatList,
   Image,
   Pressable,
@@ -38,6 +39,7 @@ import ServicesSheet from '@/components/store/ServicesSheet';
 import QrScannerModal from '@/components/track/QrScannerModal';
 import Chip from '@/components/ui/Chip';
 import Icon from '@/components/ui/Icon';
+import { useScreenEntrance } from '@/components/ui/motion';
 import { EmptyState, ErrorState, LoadingState } from '@/components/ui/StateView';
 import { FONT } from '@/lib/fonts';
 import { ROW } from '@/lib/rtl';
@@ -113,6 +115,14 @@ export default function StoreHomeScreen() {
 
   const activeFilterCount = countActiveFilters(filters);
   const healthy = Boolean(healthQ.data?.ok);
+  const listRef = useRef<FlatList<Game> | null>(null);
+  const entranceStyle = useScreenEntrance({ durationMs: 260, dy: 14 });
+
+  /* الحياة في الفلاتر: أي تغيير تصنيف/بحث يُرجع القائمة لأولها
+     وإلا تبدو «الكل» كأنها لا تفعل شيئاً (أبقت المستخدم في منتصف القائمة) */
+  useEffect(() => {
+    listRef.current?.scrollToOffset({ offset: 0, animated: true });
+  }, [activeCategoryId, filters, query, compactMode]);
 
   return (
     <SafeAreaView style={styles.safe} edges={['top']}>
@@ -274,7 +284,9 @@ export default function StoreHomeScreen() {
           onRetry={() => gamesQ.refetch()}
         />
       ) : (
+        <Animated.View style={{ flex: 1, ...entranceStyle }}>
         <FlatList
+          ref={listRef}
           data={filtered}
           // إعادة بناء صفوف القائمة عند التبديل بين الشبكة والمضغوطة (U4)
           key={compactMode ? 'compact-list' : 'grid'}
@@ -395,6 +407,7 @@ export default function StoreHomeScreen() {
             </View>
           )}
         />
+        </Animated.View>
       )}
 
       <VersionPickerModal

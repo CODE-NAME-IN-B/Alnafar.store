@@ -1,5 +1,5 @@
-import React from 'react';
-import { Pressable, StyleSheet, Text, ViewStyle } from 'react-native';
+import React, { useRef } from 'react';
+import { Animated, Pressable, StyleSheet, Text, ViewStyle } from 'react-native';
 import { FONT } from '@/lib/fonts';
 import { colors, tokens, triggerLightHaptic } from '@/lib/colors';
 
@@ -14,7 +14,15 @@ interface Props {
   accent?: string;
 }
 
+const AnimatedChip = Animated.createAnimatedComponent(Pressable);
+
 export function Chip({ label, active, compact, onPress, style }: Props) {
+  const scale = useRef(new Animated.Value(1)).current;
+
+  const animate = (to: number, speed: number) => {
+    Animated.spring(scale, { toValue: to, useNativeDriver: true, speed }).start();
+  };
+
   const handlePress = () => {
     if (!onPress) return;
     triggerLightHaptic();
@@ -22,11 +30,18 @@ export function Chip({ label, active, compact, onPress, style }: Props) {
   };
 
   return (
-    <Pressable
+    <AnimatedChip
+      onPressIn={() => animate(0.94, 26)}
+      onPressOut={() => animate(1, 18)}
       onPress={handlePress}
       accessibilityRole="button"
       accessibilityState={{ selected: Boolean(active) }}
-      style={[styles.chip, compact ? styles.compact : null, active ? styles.chipActive : styles.chipIdle, style]}
+      style={[
+        styles.chip,
+        compact ? styles.compact : null,
+        active ? styles.chipActive : styles.chipIdle,
+        style,
+      ]}
     >
       <Text
         style={[styles.text, compact ? styles.textCompact : null, active ? styles.textActive : styles.textIdle]}
@@ -34,7 +49,7 @@ export function Chip({ label, active, compact, onPress, style }: Props) {
       >
         {label}
       </Text>
-    </Pressable>
+    </AnimatedChip>
   );
 }
 

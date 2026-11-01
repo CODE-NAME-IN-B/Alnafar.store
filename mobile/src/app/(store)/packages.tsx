@@ -1,5 +1,5 @@
-import { useEffect, useState } from 'react';
-import { Pressable, ScrollView, Text, View } from 'react-native';
+import { useEffect, useState, type ReactNode } from 'react';
+import { Animated, Pressable, ScrollView, Text, View } from 'react-native';
 import { FlashList } from '@shopify/flash-list';
 import { useQuery } from '@tanstack/react-query';
 import { fetchCategories } from '@/api/categories';
@@ -11,6 +11,7 @@ import Screen from '@/components/ui/Screen';
 import Icon from '@/components/ui/Icon';
 import Chip from '@/components/ui/Chip';
 import AppText from '@/components/ui/AppText';
+import { useScreenEntrance, useEntrance } from '@/components/ui/motion';
 import { LoadingState, ErrorState, EmptyState } from '@/components/ui/StateView';
 import { FONT } from '@/lib/fonts';
 import { formatDinar } from '@/lib/money';
@@ -33,6 +34,8 @@ export default function PackagesScreen() {
     queryFn: () => fetchCategories(true),
   });
 
+  const entranceStyle = useScreenEntrance({ durationMs: 240, dy: 12 });
+
   const packages = useQuery({
     queryKey: ['packages-active', activeCategoryId],
     queryFn: async () => {
@@ -50,16 +53,19 @@ export default function PackagesScreen() {
 
   return (
     <Screen edges={['top']}>
-      <View
-        style={{
-          backgroundColor: '#0f172a',
-          borderBottomWidth: 1,
-          borderBottomColor: 'rgba(255, 255, 255, 0.08)',
-          paddingHorizontal: 14,
-          paddingTop: 12,
-          paddingBottom: 12,
-          gap: 10,
-        }}
+      <Animated.View
+        style={[
+          {
+            backgroundColor: '#0f172a',
+            borderBottomWidth: 1,
+            borderBottomColor: 'rgba(255, 255, 255, 0.08)',
+            paddingHorizontal: 14,
+            paddingTop: 12,
+            paddingBottom: 12,
+            gap: 10,
+          },
+          entranceStyle,
+        ]}
       >
         <View>
           <AppText style={{ color: '#f8fafc', fontFamily: FONT.bold, fontSize: 18 }}>
@@ -88,7 +94,7 @@ export default function PackagesScreen() {
             ))}
           </ScrollView>
         ) : null}
-      </View>
+      </Animated.View>
 
       {activeCategoryId == null ? (
         <LoadingState message="جاري جلب الفئات..." />
@@ -104,8 +110,10 @@ export default function PackagesScreen() {
         <FlashList
           data={packages.data}
           keyExtractor={(pkg) => String(pkg.id)}
-          renderItem={({ item }) => (
-            <PackageCard pkg={item} onDetails={setDetails} onAdd={addPack} />
+          renderItem={({ item, index }) => (
+            <EntranceItem delay={(index % 8) * 55}>
+              <PackageCard pkg={item} onDetails={setDetails} onAdd={addPack} />
+            </EntranceItem>
           )}
           contentContainerStyle={{ paddingHorizontal: 12, paddingTop: 10, paddingBottom: 24 }}
           showsVerticalScrollIndicator={false}
@@ -137,6 +145,12 @@ const pkgCard = {
   padding: 14,
   marginVertical: 6,
 } as const;
+
+/** بطاقة باقة بدخول متدرج — يجعل الشاشة تتنفس عند التحميل وفي البدايات */
+function EntranceItem({ children, delay }: { children: ReactNode; delay: number }) {
+  const { style } = useEntrance({ durationMs: 200, dy: 10, delayMs: delay });
+  return <Animated.View style={style}>{children}</Animated.View>;
+}
 
 function PackageCard({
   pkg,

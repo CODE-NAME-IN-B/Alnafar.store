@@ -1,6 +1,7 @@
 import React, { useMemo, useState } from 'react';
 import {
   Alert,
+  Animated,
   FlatList,
   KeyboardAvoidingView,
   Linking,
@@ -32,6 +33,7 @@ import NativeReceiptModal from '@/components/invoice/NativeReceiptModal';
 import AppButton from '@/components/ui/AppButton';
 import Icon from '@/components/ui/Icon';
 import { EmptyState } from '@/components/ui/StateView';
+import { useScreenEntrance } from '@/components/ui/motion';
 import { formatDinar } from '@/lib/money';
 import { buildOrderMessage, whatsappLink } from '@/lib/whatsapp';
 import { estimateMinutes } from '@/lib/estimate';
@@ -45,6 +47,9 @@ export default function CartScreen() {
   const removeItem = useCartStore((s) => s.removeItem);
   const clear = useCartStore((s) => s.clear);
   const cancelEditingInvoice = useCartStore((s) => s.cancelEditingInvoice);
+
+  /* حياة التنقل: دخول ناعم كل مرة يعود المستخدم إلى السلة */
+  const entranceStyle = useScreenEntrance({ durationMs: 240, dy: 12 });
 
   const selectedBranchId = useAppStore((s) => s.selectedBranchId);
   const selectBranch = useAppStore((s) => s.selectBranch);
@@ -177,6 +182,7 @@ export default function CartScreen() {
 
   return (
     <SafeAreaView style={styles.safe} edges={['top']}>
+      <Animated.View style={[styles.flex, entranceStyle]}>
       <KeyboardAvoidingView
         style={styles.flex}
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
@@ -345,6 +351,7 @@ export default function CartScreen() {
           autoPrint
         />
       </KeyboardAvoidingView>
+      </Animated.View>
     </SafeAreaView>
   );
 }
