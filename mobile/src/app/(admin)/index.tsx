@@ -178,6 +178,7 @@ export default function AdminInvoicesScreen() {
           </View>
           <Chip
             label="اليوم"
+            compact
             active={!unpaidOnly && date === todayIso()}
             onPress={() => {
               setUnpaidOnly(false);
@@ -186,11 +187,13 @@ export default function AdminInvoicesScreen() {
           />
           <Chip
             label="كل الآجل"
+            compact
             active={unpaidOnly}
             onPress={() => setUnpaidOnly((v) => !v)}
           />
           <Chip
             label="مع المرحّل"
+            compact
             active={includeUnpaid && !unpaidOnly}
             onPress={() => setIncludeUnpaid((v) => !v)}
           />
@@ -217,6 +220,8 @@ export default function AdminInvoicesScreen() {
           <Pressable
             onPress={() => void handleBulkPay()}
             style={styles.bulkPayBtn}
+            accessibilityRole="button"
+            accessibilityLabel="تسديد كل الفواتير غير المدفوعة"
           >
             <Icon name="cash" size={15} color="#042f2e" />
             <Text style={styles.bulkPayText}>
@@ -362,9 +367,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: 6,
-    backgroundColor: '#10b981',
+    backgroundColor: '#14b8a6',
     borderWidth: 1,
-    borderColor: '#34d399',
+    borderColor: '#2dd4bf',
     borderRadius: 12,
     paddingHorizontal: 14,
     height: 42,

@@ -90,6 +90,7 @@ export default function AdminLayout() {
           >
             <Chip
               label="كل الفروع"
+              compact
               active={adminScopeBranchId === 'all'}
               onPress={() => setAdminScopeBranch('all')}
             />
@@ -97,6 +98,7 @@ export default function AdminLayout() {
               <Chip
                 key={b.id}
                 label={b.name}
+                compact
                 active={adminScopeBranchId === b.id}
                 onPress={() => setAdminScopeBranch(b.id)}
               />

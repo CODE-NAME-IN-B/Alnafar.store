@@ -8,8 +8,8 @@ import type { PrintImageAssets } from './printAssets';
  * لا يُعرض هذا الـ HTML داخل التطبيق إطلاقاً (القاعدة 1).
  *
  * قسم الطباعة المضغوطة (طلب المستخدم بعد التجربة الفعلية): مطابقة إيصال الموقع —
- * بدون شعار ولا صور، الحد الأدنى من الورق:
- * الاسم/العنوان، رقم الفاتورة، الزبون، البنود، الإجمالي + حالة الدفع، QR، هاتف المحل.
+ * بدون شعار ولا صور ولا بنود الألعاب، الحد الأدنى من الورق:
+ * الاسم/العنوان، رقم الفاتورة، الزبون، السعر النهائي + حالة الدفع، QR، هاتف المحل.
  */
 
 /** الاسم العربي الموحّد الرسمي (قرار معتمد: «الشاردة» بالتاء المربوطة) */
@@ -71,19 +71,6 @@ export function buildReceiptHtml(
 
   const { qrSvg = '' } = context;
 
-  const itemsRows = items
-    .map(
-      (item) =>
-        `<div class="it"><span class="t">${escapeHtml(item.title)}${
-          item.platform ? ` (${escapeHtml(item.platform)})` : ''
-        }${
-          Number(item.quantity) > 1 ? ` ×${Number(item.quantity)}` : ''
-        }</span><span class="m">${escapeHtml(
-          formatDinar(Number(item.price) * (Number(item.quantity) || 1)),
-        )}</span></div>`,
-    )
-    .join('');
-
   const remainingLine = isPartial ? ` (${formatDinar(Math.max(0, finalTotal - paidAmount))} متبقية)` : '';
 
   return `<!DOCTYPE html>
@@ -104,8 +91,6 @@ export function buildReceiptHtml(
     .who{font-weight:700}
     .phone{font-size:${Math.max(9, parseInt(fontSize, 10) - 3)}px;color:#37454f;font-family:'DejaVu Sans Mono',monospace}
     .it{display:flex;justify-content:space-between;gap:2mm;padding:0.4mm 0;text-align:right}
-    .it .t{flex:1}
-    .it .m{font-weight:700;direction:ltr;white-space:nowrap}
     .tot{font-size:${fontSize === '12px' ? '16px' : '18px'};font-weight:900;margin-top:0.8mm}
     .tag{font-weight:800;display:inline-block;padding:0.3mm 1.5mm;border-radius:1mm;margin-top:0.6mm}
     .tag.ok{color:#166534;background:#f0fdf4;border:1px solid #bbf7d0}
@@ -125,9 +110,6 @@ export function buildReceiptHtml(
     <div class="no"><span class="ltr">#${escapeHtml(fullNumber)}</span></div>
     <div class="who">${escapeHtml(invoice.customer_name || 'عميل نقدي')}</div>
     ${invoice.customer_phone ? `<div class="phone"><bdi dir="ltr">${escapeHtml(invoice.customer_phone)}</bdi></div>` : ''}
-    <hr class="l" />
-    ${itemsRows}
-    ${discount > 0 ? `<div class="it"><span class="t">الخصم</span><span class="m">${escapeHtml(formatDinar(discount))}</span></div>` : ''}
     <hr class="l" />
     <div class="tot">${escapeHtml(formatDinar(finalTotal))}${remainingLine}</div>
     <div class="tag ${statusClass}"><bdi>${escapeHtml(statusTag)}</bdi></div>

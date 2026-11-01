@@ -127,49 +127,15 @@ export default function NativeReceiptModal({ visible, invoice, onClose }: Props)
 
           <View style={dashedLine} />
 
-          {/* البنود */}
-          <View style={{ width: '100%', gap: 4 }}>
-            {items.map((item, idx) => (
-              <View
-                key={`${item.title}-${idx}`}
-                style={{ flexDirection: 'row', justifyContent: 'space-between', gap: 8 }}
-              >
-                <Text
-                  numberOfLines={1}
-                  style={{ flex: 1, color: '#1e293b', fontFamily: FONT.medium, fontSize: 12 }}
-                >
-                  {item.title}
-                  {item.platform ? ` (${item.platform})` : ''}
-                </Text>
-                <Text style={{ color: '#0f1724', fontFamily: FONT.bold, fontSize: 12 }}>
-                  {formatDinar(Number(item.price) * (Number(item.quantity) || 1))}
-                </Text>
-              </View>
-            ))}
-          </View>
-
-          <View style={dashedLine} />
-
-          {discount > 0 ? (
-            <Text style={{ color: '#94a3b8', fontFamily: FONT.regular, fontSize: 12 }}>
-              الخصم: {formatDinar(discount)}
+          {/* السعر النهائي فقط — بلا بيانات الألعاب (مطابقة لما تظهره واجهة التتبع) */}
+          <Text style={{ color: '#0f1724', fontFamily: FONT.bold, fontSize: 19 }}>
+            {formatDinar(finalTotal)}
+          </Text>
+          {remaining > 0 ? (
+            <Text style={{ color: '#94a3b8', fontFamily: FONT.medium, fontSize: 12 }}>
+              المتبقي: {formatDinar(remaining)}
             </Text>
           ) : null}
-
-          <View
-            style={{
-              borderWidth: 1.5,
-              borderColor: '#0f1724',
-              borderRadius: 8,
-              paddingHorizontal: 16,
-              paddingVertical: 6,
-              marginVertical: 4,
-            }}
-          >
-            <Text style={{ color: '#0f1724', fontFamily: FONT.bold, fontSize: 18 }}>
-              {formatDinar(finalTotal)}
-            </Text>
-          </View>
 
           <View
             style={{

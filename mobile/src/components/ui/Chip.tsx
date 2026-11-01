@@ -6,13 +6,15 @@ import { colors, tokens, triggerLightHaptic } from '@/lib/colors';
 interface Props {
   label: string;
   active?: boolean;
+  /** حجم مدمج لأشرطة الفلاتر الكثيفة (لوحة الإدارة) */
+  compact?: boolean;
   onPress?: () => void;
   style?: ViewStyle;
   /** محتفظ به للتوافق فقط — لون التفعيل موحّد بلون العلامة الأخضر المزرق */
   accent?: string;
 }
 
-export function Chip({ label, active, onPress, style }: Props) {
+export function Chip({ label, active, compact, onPress, style }: Props) {
   const handlePress = () => {
     if (!onPress) return;
     triggerLightHaptic();
@@ -24,10 +26,10 @@ export function Chip({ label, active, onPress, style }: Props) {
       onPress={handlePress}
       accessibilityRole="button"
       accessibilityState={{ selected: Boolean(active) }}
-      style={[styles.chip, active ? styles.chipActive : styles.chipIdle, style]}
+      style={[styles.chip, compact ? styles.compact : null, active ? styles.chipActive : styles.chipIdle, style]}
     >
       <Text
-        style={[styles.text, active ? styles.textActive : styles.textIdle]}
+        style={[styles.text, compact ? styles.textCompact : null, active ? styles.textActive : styles.textIdle]}
         numberOfLines={1}
       >
         {label}
@@ -56,11 +58,19 @@ const styles = StyleSheet.create({
     backgroundColor: colors.elevated,
     borderColor: colors.borderSubtle,
   },
+  compact: {
+    minHeight: 30,
+    paddingHorizontal: 11,
+    paddingVertical: 4,
+  },
   text: {
     fontSize: 13,
     letterSpacing: 0,
     includeFontPadding: false,
     textAlign: 'center',
+  },
+  textCompact: {
+    fontSize: 12,
   },
   textActive: {
     fontFamily: FONT.bold,
