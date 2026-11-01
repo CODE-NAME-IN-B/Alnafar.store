@@ -30,7 +30,7 @@ export default function VersionPickerModal({ visible, game, onClose, onPick }: P
       <Pressable
         onPress={() => onPick('PS4')}
         style={{
-          ...row('#131c2e', '#1e293b'),
+          ...row('#141e30', 'rgba(255, 255, 255, 0.08)'),
           borderRadius: 14,
           marginBottom: 12,
         }}
@@ -62,7 +62,7 @@ export default function VersionPickerModal({ visible, game, onClose, onPick }: P
       <Pressable
         onPress={() => onPick('PS5')}
         style={{
-          ...row('#131c2e', '#1e293b'),
+          ...row('#141e30', 'rgba(255, 255, 255, 0.08)'),
           borderRadius: 14,
         }}
       >

@@ -363,7 +363,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 12,
     borderBottomWidth: 1,
-    borderBottomColor: '#1e293b',
+    borderBottomColor: 'rgba(255, 255, 255, 0.08)',
   },
   headerTitleRow: {
     flexDirection: ROW,
@@ -456,7 +456,7 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     padding: 16,
     borderWidth: 1,
-    borderColor: '#1e293b',
+    borderColor: 'rgba(255, 255, 255, 0.08)',
     marginTop: 6,
   },
   summaryRow: {
@@ -497,7 +497,7 @@ const styles = StyleSheet.create({
   },
   cashierSection: {
     borderTopWidth: 1,
-    borderTopColor: '#1e293b',
+    borderTopColor: 'rgba(255, 255, 255, 0.08)',
     paddingTop: 14,
     gap: 12,
   },
@@ -522,7 +522,7 @@ const styles = StyleSheet.create({
   },
   guestSection: {
     borderTopWidth: 1,
-    borderTopColor: '#1e293b',
+    borderTopColor: 'rgba(255, 255, 255, 0.08)',
     paddingTop: 14,
     gap: 14,
   },
@@ -537,9 +537,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     paddingVertical: 8,
     borderRadius: 12,
-    backgroundColor: '#0b1324',
+    backgroundColor: '#0b1220',
     borderWidth: 1.5,
-    borderColor: '#1e293b',
+    borderColor: 'rgba(255, 255, 255, 0.08)',
   },
   branchPillActive: {
     backgroundColor: '#082f2d',

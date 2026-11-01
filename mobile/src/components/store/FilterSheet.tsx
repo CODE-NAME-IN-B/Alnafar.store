@@ -241,8 +241,8 @@ const styles = StyleSheet.create({
     borderColor: '#14b8a6',
   },
   splitIdle: {
-    backgroundColor: '#0b1324',
-    borderColor: '#334155',
+    backgroundColor: '#0b1220',
+    borderColor: 'rgba(255, 255, 255, 0.1)',
   },
   splitLabel: {
     fontFamily: FONT.bold,
@@ -305,8 +305,8 @@ const styles = StyleSheet.create({
     borderColor: '#5eead4',
   },
   letterOff: {
-    backgroundColor: '#0b1324',
-    borderColor: '#334155',
+    backgroundColor: '#0b1220',
+    borderColor: 'rgba(255, 255, 255, 0.1)',
   },
   letterText: {
     fontSize: 13,

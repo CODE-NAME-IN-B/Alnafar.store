@@ -63,7 +63,7 @@ export default function StoreLayout() {
         headerShown: false,
         tabBarStyle: {
           backgroundColor: '#090f1d',
-          borderTopColor: '#1e293b',
+          borderTopColor: 'rgba(255, 255, 255, 0.08)',
           borderTopWidth: 1,
           // S2/V4: احترام شريط الإيماءات بالكامل (Arabic RTL + Android gesture bar)
           height: 66 + Math.max(insets.bottom, 8),

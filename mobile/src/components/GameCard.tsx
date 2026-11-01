@@ -216,7 +216,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#131d31',
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: '#1e293b',
+    borderColor: 'rgba(255, 255, 255, 0.08)',
     padding: 8,
   },
   rowThumbWrap: {
@@ -268,7 +268,7 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     overflow: 'hidden',
     borderWidth: 1,
-    borderColor: '#1e293b',
+    borderColor: 'rgba(255, 255, 255, 0.08)',
     justifyContent: 'space-between',
   },
   cardInCart: {

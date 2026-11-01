@@ -185,7 +185,7 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
     backgroundColor: '#131d31',
     borderWidth: 1,
-    borderColor: '#1e293b',
+    borderColor: 'rgba(255, 255, 255, 0.08)',
   },
   bannerImg: {
     width: '100%',
@@ -318,7 +318,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#0d1629',
     borderRadius: 16,
     borderWidth: 1,
-    borderColor: '#1e293b',
+    borderColor: 'rgba(255, 255, 255, 0.08)',
     padding: 12,
   },
   sectionHead: {
@@ -351,7 +351,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#131d31',
     borderRadius: 12,
     borderWidth: 1.5,
-    borderColor: '#1e293b',
+    borderColor: 'rgba(255, 255, 255, 0.08)',
     paddingHorizontal: 12,
     paddingVertical: 10,
     gap: 4,

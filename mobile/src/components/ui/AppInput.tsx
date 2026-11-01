@@ -112,9 +112,9 @@ const styles = StyleSheet.create({
   fieldWrap: {
     flexDirection: ROW,
     alignItems: 'center',
-    backgroundColor: '#0b1324',
+    backgroundColor: '#0b1220',
     borderWidth: 1.5,
-    borderColor: '#1e293b',
+    borderColor: 'rgba(255, 255, 255, 0.08)',
     borderRadius: 14,
     paddingHorizontal: 12,
     minHeight: 50,

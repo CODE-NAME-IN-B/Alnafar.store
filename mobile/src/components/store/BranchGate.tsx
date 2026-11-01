@@ -99,10 +99,10 @@ export default function BranchGate() {
                   key={branch.id}
                   onPress={() => selectBranch(branch.id)}
                   style={{
-                    backgroundColor: '#131c2e',
+                    backgroundColor: '#141e30',
                     borderRadius: 16,
                     borderWidth: 1.5,
-                    borderColor: isMain ? '#14b8a6' : '#1e293b',
+                    borderColor: isMain ? '#14b8a6' : 'rgba(255, 255, 255, 0.1)',
                     padding: 16,
                     flexDirection: 'row',
                     alignItems: 'center',

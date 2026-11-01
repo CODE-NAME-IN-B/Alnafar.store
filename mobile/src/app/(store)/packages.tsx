@@ -54,7 +54,7 @@ export default function PackagesScreen() {
         style={{
           backgroundColor: '#0f172a',
           borderBottomWidth: 1,
-          borderBottomColor: '#1e293b',
+          borderBottomColor: 'rgba(255, 255, 255, 0.08)',
           paddingHorizontal: 14,
           paddingTop: 12,
           paddingBottom: 12,
@@ -130,10 +130,10 @@ export default function PackagesScreen() {
 }
 
 const pkgCard = {
-  backgroundColor: '#131c2e',
+  backgroundColor: '#141e30',
   borderRadius: 16,
   borderWidth: 1,
-  borderColor: '#1e293b',
+  borderColor: 'rgba(255, 255, 255, 0.08)',
   padding: 14,
   marginVertical: 6,
 } as const;
@@ -190,10 +190,10 @@ function PackageCard({
         </View>
         <View
           style={{
-            backgroundColor: '#1e293b',
+            backgroundColor: 'rgba(255, 255, 255, 0.06)',
             borderRadius: 10,
             borderWidth: 1,
-            borderColor: '#334155',
+            borderColor: 'rgba(255, 255, 255, 0.1)',
             paddingHorizontal: 10,
             paddingVertical: 6,
           }}
@@ -212,14 +212,14 @@ function PackageCard({
             flex: 1,
             minHeight: 44,
             borderRadius: 11,
-            backgroundColor: '#1e293b',
+            backgroundColor: 'rgba(255, 255, 255, 0.06)',
             paddingVertical: 10,
             flexDirection: 'row',
             alignItems: 'center',
             justifyContent: 'center',
             gap: 6,
             borderWidth: 1,
-            borderColor: '#334155',
+            borderColor: 'rgba(255, 255, 255, 0.1)',
           }}
           accessible
           accessibilityLabel={`عرض ألعاب الباقة ${pkg.name}`}

@@ -115,7 +115,7 @@ export default function AdminLayout() {
           tabBarHideOnKeyboard: true,
           tabBarStyle: {
             backgroundColor: '#0f172a',
-            borderTopColor: '#1e293b',
+            borderTopColor: 'rgba(255, 255, 255, 0.08)',
             borderTopWidth: 1,
             height: 58 + bottomPad,
             paddingBottom: bottomPad,
@@ -181,7 +181,7 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     backgroundColor: '#0f172a',
     borderBottomWidth: 1,
-    borderBottomColor: '#1e293b',
+    borderBottomColor: 'rgba(255, 255, 255, 0.08)',
   },
   userRow: {
     flexDirection: ROW,
@@ -251,7 +251,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#090d16',
     paddingVertical: 7,
     borderBottomWidth: 1,
-    borderBottomColor: '#1e293b',
+    borderBottomColor: 'rgba(255, 255, 255, 0.08)',
   },
   branchScroll: {
     flexDirection: ROW,

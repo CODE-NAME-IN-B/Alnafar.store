@@ -128,7 +128,7 @@ const styles = StyleSheet.create({
     borderRadius: 14,
     padding: 9,
     borderWidth: 1,
-    borderColor: '#1e293b',
+    borderColor: 'rgba(255, 255, 255, 0.08)',
   },
   thumbWrap: {
     width: 56,
@@ -156,7 +156,7 @@ const styles = StyleSheet.create({
     borderRadius: 6,
     backgroundColor: 'rgba(15, 23, 42, 0.9)',
     borderWidth: 1,
-    borderColor: '#334155',
+    borderColor: 'rgba(255, 255, 255, 0.1)',
   },
   rankBadgeTop: {
     backgroundColor: '#f59e0b',
