@@ -21,7 +21,7 @@ import Chip from '@/components/ui/Chip';
 import AppButton from '@/components/ui/AppButton';
 import Icon from '@/components/ui/Icon';
 import KeyboardScroll from '@/components/ui/KeyboardScroll';
-import { EmptyState, LoadingState } from '@/components/ui/StateView';
+import { EmptyState, ErrorState, LoadingState } from '@/components/ui/StateView';
 import { FONT } from '@/lib/fonts';
 import { formatDinar } from '@/lib/money';
 import { showToast } from '@/lib/toast';
@@ -108,6 +108,11 @@ export default function AdminCatalogScreen() {
 
             {packagesQ.isLoading ? (
               <LoadingState message="جاري جلب الباقات..." />
+            ) : packagesQ.isError ? (
+              <ErrorState
+                message="تعذر جلب الباقات"
+                onRetry={() => void packagesQ.refetch()}
+              />
             ) : !(packagesQ.data ?? []).length ? (
               <EmptyState message="لا توجد باقات حالياً" icon="package" />
             ) : (
@@ -194,7 +199,12 @@ export default function AdminCatalogScreen() {
                 <Text style={styles.addBtnText}>إضافة</Text>
               </Pressable>
             </View>
-            {(categoriesQ.data ?? []).map((cat) => (
+            {categoriesQ.isError ? (
+              <ErrorState
+                message="تعذر جلب التصنيفات"
+                onRetry={() => void categoriesQ.refetch()}
+              />
+            ) : (categoriesQ.data ?? []).map((cat) => (
               <View key={cat.id} style={styles.cardRow}>
                 <Text style={[styles.cardTitle, styles.flex1]}>
                   {cat.name} {!cat.is_visible ? ' (مخفي)' : ''}
@@ -260,7 +270,12 @@ export default function AdminCatalogScreen() {
                 <Text style={styles.addBtnText}>إضافة</Text>
               </Pressable>
             </View>
-            {(servicesQ.data ?? []).map((svc) => (
+            {servicesQ.isError ? (
+              <ErrorState
+                message="تعذر جلب الخدمات"
+                onRetry={() => void servicesQ.refetch()}
+              />
+            ) : (servicesQ.data ?? []).map((svc) => (
               <View key={svc.id} style={styles.cardRow}>
                 <View style={styles.flex1}>
                   <Text style={styles.cardTitle}>
@@ -295,11 +310,21 @@ export default function AdminCatalogScreen() {
         ) : null}
 
         {section === 'taxonomy' ? (
-          <TaxonomySection
-            genres={genresQ.data ?? []}
-            seriesList={seriesQ.data ?? []}
-            runAction={runAction}
-          />
+          genresQ.isError || seriesQ.isError ? (
+            <ErrorState
+              message="تعذر جلب الأنواع والسلاسل"
+              onRetry={() => {
+                void genresQ.refetch();
+                void seriesQ.refetch();
+              }}
+            />
+          ) : (
+            <TaxonomySection
+              genres={genresQ.data ?? []}
+              seriesList={seriesQ.data ?? []}
+              runAction={runAction}
+            />
+          )
         ) : null}
       </KeyboardScroll>
 
