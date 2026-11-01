@@ -320,8 +320,8 @@ const styles = StyleSheet.create({
     includeFontPadding: false,
   },
   iconBtn: {
-    width: 38,
-    height: 38,
+    width: 44,
+    height: 44,
     borderRadius: 12,
     alignItems: 'center',
     justifyContent: 'center',
