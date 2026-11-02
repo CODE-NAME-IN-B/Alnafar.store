@@ -12,6 +12,7 @@ export interface Game {
   genre?: string | null;
   series?: string | null;
   features?: string | null;
+  created_at?: string;
   [key: string]: unknown;
 }
 

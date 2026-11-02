@@ -25,10 +25,10 @@ import { useAuthStore } from '@/stores/auth';
 import { addGameToCart } from '@/features/cartActions';
 import { isPs4Game, mainPriceOf, ps5PriceOf } from '@/lib/gamePrices';
 import { showToast } from '@/lib/toast';
+import GuestBell from '@/components/store/GuestBell';
 import GameCard from '@/components/GameCard';
 import VersionPickerModal from '@/components/store/VersionPickerModal';
 import TopList from '@/components/store/TopList';
-import AboutSection from '@/components/store/AboutSection';
 import HeroSection from '@/components/store/HeroSection';
 import FilterSheet, {
   EMPTY_FILTERS,
@@ -199,15 +199,18 @@ export default function StoreHomeScreen() {
                 </ScalePressable>
               </>
             ) : (
-              <ScalePressable
-                onPress={() => router.push('/login')}
-                accessibilityRole="button"
-                accessibilityLabel="تسجيل الدخول"
-                hitSlop={6}
-                style={styles.headerActionBtn}
-              >
-                <Icon name="user" size={17} color="#5eead4" />
-              </ScalePressable>
+              <>
+                <GuestBell />
+                <ScalePressable
+                  onPress={() => router.push('/login')}
+                  accessibilityRole="button"
+                  accessibilityLabel="تسجيل الدخول"
+                  hitSlop={6}
+                  style={styles.headerActionBtn}
+                >
+                  <Icon name="user" size={17} color="#5eead4" />
+                </ScalePressable>
+              </>
             )}
           </View>
         </View>
@@ -407,7 +410,6 @@ export default function StoreHomeScreen() {
               />
             </View>
           )}
-          ListFooterComponent={<AboutSection />}
         />
         </Animated.View>
       )}

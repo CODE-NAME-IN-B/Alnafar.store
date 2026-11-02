@@ -106,6 +106,15 @@ export default function StoreLayout() {
           ),
         }}
       />
+      <Tabs.Screen
+        name="more"
+        options={{
+          title: 'المزيد',
+          tabBarIcon: ({ focused }) => (
+            <TabIcon icon="more" focused={focused} />
+          ),
+        }}
+      />
     </Tabs>
   );
 }

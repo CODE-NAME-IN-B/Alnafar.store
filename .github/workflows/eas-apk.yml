@@ -59,10 +59,10 @@ jobs:
 
       - name: Download APK
         run: |
-          curl -L --fail -o alsharda-apk.zip "$BUILD_URL"
-          # أصل EAS يصل مضغوطاً — نفكّه ونستخرج APK داخل مجلد التحميل
-          unzip -o alsharda-apk.zip -d apk-dir
-          find apk-dir -name '*.apk' -maxdepth 3 | head -1 | xargs -I{} cp {} alsharda-store.apk
+          # أصل EAS هو ملف APK مباشر (وليس أرشيفاً) — نحفظه كما هو
+          curl -L --fail -o alsharda-store.apk "$BUILD_URL"
+          ls -la alsharda-store.apk
+          file alsharda-store.apk | grep -q 'Android package'
 
       - name: Ensure release exists and upload APK
         env:
