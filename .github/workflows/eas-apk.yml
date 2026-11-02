@@ -31,10 +31,21 @@ jobs:
       - name: Install EAS CLI
         run: npm i -g eas-cli
 
+      - name: Link EAS project (when EAS_PROJECT_ID secret is set)
+        working-directory: mobile
+        env:
+          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+        run: |
+          if [ -n "$EAS_PROJECT_ID" ]; then
+            eas init --id "$EAS_PROJECT_ID" --non-interactive --force
+          fi
+        continue-on-error: true
+
       - name: Build preview APK
         working-directory: mobile
         env:
           EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+          EAS_PROJECT_ID: ${{ secrets.EAS_PROJECT_ID }}
         run: |
           eas build --platform android --profile preview --non-interactive --wait --json > build.json 2> build-err.txt || (cat build-err.txt && exit 1)
           head -c 2000 build.json

@@ -64,6 +64,10 @@ const config: ExpoConfig = {
   },
   extra: {
     apiBase: API_BASE,
+    /** projectId لـ Expo Push — يحقنه EAS تلقائياً وقت البناء (EAS_PROJECT_ID) */
+    eas: {
+      projectId: process.env.EAS_PROJECT_ID,
+    },
   },
 };
 
