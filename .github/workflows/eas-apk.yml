@@ -68,7 +68,7 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          TAG="${GITHUB_REF_NAME:-v$(python3 -c "import json;print(json.load(open('mobile/app.json'))['expo']['version'])")}"
+          TAG="${GITHUB_REF_NAME:-$(git describe --tags --abbrev=0)}"
           gh release view "$TAG" -R CODE-NAME-IN-B/Alnafar.store >/dev/null 2>&1 || \
             gh release create "$TAG" -R CODE-NAME-IN-B/Alnafar.store --title "الشاردة ستور $TAG" \
             --notes "حزمة APK لتطبيق الشاردة ستور — ثبّت الملف مباشرة (السماح بتثبيت من مصادر غير معروفة)"

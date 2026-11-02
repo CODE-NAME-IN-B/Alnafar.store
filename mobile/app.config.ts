@@ -1,7 +1,7 @@
 import type { ExpoConfig } from 'expo/config';
 
 /**
- * إعدادات تطبيق «الشاردة ستور».
+ * إعدادات تطبيق «الشاردة ستور» — المصدر الوحيد (لا app.json ثابت).
  * لا أسرار هنا إطلاقاً — المتغير الوحيد المعروف للتطبيق هو EXPO_PUBLIC_API_BASE.
  */
 const API_BASE = process.env.EXPO_PUBLIC_API_BASE ?? 'https://alnafar-store.vercel.app/api';
@@ -27,8 +27,11 @@ const config: ExpoConfig = {
     softwareKeyboardLayoutMode: 'resize',
   },
   ios: {
-    bundleIdentifier: 'store.alsharida.app',
+    bundleIdentifier: 'com.inb.alsharda',
     supportsTablet: true,
+  },
+  web: {
+    favicon: './assets/favicon.png',
   },
   assetBundlePatterns: ['assets/**'],
   plugins: [
