@@ -1609,15 +1609,19 @@ async function sendOrderExpoPush(invoiceNumber, title, body, url) {
 
 // Order status transitions - enforced (permissive: allow skipping steps forward + paid)
 const VALID_ORDER_STATUSES = ['pending', 'paid', 'confirmed', 'processing', 'ready', 'completed', 'cancelled', 'refunded'];
+// إستثناءات التصحيح: الإدمن يستطيع إعادة فتح `completed` حقاً —
+// حالة شائعة: دُفع كاش وسُجّل «مكتمل» قبل تجهيز الطلب فعلياً، ثم احتاج الطاقم إعادته.
+
 const ALLOWED_TRANSITIONS = {
   pending: ['paid', 'confirmed', 'processing', 'ready', 'cancelled'],
-  paid: ['processing', 'ready', 'completed', 'cancelled'],
-  confirmed: ['paid', 'processing', 'ready', 'cancelled'],
-  processing: ['paid', 'ready', 'completed', 'cancelled'],
-  ready: ['paid', 'completed'],
-  completed: ['refunded'],
-  cancelled: [],
-  refunded: []
+  paid: ['processing', 'ready', 'completed', 'cancelled', 'pending'],
+  confirmed: ['paid', 'processing', 'ready', 'cancelled', 'pending'],
+  processing: ['paid', 'ready', 'completed', 'cancelled', 'pending'],
+  ready: ['paid', 'completed', 'processing', 'cancelled', 'pending'],
+  /* مكتمل: يفتحُ للتصحيح (دفع مسجّل خطأً/انتهى خطأ) */
+  completed: ['pending', 'paid', 'processing', 'ready', 'refunded', 'cancelled'],
+  /* ملغي: يُعاد فتحه إن أُعيد التسجيل */
+  cancelled: ['pending', 'paid']
 };
 
 // تحديث حالة الطلب (للإدمن)
@@ -1640,7 +1644,7 @@ app.put('/api/orders/:id/status', authMiddleware, async (req, res) => {
     if (!allowed.includes(status)) {
       return res.status(400).json({ 
         success: false, 
-        message: `لا يمكن التحديل من ${currentStatus} إلى ${status}`,
+        message: `لا يمكن التعديل من ${currentStatus} إلى ${status}`,
         currentStatus,
         allowedTransitions: allowed
       });

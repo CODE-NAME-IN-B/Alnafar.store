@@ -80,38 +80,44 @@ export function buildReceiptHtml(
   <title>فاتورة ${escapeHtml(fullNumber || '')}</title>
   <style>
     *{margin:0;padding:0;box-sizing:border-box}
-    html,body{width:${paperMM}mm;max-width:${paperMM}mm;font-family:Tahoma,Arial,sans-serif;background:#fff;color:#14171c;font-size:${fontSize};line-height:1.3;direction:rtl}
-    @page{margin:1mm}
-    .r{width:100%;padding:1.5mm;text-align:center}
-    .bn{font-size:${fontSize === '12px' ? '15px' : '17px'};font-weight:900}
-    .be{font-size:9px;color:#37454f}
-    .l{border:none;border-top:1px dashed #8a949c;margin:1mm 0}
-    .ltr{direction:ltr;display:inline-block}
-    .no{font-size:${fontSize === '12px' ? '14px' : '15px'};font-weight:800}
-    .who{font-weight:700}
-    .phone{font-size:${Math.max(9, parseInt(fontSize, 10) - 3)}px;color:#37454f;font-family:'DejaVu Sans Mono',monospace}
+    html,body{width:${paperMM}mm;max-width:${paperMM}mm;font-family:Tahoma,Arial,sans-serif;background:#fff;color:#000;font-size:${fontSize};line-height:1.5;direction:rtl}
+    @page{size:${paperMM}mm auto;margin:3mm 2mm}
+    /* الهدر العلوي ثابت السلة: لا margin-collapse ولا مساحة مقتَطعة */
+    .r{width:100%;padding:1.5mm 2mm;text-align:center}
+    /* كل سطر كتلة مستقلة — منع تداخل الاسم مع الرقم */
+    .r > div{display:block;width:100%;clear:both;overflow-wrap:break-word;word-break:break-word;unicode-bidi:isolate}
+    .bn{font-size:${fontSize === '12px' ? '16px' : '18px'};font-weight:900;line-height:1.5;color:#000}
+    .be{font-size:9.5px;color:#1f2937;line-height:1.5}
+    .l{border:none;border-top:1px dashed #4b5563;margin:1.2mm 2mm}
+    .ltr{direction:ltr;display:inline-block;unicode-bidi:isolate}
+    .no{font-size:${fontSize === '12px' ? '14.5px' : '15.5px'};font-weight:800;line-height:1.5;margin-top:0.8mm}
+    .who{font-weight:700;line-height:1.6;margin-top:0.8mm;padding:0.4mm 1mm;background:none}
+    .phone{font-size:${Math.max(9.5, parseInt(fontSize, 10) - 3)}px;color:#1f2937;font-family:'DejaVu Sans Mono',monospace;line-height:1.6;margin-top:0.5mm}
     .it{display:flex;justify-content:space-between;gap:2mm;padding:0.4mm 0;text-align:right}
-    .tot{font-size:${fontSize === '12px' ? '16px' : '18px'};font-weight:900;margin-top:0.8mm}
-    .tag{font-weight:800;display:inline-block;padding:0.3mm 1.5mm;border-radius:1mm;margin-top:0.6mm}
+    .tot{font-size:${fontSize === '12px' ? '17px' : '19px'};font-weight:900;margin-top:1mm;line-height:1.5}
+    .tag{font-weight:800;display:inline-block;padding:0.4mm 1.5mm;border-radius:1mm;margin-top:1mm}
     .tag.ok{color:#166534;background:#f0fdf4;border:1px solid #bbf7d0}
     .tag.due{color:#b91c1c;background:#fef2f2;border:1px solid #fecaca}
-    .qr{margin:1mm auto 0;display:flex;flex-direction:column;align-items:center;gap:0.3mm}
+    .qr{margin:1.2mm auto 0;display:flex;flex-direction:column;align-items:center;gap:0.3mm}
     .qr svg{width:${paperMM <= 58 ? 19 : 24}mm;height:${paperMM <= 58 ? 19 : 24}mm}
-    .qrcap{font-size:8px;color:#37454f}
-    .ft{font-size:8px;color:#37454f;margin-top:0.8mm}
+    .qrcap{font-size:8.5px;color:#1f2937}
+    .ft{font-size:8.5px;color:#1f2937;margin-top:1mm}
   </style>
 </head>
 <body>
+  <!-- هدر علوي ثابت: يظهر هكذا على الورق كما في المعاينة (مسافة قبل الاسم) -->
+  <div style="height:2mm"></div>
   <div class="r">
+    <div style="padding-top:1mm"></div>
     <div class="bn">${escapeHtml(storeName)}</div>
     <div class="be"><bdi dir="ltr">${escapeHtml(storeNameEn)}</bdi></div>
     ${storeAddr ? `<div class="be">${escapeHtml(storeAddr)}</div>` : ''}
     <hr class="l" />
-    <div class="no"><span class="ltr">#${escapeHtml(fullNumber)}</span></div>
+    <div class="no"><bdi dir="ltr">#${escapeHtml(fullNumber)}</bdi></div>
     <div class="who">${escapeHtml(invoice.customer_name || 'عميل نقدي')}</div>
     ${invoice.customer_phone ? `<div class="phone"><bdi dir="ltr">${escapeHtml(invoice.customer_phone)}</bdi></div>` : ''}
     <hr class="l" />
-    <div class="tot">${escapeHtml(formatDinar(finalTotal))}${remainingLine}</div>
+    <div class="tot"><bdi dir="ltr">${escapeHtml(formatDinar(finalTotal))}</bdi>${remainingLine}</div>
     <div class="tag ${statusClass}"><bdi>${escapeHtml(statusTag)}</bdi></div>
     ${qrSvg ? `<div class="qr">${qrSvg}<div class="qrcap">امسح لمتابعة الطلب</div></div>` : ''}
     ${footerMsg ? `<div class="ft">${escapeHtml(footerMsg)}</div>` : ''}
