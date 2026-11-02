@@ -64,9 +64,9 @@ const config: ExpoConfig = {
   },
   extra: {
     apiBase: API_BASE,
-    /** projectId لـ Expo Push — يحقنه EAS تلقائياً وقت البناء (EAS_PROJECT_ID) */
+    /** projectId لـ Expo Push — ثابت لكل البنى (أنشئ عبر eas init) */
     eas: {
-      projectId: process.env.EAS_PROJECT_ID,
+      projectId: '8962809d-2820-4cbc-992d-f7e2b5ef61f7',
     },
   },
 };

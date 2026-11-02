@@ -9,9 +9,7 @@
       "android": {
         "buildType": "apk"
       },
-      "distribution": {
-        "mode": "internal"
-      }
+      "distribution": "internal"
     },
     "production": {
       "android": {
