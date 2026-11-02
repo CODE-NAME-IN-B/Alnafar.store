@@ -9,7 +9,7 @@ const API_BASE = process.env.EXPO_PUBLIC_API_BASE ?? 'https://alnafar-store.verc
 const config: ExpoConfig = {
   name: 'الشاردة ستور',
   slug: 'alsharida-store',
-  version: '1.0.0',
+  version: '1.0.1-beta',
   orientation: 'portrait',
   scheme: 'alsharida',
   userInterfaceStyle: 'dark',
@@ -18,7 +18,7 @@ const config: ExpoConfig = {
   icon: './assets/_brand/icon.png',
   primaryColor: '#0f1724',
   android: {
-    package: 'store.alsharida.app',
+    package: 'com.inb.alsharda',
     versionCode: 1,
     adaptiveIcon: {
       foregroundImage: './assets/_brand/icon-maskable.png',
