@@ -14,6 +14,7 @@ import { useAuthStore } from '@/stores/auth';
 import { FONT } from '@/lib/fonts';
 import { statusLabel, type OrderStatus } from '@/lib/statuses';
 import { notifyOrderStatusChanged, registerForOrderNotifications } from '@/lib/notifications';
+import { addTrackedOrder, saveTrackedStatus } from '@/lib/trackedOrders';
 import { showToast } from '@/lib/toast';
 
 const STAFF_STATUSES: OrderStatus[] = [
@@ -50,6 +51,14 @@ export default function TrackScreen() {
     }
     lastStatusRef.current = data.status;
   }, [data?.invoice_number, data?.status]);
+
+  /* حفظ الطلب محلياً بمجرد فتح تتبعه (عبر QR) — تظل الصفحة متاحة لاحقاً
+     من «تتبع طلباتي» دون إعادة المسح، وتتغذى منه إشعارات الجاهزية */
+  useEffect(() => {
+    if (!trackingKey || !data?.invoice_number) return;
+    void addTrackedOrder(trackingKey);
+    void saveTrackedStatus(trackingKey, data.status);
+  }, [trackingKey, data?.invoice_number, data?.status]);
 
   const handleEnableNotif = async () => {
     if (!trackingKey) return;

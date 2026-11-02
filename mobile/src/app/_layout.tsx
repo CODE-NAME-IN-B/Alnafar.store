@@ -10,6 +10,7 @@ import * as SystemUI from 'expo-system-ui';
 import { CAIRO_FONTS } from '@/lib/fonts';
 import { colors } from '@/lib/colors';
 import { registerForPushNotifications, useForegroundNotifications } from '@/lib/notifications';
+import TrackedOrderWatcher from '@/components/track/TrackedOrderWatcher';
 import { setTokenGetter, setUnauthorizedHandler } from '@/api/client';
 import { useAuthStore } from '@/stores/auth';
 import { useAppStore } from '@/stores/app';
@@ -78,6 +79,8 @@ export default function RootLayout() {
             <Stack.Screen name="login" />
             <Stack.Screen name="track/[id]" />
           </Stack>
+          {/* مراقب الطلبات المحفوظة محلياً — إشعار «جاهز للاستلام» حتى خارج شاشة التتبع */}
+          <TrackedOrderWatcher />
           <ToastHost />
         </QueryClientProvider>
       </SafeAreaProvider>

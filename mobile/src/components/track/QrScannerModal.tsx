@@ -2,7 +2,6 @@ import { useState } from 'react';
 import { Pressable, Text, View } from 'react-native';
 import { CameraView, useCameraPermissions } from 'expo-camera';
 import ModalSheet from '@/components/ui/ModalSheet';
-import AppInput from '@/components/ui/AppInput';
 import AppButton from '@/components/ui/AppButton';
 import AppText from '@/components/ui/AppText';
 import Icon from '@/components/ui/Icon';
@@ -35,24 +34,16 @@ export function extractTrackingId(raw: string): string | null {
   return null;
 }
 
-/** نافذة تتبع الطلب عبر مسح رمز QR من الفاتورة أو إدخال الرقم يدوياً */
+/**
+ * نافذة تتبع الطلب — عبر مسح رمز QR على الفاتورة حصراً.
+ * لا إدخال يدوي بالرقم: بهذا يستطيع الزبون تتبع طلبِه فقط (خصوصية) —
+ * وبعد أول مسح يُحفظ الطلب في «تتبع طلباتي» على الجهاز فيبقى متاحاً
+ * دون إعادة المسح، مع إشعار محلي عند جاهزيته.
+ */
 export default function QrScannerModal({ visible, onClose, onResolved }: Props) {
   const [permission, requestPermission] = useCameraPermissions();
-  const [manualId, setManualId] = useState('');
   const [cameraOpen, setCameraOpen] = useState(false);
   const [scanError, setScanError] = useState<string | null>(null);
-
-  const handleManualSubmit = () => {
-    const id = extractTrackingId(manualId);
-    if (!id) {
-      setScanError('أدخل رقم فاتورة أو طلب صحيحاً');
-      return;
-    }
-    setScanError(null);
-    setManualId('');
-    setCameraOpen(false);
-    onResolved(id);
-  };
 
   const handleOpenCamera = async () => {
     setScanError(null);
@@ -77,18 +68,10 @@ export default function QrScannerModal({ visible, onClose, onResolved }: Props) 
       title="تتبع الطلب"
     >
       <View style={{ gap: 12 }}>
-        <AppInput
-          label="رقم الفاتورة أو الطلب"
-          placeholder="مثال: 15 أو 20261031-001"
-          value={manualId}
-          icon="invoice"
-          onChangeText={(v) => {
-            setManualId(v);
-            if (scanError) setScanError(null);
-          }}
-          returnKeyType="done"
-          onSubmitEditing={handleManualSubmit}
-        />
+        <AppText style={{ color: '#94a3b8', fontFamily: FONT.medium, fontSize: 12.5 }}>
+          وجّه الكاميرا نحو رمز QR المطبوع على فاتورتك لحسابك — التتبع متاح
+          لطلباتك أنت فقط.
+        </AppText>
 
         {scanError ? (
           <AppText style={{ color: '#f87171', fontFamily: FONT.medium, fontSize: 13 }}>
@@ -96,20 +79,9 @@ export default function QrScannerModal({ visible, onClose, onResolved }: Props) 
           </AppText>
         ) : null}
 
-        <AppButton label="تتبع بالرقم" icon="search" onPress={handleManualSubmit} />
-
-        <View
-          style={{
-            height: 1,
-            backgroundColor: 'rgba(255,255,255,0.1)',
-            marginVertical: 4,
-          }}
-        />
-
         {!cameraOpen ? (
           <AppButton
-            label="مسح رمز QR من الفاتورة الورقية"
-            variant="secondary"
+            label="مسح رمز QR من الفاتورة"
             icon="camera"
             onPress={() => {
               void handleOpenCamera();
