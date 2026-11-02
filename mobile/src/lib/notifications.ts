@@ -29,14 +29,7 @@ Notifications.setNotificationHandler({
 async function requestPermissionAndGetToken(): Promise<string | null> {
   if (Platform.OS === 'web' || !Device.isDevice) return null;
 
-  if (Platform.OS === 'android') {
-    await Notifications.setNotificationChannelAsync('orders', {
-      name: 'تحديثات الطلبات',
-      importance: AndroidImportance.HIGH,
-      vibrationPattern: [0, 250, 250, 250],
-      lightColor: '#14b8a6',
-    });
-  }
+  await ensureOrdersChannel();
 
   const { status: existingStatus } = await Notifications.getPermissionsAsync();
   let finalStatus = existingStatus;
@@ -103,22 +96,78 @@ export async function registerForOrderNotifications(
   }
 }
 
-/** إشعار محلي فوري عند تغيّر حالة الطلب أثناء التتبع */
+/** إنشاء/تثبيت قناة «تحديثات الطلبات» بأهمية عالية (heads-up + في الشريط) */
+export async function ensureOrdersChannel(): Promise<void> {
+  if (Platform.OS === 'web') return;
+  try {
+    await Notifications.setNotificationChannelAsync('orders', {
+      name: 'تحديثات الطلبات',
+      importance: AndroidImportance.HIGH,
+      vibrationPattern: [0, 250, 250, 250],
+      lightColor: '#14b8a6',
+    });
+  } catch {
+    // غير أندرويد أو فشل غير مؤثر
+  }
+}
+
+/**
+ * ضمان صلاحية الإشعارات — تُطلب من المستخدم إن لم تُمنح بعد.
+ * تعيد true فقط إذا كانت الإشعارات مسموحة فعلاً الآن.
+ */
+export async function ensureNotificationPermission(): Promise<boolean> {
+  if (Platform.OS === 'web' || !Device.isDevice) return false;
+  try {
+    const { status } = await Notifications.getPermissionsAsync();
+    if (status === 'granted') return true;
+    const res = await Notifications.requestPermissionsAsync();
+    return res.status === 'granted';
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * إشعار محلي فوري عند تغيّر حالة الطلب أثناء التتبع.
+ * يُنشر في شريط إشعارات الهاتف عبر قناة «orders» (أهمية عالية)،
+ * وتعيد true إذا نُشر فعلاً في الشريط.
+ */
 export async function notifyOrderStatusChanged(
   invoiceNumber: string,
   newStatus: string
-): Promise<void> {
+): Promise<boolean> {
+  const content = {
+    title: `تحديث حالة الطلب #${invoiceNumber}`,
+    body: `الحالة الآن: ${statusLabel(newStatus)}`,
+    data: { invoiceNumber, status: newStatus, scope: 'orders' },
+  };
+
   try {
+    const posted = await ensureNotificationPermission();
+    if (!posted) return false;
+
+    await ensureOrdersChannel();
+
+    // القناة تُحدد فقط عبر trigger — ثانية واحدة عملياً فورية،
+    // والقناة العالية تضمن ظهوره في الشريط وبأولوية heads-up
     await Notifications.scheduleNotificationAsync({
-      content: {
-        title: `تحديث حالة الطلب #${invoiceNumber}`,
-        body: `الحالة الآن: ${statusLabel(newStatus)}`,
-        data: { invoiceNumber, status: newStatus },
+      content,
+      trigger: {
+        type: Notifications.SchedulableTriggerInputTypes.TIME_INTERVAL,
+        seconds: 1,
+        channelId: 'orders',
       },
-      trigger: null,
     });
+    return true;
   } catch {
-    // نتجاهل إن رفض المستخدم الإذن
+    // احتياط: نشر أعمى بلا قناة إن تعذر مسار القناة
+    try {
+      await Notifications.scheduleNotificationAsync({ content, trigger: null });
+      return true;
+    } catch {
+      // رفض المستخدم الإذن أو لا دعم — لا تظهر
+      return false;
+    }
   }
 }
 
@@ -129,6 +178,10 @@ export function useForegroundNotifications(): void {
   useEffect(() => {
     try {
       const sub = Notifications.addNotificationReceivedListener((n) => {
+        // إشعارات تتبع الطلبات المحلية ننشرها في شريط النظام نفسه —
+        // لا نكررها Toast داخل التطبيق
+        const scope = n.request?.content?.data?.scope;
+        if (scope === 'orders') return;
         const title = n.request?.content?.title;
         const body = n.request?.content?.body;
         showToast([title, body].filter(Boolean).join(' — '));
