@@ -108,7 +108,6 @@ export default function LoginScreen() {
                 label="اسم المستخدم"
                 value={username}
                 onChangeText={setUsername}
-                placeholder="مثال: admin أو cashier"
                 icon="user"
                 returnKeyType="next"
               />

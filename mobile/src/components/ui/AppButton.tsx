@@ -1,13 +1,13 @@
 import React from 'react';
 import {
   ActivityIndicator,
-  Pressable,
   StyleSheet,
   Text,
   View,
   ViewStyle,
 } from 'react-native';
 import Icon, { IconName } from './Icon';
+import { ScalePressable } from './motion';
 import { FONT } from '@/lib/fonts';
 import { colors, tokens, triggerLightHaptic } from '@/lib/colors';
 import { ROW } from '@/lib/rtl';
@@ -104,7 +104,7 @@ export function AppButton({
   };
 
   return (
-    <Pressable
+    <ScalePressable
       testID={testID}
       disabled={isDisabled}
       onPress={handlePress}
@@ -142,7 +142,7 @@ export function AppButton({
           ) : null}
         </View>
       )}
-    </Pressable>
+    </ScalePressable>
   );
 }
 

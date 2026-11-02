@@ -2,13 +2,14 @@ import React, { useEffect, useState } from 'react';
 import {
   Image,
   Linking,
-  Pressable,
   StyleSheet,
   Text,
   View,
 } from 'react-native';
 import { Branch } from '@/api/types';
 import Icon from '@/components/ui/Icon';
+import ModalSheet from '@/components/ui/ModalSheet';
+import { ScalePressable } from '@/components/ui/motion';
 import { FONT } from '@/lib/fonts';
 import { ROW } from '@/lib/rtl';
 
@@ -41,17 +42,10 @@ export default function HeroSection({
     return () => clearInterval(id);
   }, []);
 
-  const callPhone = (phoneStr: string) => {
-    const firstPhone = phoneStr.split('-')[0]?.trim();
-    if (firstPhone) {
-      Linking.openURL(`tel:${firstPhone}`).catch(() => {});
-    }
-  };
-
   return (
     <View style={styles.wrap}>
       {/* Promotional Hero Banner Slider */}
-      <Pressable
+      <ScalePressable
         onPress={() => setSlideIdx((prev) => (prev + 1) % BANNERS.length)}
         style={styles.bannerCard}
       >
@@ -80,9 +74,9 @@ export default function HeroSection({
             ))}
           </View>
         </View>
-      </Pressable>
+      </ScalePressable>
 
-      {/* Cashier Mode Banner OR Guest Branches & Addresses Cards */}
+      {/* Cashier Mode Banner OR Guest Branch Drawer Picker */}
       {isCashier ? (
         <View style={styles.cashierBar}>
           <View style={styles.cashierInfo}>
@@ -97,80 +91,127 @@ export default function HeroSection({
             </View>
           </View>
           {onOpenAdmin ? (
-            <Pressable onPress={onOpenAdmin} style={styles.adminQuickBtn}>
+            <ScalePressable onPress={onOpenAdmin} style={styles.adminQuickBtn}>
               <Icon name="invoice" size={14} color="#2dd4bf" />
               <Text style={styles.adminQuickText}>الفواتير والإدارة</Text>
-            </Pressable>
+            </ScalePressable>
           ) : null}
         </View>
       ) : branches.length > 0 ? (
-        <View style={styles.branchesSection}>
-          <View style={styles.sectionHead}>
-            <View style={styles.sectionTitleRow}>
-              <Icon name="branch" size={15} color="#2dd4bf" />
-              <Text style={styles.sectionTitle}>فروعنا وعناويننا</Text>
-            </View>
-            <Text style={styles.sectionHint}>اختر الفرع لإرسال طلبك</Text>
-          </View>
-          <View style={styles.branchesGrid}>
-            {branches.map((b) => {
-              const active = selectedBranchId === b.id;
-              return (
-                <Pressable
-                  key={b.id}
-                  onPress={() => onSelectBranch(b.id)}
-                  style={[styles.branchCard, active && styles.branchCardActive]}
-                >
-                  <View style={styles.branchTopRow}>
-                    <View style={styles.branchTitleRow}>
-                      <View
-                        style={[
-                          styles.radioDot,
-                          active && styles.radioDotActive,
-                        ]}
-                      />
-                      <Text
-                        style={[
-                          styles.branchName,
-                          active && styles.branchNameActive,
-                        ]}
-                        numberOfLines={1}
-                      >
-                        {b.name}
-                      </Text>
-                    </View>
-                    {b.is_main ? (
-                      <View style={styles.defaultBadge}>
-                        <Text style={styles.defaultBadgeText}>رئيسي</Text>
-                      </View>
-                    ) : null}
-                  </View>
-
-                  {b.address ? (
-                    <Text style={styles.branchAddress} numberOfLines={2}>
-                      📍 {b.address}
-                    </Text>
-                  ) : null}
-
-                  {b.phone ? (
-                    <Pressable
-                      onPress={() => callPhone(b.phone!)}
-                      style={styles.phoneRow}
-                    >
-                      <Icon name="phone" size={12} color="#2dd4bf" />
-                      <Text style={styles.branchPhone} numberOfLines={1}>
-                        {b.phone}
-                      </Text>
-                    </Pressable>
-                  ) : null}
-                </Pressable>
-              );
-            })}
-          </View>
-        </View>
+        <BranchSection
+          branches={branches}
+          selectedBranchId={selectedBranchId}
+          onSelectBranch={onSelectBranch}
+        />
       ) : null}
     </View>
   );
+}
+
+/** قسم الفروع المدمج: زر واحدة يفتح درجاً سفلياً للقائمة الكاملة */
+function BranchSection({
+  branches,
+  selectedBranchId,
+  onSelectBranch,
+}: {
+  branches: Branch[];
+  selectedBranchId: number | null;
+  onSelectBranch: (id: number) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const selected = branches.find((b) => b.id === selectedBranchId) ?? null;
+  const pick = (id: number) => {
+    onSelectBranch(id);
+    setOpen(false);
+  };
+
+  return (
+    <View style={styles.branchesSection}>
+      <View style={styles.sectionHead}>
+        <View style={styles.sectionTitleRow}>
+          <Icon name="branch" size={15} color="#2dd4bf" />
+          <Text style={styles.sectionTitle}>الفرع الحالي</Text>
+        </View>
+        <Text style={styles.sectionHint}>اضغط لتغيير الفرع</Text>
+      </View>
+
+      <ScalePressable onPress={() => setOpen(true)} style={styles.branchPicker}>
+        <View style={styles.pickerIconWrap}>
+          <Icon name="branch" size={18} color="#042f2e" />
+        </View>
+        <View style={styles.flex1}>
+          <Text style={styles.branchPickerName} numberOfLines={1}>
+            {selected ? selected.name : 'اختر الفرع الأقرب إليك'}
+          </Text>
+          {selected?.address ? (
+            <Text style={styles.branchPickerAddress} numberOfLines={1}>
+              {selected.is_main ? 'الفرع الرئيسي • ' : ''}
+              {selected.address}
+            </Text>
+          ) : null}
+        </View>
+        <View style={styles.pickerChevronWrap}>
+          <Icon name="chevron-left" size={16} color="#94a3b8" />
+        </View>
+      </ScalePressable>
+
+      <ModalSheet visible={open} onClose={() => setOpen(false)} title="اختيار الفرع">
+        {branches.map((b) => {
+          const active = selectedBranchId === b.id;
+          return (
+            <ScalePressable
+              key={b.id}
+              onPress={() => pick(b.id)}
+              style={[styles.branchCard, active && styles.branchCardActive]}
+            >
+              <View style={styles.branchTopRow}>
+                <View style={styles.branchTitleRow}>
+                  <View style={[styles.radioDot, active && styles.radioDotActive]} />
+                  <Text
+                    style={[styles.branchName, active && styles.branchNameActive]}
+                    numberOfLines={1}
+                  >
+                    {b.name}
+                  </Text>
+                </View>
+                {b.is_main ? (
+                  <View style={styles.defaultBadge}>
+                    <Text style={styles.defaultBadgeText}>رئيسي</Text>
+                  </View>
+                ) : null}
+              </View>
+
+              {b.address ? (
+                <Text style={styles.branchAddress} numberOfLines={2}>
+                  {b.address}
+                </Text>
+              ) : null}
+
+              {b.phone ? (
+                <ScalePressable
+                  onPress={() => callPhone(b.phone!)}
+                  hitSlop={6}
+                  style={styles.phoneRow}
+                >
+                  <Icon name="phone" size={12} color="#2dd4bf" />
+                  <Text style={styles.branchPhone} numberOfLines={1}>
+                    {b.phone}
+                  </Text>
+                </ScalePressable>
+              ) : null}
+            </ScalePressable>
+          );
+        })}
+      </ModalSheet>
+    </View>
+  );
+}
+
+function callPhone(phoneStr: string) {
+  const firstPhone = phoneStr.split('-')[0]?.trim();
+  if (firstPhone) {
+    Linking.openURL(`tel:${firstPhone}`).catch(() => {});
+  }
 }
 
 const styles = StyleSheet.create({
@@ -313,6 +354,48 @@ const styles = StyleSheet.create({
     color: '#2dd4bf',
     fontSize: 11,
     includeFontPadding: false,
+  },
+  branchPicker: {
+    flexDirection: ROW,
+    alignItems: 'center',
+    gap: 10,
+    backgroundColor: '#131d31',
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.08)',
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    minHeight: 64,
+  },
+  pickerIconWrap: {
+    width: 40,
+    height: 40,
+    borderRadius: 12,
+    backgroundColor: '#14b8a6',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  branchPickerName: {
+    fontFamily: FONT.bold,
+    color: '#f8fafc',
+    fontSize: 14,
+    textAlign: 'right',
+    writingDirection: 'rtl',
+    includeFontPadding: false,
+  },
+  branchPickerAddress: {
+    fontFamily: FONT.regular,
+    color: '#94a3b8',
+    fontSize: 11,
+    textAlign: 'right',
+    writingDirection: 'rtl',
+    includeFontPadding: false,
+    marginTop: 2,
+  },
+  pickerChevronWrap: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    transform: [{ rotate: '-90deg' }],
   },
   branchesSection: {
     backgroundColor: '#0d1629',

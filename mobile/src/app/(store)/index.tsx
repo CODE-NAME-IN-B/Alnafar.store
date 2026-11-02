@@ -39,7 +39,7 @@ import ServicesSheet from '@/components/store/ServicesSheet';
 import QrScannerModal from '@/components/track/QrScannerModal';
 import Chip from '@/components/ui/Chip';
 import Icon from '@/components/ui/Icon';
-import { useScreenEntrance } from '@/components/ui/motion';
+import { useScreenEntrance, ScalePressable } from '@/components/ui/motion';
 import { EmptyState, ErrorState, LoadingState } from '@/components/ui/StateView';
 import { FONT } from '@/lib/fonts';
 import { ROW } from '@/lib/rtl';
@@ -154,7 +154,7 @@ export default function StoreHomeScreen() {
           </View>
 
           <View style={styles.actionsRow}>
-            <Pressable
+            <ScalePressable
               onPress={() => setTrackOpen(true)}
               accessibilityRole="button"
               accessibilityLabel="تتبع الطلب بمسح QR"
@@ -162,9 +162,9 @@ export default function StoreHomeScreen() {
               style={styles.headerActionBtn}
             >
               <Icon name="qr" size={17} color="#5eead4" />
-            </Pressable>
+            </ScalePressable>
 
-            <Pressable
+            <ScalePressable
               onPress={() => setServicesOpen(true)}
               accessibilityRole="button"
               accessibilityLabel="الخدمات الإضافية"
@@ -172,11 +172,11 @@ export default function StoreHomeScreen() {
               style={styles.headerActionBtn}
             >
               <Icon name="sparkles" size={17} color="#5eead4" />
-            </Pressable>
+            </ScalePressable>
 
             {token ? (
               <>
-                <Pressable
+                <ScalePressable
                   onPress={() => router.push('/(admin)')}
                   accessibilityRole="button"
                   accessibilityLabel="لوحة الإدارة"
@@ -184,8 +184,8 @@ export default function StoreHomeScreen() {
                   style={styles.headerActionBtn}
                 >
                   <Icon name="settings" size={17} color="#5eead4" />
-                </Pressable>
-                <Pressable
+                </ScalePressable>
+                <ScalePressable
                   onPress={async () => {
                     await logout();
                   }}
@@ -195,10 +195,10 @@ export default function StoreHomeScreen() {
                   style={[styles.headerActionBtn, styles.headerActionDanger]}
                 >
                   <Icon name="logout" size={16} color="#fda4af" />
-                </Pressable>
+                </ScalePressable>
               </>
             ) : (
-              <Pressable
+              <ScalePressable
                 onPress={() => router.push('/login')}
                 accessibilityRole="button"
                 accessibilityLabel="تسجيل الدخول"
@@ -206,7 +206,7 @@ export default function StoreHomeScreen() {
                 style={styles.headerActionBtn}
               >
                 <Icon name="user" size={17} color="#5eead4" />
-              </Pressable>
+              </ScalePressable>
             )}
           </View>
         </View>

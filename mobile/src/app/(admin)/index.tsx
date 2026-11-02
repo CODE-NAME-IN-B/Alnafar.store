@@ -21,8 +21,10 @@ import { useCartStore, type CartItem } from '@/stores/cart';
 import AdminInvoiceCard from '@/components/admin/AdminInvoiceCard';
 import NativeReceiptModal from '@/components/invoice/NativeReceiptModal';
 import { EmptyState, ErrorState, LoadingState } from '@/components/ui/StateView';
+import ModalSheet from '@/components/ui/ModalSheet';
 import Chip from '@/components/ui/Chip';
 import Icon from '@/components/ui/Icon';
+import { ScalePressable } from '@/components/ui/motion';
 import { FONT } from '@/lib/fonts';
 import { formatDinar } from '@/lib/money';
 import { showToast } from '@/lib/toast';
@@ -43,6 +45,9 @@ export default function AdminInvoicesScreen() {
   const [searchQ, setSearchQ] = useState('');
   const [selectedReceipt, setSelectedReceipt] = useState<InvoiceRecord | null>(null);
   const [busyBulk, setBusyBulk] = useState(false);
+  const [optionsOpen, setOptionsOpen] = useState(false);
+  /** هل غيّر المستخدم شيئاً عن الوضع الافتراضي (اليوم) — لنقطة تنبيه على زر الخيارات */
+  const optionsDirty = unpaidOnly || date !== todayIso();
 
   const invoicesQuery = useQuery({
     queryKey: ['admin-invoices', { date, unpaidOnly, includeUnpaid, branchScope }],
@@ -159,8 +164,54 @@ export default function AdminInvoicesScreen() {
 
   return (
     <View style={styles.screen}>
+      {/* الهيدر المبسّط: سطر واحد فقط ظاهر — البحث + تسديد الكل + إعدادات الفلاتر.
+          كل ما عداه (التاريخ، الشraiths، الإحصائيات) ينتقل إلى درج «خيارات القائمة». */}
       <View style={styles.filterHeader}>
-        {/* شريط التاريخ والفلاتر */}
+        <View style={styles.searchRow}>
+          <View style={styles.searchBox}>
+            <Icon name="search" size={16} color="#94a3b8" />
+            <TextInput
+              value={searchQ}
+              onChangeText={setSearchQ}
+              placeholder="بحث: رقم فاتورة، عميل، هاتف..."
+              placeholderTextColor="#94a3b8"
+              textAlign="right"
+              style={styles.searchInput}
+            />
+            {searchQ ? (
+              <Pressable onPress={() => setSearchQ('')} hitSlop={8}>
+                <Icon name="close" size={15} color="#94a3b8" />
+              </Pressable>
+            ) : null}
+          </View>
+
+          <ScalePressable
+            onPress={() => void handleBulkPay()}
+            accessibilityRole="button"
+            accessibilityLabel="تسديد كل الفواتير غير المدفوعة"
+            style={styles.bulkPayBtn}
+          >
+            <Icon name="cash" size={14} color="#042f2e" />
+            <Text style={styles.bulkPayText}>
+              {busyBulk ? '...' : 'تسديد الكل'}
+            </Text>
+          </ScalePressable>
+
+          <ScalePressable
+            onPress={() => setOptionsOpen(true)}
+            accessibilityRole="button"
+            accessibilityLabel="خيارات القائمة والإحصائيات"
+            style={styles.optionsBtn}
+          >
+            <Icon name="filter" size={16} color={optionsDirty ? '#042f2e' : '#2dd4bf'} />
+            {optionsDirty ? <View style={styles.optionsDot} /> : null}
+          </ScalePressable>
+        </View>
+      </View>
+
+      {/* درج خيارات القائمة: التاريخ + شرائح الفلترة + إحصائيات اليوم */}
+      <ModalSheet visible={optionsOpen} onClose={() => setOptionsOpen(false)} title="خيارات القائمة">
+        <Text style={styles.sheetSectionTitle}>التاريخ والفلترة</Text>
         <ScrollView
           horizontal
           showsHorizontalScrollIndicator={false}
@@ -197,39 +248,9 @@ export default function AdminInvoicesScreen() {
             active={includeUnpaid && !unpaidOnly}
             onPress={() => setIncludeUnpaid((v) => !v)}
           />
-          <Pressable
-            onPress={() => void handleBulkPay()}
-            style={styles.bulkPayBtn}
-            accessibilityRole="button"
-            accessibilityLabel="تسديد كل الفواتير غير المدفوعة"
-          >
-            <Icon name="cash" size={14} color="#042f2e" />
-            <Text style={styles.bulkPayText}>
-              {busyBulk ? '...' : 'تسديد الكل'}
-            </Text>
-          </Pressable>
         </ScrollView>
 
-        {/* شريط البحث */}
-        <View style={styles.searchRow}>
-          <View style={styles.searchBox}>
-            <Icon name="search" size={16} color="#94a3b8" />
-            <TextInput
-              value={searchQ}
-              onChangeText={setSearchQ}
-              placeholder="بحث برقم الفاتورة أو اسم العميل أو الهاتف..."
-              placeholderTextColor="#94a3b8"
-              textAlign="right"
-              style={styles.searchInput}
-            />
-            {searchQ ? (
-              <Pressable onPress={() => setSearchQ('')} hitSlop={8}>
-                <Icon name="close" size={15} color="#94a3b8" />
-              </Pressable>
-            ) : null}
-          </View>
-        </View>
-
+        <Text style={styles.sheetSectionTitle}>إحصائيات اليوم</Text>
         {summaryQuery.data ? (
           <View style={styles.statsRow}>
             <MiniStat
@@ -246,7 +267,7 @@ export default function AdminInvoicesScreen() {
             />
           </View>
         ) : null}
-      </View>
+      </ModalSheet>
 
       {invoicesQuery.isLoading ? (
         <LoadingState message="جاري جلب الفواتير..." />
@@ -370,15 +391,41 @@ const styles = StyleSheet.create({
     backgroundColor: '#14b8a6',
     borderWidth: 1,
     borderColor: '#2dd4bf',
-    borderRadius: 10,
+    borderRadius: 12,
     paddingHorizontal: 12,
-    height: 34,
+    height: 42,
   },
   bulkPayText: {
     color: '#042f2e',
     fontFamily: FONT.bold,
     fontSize: 12,
     includeFontPadding: false,
+  },
+  optionsBtn: {
+    width: 42,
+    height: 42,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#141e30',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.08)',
+  },
+  optionsDot: {
+    position: 'absolute',
+    top: 8,
+    left: 8,
+    width: 7,
+    height: 7,
+    borderRadius: 999,
+    backgroundColor: '#f59e0b',
+  },
+  sheetSectionTitle: {
+    color: '#94a3b8',
+    fontFamily: FONT.bold,
+    fontSize: 12,
+    marginBottom: 8,
+    marginTop: 4,
   },
   statsRow: {
     flexDirection: ROW,

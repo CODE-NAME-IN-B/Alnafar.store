@@ -1,11 +1,12 @@
-import React, { useMemo } from 'react';
-import { Image, Pressable, StyleSheet, Text, View } from 'react-native';
+import React, { useEffect, useMemo } from 'react';
+import { Animated, Image, StyleSheet, Text, View, useAnimatedValue } from 'react-native';
 import { Category, Game } from '@/api/types';
 import { formatDinar } from '@/lib/money';
 import { isPs4Game, mainPriceOf, ps5PriceOf } from '@/lib/gamePrices';
 import { classifyGameHeuristic, formatGenreLabel } from '@/lib/arabic';
 import { useCartStore } from '@/stores/cart';
 import Icon from './ui/Icon';
+import { ScalePressable } from './ui/motion';
 import { FONT } from '@/lib/fonts';
 import { ROW } from '@/lib/rtl';
 
@@ -53,6 +54,20 @@ export default function GameCard({ game, categories = [], onPress, compact = fal
     return sLabel || gLabel || 'أكشن ومغامرة';
   }, [game]);
 
+  /* نبضة نجاح: عندما تدخل اللعبة للسلة تنبض أيقونة الإضافة لتأكيد الحدث */
+  const pop = useAnimatedValue(1);
+  useEffect(() => {
+    if (inCart) {
+      Animated.sequence([
+        Animated.timing(pop, { toValue: 1.28, duration: 110, useNativeDriver: true }),
+        Animated.spring(pop, { toValue: 1, useNativeDriver: true, speed: 20 }),
+      ]).start();
+    } else {
+      pop.setValue(1);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [inCart]);
+
   const compactPriceLine = useMemo(() => {
     if (!isPs4) return formatDinar(mainPriceOf(game));
     return `فور ${formatDinar(mainPriceOf(game))} • فايف ${formatDinar(ps5PriceOf(game))}`;
@@ -60,7 +75,7 @@ export default function GameCard({ game, categories = [], onPress, compact = fal
 
   if (compact) {
     return (
-      <Pressable
+      <ScalePressable
         onPress={() => onPress(game)}
         accessibilityRole="button"
         android_ripple={{ color: 'rgba(255,255,255,0.10)', borderless: false, foreground: true }}
@@ -89,19 +104,21 @@ export default function GameCard({ game, categories = [], onPress, compact = fal
           </Text>
         </View>
 
-        <View style={[styles.rowAddBtn, inCart && styles.rowAddBtnInCart]}>
+        <Animated.View
+          style={[styles.rowAddBtn, inCart && styles.rowAddBtnInCart, { transform: [{ scale: pop }] }]}
+        >
           <Icon
             name={inCart ? 'check' : 'plus'}
             size={18}
             color={inCart ? '#042f2e' : '#2dd4bf'}
           />
-        </View>
-      </Pressable>
+        </Animated.View>
+      </ScalePressable>
     );
   }
 
   return (
-    <Pressable
+    <ScalePressable
       onPress={() => onPress(game)}
       android_ripple={{ color: 'rgba(255,255,255,0.10)', borderless: false, foreground: true }}
       style={[styles.card, inCart && styles.cardInCart]}
@@ -195,7 +212,7 @@ export default function GameCard({ game, categories = [], onPress, compact = fal
         </View>
       </View>
 
-      <View style={[styles.addBtn, inCart && styles.addBtnInCart]}>
+      <Animated.View style={[styles.addBtn, inCart && styles.addBtnInCart, { transform: [{ scale: pop }] }]}>
         <Icon
           name={inCart ? 'check' : 'plus'}
           size={15}
@@ -204,8 +221,8 @@ export default function GameCard({ game, categories = [], onPress, compact = fal
         <Text style={[styles.addBtnText, inCart && styles.addBtnTextInCart]}>
           {inCart ? 'في السلة ✓' : 'أضف للسلة'}
         </Text>
-      </View>
-    </Pressable>
+      </Animated.View>
+    </ScalePressable>
   );
 }
 

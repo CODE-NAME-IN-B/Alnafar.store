@@ -64,3 +64,13 @@ export function triggerLightHaptic(): void {
     // ignore on unsupported devices
   }
 }
+
+/** إشعار نجاح مزدوج: صوت + اهتزاز — عند إضافة عنصر للسلة أو إتمام إجراء مهم */
+export function triggerSuccessFeedback(playSound: () => void): void {
+  try {
+    void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
+  } catch {
+    // ignore on unsupported devices
+  }
+  playSound();
+}

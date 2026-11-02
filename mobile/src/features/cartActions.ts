@@ -1,5 +1,12 @@
 import { useCartStore } from '@/stores/cart';
+import { triggerSuccessFeedback } from '@/lib/colors';
+import { playSuccessSound } from '@/lib/sounds';
 import type { Game, Service, StorePackage } from '@/api/types';
+
+/** ردة النجاح الموحدة: صوت + إهتزاز — مرة واحدة عند أي إضافة للسلة */
+function celebrate(): void {
+  triggerSuccessFeedback(playSuccessSound);
+}
 
 /**
  * إدخال عناصر السلة من الشاشات — يحصر منطق التسعير في مكان واحد.
@@ -19,6 +26,7 @@ export function addGameToCart(
     sizeGb: game.size_gb != null ? Number(game.size_gb) : null,
     platform,
   });
+  celebrate();
 }
 
 export function addPackageToCart(pkg: StorePackage): void {
@@ -35,6 +43,7 @@ export function addPackageToCart(pkg: StorePackage): void {
     sizeGb: pkgSize > 0 ? pkgSize : null,
     packageGames: pkg.packageGames,
   });
+  celebrate();
 }
 
 export function addServiceToCart(service: Service): void {
@@ -43,4 +52,5 @@ export function addServiceToCart(service: Service): void {
     title: service.title,
     price: Number(service.price),
   });
+  celebrate();
 }
