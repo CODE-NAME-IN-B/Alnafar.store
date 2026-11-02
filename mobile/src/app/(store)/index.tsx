@@ -28,6 +28,7 @@ import { showToast } from '@/lib/toast';
 import GameCard from '@/components/GameCard';
 import VersionPickerModal from '@/components/store/VersionPickerModal';
 import TopList from '@/components/store/TopList';
+import AboutSection from '@/components/store/AboutSection';
 import HeroSection from '@/components/store/HeroSection';
 import FilterSheet, {
   EMPTY_FILTERS,
@@ -406,6 +407,7 @@ export default function StoreHomeScreen() {
               />
             </View>
           )}
+          ListFooterComponent={<AboutSection />}
         />
         </Animated.View>
       )}

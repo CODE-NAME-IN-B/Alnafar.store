@@ -1,8 +1,8 @@
 {
   "expo": {
-    "name": "mobile",
+    "name": "الشاردة ستور",
     "slug": "mobile",
-    "version": "1.0.0",
+    "version": "1.0.1-beta",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
@@ -10,8 +10,10 @@
       "supportsTablet": true
     },
     "android": {
+      "package": "com.inb.alsharda",
+      "versionCode": 1,
       "adaptiveIcon": {
-        "backgroundColor": "#E6F4FE",
+        "backgroundColor": "#0f1724",
         "foregroundImage": "./assets/android-icon-foreground.png",
         "backgroundImage": "./assets/android-icon-background.png",
         "monochromeImage": "./assets/android-icon-monochrome.png"

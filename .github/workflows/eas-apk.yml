@@ -1,0 +1,64 @@
+# بناء APK لواجهة الزبون (الشاردة ستور) عبر EAS ورفعه إلى GitHub Releases
+# يتطلب سر EXPO_TOKEN (من expo.dev/settings/access-tokens):
+#   gh secret set EXPO_TOKEN -R CODE-NAME-IN-B/Alnafar.store
+name: Build Android APK (preview)
+
+on:
+  workflow_dispatch:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write # لرفع الأصل إلى الـ Release
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install dependencies
+        working-directory: mobile
+        run: npm ci
+
+      - name: Install EAS CLI
+        run: npm i -g eas-cli
+
+      - name: Build preview APK
+        working-directory: mobile
+        env:
+          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+        run: |
+          eas build --platform android --profile preview --non-interactive --wait --json > build.json 2> build-err.txt || (cat build-err.txt && exit 1)
+          head -c 2000 build.json
+          BUILD_URL=$(python3 -c "
+          import json
+          data=json.load(open('build.json'))
+          item=data[0] if isinstance(data,list) else data
+          print(item['artifacts']['buildUrl'])
+          ")
+          echo "BUILD_URL=$BUILD_URL" >> "$GITHUB_ENV"
+
+      - name: Download APK
+        run: |
+          curl -L --fail -o alsharda-apk.zip "$BUILD_URL"
+          # أصل EAS يصل مضغوطاً — نفكّه ونستخرج APK داخل مجلد التحميل
+          unzip -o alsharda-apk.zip -d apk-dir
+          find apk-dir -name '*.apk' -maxdepth 3 | head -1 | xargs -I{} cp {} alsharda-store.apk
+
+      - name: Ensure release exists and upload APK
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          TAG="${GITHUB_REF_NAME:-v$(python3 -c "import json;print(json.load(open('mobile/app.json'))['expo']['version'])")}"
+          gh release view "$TAG" -R CODE-NAME-IN-B/Alnafar.store >/dev/null 2>&1 || \
+            gh release create "$TAG" -R CODE-NAME-IN-B/Alnafar.store --title "الشاردة ستور $TAG" \
+            --notes "حزمة APK لتطبيق الشاردة ستور — ثبّت الملف مباشرة (السماح بتثبيت من مصادر غير معروفة)"
+          gh release upload "$TAG" alsharda-store.apk -R CODE-NAME-IN-B/Alnafar.store --clobber

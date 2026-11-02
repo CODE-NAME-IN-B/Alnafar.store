@@ -1,17 +1,22 @@
 {
   "cli": {
-    "version": ">= 12.0.0",
+    "version": ">= 15.0.0",
     "appVersionSource": "remote"
   },
   "build": {
-    "development": {
-      "developmentClient": true,
-      "distribution": "internal"
-    },
+    /** نسخة المعاينة الداخلية: APK مباشر للزبون عبر GitHub Releases */
     "preview": {
-      "distribution": "internal"
+      "android": {
+        "buildType": "apk"
+      },
+      "distribution": {
+        "mode": "internal"
+      }
     },
     "production": {
+      "android": {
+        "buildType": "app-bundle"
+      },
       "autoIncrement": true
     }
   },
