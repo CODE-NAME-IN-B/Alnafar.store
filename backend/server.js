@@ -619,6 +619,17 @@ async function initializeDatabase() {
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP
     );`);
 
+  // جدول توكنات إشعارات تطبيق الموبايل (Expo Push) — يُسجل فيه الزبون والضيف والموظف
+  // order_id: اختياري — يربط التوكن بفاتورة قيد التتبع لإشعار «طلبك جاهز»
+  await exec(`CREATE TABLE IF NOT EXISTS expo_push_tokens (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      token TEXT NOT NULL UNIQUE,
+      platform TEXT DEFAULT 'android',
+      order_id TEXT,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    );`);
+  try { await run('ALTER TABLE expo_push_tokens ADD COLUMN order_id TEXT'); } catch (e) { /* موجود مسبقاً */ }
+
   // --- Audit Logs Table ---
   await exec(`CREATE TABLE IF NOT EXISTS audit_logs (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -866,6 +877,63 @@ async function sendGameAddedPush(game) {
 
   console.log(`[Push] إشعار اللعبة "${game.title}": أُرسل إلى ${sent} من ${subs.length}`);
   return { sent, total: subs.length };
+}
+
+/**
+ * إرسال إشعار Expo Push (تطبيق الموبايل) لكل التوكنات المسجلة عند إضافة لعبة.
+ * الوبايل يستقبل عبر Web Push (sendGameAddedPush)، والموبايل عبر Expo Push هنا.
+ */
+async function sendGameAddedExpoPush(game) {
+  const tokens = await all('SELECT token FROM expo_push_tokens');
+  if (!tokens.length) return { sent: 0, total: 0 };
+
+  // جلب اسم الفئة لعرضه في الإشعار
+  let categoryName = '';
+  if (game.category_id) {
+    try {
+      const cat = await get('SELECT name FROM categories WHERE id = ?', [game.category_id]);
+      categoryName = cat?.name || '';
+    } catch (_) { /* تجاهل */ }
+  }
+
+  const messages = tokens.map((t) => ({
+    to: t.token,
+    title: '🎮 لعبة جديدة في المتجر!',
+    body: categoryName
+      ? `أُضيفت "${game.title}" في قسم ${categoryName}`
+      : `أُضيفت "${game.title}" إلى المتجر`,
+    sound: 'default',
+    data: { type: 'game_added', gameId: game.id, title: game.title },
+    channelId: 'default',
+  }));
+
+  let sent = 0;
+  // حد Expo API: 100 رسالة لكل طلب
+  for (let i = 0; i < messages.length; i += 100) {
+    const chunk = messages.slice(i, i + 100);
+    try {
+      const res = await axios.post('https://exp.host/--/api/v2/push/send', chunk, {
+        headers: { 'Content-Type': 'application/json' },
+        timeout: 10_000,
+      });
+      const receipts = res.data?.data;
+      if (Array.isArray(receipts)) {
+        sent += receipts.filter((r) => r.status === 'ok').length;
+        // حذف التوكنات التي لم تعد صالحة حتى لا تتراكم
+        receipts.forEach((r, idx) => {
+          if (r.status === 'error' && r.details?.error === 'DeviceNotRegistered') {
+            const dead = chunk[idx]?.to;
+            if (dead) run('DELETE FROM expo_push_tokens WHERE token = ?', [dead]).catch(() => {});
+          }
+        });
+      }
+    } catch (err) {
+      console.error('[ExpoPush] فشل إرسال دفعة:', err.message);
+    }
+  }
+
+  console.log(`[ExpoPush] إشعار اللعبة "${game.title}": أُرسل إلى ${sent} من ${tokens.length}`);
+  return { sent, total: tokens.length };
 }
 
 // دالة للتحقق من حالة قاعدة البيانات
@@ -1443,6 +1511,14 @@ app.put('/api/invoices/:id/status', authMiddleware, async (req, res) => {
           console.error('Failed to send push notification:', err);
         }
       }
+
+      // إشعار Expo Push لأجهزة تطبيق الموبايل التي تتبع هذه الفاتورة
+      sendOrderExpoPush(
+        updated.invoice_number,
+        'طلبك جاهز!',
+        `فاتورتك رقم ${updated.invoice_number} أصبحت جاهزة للاستلام.`,
+        `/#/track/${encodeURIComponent(updated.invoice_number)}`
+      ).catch(() => { /* إشعارات اختيارية */ });
     }
 
     res.json({ success: true, invoice: updated });
@@ -1478,6 +1554,58 @@ app.post('/api/notifications/subscribe', async (req, res) => {
 app.get('/api/notifications/vapid-public-key', (req, res) => {
   res.json({ success: true, publicKey: VAPID_PUBLIC_KEY });
 });
+
+// تسجيل توكن إشعارات تطبيق الموبايل (Expo Push) — عام: يُسجل الضيف والزبون بلا تسجيل دخول
+// orderId (اختياري): يربط التوكن بفاتورة قيد التتبع لإشعارات تغيّر الحالة
+app.post('/api/devices/register', async (req, res) => {
+  try {
+    const { token, platform, orderId } = req.body || {};
+    if (!token || typeof token !== 'string' || token.length < 10) {
+      return res.status(400).json({ success: false, message: 'توكن غير صالح' });
+    }
+    const boundOrderId = orderId ? String(orderId) : null;
+    const existing = await get('SELECT id, order_id FROM expo_push_tokens WHERE token = ?', [token]);
+    if (!existing) {
+      await run(
+        'INSERT INTO expo_push_tokens (token, platform, order_id) VALUES (?, ?, ?)',
+        [token, typeof platform === 'string' ? platform : 'android', boundOrderId]
+      );
+    } else if (boundOrderId && existing.order_id !== boundOrderId) {
+      await run('UPDATE expo_push_tokens SET order_id = ? WHERE token = ?', [boundOrderId, token]);
+    }
+    res.status(201).json({ success: true });
+  } catch (error) {
+    console.error('Expo device register error:', error);
+    res.status(500).json({ success: false, message: 'فشل تسجيل الجهاز' });
+  }
+});
+
+/** إرسال إشعار Expo Push لكل توكنات مرتبطة بفاتورة معيّنة (مثلاً «طلبك جاهز») */
+async function sendOrderExpoPush(invoiceNumber, title, body, url) {
+  let tokens = [];
+  try {
+    tokens = await all('SELECT token FROM expo_push_tokens WHERE order_id = ?', [String(invoiceNumber)]);
+  } catch (_) { /* تجاهل */ }
+  if (!tokens.length) return;
+
+  const messages = tokens.map((t) => ({
+    to: t.token,
+    title,
+    body,
+    sound: 'default',
+    data: { invoiceNumber: String(invoiceNumber), url: url || String(invoiceNumber) },
+    channelId: 'orders',
+  }));
+
+  try {
+    await axios.post('https://exp.host/--/api/v2/push/send', messages, {
+      headers: { 'Content-Type': 'application/json' },
+      timeout: 10_000,
+    });
+  } catch (err) {
+    console.error('[ExpoPush] فشل إرسال إشعار الطلب:', err.message);
+  }
+}
 
 // Order status transitions - enforced (permissive: allow skipping steps forward + paid)
 const VALID_ORDER_STATUSES = ['pending', 'paid', 'confirmed', 'processing', 'ready', 'completed', 'cancelled', 'refunded'];
@@ -2611,6 +2739,11 @@ app.post('/api/games', authMiddleware, async (req, res) => {
     // إرسال إشعار Web Push لكل المشتركين في إشعارات الألعاب الجديدة
     sendGameAddedPush(newGame).catch(err =>
       console.error('[Push] فشل إرسال إشعار اللعبة الجديدة:', err.message)
+    );
+
+    // إرسال إشعار Expo Push لكل أجهزة تطبيق الموبايل (زبون/ضيف/موظف)
+    sendGameAddedExpoPush(newGame).catch(err =>
+      console.error('[ExpoPush] فشل إرسال إشعار اللعبة الجديدة:', err.message)
     );
 
     console.log('[POST /api/games] ✅ Game added:', { id: newGame.id, title, category_id: newGame.category_id, genre, series, features, size_gb: newGame.size_gb });

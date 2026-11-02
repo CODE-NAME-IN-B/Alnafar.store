@@ -1,9 +1,10 @@
-import { useEffect, useState } from 'react';
-import { Pressable, ScrollView, Text, View } from 'react-native';
+import { useEffect, useState, type ReactNode } from 'react';
+import { ScrollView, Text, View } from 'react-native';
 import ModalSheet from '@/components/ui/ModalSheet';
 import AppInput from '@/components/ui/AppInput';
 import AppButton from '@/components/ui/AppButton';
 import AppText from '@/components/ui/AppText';
+import { ScalePressable } from '@/components/ui/motion';
 import {
   createInvoice,
   updateInvoice,
@@ -150,6 +151,29 @@ export default function InvoiceFormModal({
         automaticallyAdjustKeyboardInsets
       >
         <View style={{ gap: 10 }}>
+          {/* ملخص سريع لما في السلة */}
+          <View
+            style={{
+              flexDirection: 'row',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              backgroundColor: 'rgba(20,184,166,0.12)',
+              borderColor: 'rgba(45,212,191,0.35)',
+              borderWidth: 1,
+              borderRadius: 12,
+              paddingVertical: 9,
+              paddingHorizontal: 12,
+            }}
+          >
+            <Text style={{ color: '#5eead4', fontFamily: FONT.bold, fontSize: 12.5 }}>
+              {items.length} {items.length === 1 ? 'بند' : 'بنود'} في الفاتورة
+            </Text>
+            <Text style={{ color: '#2dd4bf', fontFamily: FONT.bold, fontSize: 13 }}>
+              {formatDinar(total)}
+            </Text>
+          </View>
+
+          <SectionTitle>بيانات الزبون</SectionTitle>
           <AppInput
             label="اسم العميل *"
             placeholder="أدخل الاسم الكامل"
@@ -172,6 +196,7 @@ export default function InvoiceFormModal({
             onChangeText={setNotes}
           />
 
+          <SectionTitle>الدفع</SectionTitle>
           <View style={{ flexDirection: 'row', gap: 10 }}>
             <View style={{ flex: 1 }}>
               <AppInput
@@ -208,7 +233,7 @@ export default function InvoiceFormModal({
             <QuickPayBtn
               label="نصف القيمة"
               active={paidAmount === finalTotal / 2 && finalTotal > 0}
-              color="#2563eb"
+              color="#14b8a6"
               onPress={() => setPaidText(String(finalTotal / 2))}
             />
             <QuickPayBtn
@@ -266,7 +291,7 @@ function QuickPayBtn({
   onPress: () => void;
 }) {
   return (
-    <Pressable
+    <ScalePressable
       onPress={onPress}
       style={{
         flex: 1,
@@ -287,7 +312,24 @@ function QuickPayBtn({
       >
         {label}
       </Text>
-    </Pressable>
+    </ScalePressable>
+  );
+}
+
+/** عنوان قسم صغير داخل النافذة */
+function SectionTitle({ children }: { children: ReactNode }) {
+  return (
+    <Text
+      style={{
+        color: '#94a3b8',
+        fontFamily: FONT.bold,
+        fontSize: 11.5,
+        marginTop: 2,
+        marginBottom: -2,
+      }}
+    >
+      {children}
+    </Text>
   );
 }
 

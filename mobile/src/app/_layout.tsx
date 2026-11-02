@@ -9,6 +9,7 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 import * as SystemUI from 'expo-system-ui';
 import { CAIRO_FONTS } from '@/lib/fonts';
 import { colors } from '@/lib/colors';
+import { registerForPushNotifications, useForegroundNotifications } from '@/lib/notifications';
 import { setTokenGetter, setUnauthorizedHandler } from '@/api/client';
 import { useAuthStore } from '@/stores/auth';
 import { useAppStore } from '@/stores/app';
@@ -36,7 +37,12 @@ export default function RootLayout() {
     void useAuthStore.getState().hydrate();
     void useAppStore.getState().hydrate();
     void SystemUI.setBackgroundColorAsync('#0f1724');
+    // طلب صلاحية الإشعارات وتسجيل الجهاز (فشل صامت في Expo Go)
+    void registerForPushNotifications();
   }, []);
+
+  // إشعارات الواجهة الأمامية → Toast داخل التطبيق
+  useForegroundNotifications();
 
   useEffect(() => {
     // خطاطيف عميل الـ API: التوكن من مخزن الجلسة، والـ 401 يطرد للدخول
