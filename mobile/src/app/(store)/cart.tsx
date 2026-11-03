@@ -340,7 +340,9 @@ export default function CartScreen() {
           onSaved={(inv) => {
             setInvoiceOpen(false);
             clear();
-            setReceiptInvoice(inv);
+            /** سباق أندرويد: Modal يُفتح في نفس الفريم الذي يُغلق فيه Modal آخر
+                يُتجاهَل صامتاً — نؤجّل فتح درج الطباعة حتى يُزال نافذة النموذج */
+            setTimeout(() => setReceiptInvoice(inv), 180);
           }}
         />
 

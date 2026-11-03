@@ -200,7 +200,7 @@ export default function StoreHomeScreen() {
               </>
             ) : (
               <>
-                <GuestBell />
+                <GuestBell style={styles.headerActionBtn} />
                 <ScalePressable
                   onPress={() => router.push('/login')}
                   accessibilityRole="button"

@@ -4,7 +4,7 @@
  * الضغط عليه يفتح درجاً بأحدث الألعاب ويعلّمها كمقروءة.
  */
 import React, { useEffect, useState } from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { StyleProp, StyleSheet, Text, View, ViewStyle } from 'react-native';
 import { useQuery } from '@tanstack/react-query';
 import { fetchGames } from '@/api/games';
 import { fetchCategories } from '@/api/categories';
@@ -30,7 +30,7 @@ function gameCreatedAt(game: Game): Date | null {
   return new Date(raw.replace(' ', 'T'));
 }
 
-export default function GuestBell() {
+export default function GuestBell({ style }: { style?: StyleProp<ViewStyle> }) {
   const [sheetOpen, setSheetOpen] = useState(false);
   const [lastSeen, setLastSeen] = useState<Date | null>(null);
   /* «الآن» تُثبت في الحالة بدل استدعاء Date.now() أثناء العرض */
@@ -90,7 +90,7 @@ export default function GuestBell() {
         accessibilityRole="button"
         accessibilityLabel="إشعارات الألعاب الجديدة"
         hitSlop={6}
-        style={styles.pressable}
+        style={[styles.pressable, style]}
       >
         <Icon name="bell" size={17} color="#5eead4" />
         {newGames.length > 0 ? (

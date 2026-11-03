@@ -84,12 +84,14 @@ export function buildReceiptHtml(
     @page{size:${paperMM}mm auto;margin:3mm 2mm}
     /* الهدر العلوي ثابت السلة: لا margin-collapse ولا مساحة مقتَطعة */
     .r{width:100%;padding:1.5mm 2mm;text-align:center}
-    /* كل سطر كتلة مستقلة — منع تداخل الاسم مع الرقم */
-    .r > div{display:block;width:100%;clear:both;overflow-wrap:break-word;word-break:break-word;unicode-bidi:isolate}
+    /* كل سطر كتلة مستقلة — منع تداخل الاسم مع الرقم (بدون قواعد غريبة
+       قد يتجاهلها محرك الطباعة الحراري) */
+    .r > div{display:block;width:100%;clear:both;overflow-wrap:break-word}
     .bn{font-size:${fontSize === '12px' ? '16px' : '18px'};font-weight:900;line-height:1.5;color:#000}
-    .be{font-size:9.5px;color:#1f2937;line-height:1.5}
+    .be{font-size:10px;color:#000;margin-top:0.6mm;letter-spacing:0}
     .l{border:none;border-top:1px dashed #4b5563;margin:1.2mm 2mm}
-    .ltr{direction:ltr;display:inline-block;unicode-bidi:isolate}
+    /* النمط المثبت: عنصر نص LTR بدل <bdi> — أثبت على طابعات الحرارة */
+    .ltr{direction:ltr;display:inline-block;unicode-bidi:embed}
     .no{font-size:${fontSize === '12px' ? '14.5px' : '15.5px'};font-weight:800;line-height:1.5;margin-top:0.8mm}
     .who{font-weight:700;line-height:1.6;margin-top:0.8mm;padding:0.4mm 1mm;background:none}
     .phone{font-size:${Math.max(9.5, parseInt(fontSize, 10) - 3)}px;color:#1f2937;font-family:'DejaVu Sans Mono',monospace;line-height:1.6;margin-top:0.5mm}
@@ -110,18 +112,18 @@ export function buildReceiptHtml(
   <div class="r">
     <div style="padding-top:1mm"></div>
     <div class="bn">${escapeHtml(storeName)}</div>
-    <div class="be"><bdi dir="ltr">${escapeHtml(storeNameEn)}</bdi></div>
+    <div class="be"><span class="ltr">${escapeHtml(storeNameEn)}</span></div>
     ${storeAddr ? `<div class="be">${escapeHtml(storeAddr)}</div>` : ''}
     <hr class="l" />
-    <div class="no"><bdi dir="ltr">#${escapeHtml(fullNumber)}</bdi></div>
+    <div class="no"><span class="ltr">#${escapeHtml(fullNumber)}</span></div>
     <div class="who">${escapeHtml(invoice.customer_name || 'عميل نقدي')}</div>
-    ${invoice.customer_phone ? `<div class="phone"><bdi dir="ltr">${escapeHtml(invoice.customer_phone)}</bdi></div>` : ''}
+    ${invoice.customer_phone ? `<div class="phone"><span class="ltr">${escapeHtml(invoice.customer_phone)}</span></div>` : ''}
     <hr class="l" />
-    <div class="tot"><bdi dir="ltr">${escapeHtml(formatDinar(finalTotal))}</bdi>${remainingLine}</div>
-    <div class="tag ${statusClass}"><bdi>${escapeHtml(statusTag)}</bdi></div>
+    <div class="tot"><span class="ltr">${escapeHtml(formatDinar(finalTotal))}</span>${remainingLine}</div>
+    <div class="tag ${statusClass}"><span>${escapeHtml(statusTag)}</span></div>
     ${qrSvg ? `<div class="qr">${qrSvg}<div class="qrcap">امسح لمتابعة الطلب</div></div>` : ''}
     ${footerMsg ? `<div class="ft">${escapeHtml(footerMsg)}</div>` : ''}
-    ${storePhone ? `<div class="phone ft"><bdi dir="ltr">${escapeHtml(storePhone)}</bdi></div>` : ''}
+    ${storePhone ? `<div class="phone ft"><span class="ltr">${escapeHtml(storePhone)}</span></div>` : ''}
   </div>
 </body>
 </html>`;
