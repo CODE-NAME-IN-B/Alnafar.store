@@ -9,10 +9,9 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { router } from 'expo-router';
 import * as Notifications from 'expo-notifications';
-import { trackOrder } from '@/api/orders';
 import Icon from '@/components/ui/Icon';
 import { ScalePressable } from '@/components/ui/motion';
-import { getTrackedOrders, removeTrackedOrder } from '@/lib/trackedOrders';
+import { getSavedStatuses, getTrackedOrders, removeTrackedOrder } from '@/lib/trackedOrders';
 import { ensureNotificationPermission } from '@/lib/notifications';
 import { statusLabel } from '@/lib/statuses';
 import { showToast } from '@/lib/toast';
@@ -56,26 +55,13 @@ export default function TrackedOrdersList() {
 
   const refs = refsQ.data ?? [];
 
-  const ordersQ = useQuery({
+  /* الحالات تُقرأ من مخزن المراقب المحلي (لا شبكة هنا):
+     TrackedOrderWatcher هو المصدر الوحيد الجالب — يفحص كل 60 ثانية
+     ويحفظ في التخزين المحلي، ونحن نعرض ما هو محفوظ فقط. */
+  const statusesQ = useQuery({
     queryKey: ['tracked-orders-statuses', refs.map((r) => r.invoice_number).join(',')],
     enabled: refs.length > 0,
-    queryFn: async () => {
-      const results: Record<string, { status: string; ready: boolean }> = {};
-      await Promise.all(
-        refs.map(async (ref) => {
-          try {
-            const order = await trackOrder(ref.invoice_number);
-            results[ref.invoice_number] = {
-              status: order.status,
-              ready: order.status === 'ready',
-            };
-          } catch {
-            results[ref.invoice_number] = { status: 'unknown', ready: false };
-          }
-        })
-      );
-      return results;
-    },
+    queryFn: getSavedStatuses,
     refetchInterval: 60_000,
   });
 
@@ -118,9 +104,8 @@ export default function TrackedOrdersList() {
         </View>
       ) : (
         refs.map((ref) => {
-          const info = ordersQ.data?.[ref.invoice_number];
-          const isReady = info?.ready;
-          const isUnknown = info?.status === 'unknown';
+          const info = statusesQ.data?.[ref.invoice_number];
+          const isReady = info === 'ready';
           return (
             <View
               key={ref.invoice_number}
@@ -142,16 +127,10 @@ export default function TrackedOrdersList() {
                 <View style={styles.body}>
                   <Text style={styles.orderId}>طلب #{ref.invoice_number}</Text>
                   <Text
-                    style={[
-                      styles.status,
-                      isReady && styles.statusReady,
-                      isUnknown && styles.statusUnknown,
-                    ]}
+                    style={[styles.status, isReady && styles.statusReady]}
                   >
                     {info
-                      ? isUnknown
-                        ? 'غير متوفر حالياً'
-                        : statusLabel(info.status)
+                      ? statusLabel(info)
                       : 'جاري الفحص...'}
                   </Text>
                 </View>
@@ -223,9 +202,6 @@ const styles = StyleSheet.create({
   statusReady: {
     color: '#34d399',
     fontFamily: FONT.bold,
-  },
-  statusUnknown: {
-    color: '#64748b',
   },
   removeBtn: {
     padding: 6,

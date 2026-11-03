@@ -37,8 +37,10 @@ type ProbeResult = { release: ReleaseInfo | null; newer: boolean };
 
 async function probeRelease(): Promise<ProbeResult> {
   try {
+    /** مهلة 8 ثوان: منع علوق صف «تحديث التطبيق» على شبكة متقطعة */
     const res = await fetch(`https://api.github.com/repos/${REPO}/releases/latest`, {
       headers: { Accept: 'application/vnd.github+json' },
+      signal: AbortSignal.timeout(8_000),
     });
     if (!res.ok) return { release: null, newer: false };
     const data = (await res.json()) as {
