@@ -1,7 +1,7 @@
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import Screen from '@/components/ui/Screen';
 import Icon from '@/components/ui/Icon';
-import AboutSection from '@/components/store/AboutSection';
+import AccountCard from '@/components/store/AccountCard';
 import TrackedOrdersList from '@/components/store/TrackedOrdersList';
 import { FONT } from '@/lib/fonts';
 import { ROW } from '@/lib/rtl';
@@ -21,8 +21,8 @@ export default function MoreScreen() {
           <Text style={styles.title}>المزيد</Text>
         </View>
 
-        {/* حول التطبيق: الإصدار + زر التحديث + المطور */}
-        <AboutSection />
+        {/* بطاقة الحساب: تتبع + تحديث + المطور + فكرة التطبيق */}
+        <AccountCard />
 
         {/* تتبع طلباتي — الأوامر المسحوبة بـ QR محفوظة على الجهاز */}
         <View style={styles.headRow}>

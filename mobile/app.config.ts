@@ -9,7 +9,7 @@ const API_BASE = process.env.EXPO_PUBLIC_API_BASE ?? 'https://alnafar-store.verc
 const config: ExpoConfig = {
   name: 'الشاردة ستور',
   slug: 'alsharida-store',
-  version: '1.0.3-beta',
+  version: '1.0.4-beta',
   orientation: 'portrait',
   scheme: 'alsharida',
   userInterfaceStyle: 'dark',
@@ -19,7 +19,7 @@ const config: ExpoConfig = {
   primaryColor: '#0f1724',
   android: {
     package: 'com.inb.alsharda',
-    versionCode: 3,
+    versionCode: 4,
     adaptiveIcon: {
       foregroundImage: './assets/_brand/icon-maskable.png',
       backgroundColor: '#0f1724',
@@ -37,6 +37,19 @@ const config: ExpoConfig = {
   plugins: [
     'expo-router',
     'expo-asset',
+    [
+      /**
+       * تقليص حجم APK: الإعداد الافتراضي يضمّن 4 بنيات معالجة
+       * (arm64 + v7a + x86 + x86_64) ≈ 123MB — نحتفظ بالبنيتين الواقعيتين
+       * للهواتف فقط، فينزل الحجم للنصف تقريباً.
+       */
+      'expo-build-properties',
+      {
+        android: {
+          buildArchs: ['arm64-v8a', 'armeabi-v7a'],
+        },
+      },
+    ],
     [
       'expo-localization',
       {
@@ -56,7 +69,10 @@ const config: ExpoConfig = {
     [
       'expo-notifications',
       {
-        icon: './assets/_brand/icon-maskable.png',
+        /* أيقونة شريط الإشعارات: ظليّة بيضاء-شفافة (النظام يلوّنها) —
+           الأيقونة الملونة كاملة لا تظهر جيدة على الشريط */
+        icon: './assets/android-icon-monochrome.png',
+        largeIcon: './assets/_brand/icon.png',
         color: '#14b8a6',
         androidMode: 'default',
       },
