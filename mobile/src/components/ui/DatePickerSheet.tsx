@@ -23,8 +23,6 @@ function toIso(d: Date): string {
   return `${d.getFullYear()}-${m}-${day}`;
 }
 
-const todayIso = (): string => toIso(new Date());
-
 interface Props {
   visible: boolean;
   onClose: () => void;
