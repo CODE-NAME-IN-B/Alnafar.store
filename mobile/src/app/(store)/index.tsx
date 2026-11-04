@@ -43,6 +43,7 @@ import Icon from '@/components/ui/Icon';
 import { useScreenEntrance, ScalePressable } from '@/components/ui/motion';
 import { EmptyState, ErrorState, LoadingState } from '@/components/ui/StateView';
 import { FONT } from '@/lib/fonts';
+import { colors, triggerLightHaptic } from '@/lib/colors';
 import { ROW } from '@/lib/rtl';
 
 const LOGO = require('../../../assets/_brand/logo.png');
@@ -162,7 +163,7 @@ export default function StoreHomeScreen() {
               hitSlop={6}
               style={styles.headerActionBtn}
             >
-              <Icon name="qr" size={17} color="#5eead4" />
+              <Icon name="qr" size={17} color={colors.dim} />
             </ScalePressable>
 
             <ScalePressable
@@ -172,7 +173,7 @@ export default function StoreHomeScreen() {
               hitSlop={6}
               style={styles.headerActionBtn}
             >
-              <Icon name="sparkles" size={17} color="#5eead4" />
+              <Icon name="sparkles" size={17} color={colors.dim} />
             </ScalePressable>
 
             {token ? (
@@ -184,7 +185,7 @@ export default function StoreHomeScreen() {
                   hitSlop={6}
                   style={styles.headerActionBtn}
                 >
-                  <Icon name="settings" size={17} color="#5eead4" />
+                  <Icon name="settings" size={17} color={colors.dim} />
                 </ScalePressable>
                 <ScalePressable
                   onPress={async () => {
@@ -208,7 +209,7 @@ export default function StoreHomeScreen() {
                   hitSlop={6}
                   style={styles.headerActionBtn}
                 >
-                  <Icon name="user" size={17} color="#5eead4" />
+                  <Icon name="user" size={17} color={colors.dim} />
                 </ScalePressable>
               </>
             )}
@@ -227,8 +228,16 @@ export default function StoreHomeScreen() {
             style={styles.searchInput}
           />
           {query ? (
-            <Pressable onPress={() => setQuery('')} hitSlop={8}>
-              <Icon name="close" size={16} color="#94a3b8" />
+            <Pressable
+              onPress={() => {
+                triggerLightHaptic();
+                setQuery('');
+              }}
+              hitSlop={12}
+              accessibilityRole="button"
+              accessibilityLabel="مسح البحث"
+            >
+              <Icon name="close" size={22} color={colors.faint} />
             </Pressable>
           ) : null}
           <Pressable
@@ -262,7 +271,6 @@ export default function StoreHomeScreen() {
         >
           <Chip
             label="الكل"
-            accent="purple"
             active={activeCategoryId === null}
             onPress={() => setActiveCategory(null)}
           />
@@ -270,7 +278,6 @@ export default function StoreHomeScreen() {
             <Chip
               key={c.id}
               label={c.name}
-              accent="purple"
               active={activeCategoryId === c.id}
               onPress={() =>
                 setActiveCategory(activeCategoryId === c.id ? null : c.id)
@@ -306,7 +313,7 @@ export default function StoreHomeScreen() {
                 topQ.refetch();
                 branchesQ.refetch();
               }}
-              tintColor="#14b8a6"
+              tintColor={colors.faint}
             />
           }
           ListHeaderComponent={
@@ -343,7 +350,7 @@ export default function StoreHomeScreen() {
                   ملاحظة: فلتر الأحرف A-Z انتقل إلى نافذة الفلترة (قرار معتمد) */}
               <View style={styles.gamesHeadRow}>
                 <View style={styles.gamesHeadTitle}>
-                  <Icon name="gamepad" size={15} color="#2dd4bf" />
+                  <Icon name="gamepad" size={15} color={colors.faint} />
                   <Text style={styles.gamesHeadText}>الألعاب</Text>
                   <Text style={styles.gamesHeadCount}>{filtered.length}</Text>
                 </View>
@@ -485,8 +492,8 @@ const styles = StyleSheet.create({
     width: 38,
     height: 38,
     borderRadius: 11,
-    borderWidth: 1.5,
-    borderColor: '#14b8a6',
+    borderWidth: 1,
+    borderColor: colors.borderSubtle,
   },
   brandTextCol: {
     alignItems: 'flex-end',
@@ -510,7 +517,7 @@ const styles = StyleSheet.create({
   statusText: {
     fontFamily: FONT.medium,
     color: '#94a3b8',
-    fontSize: 10,
+    fontSize: 12,
     includeFontPadding: false,
   },
   actionsRow: {
@@ -557,16 +564,17 @@ const styles = StyleSheet.create({
     flexDirection: ROW,
     alignItems: 'center',
     gap: 5,
-    paddingHorizontal: 10,
-    paddingVertical: 6,
+    paddingHorizontal: 12,
+    paddingVertical: 9,
+    minHeight: 40,
     borderRadius: 10,
     backgroundColor: 'rgba(255, 255, 255, 0.06)',
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.1)',
+    borderColor: colors.borderSubtle,
   },
   filterBtnActive: {
-    backgroundColor: '#14b8a6',
-    borderColor: '#2dd4bf',
+    backgroundColor: colors.brand,
+    borderColor: colors.brandBorder,
   },
   filterBtnText: {
     fontFamily: FONT.bold,
@@ -609,11 +617,11 @@ const styles = StyleSheet.create({
   },
   gamesHeadCount: {
     fontFamily: FONT.bold,
-    color: '#2dd4bf',
+    color: colors.dim,
     fontSize: 11,
     includeFontPadding: false,
-    backgroundColor: 'rgba(20, 184, 166, 0.14)',
-    borderColor: 'rgba(20, 184, 166, 0.35)',
+    backgroundColor: 'rgba(255, 255, 255, 0.07)',
+    borderColor: colors.borderSubtle,
     borderWidth: 1,
     borderRadius: 9,
     paddingHorizontal: 7,
@@ -639,7 +647,7 @@ const styles = StyleSheet.create({
     borderRadius: 8,
   },
   viewToggleOn: {
-    backgroundColor: '#14b8a6',
+    backgroundColor: colors.brand,
   },
   viewToggleText: {
     fontFamily: FONT.bold,

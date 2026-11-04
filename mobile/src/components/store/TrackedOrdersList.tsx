@@ -16,6 +16,7 @@ import { ensureNotificationPermission } from '@/lib/notifications';
 import { statusLabel } from '@/lib/statuses';
 import { showToast } from '@/lib/toast';
 import { FONT } from '@/lib/fonts';
+import { colors } from '@/lib/colors';
 import { ROW } from '@/lib/rtl';
 
 export default function TrackedOrdersList() {
@@ -92,7 +93,17 @@ export default function TrackedOrdersList() {
         </ScalePressable>
       ) : null}
 
-      {refs.length === 0 ? (
+      {refsQ.isError && !refsQ.data ? (
+        <View style={styles.card}>
+          <View style={styles.emptyRow}>
+            <Icon name="close" size={16} color={colors.dangerStrong} />
+            <Text style={styles.emptyText}>
+              تعذّر قراءة قائمة التتبع من الجهاز — اسحب للأسفل لإعادة المحاولة
+              أو أعد فتح التبويب.
+            </Text>
+          </View>
+        </View>
+      ) : refs.length === 0 ? (
         <View style={styles.card}>
           <View style={styles.emptyRow}>
             <Icon name="qr" size={16} color="#2dd4bf" />
@@ -134,7 +145,7 @@ export default function TrackedOrdersList() {
                       : 'جاري الفحص...'}
                   </Text>
                 </View>
-                <Icon name="chevron-left" size={14} color="#475569" />
+                <Icon name="chevron-left" size={14} color={colors.faint} />
               </ScalePressable>
 
               <Pressable
@@ -148,7 +159,11 @@ export default function TrackedOrdersList() {
                 <Icon
                   name="trash"
                   size={14}
-                  color={removing === ref.invoice_number ? '#334155' : '#fda4af'}
+                  color={
+                    removing === ref.invoice_number
+                      ? colors.faint
+                      : colors.dangerText
+                  }
                 />
               </Pressable>
             </View>
@@ -216,7 +231,7 @@ const styles = StyleSheet.create({
     fontFamily: FONT.medium,
     color: '#d6c98d',
     fontSize: 11.5,
-    lineHeight: 17,
+    lineHeight: 18,
     textAlign: 'right',
     writingDirection: 'rtl',
   },

@@ -9,6 +9,7 @@ import { fetchInvoiceSettings } from '@/api/settings';
 import { parseInvoiceItems, type InvoiceRecord } from '@/api/invoices';
 import { getPrinterDriver } from '@/print/PrinterDriver';
 import { FONT } from '@/lib/fonts';
+import { receiptColors, colors } from '@/lib/colors';
 import { formatDinar } from '@/lib/money';
 import { API_BASE } from '@/lib/env';
 import { showToast } from '@/lib/toast';
@@ -100,14 +101,14 @@ export default function NativeReceiptModal({ visible, invoice, onClose, autoPrin
         {/* بطاقة إيصال حراري أصلية (مطابقة للمطبوع المضغوط — بلا شعار) */}
         <View
           style={{
-            backgroundColor: '#ffffff',
+            backgroundColor: colors.brandDark,
             borderRadius: 16,
             padding: 16,
             alignItems: 'center',
             gap: 5,
           }}
         >
-          <Text style={{ color: '#0f1724', fontFamily: FONT.bold, fontSize: 17 }}>
+          <Text style={{ color: colors.base, fontFamily: FONT.bold, fontSize: 17 }}>
             {storeName}
           </Text>
           <Text style={{ color: '#475569', fontFamily: FONT.medium, fontSize: 11 }}>
@@ -116,7 +117,7 @@ export default function NativeReceiptModal({ visible, invoice, onClose, autoPrin
           {storeAddr ? (
             <Text
               style={{
-                color: '#94a3b8',
+                color: receiptColors.muted,
                 fontFamily: FONT.regular,
                 fontSize: 11,
                 textAlign: 'center',
@@ -128,7 +129,7 @@ export default function NativeReceiptModal({ visible, invoice, onClose, autoPrin
 
           <View style={dashedLine} />
 
-          <LtrText style={{ color: '#0f1724', fontSize: 16 }}>
+          <LtrText style={{ color: colors.base, fontSize: 16 }}>
             {formatInvoiceCode(invoice.invoice_number)}
           </LtrText>
           <Text style={{ color: '#1e293b', fontFamily: FONT.bold, fontSize: 14 }}>
@@ -143,14 +144,10 @@ export default function NativeReceiptModal({ visible, invoice, onClose, autoPrin
           <View style={dashedLine} />
 
           {/* السعر النهائي فقط — بلا بيانات الألعاب (مطابقة لما تظهره واجهة التتبع) */}
-          <Text style={{ color: '#0f1724', fontFamily: FONT.bold, fontSize: 19 }}>
+          <Text style={{ color: colors.base, fontFamily: FONT.bold, fontSize: 19 }}>
             {formatDinar(finalTotal)}
           </Text>
-          {remaining > 0 ? (
-            <Text style={{ color: '#94a3b8', fontFamily: FONT.medium, fontSize: 12 }}>
-              المتبقي: {formatDinar(remaining)}
-            </Text>
-          ) : null}
+          {/* المتبقي يظهر مرة واحدة داخل شارة الحالة فقط (كان يتكرر سطراً وشارة) */}
 
           <View
             style={{
@@ -176,16 +173,16 @@ export default function NativeReceiptModal({ visible, invoice, onClose, autoPrin
           </View>
 
           <View style={{ marginVertical: 10, alignItems: 'center', gap: 4 }}>
-            <QRCode value={trackingUrl} size={110} />
-            <Text style={{ color: '#94a3b8', fontFamily: FONT.regular, fontSize: 11 }}>
+            <QRCode value={trackingUrl} size={132} />
+            <Text style={{ color: receiptColors.muted, fontFamily: FONT.regular, fontSize: 12 }}>
               امسح الرمز لتتبع حالة الطلب
             </Text>
           </View>
 
           {storePhone ? (
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5 }}>
-              <Icon name="phone" size={13} color="#475569" />
-              <Text style={{ color: '#475569', fontFamily: FONT.medium, fontSize: 11 }}>
+              <Icon name="phone" size={13} color={receiptColors.muted} />
+              <Text style={{ color: receiptColors.muted, fontFamily: FONT.medium, fontSize: 12, writingDirection: 'ltr' as const }}>
                 {storePhone}
               </Text>
             </View>
@@ -214,6 +211,6 @@ export default function NativeReceiptModal({ visible, invoice, onClose, autoPrin
 const dashedLine = {
   width: '100%' as const,
   height: 1,
-  backgroundColor: '#cbd5e1',
+  backgroundColor: receiptColors.divider,
   marginVertical: 6,
 };

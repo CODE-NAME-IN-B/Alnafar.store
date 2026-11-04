@@ -3,6 +3,7 @@ import ModalSheet from '@/components/ui/ModalSheet';
 import AppText from '@/components/ui/AppText';
 import Icon from '@/components/ui/Icon';
 import { FONT } from '@/lib/fonts';
+import { colors } from '@/lib/colors';
 import { formatDinar } from '@/lib/money';
 import type { Game } from '@/api/types';
 import { ps5PriceOf } from '@/lib/gamePrices';
@@ -27,48 +28,46 @@ export default function VersionPickerModal({ visible, game, onClose, onPick }: P
         {game.title}
       </AppText>
 
+      {/* الصف نفسه هو الزر — بلا «أضف» مصغّرة (هدف لمس أصغر من 44dp،
+          وتنافر لونين ثنائي CTAs)؛ السهم يوضح أن الصف قابل للضغط */}
       <Pressable
         onPress={() => onPick('PS4')}
+        accessibilityRole="button"
+        accessibilityLabel="اختيار نسخة الفور PS4"
         style={{
-          ...row('#141e30', 'rgba(255, 255, 255, 0.08)'),
+          ...row(colors.elevated, colors.borderSubtle),
           borderRadius: 14,
           marginBottom: 12,
         }}
       >
         <View style={{ flex: 1 }}>
-          <Text style={{ color: '#f8fafc', fontFamily: FONT.bold, fontSize: 16, textAlign: 'right' }}>
+          <Text style={{ color: colors.text, fontFamily: FONT.bold, fontSize: 16, textAlign: 'right' }}>
             نسخة الفور (PS4)
           </Text>
-          <Text style={{ color: '#2dd4bf', fontFamily: FONT.bold, fontSize: 14, textAlign: 'right', marginTop: 2 }}>
+          <Text style={{ color: colors.text, fontFamily: FONT.bold, fontSize: 14, textAlign: 'right', marginTop: 2 }}>
             {formatDinar(Number(game.price))}
           </Text>
         </View>
-        <View
-          style={{
-            backgroundColor: '#14b8a6',
-            borderRadius: 10,
-            paddingHorizontal: 14,
-            paddingVertical: 8,
-            flexDirection: 'row',
-            alignItems: 'center',
-            gap: 4,
-          }}
-        >
-          <Icon name="plus" size={15} color="#ffffff" strokeWidth={2.4} />
-          <Text style={{ color: '#ffffff', fontFamily: FONT.bold, fontSize: 13 }}>أضف</Text>
-        </View>
+        <Icon
+          name="chevron-left"
+          size={18}
+          color={colors.faint}
+          strokeWidth={2.2}
+        />
       </Pressable>
 
       <Pressable
         onPress={() => onPick('PS5')}
+        accessibilityRole="button"
+        accessibilityLabel="اختيار نسخة الفايف PS5"
         style={{
-          ...row('#141e30', 'rgba(255, 255, 255, 0.08)'),
+          ...row(colors.elevated, colors.borderSubtle),
           borderRadius: 14,
         }}
       >
         <View style={{ flex: 1 }}>
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-            <Text style={{ color: '#f8fafc', fontFamily: FONT.bold, fontSize: 16, textAlign: 'right' }}>
+            <Text style={{ color: colors.text, fontFamily: FONT.bold, fontSize: 16, textAlign: 'right' }}>
               نسخة الفايف (PS5)
             </Text>
             {game.price_ps5 != null && Number(game.price_ps5) > 0 ? (
@@ -80,30 +79,22 @@ export default function VersionPickerModal({ visible, game, onClose, onPick }: P
                   paddingVertical: 2,
                 }}
               >
-                <Text style={{ color: '#c4b5fd', fontFamily: FONT.bold, fontSize: 10 }}>
+                <Text style={{ color: '#c4b5fd', fontFamily: FONT.bold, fontSize: 11, lineHeight: 16 }}>
                   سعر خاص
                 </Text>
               </View>
             ) : null}
           </View>
-          <Text style={{ color: '#c4b5fd', fontFamily: FONT.bold, fontSize: 14, textAlign: 'right', marginTop: 2 }}>
+          <Text style={{ color: colors.text, fontFamily: FONT.bold, fontSize: 14, textAlign: 'right', marginTop: 2 }}>
             {formatDinar(ps5PriceOf(game))}
           </Text>
         </View>
-        <View
-          style={{
-            backgroundColor: '#8a5cff',
-            borderRadius: 10,
-            paddingHorizontal: 14,
-            paddingVertical: 8,
-            flexDirection: 'row',
-            alignItems: 'center',
-            gap: 4,
-          }}
-        >
-          <Icon name="plus" size={15} color="#ffffff" strokeWidth={2.4} />
-          <Text style={{ color: '#ffffff', fontFamily: FONT.bold, fontSize: 13 }}>أضف</Text>
-        </View>
+        <Icon
+          name="chevron-left"
+          size={18}
+          color={colors.faint}
+          strokeWidth={2.2}
+        />
       </Pressable>
     </ModalSheet>
   );
@@ -112,11 +103,12 @@ export default function VersionPickerModal({ visible, game, onClose, onPick }: P
 const row = (bg: string, border: string) =>
   ({
     backgroundColor: bg,
-    borderWidth: 1.5,
+    borderWidth: 1,
     borderColor: border,
     padding: 14,
+    minHeight: 64,
+    justifyContent: 'center',
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
     gap: 12,
   }) as const;

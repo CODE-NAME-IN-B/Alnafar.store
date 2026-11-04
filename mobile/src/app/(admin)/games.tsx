@@ -20,6 +20,7 @@ import {
   sortGamesAlphabetically,
 } from '@/lib/arabic';
 import { FONT } from '@/lib/fonts';
+import { colors } from '@/lib/colors';
 import { formatDinar } from '@/lib/money';
 import { mainPriceOf } from '@/lib/gamePrices';
 import { showToast } from '@/lib/toast';
@@ -78,18 +79,18 @@ export default function AdminGamesScreen() {
       <View style={styles.header}>
         <View style={styles.searchRow}>
           <View style={styles.searchBox}>
-            <Icon name="search" size={16} color="#94a3b8" />
+            <Icon name="search" size={16} color="colors.faint" />
             <TextInput
               value={searchQ}
               onChangeText={setSearchQ}
               placeholder="ابحث عن لعبة في المكتبة..."
-              placeholderTextColor="#94a3b8"
+              placeholderTextColor="colors.faint"
               textAlign="right"
               style={styles.searchInput}
             />
             {searchQ ? (
               <Pressable onPress={() => setSearchQ('')} hitSlop={8}>
-                <Icon name="close" size={15} color="#94a3b8" />
+                <Icon name="close" size={15} color="colors.faint" />
               </Pressable>
             ) : null}
           </View>
@@ -100,7 +101,7 @@ export default function AdminGamesScreen() {
             }}
             style={styles.addBtn}
           >
-            <Icon name="plus" size={15} color="#042f2e" strokeWidth={2.4} />
+            <Icon name="plus" size={15} color="colors.brandDark" strokeWidth={2.4} />
             <Text style={styles.addBtnText}>إضافة لعبة</Text>
           </Pressable>
         </View>
@@ -219,7 +220,7 @@ export default function AdminGamesScreen() {
                     }}
                     style={[styles.rowBtn, styles.editBtn]}
                   >
-                    <Icon name="edit" size={13} color="#2dd4bf" />
+                    <Icon name="edit" size={13} color="colors.brandLight" />
                     <Text style={styles.editBtnText}>تعديل</Text>
                   </Pressable>
                   {isAdmin ? (
@@ -227,7 +228,7 @@ export default function AdminGamesScreen() {
                       onPress={() => void handleDelete(item)}
                       style={[styles.rowBtn, styles.delBtn]}
                     >
-                      <Icon name="trash" size={13} color="#fca5a5" />
+                      <Icon name="trash" size={13} color="colors.dangerText" />
                       <Text style={styles.delBtnText}>حذف</Text>
                     </Pressable>
                   ) : null}
@@ -257,15 +258,15 @@ export default function AdminGamesScreen() {
 const styles = StyleSheet.create({
   screen: {
     flex: 1,
-    backgroundColor: '#090d16',
+    backgroundColor: colors.deep,
   },
   header: {
     paddingHorizontal: 12,
     paddingVertical: 10,
     gap: 8,
-    backgroundColor: '#0f172a',
+    backgroundColor: colors.base,
     borderBottomWidth: 1,
-    borderBottomColor: 'rgba(255, 255, 255, 0.08)',
+    borderBottomColor: colors.borderSubtle,
   },
   searchRow: {
     flexDirection: ROW,
@@ -276,17 +277,17 @@ const styles = StyleSheet.create({
     flex: 1,
     flexDirection: ROW,
     alignItems: 'center',
-    backgroundColor: '#141e30',
+    backgroundColor: colors.elevated,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.08)',
+    borderColor: colors.borderSubtle,
     paddingHorizontal: 10,
     height: 42,
     gap: 6,
   },
   searchInput: {
     flex: 1,
-    color: '#f8fafc',
+    color: colors.text,
     fontFamily: FONT.medium,
     fontSize: 13,
     paddingVertical: 4,
@@ -298,15 +299,15 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: 5,
-    backgroundColor: '#14b8a6',
+    backgroundColor: colors.brand,
     borderWidth: 1,
-    borderColor: '#2dd4bf',
+    borderColor: colors.brandBorder,
     borderRadius: 12,
     paddingHorizontal: 14,
     height: 42,
   },
   addBtnText: {
-    color: '#042f2e',
+    color: colors.brandDark,
     fontFamily: FONT.bold,
     fontSize: 12.5,
     includeFontPadding: false,
@@ -325,24 +326,24 @@ const styles = StyleSheet.create({
     height: 30,
     paddingHorizontal: 8,
     borderRadius: 8,
-    backgroundColor: '#141e30',
+    backgroundColor: colors.elevated,
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.08)',
+    borderColor: colors.borderSubtle,
     alignItems: 'center',
     justifyContent: 'center',
   },
   letterBtnActive: {
-    backgroundColor: '#14b8a6',
-    borderColor: '#2dd4bf',
+    backgroundColor: colors.brand,
+    borderColor: colors.brandBorder,
   },
   letterText: {
     fontFamily: FONT.bold,
-    color: '#cbd5e1',
+    color: colors.dim,
     fontSize: 11.5,
     includeFontPadding: false,
   },
   letterTextActive: {
-    color: '#042f2e',
+    color: colors.brandDark,
   },
   emptyWrap: {
     flex: 1,
@@ -352,10 +353,10 @@ const styles = StyleSheet.create({
     flexDirection: ROW,
     alignItems: 'center',
     gap: 12,
-    backgroundColor: '#141e30',
+    backgroundColor: colors.elevated,
     borderRadius: 14,
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.08)',
+    borderColor: colors.borderSubtle,
     padding: 10,
     marginBottom: 8,
   },
@@ -363,14 +364,14 @@ const styles = StyleSheet.create({
     width: 54,
     height: 68,
     borderRadius: 10,
-    backgroundColor: '#090d16',
+    backgroundColor: colors.deep,
   },
   infoCol: {
     flex: 1,
     gap: 2,
   },
   gameTitle: {
-    color: '#f8fafc',
+    color: colors.text,
     fontFamily: FONT.bold,
     fontSize: 14,
     textAlign: 'right',
@@ -378,7 +379,7 @@ const styles = StyleSheet.create({
     includeFontPadding: false,
   },
   gamePrice: {
-    color: '#2dd4bf',
+    color: colors.brandLight,
     fontFamily: FONT.bold,
     fontSize: 12,
     textAlign: 'right',
@@ -386,7 +387,7 @@ const styles = StyleSheet.create({
     includeFontPadding: false,
   },
   gameMeta: {
-    color: '#94a3b8',
+    color: colors.faint,
     fontFamily: FONT.regular,
     fontSize: 11,
     textAlign: 'right',
@@ -411,7 +412,7 @@ const styles = StyleSheet.create({
     borderColor: 'rgba(45,212,191,0.35)',
   },
   editBtnText: {
-    color: '#5eead4',
+    color: colors.brandLight,
     fontFamily: FONT.bold,
     fontSize: 11.5,
     includeFontPadding: false,
@@ -421,7 +422,7 @@ const styles = StyleSheet.create({
     borderColor: 'rgba(248,113,113,0.35)',
   },
   delBtnText: {
-    color: '#fca5a5',
+    color: colors.dangerText,
     fontFamily: FONT.bold,
     fontSize: 11.5,
     includeFontPadding: false,

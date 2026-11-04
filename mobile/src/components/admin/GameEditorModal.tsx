@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { colors } from '@/lib/colors';
 import { Pressable, ScrollView, Text, View } from 'react-native';
 import { CameraView, useCameraPermissions } from 'expo-camera';
 import ModalSheet from '@/components/ui/ModalSheet';
@@ -199,7 +200,7 @@ export default function GameEditorModal({
         automaticallyAdjustKeyboardInsets
       >
         <View style={{ gap: 10 }}>
-          <Text style={{ color: '#cbd5e1', fontFamily: FONT.bold, fontSize: 12, textAlign: 'right' }}>
+          <Text style={{ color: colors.dim, fontFamily: FONT.bold, fontSize: 12, textAlign: 'right' }}>
             المنصة / الفئة *
           </Text>
           <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 6 }}>
@@ -209,7 +210,6 @@ export default function GameEditorModal({
                 label={cat.name}
                 active={Number(categoryId) === Number(cat.id)}
                 onPress={() => setCategoryId(Number(cat.id))}
-                accent="#8a5cff"
               />
             ))}
           </ScrollView>
@@ -221,8 +221,8 @@ export default function GameEditorModal({
               onPress={() => void handleGeminiFill()}
               style={[toolBtn, { borderColor: 'rgba(45,212,191,0.45)', backgroundColor: 'rgba(20,184,166,0.12)', flex: 1 }]}
             >
-              <Icon name="sparkles" size={16} color="#2dd4bf" />
-              <Text style={{ color: '#2dd4bf', fontFamily: FONT.bold, fontSize: 12 }}>
+              <Icon name="sparkles" size={16} color="colors.brandLight" />
+              <Text style={{ color: colors.brandLight, fontFamily: FONT.bold, fontSize: 12 }}>
                 {busyAi ? 'جاري التحليل...' : 'تعبئة ذكية (Gemini)'}
               </Text>
             </Pressable>
@@ -239,8 +239,8 @@ export default function GameEditorModal({
               }}
               style={[toolBtn, { borderColor: 'rgba(45,212,191,0.45)', backgroundColor: 'rgba(20,184,166,0.12)', flex: 1 }]}
             >
-              <Icon name="camera" size={16} color="#2dd4bf" />
-              <Text style={{ color: '#2dd4bf', fontFamily: FONT.bold, fontSize: 12 }}>
+              <Icon name="camera" size={16} color="colors.brandLight" />
+              <Text style={{ color: colors.brandLight, fontFamily: FONT.bold, fontSize: 12 }}>
                 {busyUpload ? 'جاري الرفع...' : 'تصوير ورفع غلاف'}
               </Text>
             </Pressable>

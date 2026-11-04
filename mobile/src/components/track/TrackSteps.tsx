@@ -1,6 +1,7 @@
 import { Text, View } from 'react-native';
 import Icon from '@/components/ui/Icon';
 import { FONT } from '@/lib/fonts';
+import { colors } from '@/lib/colors';
 import { TRACK_STEPS, stepIndexFor, type OrderStatus } from '@/lib/statuses';
 
 /** مؤشر الخطوات الثلاث (تم الاستلام ← جاري التجهيز ← جاهز للاستلام) */
@@ -23,20 +24,20 @@ export default function TrackSteps({ status }: { status: OrderStatus }) {
                   alignItems: 'center',
                   justifyContent: 'center',
                   backgroundColor: stepDone
-                    ? '#14b8a6'
+                    ? colors.brand
                     : stepActive
-                      ? 'rgba(20,184,166,0.25)'
-                      : '#1b2b48',
+                      ? colors.brandSoft
+                      : colors.surfaceRaised,
                   borderWidth: 1.5,
-                  borderColor: stepDone || stepActive ? '#2dd4bf' : 'rgba(255,255,255,0.12)',
+                  borderColor: stepDone || stepActive ? colors.brandLight : colors.borderSubtle,
                 }}
               >
                 {stepDone ? (
-                  <Icon name="check" size={16} color="#ffffff" strokeWidth={2.5} />
+                  <Icon name="check" size={16} color={colors.brandDark} strokeWidth={2.5} />
                 ) : (
                   <Text
                     style={{
-                      color: stepActive ? '#2dd4bf' : '#94a3b8',
+                      color: stepActive ? colors.brandLight : colors.faint,
                       fontFamily: FONT.bold,
                       fontSize: 13,
                     }}
@@ -47,12 +48,14 @@ export default function TrackSteps({ status }: { status: OrderStatus }) {
               </View>
               <Text
                 style={{
-                  color: stepDone || stepActive ? '#f8fafc' : '#94a3b8',
+                  color: stepDone || stepActive ? colors.text : colors.faint,
                   fontFamily: FONT.bold,
-                  fontSize: 11,
+                  fontSize: 12,
+                  lineHeight: 18,
                   marginTop: 6,
                   textAlign: 'center',
                 }}
+                numberOfLines={2}
               >
                 {label}
               </Text>
@@ -62,7 +65,9 @@ export default function TrackSteps({ status }: { status: OrderStatus }) {
                 style={{
                   flex: 1,
                   height: 2,
-                  backgroundColor: index < done - 1 ? '#14b8a6' : '#1b2b48',
+                  /* الخط يمتد حتى العقدة الحالية لا قبلها — لا انقطاع في
+                     مؤشر الخطوات عند أكثر لحظة يهم فيها */
+                  backgroundColor: index < done ? colors.brand : colors.surfaceRaised,
                   marginHorizontal: 6,
                   marginBottom: 20,
                 }}

@@ -21,6 +21,7 @@ import { useAppStore } from '@/stores/app';
 import { estimateMinutes } from '@/lib/estimate';
 import { formatDinar } from '@/lib/money';
 import { formatInvoiceCode } from '@/components/ui/LtrText';
+import { colors } from '@/lib/colors';
 import { FONT } from '@/lib/fonts';
 import { showToast } from '@/lib/toast';
 import type { InvoiceItemInput } from '@/api/types';
@@ -53,6 +54,8 @@ export default function InvoiceFormModal({
   const [paidText, setPaidText] = useState(String(total));
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  /** يُفعِّل عرض خطأ حقل-بحقل بعد أول محاولة إرسال فقط (لا نغرِس المستخدم مبكراً) */
+  const [attempted, setAttempted] = useState(false);
 
   const discount = Math.max(0, Math.min(total, Number(discountText) || 0));
   const finalTotal = Math.max(0, total - discount);
@@ -74,9 +77,11 @@ export default function InvoiceFormModal({
         : Math.max(0, total - initDisc);
     setPaidText(String(initPaid));
     setError(null);
+    setAttempted(false);
   }, [visible, editingDraft, total]);
 
   const handleSave = async () => {
+    setAttempted(true);
     if (!name.trim() || !phone.trim()) {
       setError('يرجى إدخال اسم العميل ورقم الهاتف');
       return;
@@ -157,18 +162,18 @@ export default function InvoiceFormModal({
               flexDirection: 'row',
               alignItems: 'center',
               justifyContent: 'space-between',
-              backgroundColor: 'rgba(20,184,166,0.12)',
-              borderColor: 'rgba(45,212,191,0.35)',
+              backgroundColor: colors.brandSoft,
+              borderColor: colors.brandBorder,
               borderWidth: 1,
               borderRadius: 12,
               paddingVertical: 9,
               paddingHorizontal: 12,
             }}
           >
-            <Text style={{ color: '#5eead4', fontFamily: FONT.bold, fontSize: 12.5 }}>
+            <Text style={{ color: colors.brandBright, fontFamily: FONT.bold, fontSize: 12.5 }}>
               {items.length} {items.length === 1 ? 'بند' : 'بنود'} في الفاتورة
             </Text>
-            <Text style={{ color: '#2dd4bf', fontFamily: FONT.bold, fontSize: 13 }}>
+            <Text style={{ color: colors.brandLight, fontFamily: FONT.bold, fontSize: 13 }}>
               {formatDinar(total)}
             </Text>
           </View>
@@ -179,6 +184,7 @@ export default function InvoiceFormModal({
             placeholder="أدخل الاسم الكامل"
             value={name}
             icon="user"
+            error={attempted && !name.trim() ? 'الاسم مطلوب' : null}
             onChangeText={setName}
           />
           <AppInput
@@ -187,12 +193,14 @@ export default function InvoiceFormModal({
             keyboard="phone-pad"
             icon="phone"
             value={phone}
+            error={attempted && !phone.trim() ? 'رقم الهاتف مطلوب' : null}
             onChangeText={setPhone}
           />
           <AppInput
             label="ملاحظات (اختياري)"
             placeholder="أي ملاحظات على الطلب..."
             value={notes}
+            multiline
             onChangeText={setNotes}
           />
 
@@ -222,24 +230,22 @@ export default function InvoiceFormModal({
             </View>
           </View>
 
-          {/* أزرار الدفع السريع: الكل / نصف / آجل */}
+          {/* أزرار الدفع السريع: الكل / نصف / آجل — الأكتف يميّز الاختيار،
+              والتسمية هي من تحمل المعنى (لا لون لكل خيار) */}
           <View style={{ flexDirection: 'row', gap: 8 }}>
             <QuickPayBtn
               label="الكل (خالص)"
               active={paidAmount === finalTotal}
-              color="#16a34a"
               onPress={() => setPaidText(String(finalTotal))}
             />
             <QuickPayBtn
               label="نصف القيمة"
               active={paidAmount === finalTotal / 2 && finalTotal > 0}
-              color="#14b8a6"
               onPress={() => setPaidText(String(finalTotal / 2))}
             />
             <QuickPayBtn
               label="آجل (0)"
               active={paidAmount === 0}
-              color="#d97706"
               onPress={() => setPaidText('0')}
             />
           </View>
@@ -247,10 +253,10 @@ export default function InvoiceFormModal({
           {/* ملخص الأرقام */}
           <View
             style={{
-              backgroundColor: '#0f1829',
+              backgroundColor: colors.elevatedRaised,
               borderRadius: 12,
               borderWidth: 1,
-              borderColor: 'rgba(255,255,255,0.08)',
+              borderColor: colors.borderSubtle,
               padding: 12,
               gap: 6,
             }}
@@ -264,7 +270,7 @@ export default function InvoiceFormModal({
           </View>
 
           {error ? (
-            <AppText style={{ color: '#f87171', fontFamily: FONT.medium }}>{error}</AppText>
+            <AppText style={{ color: colors.dangerStrong, fontFamily: FONT.medium }}>{error}</AppText>
           ) : null}
 
           <AppButton
@@ -282,30 +288,32 @@ export default function InvoiceFormModal({
 function QuickPayBtn({
   label,
   active,
-  color,
   onPress,
 }: {
   label: string;
   active: boolean;
-  color: string;
   onPress: () => void;
 }) {
   return (
     <ScalePressable
       onPress={onPress}
+      accessibilityRole="button"
+      accessibilityState={{ selected: active }}
       style={{
         flex: 1,
-        backgroundColor: active ? color : '#1b2b48',
+        minHeight: 44,
+        justifyContent: 'center',
+        backgroundColor: active ? colors.brand : colors.surfaceRaised,
         borderRadius: 10,
         borderWidth: 1,
-        borderColor: active ? 'rgba(255,255,255,0.35)' : 'rgba(255,255,255,0.1)',
+        borderColor: active ? colors.brandBorder : colors.borderSubtle,
         paddingVertical: 9,
         alignItems: 'center',
       }}
     >
       <Text
         style={{
-          color: '#ffffff',
+          color: active ? colors.brandDark : colors.text,
           fontFamily: FONT.bold,
           fontSize: 12,
         }}
@@ -349,7 +357,7 @@ function SummaryLine({
       <Text style={{ color: '#cbd5e1', fontFamily: FONT.regular, fontSize: 12 }}>{label}</Text>
       <Text
         style={{
-          color: warn ? '#fbbf24' : highlight ? '#2dd4bf' : '#f8fafc',
+          color: warn ? colors.warningText : highlight ? colors.brandLight : colors.text,
           fontFamily: FONT.bold,
           fontSize: 13,
         }}

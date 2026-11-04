@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { colors } from '@/lib/colors';
 import { Pressable, ScrollView, Text, TextInput, View } from 'react-native';
 import { useQuery } from '@tanstack/react-query';
 import ModalSheet from '@/components/ui/ModalSheet';
@@ -117,7 +118,7 @@ export default function PackageEditorModal({
             onChangeText={setPriceText}
           />
 
-          <Text style={{ color: '#94a3b8', fontFamily: FONT.bold, fontSize: 12 }}>الفئة</Text>
+          <Text style={{ color: colors.faint, fontFamily: FONT.bold, fontSize: 12 }}>الفئة</Text>
           <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 6 }}>
             {categories.map((c) => (
               <Chip
@@ -125,7 +126,6 @@ export default function PackageEditorModal({
                 label={c.name}
                 active={Number(categoryId) === Number(c.id)}
                 onPress={() => setCategoryId(Number(c.id))}
-                accent="#8a5cff"
               />
             ))}
           </ScrollView>
@@ -139,33 +139,33 @@ export default function PackageEditorModal({
                 width: 22,
                 height: 22,
                 borderRadius: 6,
-                backgroundColor: isActive ? '#22c55e' : '#1b2740',
+                backgroundColor: isActive ? colors.success : colors.surfaceRaised,
                 alignItems: 'center',
                 justifyContent: 'center',
               }}
             >
-              <Text style={{ color: '#062b27', fontFamily: FONT.bold }}>
+              <Text style={{ color: colors.brandDark, fontFamily: FONT.bold }}>
                 {isActive ? '✓' : ''}
               </Text>
             </View>
-            <Text style={{ color: '#f1f5f9', fontFamily: FONT.medium }}>الباقة نشطة وظاهرة في المتجر</Text>
+            <Text style={{ color: colors.text, fontFamily: FONT.medium }}>الباقة نشطة وظاهرة في المتجر</Text>
           </Pressable>
 
-          <Text style={{ color: '#94a3b8', fontFamily: FONT.bold, fontSize: 12 }}>
+          <Text style={{ color: colors.faint, fontFamily: FONT.bold, fontSize: 12 }}>
             ألعاب الباقة المختارة ({selectedIds.length})
           </Text>
           <TextInput
             value={searchQ}
             onChangeText={setSearchQ}
             placeholder="ابحث داخل ألعاب الفئة..."
-            placeholderTextColor="#94a3b8"
+            placeholderTextColor="colors.faint"
             textAlign="right"
             style={{
-              backgroundColor: '#0b1220',
+              backgroundColor: colors.surfaceInset,
               borderRadius: 8,
               borderWidth: 1,
-              borderColor: 'rgba(255,255,255,0.08)',
-              color: '#f1f5f9',
+              borderColor: colors.borderSubtle,
+              color: colors.text,
               fontFamily: FONT.regular,
               paddingHorizontal: 10,
               paddingVertical: 6,
@@ -184,7 +184,7 @@ export default function PackageEditorModal({
                       flexDirection: 'row',
                       justifyContent: 'space-between',
                       alignItems: 'center',
-                      backgroundColor: chosen ? 'rgba(20,184,166,0.18)' : '#0b1220',
+                      backgroundColor: chosen ? colors.brandSoft : colors.surfaceInset,
                       borderRadius: 8,
                       paddingHorizontal: 10,
                       paddingVertical: 7,
@@ -195,14 +195,14 @@ export default function PackageEditorModal({
                       numberOfLines={1}
                       style={{
                         flex: 1,
-                        color: chosen ? '#2dd4bf' : '#f1f5f9',
+                        color: chosen ? colors.brandLight : colors.text,
                         fontFamily: chosen ? FONT.bold : FONT.regular,
                         fontSize: 12,
                       }}
                     >
                       {g.title}
                     </Text>
-                    <Text style={{ color: chosen ? '#2dd4bf' : '#94a3b8', fontFamily: FONT.bold }}>
+                    <Text style={{ color: chosen ? colors.brandLight : colors.faint, fontFamily: FONT.bold }}>
                       {chosen ? '✓ مضافة' : '+'}
                     </Text>
                   </Pressable>

@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { colors } from '@/lib/colors';
 import { Pressable, ScrollView, Text, View } from 'react-native';
 import { useQuery } from '@tanstack/react-query';
 import {
@@ -102,7 +103,7 @@ export default function UsersBranchesSection({ mode }: Props) {
     return (
       <View style={{ gap: 10 }}>
         <View style={card}>
-          <Text style={{ color: '#f8fafc', fontFamily: FONT.bold, fontSize: 15, textAlign: 'right' }}>
+          <Text style={{ color: colors.text, fontFamily: FONT.bold, fontSize: 15, textAlign: 'right' }}>
             إضافة مستخدم جديد
           </Text>
           <AppInput label="اسم المستخدم *" placeholder="staff2" value={username} onChangeText={setUsername} />
@@ -134,10 +135,10 @@ export default function UsersBranchesSection({ mode }: Props) {
         {(usersQ.data ?? []).map((u) => (
           <View key={u.id} style={[card, { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }]}>
             <View style={{ flex: 1 }}>
-              <Text style={{ color: '#f8fafc', fontFamily: FONT.bold, fontSize: 14, textAlign: 'right' }}>
+              <Text style={{ color: colors.text, fontFamily: FONT.bold, fontSize: 14, textAlign: 'right' }}>
                 {u.full_name || u.username} (@{u.username})
               </Text>
-              <Text style={{ color: '#94a3b8', fontFamily: FONT.regular, fontSize: 12, textAlign: 'right' }}>
+              <Text style={{ color: colors.faint, fontFamily: FONT.regular, fontSize: 12, textAlign: 'right' }}>
                 الدور: {u.role === 'admin' ? 'مدير' : 'موظف'} • فرع #{u.branch_id ?? 1}{' '}
                 {u.is_active === 0 ? '• معطّل' : ''}
               </Text>
@@ -156,7 +157,7 @@ export default function UsersBranchesSection({ mode }: Props) {
                   }}
                   style={actBtn('#f59e0b')}
                 >
-                  <Text style={{ color: '#fbbf24', fontFamily: FONT.bold, fontSize: 11 }}>
+                  <Text style={{ color: colors.warningText, fontFamily: FONT.bold, fontSize: 11 }}>
                     {u.is_active ? 'تعطيل' : 'تفعيل'}
                   </Text>
                 </Pressable>
@@ -172,7 +173,7 @@ export default function UsersBranchesSection({ mode }: Props) {
                   }}
                   style={actBtn('#ef4444')}
                 >
-                  <Text style={{ color: '#fca5a5', fontFamily: FONT.bold, fontSize: 11 }}>إيقاف</Text>
+                  <Text style={{ color: colors.dangerText, fontFamily: FONT.bold, fontSize: 11 }}>إيقاف</Text>
                 </Pressable>
               </View>
             ) : null}
@@ -185,7 +186,7 @@ export default function UsersBranchesSection({ mode }: Props) {
   return (
     <View style={{ gap: 10 }}>
       <View style={card}>
-        <Text style={{ color: '#f8fafc', fontFamily: FONT.bold, fontSize: 15, textAlign: 'right' }}>
+        <Text style={{ color: colors.text, fontFamily: FONT.bold, fontSize: 15, textAlign: 'right' }}>
           إضافة فرع جديد
         </Text>
         <AppInput label="اسم الفرع *" placeholder="فرع وسط البلاد" value={branchName} onChangeText={setBranchName} />
@@ -203,18 +204,18 @@ export default function UsersBranchesSection({ mode }: Props) {
       {(branchesQ.data ?? []).map((b) => (
         <View key={b.id} style={[card, { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }]}>
           <View style={{ flex: 1 }}>
-            <Text style={{ color: '#f8fafc', fontFamily: FONT.bold, fontSize: 14, textAlign: 'right' }}>
+            <Text style={{ color: colors.text, fontFamily: FONT.bold, fontSize: 14, textAlign: 'right' }}>
               {b.name} {b.is_main ? '• رئيسي' : ''} {!b.is_active ? '• متوقف' : ''}
             </Text>
             {b.address ? (
-              <Text style={{ color: '#94a3b8', fontFamily: FONT.regular, fontSize: 12, textAlign: 'right' }}>
+              <Text style={{ color: colors.faint, fontFamily: FONT.regular, fontSize: 12, textAlign: 'right' }}>
                 {b.address}
               </Text>
             ) : null}
             {b.phone ? (
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5, marginTop: 2 }}>
                 <Icon name="phone" size={13} color="#2dd4bf" />
-                <Text style={{ color: '#2dd4bf', fontFamily: FONT.medium, fontSize: 12 }}>
+                <Text style={{ color: colors.brandLight, fontFamily: FONT.medium, fontSize: 12 }}>
                   {b.phone}
                 </Text>
               </View>
@@ -234,7 +235,7 @@ export default function UsersBranchesSection({ mode }: Props) {
                 }}
                 style={actBtn('#f59e0b')}
               >
-                <Text style={{ color: '#fbbf24', fontFamily: FONT.bold, fontSize: 11 }}>
+                <Text style={{ color: colors.warningText, fontFamily: FONT.bold, fontSize: 11 }}>
                   {b.is_active ? 'إيقاف' : 'تفعيل'}
                 </Text>
               </Pressable>
@@ -250,7 +251,7 @@ export default function UsersBranchesSection({ mode }: Props) {
                 }}
                 style={actBtn('#ef4444')}
               >
-                <Text style={{ color: '#fca5a5', fontFamily: FONT.bold, fontSize: 11 }}>حذف</Text>
+                <Text style={{ color: colors.dangerText, fontFamily: FONT.bold, fontSize: 11 }}>حذف</Text>
               </Pressable>
             </View>
           ) : null}
@@ -261,7 +262,7 @@ export default function UsersBranchesSection({ mode }: Props) {
 }
 
 const card = {
-  backgroundColor: '#141e30',
+  backgroundColor: colors.elevated,
   borderRadius: 14,
   borderWidth: 1,
   borderColor: 'rgba(255,255,255,0.08)',
@@ -271,7 +272,7 @@ const card = {
 
 const actBtn = (color: string) =>
   ({
-    backgroundColor: '#0b1220',
+    backgroundColor: colors.surfaceInset,
     borderWidth: 1,
     borderColor: color,
     borderRadius: 8,

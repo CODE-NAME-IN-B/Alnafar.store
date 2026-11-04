@@ -23,6 +23,7 @@ import Icon from '@/components/ui/Icon';
 import KeyboardScroll from '@/components/ui/KeyboardScroll';
 import { EmptyState, ErrorState, LoadingState } from '@/components/ui/StateView';
 import { FONT } from '@/lib/fonts';
+import { colors } from '@/lib/colors';
 import { formatDinar } from '@/lib/money';
 import { showToast } from '@/lib/toast';
 import { ROW } from '@/lib/rtl';
@@ -133,7 +134,7 @@ export default function AdminCatalogScreen() {
                       <View style={styles.btnGroup}>
                         <SmallBtn
                           label="تعديل"
-                          color="#2dd4bf"
+                          color="colors.brandLight"
                           onPress={() => {
                             setEditingPkg(pkg);
                             setPkgModalOpen(true);
@@ -141,7 +142,7 @@ export default function AdminCatalogScreen() {
                         />
                         <SmallBtn
                           label="حذف"
-                          color="#fca5a5"
+                          color="colors.dangerText"
                           onPress={() =>
                             void runAction(() => deletePackage(pkg.id), 'حُذفت الباقة')
                           }
@@ -180,7 +181,7 @@ export default function AdminCatalogScreen() {
                 value={newCatName}
                 onChangeText={setNewCatName}
                 placeholder="اسم تصنيف جديد (مثل PS5)..."
-                placeholderTextColor="#94a3b8"
+                placeholderTextColor="colors.faint"
                 textAlign="right"
                 style={[styles.inputBox, styles.flex1]}
               />
@@ -195,7 +196,7 @@ export default function AdminCatalogScreen() {
                 }}
                 style={styles.addBtn}
               >
-                <Icon name="plus" size={16} color="#042f2e" strokeWidth={2.4} />
+                <Icon name="plus" size={16} color="colors.brandDark" strokeWidth={2.4} />
                 <Text style={styles.addBtnText}>إضافة</Text>
               </Pressable>
             </View>
@@ -212,7 +213,7 @@ export default function AdminCatalogScreen() {
                 <View style={styles.btnGroup}>
                   <SmallBtn
                     label={cat.is_visible ? 'إخفاء' : 'إظهار'}
-                    color="#fbbf24"
+                    color="colors.warningText"
                     onPress={() =>
                       void runAction(
                         () => updateCategory(cat.id, { is_visible: !cat.is_visible }),
@@ -222,7 +223,7 @@ export default function AdminCatalogScreen() {
                   />
                   <SmallBtn
                     label="حذف"
-                    color="#fca5a5"
+                    color="colors.dangerText"
                     onPress={() =>
                       void runAction(() => deleteCategory(cat.id), 'حُذف التصنيف')
                     }
@@ -240,7 +241,7 @@ export default function AdminCatalogScreen() {
                 value={newSvcTitle}
                 onChangeText={setNewSvcTitle}
                 placeholder="عنوان الخدمة..."
-                placeholderTextColor="#94a3b8"
+                placeholderTextColor="colors.faint"
                 textAlign="right"
                 style={[styles.inputBox, { flex: 2 }]}
               />
@@ -248,7 +249,7 @@ export default function AdminCatalogScreen() {
                 value={newSvcPrice}
                 onChangeText={setNewSvcPrice}
                 placeholder="السعر"
-                placeholderTextColor="#94a3b8"
+                placeholderTextColor="colors.faint"
                 keyboardType="numeric"
                 textAlign="right"
                 style={[styles.inputBox, styles.flex1]}
@@ -266,7 +267,7 @@ export default function AdminCatalogScreen() {
                 }}
                 style={styles.addBtn}
               >
-                <Icon name="plus" size={16} color="#042f2e" strokeWidth={2.4} />
+                <Icon name="plus" size={16} color="colors.brandDark" strokeWidth={2.4} />
                 <Text style={styles.addBtnText}>إضافة</Text>
               </Pressable>
             </View>
@@ -288,7 +289,7 @@ export default function AdminCatalogScreen() {
                 <View style={styles.btnGroup}>
                   <SmallBtn
                     label={svc.is_active ? 'تعطيل' : 'تفعيل'}
-                    color="#fbbf24"
+                    color="colors.warningText"
                     onPress={() =>
                       void runAction(
                         () => updateService(svc.id, { is_active: !svc.is_active }),
@@ -298,7 +299,7 @@ export default function AdminCatalogScreen() {
                   />
                   <SmallBtn
                     label="حذف"
-                    color="#fca5a5"
+                    color="colors.dangerText"
                     onPress={() =>
                       void runAction(() => deleteService(svc.id), 'حُذفت الخدمة')
                     }
@@ -361,24 +362,24 @@ function SmallBtn({
 const styles = StyleSheet.create({
   screen: {
     flex: 1,
-    backgroundColor: '#090d16',
+    backgroundColor: colors.deep,
   },
   flex1: { flex: 1 },
   tabsHeader: {
     padding: 12,
-    backgroundColor: '#0f172a',
+    backgroundColor: colors.base,
     borderBottomWidth: 1,
-    borderBottomColor: 'rgba(255, 255, 255, 0.08)',
+    borderBottomColor: colors.borderSubtle,
   },
   tabsScroll: {
     flexDirection: ROW,
     gap: 8,
   },
   pkgCard: {
-    backgroundColor: '#141e30',
+    backgroundColor: colors.elevated,
     borderRadius: 15,
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.08)',
+    borderColor: colors.borderSubtle,
     padding: 14,
     gap: 10,
   },
@@ -392,15 +393,15 @@ const styles = StyleSheet.create({
     flexDirection: ROW,
     alignItems: 'center',
     justifyContent: 'space-between',
-    backgroundColor: '#141e30',
+    backgroundColor: colors.elevated,
     borderRadius: 14,
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.08)',
+    borderColor: colors.borderSubtle,
     padding: 14,
     gap: 8,
   },
   cardTitle: {
-    color: '#f8fafc',
+    color: colors.text,
     fontFamily: FONT.bold,
     fontSize: 15,
     textAlign: 'right',
@@ -408,7 +409,7 @@ const styles = StyleSheet.create({
     includeFontPadding: false,
   },
   pkgPrice: {
-    color: '#2dd4bf',
+    color: colors.brandLight,
     fontFamily: FONT.bold,
     fontSize: 12.5,
     textAlign: 'right',
@@ -417,7 +418,7 @@ const styles = StyleSheet.create({
     includeFontPadding: false,
   },
   svcPrice: {
-    color: '#2dd4bf',
+    color: colors.brandLight,
     fontFamily: FONT.bold,
     fontSize: 12.5,
     textAlign: 'right',
@@ -430,21 +431,21 @@ const styles = StyleSheet.create({
     flexWrap: 'wrap',
     gap: 6,
     borderTopWidth: 1,
-    borderTopColor: 'rgba(255, 255, 255, 0.08)',
+    borderTopColor: colors.borderSubtle,
     paddingTop: 8,
   },
   gameTag: {
-    backgroundColor: '#0b1220',
+    backgroundColor: colors.surfaceInset,
     borderRadius: 8,
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.08)',
+    borderColor: colors.borderSubtle,
     paddingHorizontal: 8,
     paddingVertical: 4,
     maxWidth: 160,
   },
   gameTagText: {
     fontFamily: FONT.medium,
-    color: '#cbd5e1',
+    color: colors.dim,
     fontSize: 11,
     includeFontPadding: false,
   },
@@ -453,7 +454,7 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   smallBtn: {
-    backgroundColor: '#0b1220',
+    backgroundColor: colors.surfaceInset,
     borderWidth: 1,
     borderRadius: 9,
     paddingHorizontal: 11,
@@ -469,11 +470,11 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   inputBox: {
-    backgroundColor: '#141e30',
+    backgroundColor: colors.elevated,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.08)',
-    color: '#f8fafc',
+    borderColor: colors.borderSubtle,
+    color: colors.text,
     fontFamily: FONT.medium,
     paddingHorizontal: 12,
     paddingVertical: 9,
@@ -485,14 +486,14 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: 5,
-    backgroundColor: '#14b8a6',
+    backgroundColor: colors.brand,
     borderWidth: 1,
-    borderColor: '#2dd4bf',
+    borderColor: colors.brandBorder,
     borderRadius: 12,
     paddingHorizontal: 14,
   },
   addBtnText: {
-    color: '#042f2e',
+    color: colors.brandDark,
     fontFamily: FONT.bold,
     fontSize: 13,
     includeFontPadding: false,

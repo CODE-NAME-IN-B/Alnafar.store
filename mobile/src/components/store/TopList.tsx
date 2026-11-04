@@ -12,6 +12,7 @@ import { formatDinar } from '@/lib/money';
 import { mainPriceOf } from '@/lib/gamePrices';
 import Icon from '@/components/ui/Icon';
 import { FONT } from '@/lib/fonts';
+import { colors } from '@/lib/colors';
 import { ROW } from '@/lib/rtl';
 
 interface Props {
@@ -31,7 +32,7 @@ export default function TopList({ items, onSelect }: Props) {
           </View>
           <Text style={styles.heading}>الأكثر طلباً</Text>
         </View>
-        <Text style={styles.subHeading}>أعلى الألعاب مبيعاً</Text>
+        <Text style={styles.subHeading}>اضغط للإضافة للسلة</Text>
       </View>
       <FlatList
         data={items}
@@ -52,7 +53,7 @@ export default function TopList({ items, onSelect }: Props) {
                 />
               ) : (
                 <View style={styles.thumbFallback}>
-                  <Icon name="gamepad" size={20} color="#475569" />
+                  <Icon name="gamepad" size={20} color={colors.faint} />
                 </View>
               )}
               <View style={[styles.rankBadge, index < 3 && styles.rankBadgeTop]}>
@@ -191,7 +192,7 @@ const styles = StyleSheet.create({
   },
   price: {
     fontFamily: FONT.bold,
-    color: '#2dd4bf',
+    color: colors.text,
     fontSize: 12,
     includeFontPadding: false,
   },

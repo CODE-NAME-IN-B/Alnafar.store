@@ -13,6 +13,7 @@ import {
 } from '@/lib/arabic';
 import { hasSplitScreen } from '@/components/GameCard';
 import { FONT } from '@/lib/fonts';
+import { colors } from '@/lib/colors';
 import { ROW } from '@/lib/rtl';
 
 export interface StoreFilters {
@@ -237,16 +238,16 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   splitActive: {
-    backgroundColor: '#042f2e',
-    borderColor: '#14b8a6',
+    backgroundColor: colors.brandDark,
+    borderColor: colors.brand,
   },
   splitIdle: {
-    backgroundColor: '#0b1220',
-    borderColor: 'rgba(255, 255, 255, 0.1)',
+    backgroundColor: colors.surfaceInset,
+    borderColor: colors.borderSubtle,
   },
   splitLabel: {
     fontFamily: FONT.bold,
-    color: '#f8fafc',
+    color: colors.text,
     fontSize: 13,
     includeFontPadding: false,
   },
@@ -259,14 +260,14 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   checkboxOn: {
-    backgroundColor: '#14b8a6',
-    borderColor: '#5eead4',
+    backgroundColor: colors.brand,
+    borderColor: colors.brandBorder,
   },
   checkboxOff: {
-    borderColor: '#475569',
+    borderColor: colors.faint,
   },
   check: {
-    color: '#042f2e',
+    color: colors.brandDark,
     fontSize: 12,
     fontFamily: FONT.bold,
   },
@@ -275,7 +276,7 @@ const styles = StyleSheet.create({
   },
   sectionTitle: {
     fontFamily: FONT.bold,
-    color: '#cbd5e1',
+    color: colors.dim,
     fontSize: 12,
     marginBottom: 8,
     textAlign: 'right',
@@ -290,31 +291,31 @@ const styles = StyleSheet.create({
   letterGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 6,
+    gap: 8,
   },
   letterBtn: {
-    width: 36,
-    height: 36,
+    width: 42,
+    height: 42,
     borderRadius: 10,
     borderWidth: 1,
     alignItems: 'center',
     justifyContent: 'center',
   },
   letterOn: {
-    backgroundColor: '#14b8a6',
-    borderColor: '#5eead4',
+    backgroundColor: colors.brand,
+    borderColor: colors.brandBorder,
   },
   letterOff: {
-    backgroundColor: '#0b1220',
-    borderColor: 'rgba(255, 255, 255, 0.1)',
+    backgroundColor: colors.surfaceInset,
+    borderColor: colors.borderSubtle,
   },
   letterText: {
     fontSize: 13,
     fontFamily: FONT.bold,
     includeFontPadding: false,
   },
-  letterTextOn: { color: '#042f2e' },
-  letterTextOff: { color: '#e2e8f0' },
+  letterTextOn: { color: colors.brandDark },
+  letterTextOff: { color: colors.text },
   footerRow: {
     flexDirection: ROW,
     gap: 8,

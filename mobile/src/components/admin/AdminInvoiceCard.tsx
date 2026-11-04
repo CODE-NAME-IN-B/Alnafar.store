@@ -2,6 +2,7 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { parseInvoiceItems, type InvoiceRecord } from '@/api/invoices';
 import Icon, { type IconName } from '@/components/ui/Icon';
 import { FONT } from '@/lib/fonts';
+import { colors } from '@/lib/colors';
 import { formatDinar } from '@/lib/money';
 import { statusLabel } from '@/lib/statuses';
 import { formatArabicDate, formatInvoiceCode, LtrText } from '@/components/ui/LtrText';
@@ -40,7 +41,7 @@ export default function AdminInvoiceCard({
   return (
     <View style={styles.card}>
       {/* شريط الحالة: كهرماني للآجل، أخضر للمدفوعة */}
-      <View style={[styles.statusStrip, { backgroundColor: unpaid ? '#f59e0b' : '#22c55e' }]} />
+      <View style={[styles.statusStrip, { backgroundColor: unpaid ? colors.warning : colors.success }]} />
 
       {/* الرأس: رقم الفاتورة + شارة الترحيل + المبلغ */}
       <View style={styles.headerRow}>
@@ -58,7 +59,7 @@ export default function AdminInvoiceCard({
       </View>
 
       {/* بيانات العميل */}
-      <Text style={styles.customerText}>
+      <Text numberOfLines={1} style={styles.customerText}>
         {inv.customer_name || 'عميل نقدي'}
         {inv.customer_phone ? ` • ${inv.customer_phone}` : ''}
       </Text>
@@ -73,7 +74,7 @@ export default function AdminInvoiceCard({
         <Text
           style={[
             styles.statusText,
-            { color: unpaid ? '#fbbf24' : '#4ade80' },
+            { color: unpaid ? colors.warningText : colors.successBright },
           ]}
         >
           {unpaid ? `المتبقي: ${formatDinar(rem)}` : 'مدفوعة بالكامل'} (
@@ -91,7 +92,7 @@ export default function AdminInvoiceCard({
             accessibilityRole="button"
             accessibilityLabel={`تسديد المتبقي ${formatDinar(rem)}`}
           >
-            <Icon name="cash" size={14} color="#042f2e" />
+            <Icon name="cash" size={14} color={colors.brandDark} />
             <Text numberOfLines={1} style={styles.primaryText}>
               تسديد المتبقي
             </Text>
@@ -103,7 +104,7 @@ export default function AdminInvoiceCard({
             accessibilityRole="button"
             accessibilityLabel="طباعة الفاتورة أو عرض QR"
           >
-            <Icon name="printer" size={14} color="#042f2e" />
+            <Icon name="printer" size={14} color={colors.brandDark} />
             <Text numberOfLines={1} style={styles.primaryText}>
               طباعة / QR
             </Text>
@@ -117,7 +118,7 @@ export default function AdminInvoiceCard({
             accessibilityRole="button"
             accessibilityLabel="عرض الفاتورة ورمز QR"
           >
-            <Icon name="printer" size={13} color="#2dd4bf" />
+            <Icon name="printer" size={13} color={colors.brandLight} />
             <Text numberOfLines={1} style={styles.softChipText}>
               طباعة / QR
             </Text>
@@ -129,8 +130,8 @@ export default function AdminInvoiceCard({
             accessibilityRole="button"
             accessibilityLabel="إرجاع الفاتورة إلى غير مدفوعة"
           >
-            <Icon name="undo" size={13} color="#fbbf24" />
-            <Text numberOfLines={1} style={[styles.softChipText, { color: '#fbbf24' }]}>
+            <Icon name="undo" size={13} color={colors.warningText} />
+            <Text numberOfLines={1} style={[styles.softChipText, { color: colors.warningText }]}>
               إرجاع آجل
             </Text>
           </Pressable>
@@ -164,17 +165,17 @@ function IconButton({
       hitSlop={4}
       style={[styles.iconBtn, danger ? styles.iconBtnDanger : null]}
     >
-      <Icon name={icon} size={15} color={danger ? '#fca5a5' : '#94a3b8'} />
+      <Icon name={icon} size={15} color={danger ? colors.dangerText : colors.faint} />
     </Pressable>
   );
 }
 
 const styles = StyleSheet.create({
   card: {
-    backgroundColor: '#141e30',
+    backgroundColor: colors.elevated,
     borderRadius: 16,
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.08)',
+    borderColor: colors.borderSubtle,
     overflow: 'hidden',
     paddingVertical: 12,
     paddingHorizontal: 14,
@@ -201,7 +202,7 @@ const styles = StyleSheet.create({
     flexShrink: 1,
   },
   invoiceNum: {
-    color: '#f8fafc',
+    color: colors.text,
     fontFamily: FONT.bold,
     fontSize: 14.5,
     includeFontPadding: false,
@@ -215,20 +216,20 @@ const styles = StyleSheet.create({
     borderColor: 'rgba(245,158,11,0.35)',
   },
   carriedText: {
-    color: '#fbbf24',
+    color: colors.warningText,
     fontFamily: FONT.bold,
     fontSize: 10.5,
     includeFontPadding: false,
   },
   totalAmount: {
-    color: '#2dd4bf',
+    color: colors.text,
     fontFamily: FONT.bold,
     fontSize: 16,
     flexShrink: 0,
     includeFontPadding: false,
   },
   customerText: {
-    color: '#f1f5f9',
+    color: colors.text,
     fontFamily: FONT.bold,
     fontSize: 13,
     textAlign: 'right',
@@ -236,7 +237,7 @@ const styles = StyleSheet.create({
     includeFontPadding: false,
   },
   itemsText: {
-    color: '#94a3b8',
+    color: colors.faint,
     fontFamily: FONT.regular,
     fontSize: 11.5,
     textAlign: 'right',
@@ -258,7 +259,7 @@ const styles = StyleSheet.create({
     flexShrink: 1,
   },
   dateText: {
-    color: '#94a3b8',
+    color: colors.faint,
     fontFamily: FONT.medium,
     fontSize: 11,
     flexShrink: 0,
@@ -276,15 +277,15 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: 6,
-    backgroundColor: '#14b8a6',
+    backgroundColor: colors.brand,
     borderWidth: 1,
-    borderColor: '#2dd4bf',
+    borderColor: colors.brandBorder,
     borderRadius: 12,
     paddingVertical: 9,
     paddingHorizontal: 10,
   },
   primaryText: {
-    color: '#042f2e',
+    color: colors.brandDark,
     fontFamily: FONT.bold,
     fontSize: 12,
     includeFontPadding: false,
@@ -314,7 +315,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
   },
   softChipText: {
-    color: '#2dd4bf',
+    color: colors.text,
     fontFamily: FONT.bold,
     fontSize: 12,
     includeFontPadding: false,
@@ -327,7 +328,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     backgroundColor: 'rgba(255,255,255,0.04)',
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.1)',
+    borderColor: colors.borderSubtle,
   },
   iconBtnDanger: {
     backgroundColor: 'rgba(239,68,68,0.12)',

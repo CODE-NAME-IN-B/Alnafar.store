@@ -4,16 +4,17 @@ import Icon from '@/components/ui/Icon';
 import { EmptyState } from '@/components/ui/StateView';
 import TrackSteps from './TrackSteps';
 import { FONT } from '@/lib/fonts';
+import { colors } from '@/lib/colors';
 import { formatDinar } from '@/lib/money';
 import { statusLabel, type OrderStatus } from '@/lib/statuses';
 import { estimateMinutes } from '@/lib/estimate';
 import type { TrackedOrder } from '@/api/types';
 
 const card = {
-  backgroundColor: '#141e30',
+  backgroundColor: colors.elevated,
   borderRadius: 16,
   borderWidth: 1,
-  borderColor: 'rgba(255,255,255,0.1)',
+  borderColor: colors.borderSubtle,
   padding: 16,
 } as const;
 
@@ -33,11 +34,11 @@ export function StatusCard({
     : settled
       ? 'rgba(20,184,166,0.16)'
       : 'rgba(245,158,11,0.16)';
-  const fg = bad ? '#fca5a5' : settled ? '#2dd4bf' : '#fbbf24';
+  const fg = bad ? colors.dangerText : settled ? colors.brandLight : colors.warningText;
 
   return (
     <View style={card}>
-      <AppText style={{ color: '#cbd5e1', fontFamily: FONT.medium, fontSize: 13 }}>
+      <AppText style={{ color: colors.dim, fontFamily: FONT.medium, fontSize: 13 }}>
         رقم الفاتورة / الطلب
       </AppText>
       <View
@@ -48,7 +49,7 @@ export function StatusCard({
           marginTop: 4,
         }}
       >
-        <AppText style={{ color: '#f8fafc', fontFamily: FONT.bold, fontSize: 22, flex: 1 }}>
+        <AppText style={{ color: colors.text, fontFamily: FONT.bold, fontSize: 22, flex: 1 }}>
           #{data.invoice_number}
         </AppText>
         <View
@@ -68,7 +69,7 @@ export function StatusCard({
       {data.estimatedMinutes ? (
         <AppText
           style={{
-            color: '#fbbf24',
+            color: colors.warningText,
             fontFamily: FONT.bold,
             fontSize: 13,
             textAlign: 'center',
@@ -82,7 +83,7 @@ export function StatusCard({
         onPress={onEnableNotif}
         style={{
           marginTop: 10,
-          backgroundColor: notifEnabled ? 'rgba(34,197,94,0.18)' : '#1b2b48',
+          backgroundColor: notifEnabled ? colors.successSoft : colors.surfaceRaised,
           borderRadius: 12,
           borderWidth: 1,
           borderColor: notifEnabled ? 'rgba(34,197,94,0.4)' : 'rgba(45,212,191,0.35)',
@@ -93,10 +94,10 @@ export function StatusCard({
           gap: 8,
         }}
       >
-        <Icon name="bell" size={16} color={notifEnabled ? '#86efac' : '#2dd4bf'} />
+        <Icon name="bell" size={16} color={notifEnabled ? colors.successBright : colors.brandLight} />
         <Text
           style={{
-            color: notifEnabled ? '#86efac' : '#f8fafc',
+            color: notifEnabled ? colors.successBright : colors.text,
             fontFamily: FONT.bold,
             fontSize: 13,
           }}
@@ -122,7 +123,7 @@ export function ItemSection({
     <>
       <AppText
         style={{
-          color: '#f8fafc',
+          color: colors.text,
           fontFamily: FONT.bold,
           fontSize: 16,
           marginTop: 16,
@@ -156,21 +157,21 @@ export function ItemSection({
                   width: 24,
                   height: 24,
                   borderRadius: 7,
-                  backgroundColor: item.installed ? '#22c55e' : '#1b2b48',
+                  backgroundColor: item.installed ? colors.success : colors.surfaceRaised,
                   borderWidth: 1,
-                  borderColor: item.installed ? '#4ade80' : 'rgba(255,255,255,0.15)',
+                  borderColor: item.installed ? colors.successBright : colors.borderSubtle,
                   alignItems: 'center',
                   justifyContent: 'center',
                 }}
               >
-                {item.installed ? <Icon name="check" size={14} color="#ffffff" /> : null}
+                {item.installed ? <Icon name="check" size={14} color="colors.brandDark" /> : null}
               </View>
             ) : null}
             <View style={{ flex: 1 }}>
               <Text
                 numberOfLines={2}
                 style={{
-                  color: '#f8fafc',
+                  color: colors.text,
                   fontFamily: FONT.bold,
                   fontSize: 14,
                   textAlign: 'right',
@@ -186,7 +187,7 @@ export function ItemSection({
               {Number(item.size_gb) > 0 || item.installed ? (
                 <Text
                   style={{
-                    color: item.installed ? '#4ade80' : '#94a3b8',
+                    color: item.installed ? colors.successBright : colors.faint,
                     fontFamily: FONT.medium,
                     fontSize: 12,
                     textAlign: 'right',
@@ -198,7 +199,7 @@ export function ItemSection({
                 </Text>
               ) : null}
             </View>
-            <Text style={{ color: '#2dd4bf', fontFamily: FONT.bold, fontSize: 14 }}>
+            <Text style={{ color: colors.brandLight, fontFamily: FONT.bold, fontSize: 14 }}>
               {formatDinar(Number(item.price))}
               {item.quantity && item.quantity > 1 ? ` × ${item.quantity}` : ''}
             </Text>
@@ -225,12 +226,12 @@ export function TotalsCard({ data }: { data: TrackedOrder }) {
       <TotalRow label="المدفوع" value={formatDinar(paid)} />
       {remaining > 0 ? <TotalRow label="الباقي" value={formatDinar(remaining)} warn /> : null}
       {data.customer_name ? (
-        <AppText style={{ color: '#94a3b8', fontFamily: FONT.regular, fontSize: 12, marginTop: 4 }}>
+        <AppText style={{ color: colors.faint, fontFamily: FONT.regular, fontSize: 12, marginTop: 4 }}>
           العميل: {data.customer_name}
         </AppText>
       ) : null}
       {data.totalSize ? (
-        <AppText style={{ color: '#94a3b8', fontFamily: FONT.regular, fontSize: 12 }}>
+        <AppText style={{ color: colors.faint, fontFamily: FONT.regular, fontSize: 12 }}>
           إجمالي الحجم: {Math.round(Number(data.totalSize))} GB — تقديراً{' '}
           {estimateMinutes(Number(data.totalSize))} دقيقة
         </AppText>
@@ -252,10 +253,10 @@ function TotalRow({
 }) {
   return (
     <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-      <AppText style={{ color: '#cbd5e1', fontFamily: FONT.regular, fontSize: 13 }}>{label}</AppText>
+      <AppText style={{ color: colors.dim, fontFamily: FONT.regular, fontSize: 13 }}>{label}</AppText>
       <AppText
         style={{
-          color: warn ? '#fbbf24' : highlight ? '#2dd4bf' : '#f8fafc',
+          color: warn ? colors.warningText : highlight ? colors.brandLight : colors.text,
           fontFamily: FONT.bold,
           fontSize: highlight ? 15 : 14,
         }}

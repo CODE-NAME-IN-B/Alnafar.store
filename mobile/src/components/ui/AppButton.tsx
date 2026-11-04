@@ -51,10 +51,10 @@ const PALETTES: Record<
     borderWidth: 0,
   },
   secondary: {
-    bg: colors.brandSoft,
-    border: 'transparent',
+    bg: 'transparent',
+    border: colors.brandBorder,
     text: colors.brandLight,
-    borderWidth: 0,
+    borderWidth: 1,
   },
   tertiary: {
     bg: 'transparent',
@@ -71,7 +71,7 @@ const PALETTES: Record<
   danger: {
     bg: colors.dangerSoft,
     border: 'transparent',
-    text: '#fca5a5',
+    text: colors.dangerText,
     borderWidth: 0,
   },
   icon: {

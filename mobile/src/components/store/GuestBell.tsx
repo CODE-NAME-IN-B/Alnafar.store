@@ -1,9 +1,10 @@
 /**
- * جرس إشعارات الضيف — يظهر فقط لغير المسجّلين (الضيف)، ويختفي للكاشير/الإدارة.
- * الشارة = عدد الألعاب المضافة بعد آخر فتح للجرس (تحفظ التاريخ محلياً).
- * الضغط عليه يفتح درجاً بأحدث الألعاب ويعلّمها كمقروءة.
+ * جرس إشعارات الألعاب الجديدة — للأعضاء والضيوف على السواء.
+ * يفحص قائمة الألعاب كل 5 دقائق؛ أي لعبة أُضيفت بعد آخر فتح للجرس:
+ * ترفع الشارة، ويظهر إشعار (Toast) باسمها وسعرها وجهازها (الفئة = الجهاز).
+ * الضغط يفتح درجاً بأحدث الألعاب ويكمّل تعليمها كمقروءة.
  */
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { StyleProp, StyleSheet, Text, View, ViewStyle } from 'react-native';
 import { useQuery } from '@tanstack/react-query';
 import { fetchGames } from '@/api/games';
@@ -12,7 +13,11 @@ import ModalSheet from '@/components/ui/ModalSheet';
 import Icon from '@/components/ui/Icon';
 import { ScalePressable } from '@/components/ui/motion';
 import { EmptyState } from '@/components/ui/StateView';
+import { colors } from '@/lib/colors';
 import { jsonGet, jsonSet } from '@/lib/storage';
+import { showToast } from '@/lib/toast';
+import { formatDinar } from '@/lib/money';
+import { mainPriceOf } from '@/lib/gamePrices';
 import { FONT } from '@/lib/fonts';
 import { ROW } from '@/lib/rtl';
 import type { Game } from '@/api/types';
@@ -20,6 +25,8 @@ import type { Game } from '@/api/types';
 const LAST_SEEN_KEY = 'notif.games_last_seen';
 /** الأميز الزمني لتسجيل الألعاب الجديدة: آخر 30 يوماً */
 const NEW_WINDOW_MS = 30 * 24 * 60 * 60 * 1000;
+/** فحص دوري أثناء عملية النشر: لعبة جديدة تظهر خلال ~5 دقائق */
+const POLL_MS = 5 * 60 * 1000;
 
 type NewGame = { game: Game; date: Date };
 
@@ -35,6 +42,10 @@ export default function GuestBell({ style }: { style?: StyleProp<ViewStyle> }) {
   const [lastSeen, setLastSeen] = useState<Date | null>(null);
   /* «الآن» تُثبت في الحالة بدل استدعاء Date.now() أثناء العرض */
   const [now, setNow] = useState(0);
+  /** منع تكرار نخب اللعبة نفسها عبر الجلبات المتتالية */
+  const notifiedIds = useRef<Set<number>>(new Set());
+  /** أول جلب لا نخب الزبون بألعاب كانت موجودة قبل فتح التطبيق */
+  const warmedUp = useRef(false);
 
   useEffect(() => {
     let alive = true;
@@ -54,6 +65,7 @@ export default function GuestBell({ style }: { style?: StyleProp<ViewStyle> }) {
   const gamesQ = useQuery({
     queryKey: ['games', 'all'],
     queryFn: () => fetchGames({ limit: 1000 }),
+    refetchInterval: POLL_MS,
   });
   const categoriesQ = useQuery({
     queryKey: ['categories'],
@@ -75,6 +87,32 @@ export default function GuestBell({ style }: { style?: StyleProp<ViewStyle> }) {
     return cat?.name ?? 'عام';
   };
 
+  /* إشعار حيّ: كلما ظهرت لعبة جديدة على القائمة نخبنا باسمها وسعرها وجهازها */
+  useEffect(() => {
+    if (gamesQ.isLoading || gamesQ.data == null || lastSeen == null) return;
+    if (!warmedUp.current) {
+      warmedUp.current = true;
+      return;
+    }
+    const boundary = Math.max(lastSeen.getTime(), now - NEW_WINDOW_MS);
+    const fresh = (gamesQ.data as Game[])
+      .map((game) => ({ game, date: gameCreatedAt(game) }))
+      .filter(
+        (row): row is NewGame =>
+          row.date instanceof Date && !Number.isNaN(row.date.getTime())
+      )
+      .filter((row) => row.date.getTime() > boundary);
+    for (const { game } of fresh) {
+      if (notifiedIds.current.has(game.id)) continue;
+      notifiedIds.current.add(game.id);
+      showToast(
+        `لعبة جديدة: ${game.title} — ${formatDinar(mainPriceOf(game))} · ${categoryName(game)}`,
+        'success'
+      );
+    }
+    // الشارة نفسها تستنتج من newGames — لا حاجة لإعادة إنشائها هنا
+  }, [gamesQ.data, gamesQ.isLoading, lastSeen, now, categoryName]);
+
   const openSheet = () => {
     setSheetOpen(true);
     const now = Date.now();
@@ -92,7 +130,7 @@ export default function GuestBell({ style }: { style?: StyleProp<ViewStyle> }) {
         hitSlop={6}
         style={[styles.pressable, style]}
       >
-        <Icon name="bell" size={17} color="#5eead4" />
+        <Icon name="bell" size={17} color={colors.brandLight} />
         {newGames.length > 0 ? (
           <View style={styles.badge}>
             <Text style={styles.badgeText}>{newGames.length > 9 ? '9+' : newGames.length}</Text>
@@ -110,12 +148,15 @@ export default function GuestBell({ style }: { style?: StyleProp<ViewStyle> }) {
         ) : (
           newGames.map(({ game }) => (
             <View key={game.id} style={styles.item}>
-              <Icon name="gamepad" size={14} color="#2dd4bf" />
+              <Icon name="gamepad" size={14} color={colors.brandLight} />
               <View style={styles.itemBody}>
                 <Text numberOfLines={1} style={styles.itemTitle}>
                   {game.title}
                 </Text>
-                <Text style={styles.itemMeta}>{categoryName(game)}</Text>
+                {/* الجهاز = الفئة (فور/فايف) + السعر والاسم والوقت */}
+                <Text style={styles.itemMeta} numberOfLines={1}>
+                  {categoryName(game)} • {formatDinar(mainPriceOf(game))}
+                </Text>
               </View>
             </View>
           ))
@@ -170,8 +211,9 @@ const styles = StyleSheet.create({
   },
   itemMeta: {
     fontFamily: FONT.regular,
-    color: '#94a3b8',
-    fontSize: 11,
+    color: colors.faint,
+    fontSize: 12,
+    lineHeight: 18,
     textAlign: 'right',
     writingDirection: 'rtl',
     marginTop: 1,

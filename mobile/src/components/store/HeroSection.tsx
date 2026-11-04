@@ -11,6 +11,7 @@ import Icon from '@/components/ui/Icon';
 import ModalSheet from '@/components/ui/ModalSheet';
 import { ScalePressable } from '@/components/ui/motion';
 import { FONT } from '@/lib/fonts';
+import { colors } from '@/lib/colors';
 import { ROW } from '@/lib/rtl';
 
 const BANNERS = [
@@ -56,10 +57,6 @@ export default function HeroSection({
         />
         <View style={styles.bannerOverlay}>
           <View style={styles.bannerTextWrap}>
-            <View style={styles.promoPill}>
-              <Icon name="sparkles" size={12} color="#2dd4bf" />
-              <Text style={styles.promoPillText}>الشاردة ستور — النفار للألعاب</Text>
-            </View>
             <Text style={styles.bannerTitle}>اختر الألعاب التي تريدها</Text>
             <Text style={styles.bannerSub}>
               تصفّح المكتبة، أضف للسلة، وأكمل طلبك بسهولة
@@ -81,7 +78,7 @@ export default function HeroSection({
         <View style={styles.cashierBar}>
           <View style={styles.cashierInfo}>
             <View style={styles.cashierBadge}>
-              <Icon name="printer" size={14} color="#042f2e" />
+              <Icon name="printer" size={14} color={colors.dim} />
             </View>
             <View style={styles.flex1}>
               <Text style={styles.cashierTitle}>وضع الكاشير نشط</Text>
@@ -92,7 +89,7 @@ export default function HeroSection({
           </View>
           {onOpenAdmin ? (
             <ScalePressable onPress={onOpenAdmin} style={styles.adminQuickBtn}>
-              <Icon name="invoice" size={14} color="#2dd4bf" />
+              <Icon name="invoice" size={14} color={colors.dim} />
               <Text style={styles.adminQuickText}>الفواتير والإدارة</Text>
             </ScalePressable>
           ) : null}
@@ -129,7 +126,7 @@ function BranchSection({
     <View style={styles.branchesSection}>
       <View style={styles.sectionHead}>
         <View style={styles.sectionTitleRow}>
-          <Icon name="branch" size={15} color="#2dd4bf" />
+          <Icon name="branch" size={15} color={colors.faint} />
           <Text style={styles.sectionTitle}>الفرع الحالي</Text>
         </View>
         <Text style={styles.sectionHint}>اضغط لتغيير الفرع</Text>
@@ -137,7 +134,7 @@ function BranchSection({
 
       <ScalePressable onPress={() => setOpen(true)} style={styles.branchPicker}>
         <View style={styles.pickerIconWrap}>
-          <Icon name="branch" size={18} color="#042f2e" />
+          <Icon name="branch" size={18} color={colors.dim} />
         </View>
         <View style={styles.flex1}>
           <Text style={styles.branchPickerName} numberOfLines={1}>
@@ -151,7 +148,7 @@ function BranchSection({
           ) : null}
         </View>
         <View style={styles.pickerChevronWrap}>
-          <Icon name="chevron-left" size={16} color="#94a3b8" />
+          <Icon name="chevron-left" size={16} color={colors.faint} />
         </View>
       </ScalePressable>
 
@@ -193,7 +190,7 @@ function BranchSection({
                   hitSlop={6}
                   style={styles.phoneRow}
                 >
-                  <Icon name="phone" size={12} color="#2dd4bf" />
+                  <Icon name="phone" size={12} color={colors.faint} />
                   <Text style={styles.branchPhone} numberOfLines={1}>
                     {b.phone}
                   </Text>
@@ -224,9 +221,9 @@ const styles = StyleSheet.create({
     height: 158,
     borderRadius: 18,
     overflow: 'hidden',
-    backgroundColor: '#131d31',
+    backgroundColor: colors.elevatedRaised,
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.08)',
+    borderColor: colors.borderSubtle,
   },
   bannerImg: {
     width: '100%',
@@ -245,24 +242,12 @@ const styles = StyleSheet.create({
   bannerTextWrap: {
     alignItems: 'flex-end',
     gap: 3,
-  },
-  promoPill: {
-    flexDirection: ROW,
-    alignItems: 'center',
-    gap: 5,
-    backgroundColor: 'rgba(15, 23, 42, 0.85)',
-    borderWidth: 1,
-    borderColor: 'rgba(45, 212, 191, 0.45)',
+    /* كتلة خلفية للنص فوق الصورة — وضوح مضمون على أي غلاف فاتح */
+    backgroundColor: 'rgba(6, 11, 22, 0.62)',
+    borderRadius: 12,
     paddingHorizontal: 10,
-    paddingVertical: 3,
-    borderRadius: 999,
-    marginBottom: 2,
-  },
-  promoPillText: {
-    fontFamily: FONT.bold,
-    color: '#5eead4',
-    fontSize: 10,
-    includeFontPadding: false,
+    paddingVertical: 8,
+    alignSelf: 'flex-start',
   },
   bannerTitle: {
     fontFamily: FONT.bold,
@@ -276,6 +261,7 @@ const styles = StyleSheet.create({
     fontFamily: FONT.medium,
     color: '#e2e8f0',
     fontSize: 12,
+    lineHeight: 18,
     textAlign: 'right',
     writingDirection: 'rtl',
     includeFontPadding: false,
@@ -294,15 +280,15 @@ const styles = StyleSheet.create({
   },
   dotActive: {
     width: 20,
-    backgroundColor: '#14b8a6',
+    backgroundColor: colors.brand,
   },
   cashierBar: {
     flexDirection: ROW,
     alignItems: 'center',
     justifyContent: 'space-between',
-    backgroundColor: '#072a28',
+    backgroundColor: colors.elevatedRaised,
     borderWidth: 1,
-    borderColor: '#14b8a6',
+    borderColor: colors.borderSubtle,
     borderRadius: 14,
     paddingHorizontal: 12,
     paddingVertical: 10,
@@ -318,13 +304,13 @@ const styles = StyleSheet.create({
     width: 30,
     height: 30,
     borderRadius: 9,
-    backgroundColor: '#2dd4bf',
+    backgroundColor: colors.surfaceRaised,
     alignItems: 'center',
     justifyContent: 'center',
   },
   cashierTitle: {
     fontFamily: FONT.bold,
-    color: '#5eead4',
+    color: colors.text,
     fontSize: 13,
     textAlign: 'right',
     writingDirection: 'rtl',
@@ -332,8 +318,9 @@ const styles = StyleSheet.create({
   },
   cashierSub: {
     fontFamily: FONT.regular,
-    color: '#cbd5e1',
+    color: colors.dim,
     fontSize: 11,
+    lineHeight: 17,
     textAlign: 'right',
     writingDirection: 'rtl',
     includeFontPadding: false,
@@ -342,16 +329,16 @@ const styles = StyleSheet.create({
     flexDirection: ROW,
     alignItems: 'center',
     gap: 5,
-    backgroundColor: '#0f172a',
+    backgroundColor: colors.surfaceRaised,
     borderWidth: 1,
-    borderColor: '#2dd4bf',
+    borderColor: colors.borderSubtle,
     paddingHorizontal: 10,
     paddingVertical: 7,
     borderRadius: 10,
   },
   adminQuickText: {
     fontFamily: FONT.bold,
-    color: '#2dd4bf',
+    color: colors.dim,
     fontSize: 11,
     includeFontPadding: false,
   },
@@ -359,10 +346,10 @@ const styles = StyleSheet.create({
     flexDirection: ROW,
     alignItems: 'center',
     gap: 10,
-    backgroundColor: '#131d31',
+    backgroundColor: colors.elevatedRaised,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.08)',
+    borderColor: colors.borderSubtle,
     paddingHorizontal: 12,
     paddingVertical: 10,
     minHeight: 64,
@@ -371,13 +358,13 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 12,
-    backgroundColor: '#14b8a6',
+    backgroundColor: colors.surfaceRaised,
     alignItems: 'center',
     justifyContent: 'center',
   },
   branchPickerName: {
     fontFamily: FONT.bold,
-    color: '#f8fafc',
+    color: colors.text,
     fontSize: 14,
     textAlign: 'right',
     writingDirection: 'rtl',
@@ -385,7 +372,7 @@ const styles = StyleSheet.create({
   },
   branchPickerAddress: {
     fontFamily: FONT.regular,
-    color: '#94a3b8',
+    color: colors.faint,
     fontSize: 11,
     textAlign: 'right',
     writingDirection: 'rtl',
@@ -398,10 +385,10 @@ const styles = StyleSheet.create({
     transform: [{ rotate: '-90deg' }],
   },
   branchesSection: {
-    backgroundColor: '#0d1629',
+    backgroundColor: colors.elevatedRaised,
     borderRadius: 16,
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.08)',
+    borderColor: colors.borderSubtle,
     padding: 12,
   },
   sectionHead: {
@@ -417,13 +404,13 @@ const styles = StyleSheet.create({
   },
   sectionTitle: {
     fontFamily: FONT.bold,
-    color: '#f8fafc',
+    color: colors.text,
     fontSize: 14,
     includeFontPadding: false,
   },
   sectionHint: {
     fontFamily: FONT.medium,
-    color: '#94a3b8',
+    color: colors.faint,
     fontSize: 11,
     includeFontPadding: false,
   },
@@ -431,17 +418,17 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   branchCard: {
-    backgroundColor: '#131d31',
+    backgroundColor: colors.elevatedRaised,
     borderRadius: 12,
     borderWidth: 1.5,
-    borderColor: 'rgba(255, 255, 255, 0.08)',
+    borderColor: colors.borderSubtle,
     paddingHorizontal: 12,
     paddingVertical: 10,
     gap: 4,
   },
   branchCardActive: {
-    backgroundColor: '#082f2d',
-    borderColor: '#14b8a6',
+    backgroundColor: colors.brandDark,
+    borderColor: colors.brand,
   },
   branchTopRow: {
     flexDirection: ROW,
@@ -460,28 +447,28 @@ const styles = StyleSheet.create({
     height: 12,
     borderRadius: 999,
     borderWidth: 2,
-    borderColor: '#475569',
+    borderColor: colors.faint,
   },
   radioDotActive: {
-    borderColor: '#2dd4bf',
-    backgroundColor: '#14b8a6',
+    borderColor: colors.brandLight,
+    backgroundColor: colors.brand,
   },
   branchName: {
     flex: 1,
     fontFamily: FONT.bold,
-    color: '#f1f5f9',
+    color: colors.text,
     fontSize: 13,
     textAlign: 'right',
     writingDirection: 'rtl',
     includeFontPadding: false,
   },
   branchNameActive: {
-    color: '#5eead4',
+    color: colors.brandLight,
   },
   defaultBadge: {
     backgroundColor: 'rgba(20, 184, 166, 0.2)',
     borderWidth: 1,
-    borderColor: '#14b8a6',
+    borderColor: colors.brand,
     borderRadius: 6,
     paddingHorizontal: 7,
     paddingVertical: 2,
@@ -494,7 +481,7 @@ const styles = StyleSheet.create({
   },
   branchAddress: {
     fontFamily: FONT.regular,
-    color: '#94a3b8',
+    color: colors.faint,
     fontSize: 11,
     textAlign: 'right',
     writingDirection: 'rtl',
@@ -508,7 +495,7 @@ const styles = StyleSheet.create({
   },
   branchPhone: {
     fontFamily: FONT.semibold,
-    color: '#2dd4bf',
+    color: colors.dim,
     fontSize: 12,
     textAlign: 'right',
     includeFontPadding: false,

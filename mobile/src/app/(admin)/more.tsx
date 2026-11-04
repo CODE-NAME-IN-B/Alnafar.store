@@ -18,6 +18,7 @@ import KeyboardScroll from '@/components/ui/KeyboardScroll';
 import { EmptyState, ErrorState, LoadingState } from '@/components/ui/StateView';
 import { formatArabicDate } from '@/components/ui/LtrText';
 import { FONT } from '@/lib/fonts';
+import { colors } from '@/lib/colors';
 import { formatDinar } from '@/lib/money';
 import { showToast } from '@/lib/toast';
 import { ROW } from '@/lib/rtl';
@@ -313,11 +314,11 @@ function Metric({ label, value }: { label: string; value: string }) {
 const styles = StyleSheet.create({
   screen: {
     flex: 1,
-    backgroundColor: '#090d16',
+    backgroundColor: colors.deep,
   },
   tabsHeader: {
     padding: 12,
-    backgroundColor: '#0f172a',
+    backgroundColor: colors.base,
     borderBottomWidth: 1,
     borderBottomColor: 'rgba(255, 255, 255, 0.08)',
   },
@@ -332,28 +333,28 @@ const styles = StyleSheet.create({
   },
   metricCard: {
     width: '48.5%',
-    backgroundColor: '#141e30',
+    backgroundColor: colors.elevated,
     borderRadius: 14,
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.08)',
+    borderColor: colors.borderSubtle,
     padding: 12,
     alignItems: 'flex-end',
   },
   metricLabel: {
-    color: '#94a3b8',
+    color: colors.faint,
     fontFamily: FONT.medium,
     fontSize: 11.5,
     includeFontPadding: false,
   },
   metricVal: {
-    color: '#2dd4bf',
+    color: colors.brandLight,
     fontFamily: FONT.bold,
     fontSize: 17,
     marginTop: 4,
     includeFontPadding: false,
   },
   sectionHeading: {
-    color: '#f8fafc',
+    color: colors.text,
     fontFamily: FONT.bold,
     fontSize: 15,
     marginTop: 8,
@@ -365,10 +366,10 @@ const styles = StyleSheet.create({
     flexDirection: ROW,
     alignItems: 'center',
     justifyContent: 'space-between',
-    backgroundColor: '#141e30',
+    backgroundColor: colors.elevated,
     borderRadius: 14,
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.08)',
+    borderColor: colors.borderSubtle,
     padding: 12,
     gap: 8,
   },
@@ -381,20 +382,20 @@ const styles = StyleSheet.create({
   rankBadge: {
     backgroundColor: 'rgba(20,184,166,0.16)',
     borderWidth: 1,
-    borderColor: '#14b8a6',
+    borderColor: colors.brand,
     borderRadius: 8,
     paddingHorizontal: 7,
     paddingVertical: 2,
   },
   rankText: {
     fontFamily: FONT.bold,
-    color: '#2dd4bf',
+    color: colors.brandLight,
     fontSize: 11,
     includeFontPadding: false,
   },
   gameTitle: {
     flex: 1,
-    color: '#f1f5f9',
+    color: colors.text,
     fontFamily: FONT.bold,
     fontSize: 13.5,
     textAlign: 'right',
@@ -402,21 +403,21 @@ const styles = StyleSheet.create({
     includeFontPadding: false,
   },
   gameCount: {
-    color: '#2dd4bf',
+    color: colors.brandLight,
     fontFamily: FONT.bold,
     fontSize: 12.5,
     includeFontPadding: false,
   },
   settingsCard: {
-    backgroundColor: '#141e30',
+    backgroundColor: colors.elevated,
     borderRadius: 16,
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.08)',
+    borderColor: colors.borderSubtle,
     padding: 14,
     gap: 12,
   },
   settingLabel: {
-    color: '#cbd5e1',
+    color: colors.dim,
     fontFamily: FONT.bold,
     fontSize: 12.5,
     textAlign: 'right',
@@ -428,7 +429,7 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   auditTitle: {
-    color: '#f1f5f9',
+    color: colors.text,
     fontFamily: FONT.bold,
     fontSize: 13,
     textAlign: 'right',
@@ -436,7 +437,7 @@ const styles = StyleSheet.create({
     includeFontPadding: false,
   },
   auditSub: {
-    color: '#94a3b8',
+    color: colors.faint,
     fontFamily: FONT.regular,
     fontSize: 11,
     textAlign: 'right',

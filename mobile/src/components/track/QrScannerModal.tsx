@@ -6,6 +6,7 @@ import AppButton from '@/components/ui/AppButton';
 import AppText from '@/components/ui/AppText';
 import Icon from '@/components/ui/Icon';
 import { FONT } from '@/lib/fonts';
+import { colors } from '@/lib/colors';
 
 interface Props {
   visible: boolean;
@@ -68,13 +69,13 @@ export default function QrScannerModal({ visible, onClose, onResolved }: Props) 
       title="تتبع الطلب"
     >
       <View style={{ gap: 12 }}>
-        <AppText style={{ color: '#94a3b8', fontFamily: FONT.medium, fontSize: 12.5 }}>
+        <AppText style={{ color: colors.dim, fontFamily: FONT.medium, fontSize: 12.5 }}>
           وجّه الكاميرا نحو رمز QR المطبوع على فاتورتك لحسابك — التتبع متاح
           لطلباتك أنت فقط.
         </AppText>
 
         {scanError ? (
-          <AppText style={{ color: '#f87171', fontFamily: FONT.medium, fontSize: 13 }}>
+          <AppText style={{ color: colors.dangerStrong, fontFamily: FONT.medium, fontSize: 13 }}>
             {scanError}
           </AppText>
         ) : null}
@@ -95,8 +96,8 @@ export default function QrScannerModal({ visible, onClose, onResolved }: Props) 
                 borderRadius: 14,
                 overflow: 'hidden',
                 borderWidth: 1.5,
-                borderColor: '#14b8a6',
-                backgroundColor: '#0b1220',
+                borderColor: colors.brand,
+                backgroundColor: colors.surfaceInset,
               }}
             >
               <CameraView
@@ -113,19 +114,55 @@ export default function QrScannerModal({ visible, onClose, onResolved }: Props) 
                   }
                 }}
               />
+              {/* إطار رؤية: تعتيم المحيط + زوايا تُخبر المستخدم أين يضع الرمز */}
+              <View
+                pointerEvents="none"
+                style={{
+                  position: 'absolute',
+                  top: 0,
+                  left: 0,
+                  right: 0,
+                  bottom: 0,
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}
+              >
+                <View
+                  style={{
+                    width: 170,
+                    height: 170,
+                    borderRadius: 16,
+                    borderWidth: 2,
+                    borderColor: colors.brandLight,
+                    backgroundColor: 'rgba(2, 6, 23, 0.45)',
+                  }}
+                />
+              </View>
             </View>
+            <AppText
+              style={{
+                color: colors.faint,
+                fontFamily: FONT.medium,
+                fontSize: 12,
+                textAlign: 'center',
+              }}
+            >
+              ضع الرمز داخل الإطار — سيُفتح التتبع تلقائياً
+            </AppText>
             <Pressable
               onPress={() => setCameraOpen(false)}
+              accessibilityRole="button"
+              accessibilityLabel="إغلاق الكاميرا"
               style={{
-                paddingVertical: 10,
+                paddingVertical: 14,
                 alignItems: 'center',
                 flexDirection: 'row',
                 justifyContent: 'center',
                 gap: 6,
               }}
             >
-              <Icon name="close" size={16} color="#cbd5e1" />
-              <Text style={{ color: '#cbd5e1', fontFamily: FONT.bold }}>إغلاق الكاميرا</Text>
+              <Icon name="close" size={16} color={colors.dim} />
+              <Text style={{ color: colors.dim, fontFamily: FONT.bold }}>إغلاق الكاميرا</Text>
             </Pressable>
           </View>
         )}

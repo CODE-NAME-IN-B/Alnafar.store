@@ -9,6 +9,7 @@ import Icon from './ui/Icon';
 import { ScalePressable } from './ui/motion';
 import { FONT } from '@/lib/fonts';
 import { ROW } from '@/lib/rtl';
+import { colors } from '@/lib/colors';
 
 interface Props {
   game: Game;
@@ -51,7 +52,7 @@ export default function GameCard({ game, categories = [], onPress, compact = fal
     const gLabel = formatGenreLabel(game.genre) || genre;
     const sLabel = (game.series || '').trim() || series;
     if (sLabel && gLabel && sLabel !== gLabel) return `${sLabel} • ${gLabel}`;
-    return sLabel || gLabel || 'أكشن ومغامرة';
+    return sLabel || gLabel || '';
   }, [game]);
 
   /* نبضة نجاح: عندما تدخل اللعبة للسلة تنبض أيقونة الإضافة لتأكيد الحدث */
@@ -90,7 +91,7 @@ export default function GameCard({ game, categories = [], onPress, compact = fal
             />
           ) : (
             <View style={styles.rowThumbFallback}>
-              <Icon name="gamepad" size={22} color="#334155" />
+              <Icon name="gamepad" size={22} color={colors.faint} />
             </View>
           )}
         </View>
@@ -110,7 +111,7 @@ export default function GameCard({ game, categories = [], onPress, compact = fal
           <Icon
             name={inCart ? 'check' : 'plus'}
             size={18}
-            color={inCart ? '#042f2e' : '#2dd4bf'}
+            color={inCart ? colors.brandDark : colors.brandLight}
           />
         </Animated.View>
       </ScalePressable>
@@ -132,7 +133,7 @@ export default function GameCard({ game, categories = [], onPress, compact = fal
           />
         ) : (
           <View style={styles.coverFallback}>
-            <Icon name="gamepad" size={32} color="#334155" />
+            <Icon name="gamepad" size={32} color={colors.faint} />
           </View>
         )}
 
@@ -216,7 +217,7 @@ export default function GameCard({ game, categories = [], onPress, compact = fal
         <Icon
           name={inCart ? 'check' : 'plus'}
           size={15}
-          color={inCart ? '#042f2e' : '#2dd4bf'}
+          color={inCart ? colors.brandDark : colors.brandLight}
         />
         <Text style={[styles.addBtnText, inCart && styles.addBtnTextInCart]}>
           {inCart ? 'في السلة ✓' : 'أضف للسلة'}
@@ -232,7 +233,7 @@ const styles = StyleSheet.create({
     flexDirection: ROW,
     alignItems: 'center',
     gap: 10,
-    backgroundColor: '#131d31',
+    backgroundColor: colors.elevatedRaised,
     borderRadius: 12,
     borderWidth: 1,
     borderColor: 'rgba(255, 255, 255, 0.08)',
@@ -243,7 +244,7 @@ const styles = StyleSheet.create({
     height: 52,
     borderRadius: 10,
     overflow: 'hidden',
-    backgroundColor: '#090f1d',
+    backgroundColor: colors.deep,
   },
   rowThumbImg: {
     width: '100%',
@@ -260,9 +261,8 @@ const styles = StyleSheet.create({
   },
   rowPriceLine: {
     fontFamily: FONT.semibold,
-    color: '#5eead4',
+    color: colors.text,
     fontSize: 12,
-    writingDirection: 'ltr',
     textAlignVertical: 'center',
     includeFontPadding: false,
   },
@@ -272,18 +272,18 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#17253e',
+    backgroundColor: colors.surfaceRaised,
     borderWidth: 1,
-    borderColor: '#2dd4bf44',
+    borderColor: colors.borderSubtle,
   },
   rowAddBtnInCart: {
-    backgroundColor: '#14b8a6',
-    borderColor: '#2dd4bf',
+    backgroundColor: colors.brand,
+    borderColor: colors.brandBorder,
   },
   /* ==== بطاقة الشبكة 3:4 ==== */
   card: {
     flex: 1,
-    backgroundColor: '#131d31',
+    backgroundColor: colors.elevatedRaised,
     borderRadius: 16,
     overflow: 'hidden',
     borderWidth: 1,
@@ -291,13 +291,13 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
   },
   cardInCart: {
-    borderColor: '#14b8a6',
-    backgroundColor: '#0d2229',
+    borderColor: colors.brand,
+    backgroundColor: colors.brandSoft,
   },
   coverWrap: {
     width: '100%',
     aspectRatio: 0.78,
-    backgroundColor: '#090f1d',
+    backgroundColor: colors.deep,
     position: 'relative',
   },
   coverImg: {
@@ -328,7 +328,7 @@ const styles = StyleSheet.create({
     borderColor: 'rgba(139, 92, 246, 0.55)',
   },
   catBadgeNeutral: {
-    color: '#cbd5e1',
+    color: colors.dim,
   },
   catBadgeText: {
     fontFamily: FONT.bold,
@@ -349,7 +349,7 @@ const styles = StyleSheet.create({
   },
   sizeBadgeText: {
     fontFamily: FONT.semibold,
-    color: '#cbd5e1',
+    color: colors.dim,
     fontSize: 10,
     includeFontPadding: false,
   },
@@ -364,7 +364,7 @@ const styles = StyleSheet.create({
   },
   splitText: {
     fontFamily: FONT.bold,
-    color: '#042f2e',
+    color: colors.brandDark,
     fontSize: 10,
     includeFontPadding: false,
   },
@@ -375,7 +375,7 @@ const styles = StyleSheet.create({
   },
   title: {
     fontFamily: FONT.bold,
-    color: '#f8fafc',
+    color: colors.text,
     fontSize: 13.5,
     textAlign: 'right',
     writingDirection: 'rtl',
@@ -384,7 +384,7 @@ const styles = StyleSheet.create({
   },
   subText: {
     fontFamily: FONT.regular,
-    color: '#94a3b8',
+    color: colors.faint,
     fontSize: 11,
     textAlign: 'right',
     writingDirection: 'rtl',
@@ -405,22 +405,21 @@ const styles = StyleSheet.create({
     paddingVertical: 5,
     paddingHorizontal: 4,
     borderRadius: 8,
-    backgroundColor: 'rgba(20, 184, 166, 0.14)',
+    backgroundColor: colors.surfaceInset,
     borderWidth: 1,
-    borderColor: 'rgba(20, 184, 166, 0.4)',
+    borderColor: colors.borderSubtle,
   },
   priceLabelPs4: {
     fontFamily: FONT.semibold,
-    color: '#5eead4',
+    color: colors.faint,
     fontSize: 10,
     includeFontPadding: false,
   },
   priceValPs4: {
     fontFamily: FONT.bold,
-    color: '#2dd4bf',
+    color: colors.text,
     fontSize: 11,
     includeFontPadding: false,
-    textAlign: 'left',
   },
   priceBadgePs5: {
     flex: 1,
@@ -430,36 +429,35 @@ const styles = StyleSheet.create({
     paddingVertical: 5,
     paddingHorizontal: 4,
     borderRadius: 8,
-    backgroundColor: 'rgba(45, 212, 191, 0.10)',
+    backgroundColor: colors.surfaceInset,
     borderWidth: 1,
-    borderColor: 'rgba(45, 212, 191, 0.5)',
+    borderColor: colors.borderSubtle,
   },
   priceLabelPs5: {
     fontFamily: FONT.semibold,
-    color: '#5eead4',
+    color: colors.faint,
     fontSize: 10,
     includeFontPadding: false,
   },
   priceValPs5: {
     fontFamily: FONT.bold,
-    color: '#2dd4bf',
+    color: colors.text,
     fontSize: 11,
     includeFontPadding: false,
-    textAlign: 'left',
   },
   priceSingleWrap: {
     flex: 1,
     paddingVertical: 5,
     paddingHorizontal: 8,
     borderRadius: 8,
-    backgroundColor: 'rgba(20, 184, 166, 0.14)',
+    backgroundColor: colors.surfaceInset,
     borderWidth: 1,
-    borderColor: 'rgba(20, 184, 166, 0.4)',
+    borderColor: colors.borderSubtle,
     alignItems: 'center',
   },
   priceSingle: {
     fontFamily: FONT.bold,
-    color: '#2dd4bf',
+    color: colors.text,
     fontSize: 12,
     includeFontPadding: false,
   },
@@ -470,23 +468,23 @@ const styles = StyleSheet.create({
     gap: 6,
     marginHorizontal: 10,
     marginBottom: 10,
-    paddingVertical: 8,
+    paddingVertical: 10,
     borderRadius: 10,
-    backgroundColor: '#17253e',
+    backgroundColor: colors.surfaceRaised,
     borderWidth: 1,
-    borderColor: '#2dd4bf44',
+    borderColor: colors.borderSubtle,
   },
   addBtnInCart: {
-    backgroundColor: '#14b8a6',
-    borderColor: '#2dd4bf',
+    backgroundColor: colors.brand,
+    borderColor: colors.brandBorder,
   },
   addBtnText: {
     fontFamily: FONT.bold,
-    color: '#5eead4',
+    color: colors.text,
     fontSize: 12,
     includeFontPadding: false,
   },
   addBtnTextInCart: {
-    color: '#042f2e',
+    color: colors.brandDark,
   },
 });

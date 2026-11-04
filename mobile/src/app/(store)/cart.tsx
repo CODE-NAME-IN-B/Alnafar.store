@@ -39,6 +39,7 @@ import { buildOrderMessage, whatsappLink } from '@/lib/whatsapp';
 import { estimateMinutes } from '@/lib/estimate';
 import { FONT } from '@/lib/fonts';
 import { ROW } from '@/lib/rtl';
+import { colors, tokens, triggerLightHaptic } from '@/lib/colors';
 
 export default function CartScreen() {
   const items = useCartStore((s) => s.items);
@@ -194,13 +195,19 @@ export default function CartScreen() {
             </Text>
             {isCashier && user ? (
               <View style={styles.cashierPill}>
-                <Icon name="printer" size={12} color="#042f2e" />
+                <Icon name="printer" size={12} color={colors.brandLight} />
                 <Text style={styles.cashierPillText}>كاشير: {user.username}</Text>
               </View>
             ) : null}
           </View>
-          <Pressable onPress={clear} style={styles.clearBtn}>
-            <Icon name="trash" size={14} color="#fda4af" />
+          <Pressable
+            onPress={() => {
+              triggerLightHaptic();
+              clear();
+            }}
+            style={styles.clearBtn}
+          >
+            <Icon name="trash" size={14} color={colors.dangerText} />
             <Text style={styles.clearText}>تفريغ</Text>
           </Pressable>
         </View>
@@ -237,100 +244,101 @@ export default function CartScreen() {
           )}
           ListFooterComponent={
             <View style={styles.footerCard}>
-              {/* Totals Summary */}
-              <View style={styles.summaryRow}>
-                <Text style={styles.summaryLabel}>الإجمالي الكلي</Text>
-                <Text style={styles.summaryValue}>{formatDinar(total)}</Text>
-              </View>
               {sizeGb > 0 ? (
-                <View style={styles.summarySubRow}>
+                <View style={styles.summarySubRowBottom}>
                   <Text style={styles.summarySubLabel}>الحجم التقريبي</Text>
                   <Text style={styles.summarySubValue}>
                     {Math.round(sizeGb)} GB (~{estimateMinutes(sizeGb)} دقيقة)
                   </Text>
                 </View>
               ) : null}
-
-              {/* CASHIER ONLY VIEW vs GUEST ONLY VIEW */}
               {isCashier ? (
-                <View style={styles.cashierSection}>
-                  <View style={styles.cashierHintBox}>
-                    <Icon name="invoice" size={16} color="#2dd4bf" />
-                    <Text style={styles.cashierHintText}>
-                      وضع الكاشير: اضغط بالأسفل لإدخال اسم العميل أو الخصم وحالة الدفع وطباعة الفاتورة فوراً.
-                    </Text>
-                  </View>
-
-                  <AppButton
-                    label={
-                      editingInvoice
-                        ? `حفظ التعديلات على الفاتورة ${formatInvoiceCode(editingInvoice.invoice_number)}`
-                        : 'إنشاء فاتورة وطباعتها'
-                    }
-                    icon="printer"
-                    onPress={() => setInvoiceOpen(true)}
-                  />
+                <View style={styles.cashierHintBox}>
+                  <Icon name="invoice" size={16} color={colors.brandLight} />
+                  <Text style={styles.cashierHintText}>
+                    وضع الكاشير: اضغط «إنشاء فاتورة» بالأسفل لإدخال اسم العميل أو الخصم وحالة الدفع وطباعة الفاتورة فوراً.
+                  </Text>
                 </View>
-              ) : (
-                <View style={styles.guestSection}>
-                  {/* Branch selector for Guest order */}
-                  {branches.length > 0 ? (
-                    <View style={styles.branchPickWrap}>
-                      <Text style={styles.sectionTitle}>
-                        أرسل الطلب إلى الفرع:
-                      </Text>
-                      <ScrollView
-                        horizontal
-                        showsHorizontalScrollIndicator={false}
-                        contentContainerStyle={styles.branchPillsRow}
-                      >
-                        {branches.map((b) => {
-                          const active = (branch?.id ?? selectedBranchId) === b.id;
-                          return (
-                            <Pressable
-                              key={b.id}
-                              onPress={() => selectBranch(b.id)}
-                              style={[
-                                styles.branchPill,
-                                active && styles.branchPillActive,
-                              ]}
-                            >
-                              <Text
-                                style={[
-                                  styles.branchPillText,
-                                  active && styles.branchPillTextActive,
-                                ]}
-                              >
-                                {b.name}
-                              </Text>
-                            </Pressable>
-                          );
-                        })}
-                      </ScrollView>
-                    </View>
-                  ) : null}
-
-                  <View style={styles.actionsCol}>
-                    <Pressable onPress={sendWhatsApp} style={styles.waBtn}>
-                      <Icon name="phone" size={18} color="#052e16" />
-                      <Text style={styles.waBtnText}>
-                        إرسال الطلب عبر واتساب
-                      </Text>
-                    </Pressable>
-
-                    <AppButton
-                      label="إرسال الطلب للمتجر (مع تتبع QR)"
-                      icon="qr"
-                      variant="secondary"
-                      loading={orderM.isPending}
-                      onPress={() => orderM.mutate()}
-                    />
-                  </View>
+              ) : branches.length > 0 ? (
+                <View style={styles.branchPickWrap}>
+                  <Text style={styles.sectionTitle}>
+                    أرسل الطلب إلى الفرع:
+                  </Text>
+                  <ScrollView
+                    horizontal
+                    showsHorizontalScrollIndicator={false}
+                    contentContainerStyle={styles.branchPillsRow}
+                  >
+                    {branches.map((b) => {
+                      const active = (branch?.id ?? selectedBranchId) === b.id;
+                      return (
+                        <Pressable
+                          key={b.id}
+                          onPress={() => {
+                            triggerLightHaptic();
+                            selectBranch(b.id);
+                          }}
+                          style={[
+                            styles.branchPill,
+                            active && styles.branchPillActive,
+                          ]}
+                        >
+                          <Text
+                            style={[
+                              styles.branchPillText,
+                              active && styles.branchPillTextActive,
+                            ]}
+                          >
+                            {b.name}
+                          </Text>
+                        </Pressable>
+                      );
+                    })}
+                  </ScrollView>
                 </View>
-              )}
+              ) : null}
             </View>
           }
         />
+
+        {/* شريط سفلي ثابت: المجموع والإجراء الأساسي دائماً في متناول اليد —
+            لا يختفيان مع تمرير القائمة مهما طالت */}
+        {items.length > 0 ? (
+          <View style={styles.bottomBar}>
+            <View style={styles.summaryRow}>
+              <Text style={styles.summaryLabel}>الإجمالي الكلي</Text>
+              <Text style={styles.summaryValue}>{formatDinar(total)}</Text>
+            </View>
+            {isCashier ? (
+              <AppButton
+                label={
+                  editingInvoice
+                    ? `حفظ التعديلات على الفاتورة ${formatInvoiceCode(editingInvoice.invoice_number)}`
+                    : 'إنشاء فاتورة وطباعتها'
+                }
+                icon="printer"
+                onPress={() => setInvoiceOpen(true)}
+              />
+            ) : (
+              <View style={styles.actionsCol}>
+                <Pressable onPress={sendWhatsApp} style={styles.waBtn}>
+                  <Icon name="phone" size={18} color="#052e16" />
+                  <Text style={styles.waBtnText}>
+                    إرسال الطلب عبر واتساب
+                  </Text>
+                </Pressable>
+
+                <AppButton
+                  label="إرسال الطلب للمتجر (مع تتبع QR)"
+                  icon="qr"
+                  variant="secondary"
+                  loading={orderM.isPending}
+                  onPress={() => orderM.mutate()}
+                />
+              </View>
+            )}
+          </View>
+        ) : null}
 
         <InvoiceFormModal
           visible={invoiceOpen}
@@ -361,7 +369,7 @@ export default function CartScreen() {
 const styles = StyleSheet.create({
   safe: {
     flex: 1,
-    backgroundColor: '#090f1d',
+    backgroundColor: colors.deep,
   },
   flex: { flex: 1 },
   flex1: { flex: 1 },
@@ -372,7 +380,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 12,
     borderBottomWidth: 1,
-    borderBottomColor: 'rgba(255, 255, 255, 0.08)',
+    borderBottomColor: colors.borderSubtle,
   },
   headerTitleRow: {
     flexDirection: ROW,
@@ -381,7 +389,7 @@ const styles = StyleSheet.create({
   },
   headerTitle: {
     fontFamily: FONT.bold,
-    color: '#f8fafc',
+    color: colors.text,
     fontSize: 18,
     includeFontPadding: false,
   },
@@ -389,14 +397,16 @@ const styles = StyleSheet.create({
     flexDirection: ROW,
     alignItems: 'center',
     gap: 4,
-    backgroundColor: '#2dd4bf',
+    backgroundColor: colors.brandSoft,
+    borderWidth: 1,
+    borderColor: colors.brandBorder,
     paddingHorizontal: 8,
     paddingVertical: 3,
     borderRadius: 999,
   },
   cashierPillText: {
     fontFamily: FONT.bold,
-    color: '#042f2e',
+    color: colors.brandLight,
     fontSize: 11,
     includeFontPadding: false,
   },
@@ -405,15 +415,13 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 5,
     paddingHorizontal: 12,
-    paddingVertical: 6,
+    paddingVertical: 8,
     borderRadius: 10,
-    backgroundColor: '#2a1215',
-    borderWidth: 1,
-    borderColor: '#7f1d1d',
+    backgroundColor: colors.dangerSoft,
   },
   clearText: {
     fontFamily: FONT.bold,
-    color: '#fda4af',
+    color: colors.dangerText,
     fontSize: 12,
     includeFontPadding: false,
   },
@@ -421,39 +429,41 @@ const styles = StyleSheet.create({
     flexDirection: ROW,
     alignItems: 'center',
     justifyContent: 'space-between',
-    backgroundColor: 'rgba(20,184,166,0.14)',
+    backgroundColor: colors.brandSoft,
     borderBottomWidth: 1,
-    borderBottomColor: 'rgba(45,212,191,0.4)',
+    borderBottomColor: colors.brandBorder,
     paddingHorizontal: 16,
     paddingVertical: 10,
     gap: 10,
   },
   editBannerTitle: {
     fontFamily: FONT.bold,
-    color: '#5eead4',
+    color: colors.brandBright,
     fontSize: 13,
+    lineHeight: 19,
     textAlign: 'right',
     writingDirection: 'rtl',
     includeFontPadding: false,
   },
   editBannerSub: {
     fontFamily: FONT.regular,
-    color: '#cbd5e1',
+    color: colors.dim,
     fontSize: 11,
+    lineHeight: 17,
     textAlign: 'right',
     writingDirection: 'rtl',
     includeFontPadding: false,
   },
   cancelEditBtn: {
-    paddingHorizontal: 10,
-    paddingVertical: 6,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
     borderRadius: 8,
-    backgroundColor: '#4c1d95',
+    backgroundColor: colors.surfaceRaised,
   },
   cancelEditText: {
     fontFamily: FONT.bold,
-    color: '#f5f3ff',
-    fontSize: 11,
+    color: colors.text,
+    fontSize: 12,
     includeFontPadding: false,
   },
   listContent: {
@@ -461,78 +471,77 @@ const styles = StyleSheet.create({
     paddingBottom: 32,
   },
   footerCard: {
-    backgroundColor: '#131d31',
-    borderRadius: 20,
+    backgroundColor: colors.elevatedRaised,
+    borderRadius: tokens.radius.card,
     padding: 16,
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.08)',
+    borderColor: colors.borderSubtle,
     marginTop: 6,
+  },
+  bottomBar: {
+    backgroundColor: colors.deep,
+    borderTopWidth: 1,
+    borderTopColor: colors.borderSubtle,
+    paddingHorizontal: 16,
+    paddingTop: 10,
+    paddingBottom: 16,
+    gap: 10,
   },
   summaryRow: {
     flexDirection: ROW,
     alignItems: 'center',
     justifyContent: 'space-between',
-    marginBottom: 4,
   },
   summaryLabel: {
     fontFamily: FONT.bold,
-    color: '#cbd5e1',
+    color: colors.dim,
     fontSize: 15,
     includeFontPadding: false,
   },
   summaryValue: {
     fontFamily: FONT.bold,
-    color: '#2dd4bf',
+    color: colors.text,
     fontSize: 22,
     includeFontPadding: false,
   },
-  summarySubRow: {
+  summarySubRowBottom: {
     flexDirection: ROW,
     alignItems: 'center',
     justifyContent: 'space-between',
-    marginBottom: 12,
   },
   summarySubLabel: {
     fontFamily: FONT.regular,
-    color: '#94a3b8',
+    color: colors.faint,
     fontSize: 12,
     includeFontPadding: false,
   },
   summarySubValue: {
     fontFamily: FONT.semibold,
-    color: '#cbd5e1',
+    color: colors.dim,
     fontSize: 12,
     includeFontPadding: false,
-  },
-  cashierSection: {
-    borderTopWidth: 1,
-    borderTopColor: 'rgba(255, 255, 255, 0.08)',
-    paddingTop: 14,
-    gap: 12,
   },
   cashierHintBox: {
     flexDirection: ROW,
     alignItems: 'center',
     gap: 8,
-    backgroundColor: '#072a28',
+    backgroundColor: colors.brandSoft,
     borderWidth: 1,
-    borderColor: '#14b8a6',
+    borderColor: colors.brandBorder,
     borderRadius: 12,
     padding: 12,
   },
   cashierHintText: {
     flex: 1,
     fontFamily: FONT.medium,
-    color: '#ccfbf1',
+    color: colors.dim,
     fontSize: 12,
+    lineHeight: 18,
     textAlign: 'right',
     writingDirection: 'rtl',
     includeFontPadding: false,
   },
   guestSection: {
-    borderTopWidth: 1,
-    borderTopColor: 'rgba(255, 255, 255, 0.08)',
-    paddingTop: 14,
     gap: 14,
   },
   branchPickWrap: {
@@ -546,27 +555,27 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     paddingVertical: 8,
     borderRadius: 12,
-    backgroundColor: '#0b1220',
-    borderWidth: 1.5,
-    borderColor: 'rgba(255, 255, 255, 0.08)',
+    backgroundColor: colors.surfaceInset,
+    borderWidth: 1,
+    borderColor: colors.borderSubtle,
   },
   branchPillActive: {
-    backgroundColor: '#082f2d',
-    borderColor: '#14b8a6',
+    backgroundColor: colors.brandDark,
+    borderColor: colors.brand,
   },
   branchPillText: {
     fontFamily: FONT.semibold,
-    color: '#cbd5e1',
+    color: colors.dim,
     fontSize: 12,
     includeFontPadding: false,
   },
   branchPillTextActive: {
     fontFamily: FONT.bold,
-    color: '#5eead4',
+    color: colors.brandBright,
   },
   sectionTitle: {
     fontFamily: FONT.bold,
-    color: '#f8fafc',
+    color: colors.text,
     fontSize: 14,
     textAlign: 'right',
     writingDirection: 'rtl',
@@ -583,9 +592,9 @@ const styles = StyleSheet.create({
     gap: 8,
     minHeight: 50,
     borderRadius: 14,
-    backgroundColor: '#22c55e',
+    backgroundColor: colors.success,
     borderWidth: 1,
-    borderColor: '#4ade80',
+    borderColor: colors.successBorder,
     paddingHorizontal: 16,
   },
   waBtnText: {

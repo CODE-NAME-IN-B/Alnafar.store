@@ -4,6 +4,7 @@ import ModalSheet from '@/components/ui/ModalSheet';
 import AppButton from '@/components/ui/AppButton';
 import AppText from '@/components/ui/AppText';
 import { FONT } from '@/lib/fonts';
+import { colors } from '@/lib/colors';
 import { formatDinar } from '@/lib/money';
 import type { StorePackage } from '@/api/types';
 
@@ -26,19 +27,19 @@ export default function PackageDetailsSheet({ visible, pkg, onClose, onAdd }: Pr
               flexDirection: 'row',
               alignItems: 'center',
               justifyContent: 'space-between',
-              backgroundColor: '#0f1829',
+              backgroundColor: colors.elevatedRaised,
               borderRadius: 12,
               paddingHorizontal: 14,
               paddingVertical: 10,
               marginBottom: 12,
               borderWidth: 1,
-              borderColor: 'rgba(255,255,255,0.1)',
+              borderColor: colors.borderSubtle,
             }}
           >
-            <AppText style={{ color: '#cbd5e1', fontFamily: FONT.bold, fontSize: 13 }}>
+            <AppText style={{ color: colors.dim, fontFamily: FONT.bold, fontSize: 13 }}>
               عدد الألعاب: {pkg.packageGames.length}
             </AppText>
-            <AppText style={{ color: '#2dd4bf', fontFamily: FONT.bold, fontSize: 15 }}>
+            <AppText style={{ color: colors.brandLight, fontFamily: FONT.bold, fontSize: 15 }}>
               السعر: {formatDinar(Number(pkg.price))}
             </AppText>
           </View>
@@ -52,16 +53,16 @@ export default function PackageDetailsSheet({ visible, pkg, onClose, onAdd }: Pr
                     flexDirection: 'row',
                     alignItems: 'center',
                     gap: 12,
-                    backgroundColor: '#0f1829',
+                    backgroundColor: colors.elevatedRaised,
                     borderRadius: 12,
                     borderWidth: 1,
-                    borderColor: 'rgba(255,255,255,0.08)',
+                    borderColor: colors.borderSubtle,
                     padding: 10,
                   }}
                 >
                   <Image
                     source={{ uri: pg.image }}
-                    style={{ width: 48, height: 48, borderRadius: 10, backgroundColor: '#141e30' }}
+                    style={{ width: 48, height: 48, borderRadius: 10, backgroundColor: colors.elevated }}
                     contentFit="cover"
                     accessibilityLabel={`غلاف ${pg.title}`}
                   />
@@ -69,7 +70,7 @@ export default function PackageDetailsSheet({ visible, pkg, onClose, onAdd }: Pr
                     <Text
                       numberOfLines={1}
                       style={{
-                        color: '#f8fafc',
+                        color: colors.text,
                         fontFamily: FONT.bold,
                         fontSize: 14,
                         textAlign: 'right',
@@ -79,7 +80,7 @@ export default function PackageDetailsSheet({ visible, pkg, onClose, onAdd }: Pr
                     </Text>
                     <Text
                       style={{
-                        color: '#2dd4bf',
+                        color: colors.brandLight,
                         fontFamily: FONT.medium,
                         fontSize: 12,
                         textAlign: 'right',

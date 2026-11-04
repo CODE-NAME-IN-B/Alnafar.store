@@ -12,6 +12,7 @@ import { toggleOrderItemInstalled, trackOrder, updateOrderStatus } from '@/api/o
 import { apiErrorText } from '@/api/client';
 import { useAuthStore } from '@/stores/auth';
 import { FONT } from '@/lib/fonts';
+import { colors } from '@/lib/colors';
 import { statusLabel, type OrderStatus } from '@/lib/statuses';
 import { notifyOrderStatusChanged, registerForOrderNotifications } from '@/lib/notifications';
 import { addTrackedOrder, saveTrackedStatus } from '@/lib/trackedOrders';
@@ -104,21 +105,22 @@ export default function TrackScreen() {
             accessibilityLabel="عودة للمتجر"
             style={topActionBtn}
           >
-            <Icon name="store" size={15} color="#2dd4bf" />
-            <Text style={{ color: '#2dd4bf', fontFamily: FONT.bold, fontSize: 13 }}>المتجر</Text>
+            <Icon name="store" size={15} color={colors.dim} />
+            <Text style={{ color: colors.dim, fontFamily: FONT.bold, fontSize: 13 }}>المتجر</Text>
           </Pressable>
-          <AppText style={{ color: '#f8fafc', fontFamily: FONT.bold, fontSize: 18 }}>
+          <AppText style={{ color: colors.text, fontFamily: FONT.bold, fontSize: 18 }}>
             تتبع الطلب
           </AppText>
         </View>
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+          {/* مسح QR هو الفعل الأساسي في هذا الشاشة — التيل له وحده */}
           <Pressable
             onPress={() => setQrOpen(true)}
             accessibilityLabel="مسح QR آخر"
-            style={[topActionBtn, { borderColor: 'rgba(45,212,191,0.4)' }]}
+            style={[topActionBtn, { borderColor: colors.brandBorder }]}
           >
-            <Icon name="qr" size={15} color="#2dd4bf" />
-            <Text style={{ color: '#2dd4bf', fontFamily: FONT.bold, fontSize: 12 }}>مسح QR</Text>
+            <Icon name="qr" size={15} color={colors.brandLight} />
+            <Text style={{ color: colors.brandLight, fontFamily: FONT.bold, fontSize: 12 }}>مسح QR</Text>
           </Pressable>
           <Pressable
             onPress={() => refetch()}
@@ -126,8 +128,8 @@ export default function TrackScreen() {
             accessibilityLabel="تحديث الحالة"
             style={topActionBtn}
           >
-            <Icon name="refresh" size={15} color="#2dd4bf" />
-            <Text style={{ color: '#2dd4bf', fontFamily: FONT.bold, fontSize: 12 }}>تحديث</Text>
+            <Icon name="refresh" size={15} color={colors.dim} />
+            <Text style={{ color: colors.dim, fontFamily: FONT.bold, fontSize: 12 }}>تحديث</Text>
           </Pressable>
         </View>
       </View>
@@ -154,7 +156,7 @@ export default function TrackScreen() {
             <RefreshControl
               refreshing={isRefetching}
               onRefresh={() => void refetch()}
-              tintColor="#14b8a6"
+              tintColor={colors.brand}
             />
           }
         >
@@ -178,10 +180,10 @@ export default function TrackScreen() {
                       disabled={busyStatus || active}
                       onPress={() => void handleStatusChange(st)}
                       style={{
-                        backgroundColor: active ? '#14b8a6' : '#1b2b48',
+                        backgroundColor: active ? colors.brand : colors.surfaceRaised,
                         borderRadius: 10,
                         borderWidth: 1,
-                        borderColor: active ? '#2dd4bf' : 'rgba(255,255,255,0.1)',
+                        borderColor: active ? colors.brandLight : colors.borderSubtle,
                         paddingHorizontal: 12,
                         paddingVertical: 7,
                       }}
@@ -226,35 +228,36 @@ const headerRow = {
   justifyContent: 'space-between' as const,
   paddingHorizontal: 14,
   paddingVertical: 10,
-  backgroundColor: '#121c2e',
+  backgroundColor: colors.base,
   borderBottomWidth: 1,
-  borderBottomColor: 'rgba(255,255,255,0.08)',
+  borderBottomColor: colors.borderSubtle,
 };
 
 const topActionBtn = {
   flexDirection: 'row' as const,
   alignItems: 'center' as const,
   gap: 5,
-  backgroundColor: '#1b2b48',
+  backgroundColor: colors.surfaceRaised,
   borderRadius: 10,
   borderWidth: 1,
-  borderColor: 'rgba(45,212,191,0.35)',
+  borderColor: colors.borderSubtle,
   paddingHorizontal: 10,
-  paddingVertical: 6,
+  paddingVertical: 9,
+  minHeight: 40,
 };
 
 const staffCard = {
-  backgroundColor: '#141e30',
+  backgroundColor: colors.elevated,
   borderRadius: 14,
   borderWidth: 1,
-  borderColor: 'rgba(255,255,255,0.1)',
+  borderColor: colors.borderSubtle,
   padding: 14,
   marginTop: 12,
   gap: 10,
 } as const;
 
 const footnote = {
-  color: '#94a3b8',
+  color: colors.faint,
   fontFamily: FONT.regular,
   fontSize: 12,
   textAlign: 'center' as const,

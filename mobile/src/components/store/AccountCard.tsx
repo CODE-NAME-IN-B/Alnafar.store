@@ -7,9 +7,11 @@
 import { useEffect, useState } from 'react';
 import { Linking, StyleSheet, Text, View } from 'react-native';
 import QrScannerModal from '@/components/track/QrScannerModal';
+import UpdateSheet from '@/components/store/UpdateSheet';
 import Icon from '@/components/ui/Icon';
 import { ScalePressable } from '@/components/ui/motion';
 import { FONT } from '@/lib/fonts';
+import { colors } from '@/lib/colors';
 import { ROW } from '@/lib/rtl';
 import {
   CURRENT_VERSION,
@@ -25,6 +27,9 @@ export default function AccountCard() {
   const [updateUrl, setUpdateUrl] = useState<string | null>(null);
   const [ideaOpen, setIdeaOpen] = useState(false);
   const [qrOpen, setQrOpen] = useState(false);
+  /** نافذة التحديث الداخلية: تحميل + تثبيت — بلا مستودع؛ المفتاح يجدد التحميل بكل فتح */
+  const [updateOpen, setUpdateOpen] = useState(false);
+  const [updateEpoch, setUpdateEpoch] = useState(0);
 
   useEffect(() => {
     let alive = true;
@@ -40,11 +45,6 @@ export default function AccountCard() {
     };
   }, []);
 
-  const openUpdate = () => {
-    const url = updateUrl;
-    if (url) Linking.openURL(url).catch(() => undefined);
-  };
-
   const openDev = () => {
     Linking.openURL(DEV_URL).catch(() => undefined);
   };
@@ -55,7 +55,7 @@ export default function AccountCard() {
       <View style={styles.card}>
         <View style={styles.head}>
           <View style={styles.avatar}>
-            <Icon name="user" size={26} color="#2dd4bf" />
+            <Icon name="user" size={26} color={colors.brandLight} />
             <View style={styles.avatarDot} />
           </View>
           <View style={styles.headBody}>
@@ -78,29 +78,36 @@ export default function AccountCard() {
             style={styles.row}
           >
             <View style={[styles.rowIcon, { backgroundColor: 'rgba(20, 184, 166, 0.14)' }]}>
-              <Icon name="qr" size={16} color="#2dd4bf" />
+              <Icon name="qr" size={16} color={colors.brandLight} />
             </View>
             <View style={styles.rowBody}>
               <Text style={styles.rowTitle}>تتبع طلباتي</Text>
               <Text style={styles.rowHint}>مسح QR على الفاتورة</Text>
             </View>
-            <Icon name="chevron-left" size={14} color="#475569" />
+            <Icon name="chevron-left" size={14} color={colors.faint} />
           </ScalePressable>
 
           <ScalePressable
-            onPress={newer ? openUpdate : undefined}
+            onPress={
+              newer && updateUrl
+                ? () => {
+                    setUpdateEpoch((n) => n + 1);
+                    setUpdateOpen(true);
+                  }
+                : undefined
+            }
             accessibilityRole="button"
             accessibilityLabel={newer ? 'تحميل التحديث' : 'فحص التحديث'}
             style={styles.row}
-            disabled={!newer}
+            disabled={!newer || !updateUrl}
           >
             <View
               style={[
                 styles.rowIcon,
-                newer ? styles.rowIconWarn : { backgroundColor: 'rgba(20, 184, 166, 0.14)' },
+                newer ? styles.rowIconWarn : { backgroundColor: colors.brandSoft },
               ]}
             >
-              <Icon name={newer ? 'refresh' : 'check'} size={16} color={newer ? '#fbbf24' : '#2dd4bf'} />
+              <Icon name={newer ? 'refresh' : 'check'} size={16} color={newer ? colors.warningText : colors.brandLight} />
             </View>
             <View style={styles.rowBody}>
               <Text style={styles.rowTitle}>تحديث التطبيق</Text>
@@ -111,11 +118,11 @@ export default function AccountCard() {
                 {checking
                   ? 'تُفحص وجود تحديث...'
                   : newer
-                  ? `متوفر ${updateTag ?? ''} — اضغط للتثبيت`
+                  ? `متوفر ${updateTag ?? ''} — اضغط للتحميل والتثبيت`
                   : 'محدّث لأحدث نسخة ✓'}
               </Text>
             </View>
-            {newer ? <Icon name="chevron-left" size={14} color="#475569" /> : null}
+            {newer ? <Icon name="chevron-left" size={14} color={colors.faint} /> : null}
           </ScalePressable>
 
           <ScalePressable
@@ -125,7 +132,7 @@ export default function AccountCard() {
             style={styles.row}
           >
             <View style={[styles.rowIcon, { backgroundColor: 'rgba(148, 163, 184, 0.12)' }]}>
-              <Icon name="user" size={16} color="#94a3b8" />
+              <Icon name="user" size={16} color={colors.faint} />
             </View>
             <View style={styles.rowBody}>
               <Text style={styles.rowTitle}>المطور</Text>
@@ -133,7 +140,7 @@ export default function AccountCard() {
                 <Text style={styles.mono}>CODE-NAME-IN-B@github</Text>
               </Text>
             </View>
-            <Icon name="chevron-left" size={14} color="#475569" />
+            <Icon name="chevron-left" size={14} color={colors.faint} />
           </ScalePressable>
 
           <ScalePressable
@@ -143,13 +150,13 @@ export default function AccountCard() {
             style={styles.row}
           >
             <View style={[styles.rowIcon, { backgroundColor: 'rgba(239, 68, 68, 0.10)' }]}>
-              <Icon name="sparkles" size={16} color="#f87171" />
+              <Icon name="sparkles" size={16} color={colors.dangerStrong} />
             </View>
             <View style={styles.rowBody}>
               <Text style={styles.rowTitle}>فكرة التطبيق</Text>
               <Text style={styles.rowHint}>لماذا وُجد الشاردة ستور</Text>
             </View>
-            <Icon name={ideaOpen ? 'chevron-down' : 'chevron-left'} size={14} color="#475569" />
+            <Icon name={ideaOpen ? 'chevron-down' : 'chevron-left'} size={14} color={colors.faint} />
           </ScalePressable>
 
           {ideaOpen ? (
@@ -165,7 +172,7 @@ export default function AccountCard() {
         </View>
       </View>
 
-      {/* نافذة مسح QRInstall */}
+      {/* نافذة مسح QR */}
       <QrScannerModal
         visible={qrOpen}
         onClose={() => setQrOpen(false)}
@@ -174,6 +181,15 @@ export default function AccountCard() {
           router.push(`/track/${encodeURIComponent(orderId)}`);
         }}
       />
+
+      {/* نافذة التحديث الداخلية: تحميل بخط تقدم ثم زر تثبيت */}
+      <UpdateSheet
+        key={updateEpoch}
+        visible={updateOpen}
+        onClose={() => setUpdateOpen(false)}
+        apkUrl={updateUrl}
+        tag={updateTag}
+      />
     </>
   );
 }
@@ -181,10 +197,10 @@ export default function AccountCard() {
 const styles = StyleSheet.create({
   card: {
     marginHorizontal: 14,
-    backgroundColor: '#0d1629',
+    backgroundColor: colors.elevatedRaised,
     borderRadius: 18,
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.08)',
+    borderColor: colors.borderSubtle,
     padding: 14,
   },
   head: {
@@ -196,9 +212,9 @@ const styles = StyleSheet.create({
     width: 54,
     height: 54,
     borderRadius: 999,
-    backgroundColor: 'rgba(20, 184, 166, 0.16)',
+    backgroundColor: colors.brandSoft,
     borderWidth: 2,
-    borderColor: 'rgba(45, 212, 191, 0.45)',
+    borderColor: colors.brandBorder,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -209,14 +225,14 @@ const styles = StyleSheet.create({
     width: 12,
     height: 12,
     borderRadius: 999,
-    backgroundColor: '#22c55e',
+    backgroundColor: colors.success,
     borderWidth: 2,
-    borderColor: '#0d1629',
+    borderColor: colors.elevatedRaised,
   },
   headBody: { flex: 1 },
   appName: {
     fontFamily: FONT.bold,
-    color: '#f8fafc',
+    color: colors.text,
     fontSize: 16,
     textAlign: 'right',
     writingDirection: 'rtl',
@@ -238,13 +254,13 @@ const styles = StyleSheet.create({
   },
   betaText: {
     fontFamily: FONT.bold,
-    color: '#2dd4bf',
-    fontSize: 10,
+    color: '#042f2e',
+    fontSize: 11,
     includeFontPadding: false,
   },
   versionText: {
     fontFamily: FONT.regular,
-    color: '#94a3b8',
+    color: colors.faint,
     fontSize: 12,
     includeFontPadding: false,
   },
@@ -272,7 +288,7 @@ const styles = StyleSheet.create({
   rowBody: { flex: 1 },
   rowTitle: {
     fontFamily: FONT.bold,
-    color: '#f1f5f9',
+    color: colors.text,
     fontSize: 13,
     textAlign: 'right',
     writingDirection: 'rtl',
@@ -280,7 +296,7 @@ const styles = StyleSheet.create({
   },
   rowHint: {
     fontFamily: FONT.regular,
-    color: '#94a3b8',
+    color: colors.faint,
     fontSize: 11,
     textAlign: 'right',
     writingDirection: 'rtl',
@@ -288,12 +304,12 @@ const styles = StyleSheet.create({
     includeFontPadding: false,
   },
   rowHintWarn: {
-    color: '#fbbf24',
+    color: colors.warningText,
     fontFamily: FONT.bold,
   },
   mono: {
     fontFamily: FONT.regular,
-    color: '#94a3b8',
+    color: colors.faint,
   },
   ideaBox: {
     marginHorizontal: 8,
@@ -301,12 +317,12 @@ const styles = StyleSheet.create({
     padding: 10,
     borderRadius: 10,
     backgroundColor: 'rgba(255, 255, 255, 0.04)',
-    borderLeftWidth: 3,
-    borderLeftColor: '#f87171',
+    borderStartWidth: 3,
+    borderStartColor: colors.dangerStrong,
   },
   ideaText: {
     fontFamily: FONT.regular,
-    color: '#cbd5e1',
+    color: colors.dim,
     fontSize: 11.5,
     lineHeight: 19,
     textAlign: 'right',

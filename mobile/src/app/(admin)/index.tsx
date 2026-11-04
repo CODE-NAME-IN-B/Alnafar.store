@@ -25,7 +25,9 @@ import ModalSheet from '@/components/ui/ModalSheet';
 import Chip from '@/components/ui/Chip';
 import Icon from '@/components/ui/Icon';
 import { ScalePressable } from '@/components/ui/motion';
+import DatePickerSheet from '@/components/ui/DatePickerSheet';
 import { FONT } from '@/lib/fonts';
+import { colors } from '@/lib/colors';
 import { formatDinar } from '@/lib/money';
 import { showToast } from '@/lib/toast';
 import { ROW } from '@/lib/rtl';
@@ -39,7 +41,10 @@ export default function AdminInvoicesScreen() {
   const user = useAuthStore((s) => s.user);
   const startEditingInvoice = useCartStore((s) => s.startEditingInvoice);
 
-  const [date, setDate] = useState(todayIso());
+  /** التاريخ الافتراضي = اليوم؛ التقويم يسمح بيوم واحد أو مدى من–إلى */
+  const [dateFrom, setDateFrom] = useState<string | null>(todayIso());
+  const [dateTo, setDateTo] = useState<string | null>(todayIso());
+  const [datePickerOpen, setDatePickerOpen] = useState(false);
   const [unpaidOnly, setUnpaidOnly] = useState(false);
   const [includeUnpaid, setIncludeUnpaid] = useState(true);
   const [searchQ, setSearchQ] = useState('');
@@ -47,13 +52,15 @@ export default function AdminInvoicesScreen() {
   const [busyBulk, setBusyBulk] = useState(false);
   const [optionsOpen, setOptionsOpen] = useState(false);
   /** هل غيّر المستخدم شيئاً عن الوضع الافتراضي (اليوم) — لنقطة تنبيه على زر الخيارات */
-  const optionsDirty = unpaidOnly || date !== todayIso();
+  const optionsDirty =
+    unpaidOnly || dateFrom !== todayIso() || dateTo !== todayIso();
 
   const invoicesQuery = useQuery({
-    queryKey: ['admin-invoices', { date, unpaidOnly, includeUnpaid, branchScope }],
+    queryKey: ['admin-invoices', { dateFrom, dateTo, unpaidOnly, includeUnpaid, branchScope }],
     queryFn: () =>
       fetchInvoices({
-        date: unpaidOnly ? undefined : date,
+        dateFrom: unpaidOnly ? undefined : (dateFrom ?? undefined),
+        dateTo: unpaidOnly ? undefined : (dateTo ?? undefined),
         unpaidOnly: unpaidOnly ? '1' : '0',
         includeUnpaid: includeUnpaid ? '1' : '0',
         branchId: branchScope === 'all' ? undefined : branchScope,
@@ -61,11 +68,11 @@ export default function AdminInvoicesScreen() {
   });
 
   const summaryQuery = useQuery({
-    queryKey: ['admin-invoices-summary', { date, branchScope }],
+    queryKey: ['admin-invoices-summary', { dateFrom, dateTo, branchScope }],
     queryFn: () =>
       fetchInvoicesSummary({
-        dateFrom: date,
-        dateTo: date,
+        dateFrom: dateFrom ?? undefined,
+        dateTo: dateTo ?? dateFrom ?? undefined,
         branchId: branchScope === 'all' ? undefined : branchScope,
       }),
   });
@@ -85,7 +92,7 @@ export default function AdminInvoicesScreen() {
     setBusyBulk(true);
     try {
       const res = await payAllUnpaidInvoices(
-        unpaidOnly ? {} : { dateFrom: date, dateTo: date, includeUnpaid }
+        unpaidOnly ? {} : { dateFrom: dateFrom ?? undefined, dateTo: dateTo ?? undefined, includeUnpaid }
       );
       showToast(`سُدّدت ${res.paidCount} فاتورة (${formatDinar(res.totalPaid)})`);
       await invoicesQuery.refetch();
@@ -212,28 +219,45 @@ export default function AdminInvoicesScreen() {
       {/* درج خيارات القائمة: التاريخ + شرائح الفلترة + إحصائيات اليوم */}
       <ModalSheet visible={optionsOpen} onClose={() => setOptionsOpen(false)} title="خيارات القائمة">
         <Text style={styles.sheetSectionTitle}>التاريخ والفلترة</Text>
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={styles.dateScroll}
+        <Text style={styles.dateHint}>
+          اضغط لاختيار يوم واحد أو مدى (من يوم إلى يوم) من التقويم
+        </Text>
+        <ScalePressable
+          onPress={() => setDatePickerOpen(true)}
+          accessibilityRole="button"
+          accessibilityLabel="اختيار التاريخ من التقويم"
+          style={styles.dateInputWrap}
         >
-          <View style={styles.dateInputWrap}>
-            <Icon name="calendar" size={14} color="#2dd4bf" />
-            <TextInput
-              value={date}
-              onChangeText={setDate}
-              placeholder="YYYY-MM-DD"
-              placeholderTextColor="#94a3b8"
-              style={styles.dateInput}
-            />
-          </View>
+          <Icon name="calendar" size={14} color={colors.brandLight} />
+          <Text style={styles.dateInput}>
+            {dateFrom == null
+              ? 'كل التواريخ'
+              : dateTo && dateTo !== dateFrom
+                ? `${dateFrom} ← ${dateTo}`
+                : dateFrom}
+          </Text>
+        </ScalePressable>
+        <View style={styles.dateChipsRow}>
           <Chip
             label="اليوم"
             compact
-            active={!unpaidOnly && date === todayIso()}
+            active={
+              !unpaidOnly && dateFrom === todayIso() && dateTo === todayIso()
+            }
             onPress={() => {
               setUnpaidOnly(false);
-              setDate(todayIso());
+              setDateFrom(todayIso());
+              setDateTo(todayIso());
+            }}
+          />
+          <Chip
+            label="كل التواريخ"
+            compact
+            active={!unpaidOnly && dateFrom == null && dateTo == null}
+            onPress={() => {
+              setUnpaidOnly(false);
+              setDateFrom(null);
+              setDateTo(null);
             }}
           />
           <Chip
@@ -248,7 +272,7 @@ export default function AdminInvoicesScreen() {
             active={includeUnpaid && !unpaidOnly}
             onPress={() => setIncludeUnpaid((v) => !v)}
           />
-        </ScrollView>
+        </View>
 
         <Text style={styles.sheetSectionTitle}>إحصائيات اليوم</Text>
         {summaryQuery.data ? (
@@ -268,6 +292,19 @@ export default function AdminInvoicesScreen() {
           </View>
         ) : null}
       </ModalSheet>
+
+      {/* التقويم: يوم واحد أو مدى من–إلى */}
+      <DatePickerSheet
+        visible={datePickerOpen}
+        onClose={() => setDatePickerOpen(false)}
+        range
+        initialFrom={dateFrom}
+        initialTo={dateTo}
+        onApply={(from, to) => {
+          setDateFrom(from);
+          setDateTo(to);
+        }}
+      />
 
       {invoicesQuery.isLoading ? (
         <LoadingState message="جاري جلب الفواتير..." />
@@ -333,28 +370,38 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: 'rgba(255, 255, 255, 0.08)',
   },
-  dateScroll: {
-    flexDirection: ROW,
-    gap: 6,
-    alignItems: 'center',
-  },
   dateInputWrap: {
     flexDirection: ROW,
     alignItems: 'center',
-    gap: 6,
-    backgroundColor: '#141e30',
+    gap: 8,
+    backgroundColor: colors.surfaceInset,
     borderRadius: 10,
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.08)',
-    paddingHorizontal: 10,
-    height: 36,
+    borderColor: colors.borderSubtle,
+    paddingHorizontal: 12,
+    paddingVertical: 12,
+    minHeight: 44,
+  },
+  dateHint: {
+    color: colors.faint,
+    fontFamily: FONT.regular,
+    fontSize: 11.5,
+    lineHeight: 17,
+    marginBottom: 6,
+    textAlign: 'right',
+    writingDirection: 'rtl',
+  },
+  dateChipsRow: {
+    flexDirection: 'row-reverse',
+    flexWrap: 'wrap',
+    gap: 6,
+    marginTop: 8,
   },
   dateInput: {
-    color: '#f8fafc',
+    flex: 1,
+    color: colors.text,
     fontFamily: FONT.bold,
-    fontSize: 12.5,
-    minWidth: 88,
-    paddingVertical: 2,
+    fontSize: 13,
     includeFontPadding: false,
   },
   searchRow: {
