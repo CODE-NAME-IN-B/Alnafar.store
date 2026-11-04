@@ -7,6 +7,7 @@ import {
   Text,
   TextInput,
   View,
+  type TextInputInstance,
 } from 'react-native';
 import Icon, { IconName } from './Icon';
 import { FONT } from '@/lib/fonts';
@@ -27,6 +28,10 @@ interface Props {
   autoCapitalize?: 'none' | 'sentences' | 'words' | 'characters';
   testID?: string;
   classNameExtra?: string;
+  /** تركيز الحقل فور ظهور النافذة (الحقل الأول من الاستمارة) */
+  autoFocus?: boolean;
+  /** للوصول إلى input الحقيقي — سلسلة «التالي» بين حقول الاستمارة */
+  inputRef?: (t: TextInputInstance | null) => void;
 }
 
 export default function AppInput({
@@ -43,6 +48,8 @@ export default function AppInput({
   onSubmitEditing,
   autoCapitalize = 'none',
   testID,
+  autoFocus,
+  inputRef,
 }: Props) {
   const [focused, setFocused] = useState(false);
   const [hidden, setHidden] = useState(Boolean(secure));
@@ -79,6 +86,8 @@ export default function AppInput({
           onFocus={() => setFocused(true)}
           onBlur={() => setFocused(false)}
           textAlign="right"
+          autoFocus={autoFocus}
+          ref={inputRef}
           style={[styles.input, multiline && styles.inputMultiline]}
         />
         {secure ? (

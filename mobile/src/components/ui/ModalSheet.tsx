@@ -19,9 +19,11 @@ interface Props {
   onClose: () => void;
   title?: string;
   children: ReactNode;
+  /** محتوى ثابت أسفل المحتوى القابل للتمرير (زر أساسي/ملخص) — لا يُلفّ ولا يختفي */
+  footer?: ReactNode;
 }
 
-export default function ModalSheet({ visible, onClose, title, children }: Props) {
+export default function ModalSheet({ visible, onClose, title, children, footer }: Props) {
   return (
     <Modal
       visible={visible}
@@ -54,6 +56,7 @@ export default function ModalSheet({ visible, onClose, title, children }: Props)
             >
               {children}
             </ScrollView>
+            {footer ? <View style={styles.footer}>{footer}</View> : null}
           </SafeAreaView>
         </View>
       </KeyboardAvoidingView>
@@ -118,5 +121,11 @@ const styles = StyleSheet.create({
   },
   content: {
     paddingBottom: 24,
+  },
+  footer: {
+    paddingTop: 8,
+    paddingBottom: 12,
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(255, 255, 255, 0.08)',
   },
 });

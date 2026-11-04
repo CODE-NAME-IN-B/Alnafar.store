@@ -1,5 +1,11 @@
-import { useEffect, useState, type ReactNode } from 'react';
-import { ScrollView, Text, View } from 'react-native';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
+import {
+  Keyboard,
+  ScrollView,
+  Text,
+  View,
+  type TextInputInstance,
+} from 'react-native';
 import ModalSheet from '@/components/ui/ModalSheet';
 import AppInput from '@/components/ui/AppInput';
 import AppButton from '@/components/ui/AppButton';
@@ -61,6 +67,10 @@ export default function InvoiceFormModal({
   const finalTotal = Math.max(0, total - discount);
   const paidAmount = Math.max(0, Number(paidText) || 0);
   const remaining = Math.max(0, finalTotal - paidAmount);
+
+  /** سلسلة الحقول: اسم ← هاتف — Enter في الاسم ينتقل للهاتف مباشرة */
+  const nameRef = useRef<TextInputInstance | null>(null);
+  const phoneRef = useRef<TextInputInstance | null>(null);
 
   useEffect(() => {
     if (!visible) return;
@@ -186,6 +196,13 @@ export default function InvoiceFormModal({
             icon="user"
             error={attempted && !name.trim() ? 'الاسم مطلوب' : null}
             onChangeText={setName}
+            /* تركيز تلقائي عند إنشاء فاتورة جديدة فقط — في التعديل لا نصخم المستخدم */
+            autoFocus={!editingDraft}
+            inputRef={(t) => {
+              nameRef.current = t;
+            }}
+            returnKeyType="next"
+            onSubmitEditing={() => phoneRef.current?.focus()}
           />
           <AppInput
             label="رقم الهاتف *"
@@ -195,6 +212,11 @@ export default function InvoiceFormModal({
             value={phone}
             error={attempted && !phone.trim() ? 'رقم الهاتف مطلوب' : null}
             onChangeText={setPhone}
+            inputRef={(t) => {
+              phoneRef.current = t;
+            }}
+            returnKeyType="done"
+            onSubmitEditing={() => Keyboard.dismiss()}
           />
           <AppInput
             label="ملاحظات (اختياري)"
@@ -249,8 +271,12 @@ export default function InvoiceFormModal({
               onPress={() => setPaidText('0')}
             />
           </View>
+        </View>
+      </ScrollView>
 
-          {/* ملخص الأرقام */}
+      {/* ملخص الأرقام + الخطأ + زر الحفظ: ثابت أسفل النافذة — مرئي دائماً أثناء التمرير */}
+      footer={
+        <View style={{ gap: 10 }}>
           <View
             style={{
               backgroundColor: colors.elevatedRaised,
@@ -280,7 +306,7 @@ export default function InvoiceFormModal({
             loading={busy}
           />
         </View>
-      </ScrollView>
+      }
     </ModalSheet>
   );
 }
@@ -329,7 +355,7 @@ function SectionTitle({ children }: { children: ReactNode }) {
   return (
     <Text
       style={{
-        color: '#94a3b8',
+        color: colors.faint, textAlign: 'right',
         fontFamily: FONT.bold,
         fontSize: 11.5,
         marginTop: 2,
@@ -354,7 +380,7 @@ function SummaryLine({
 }) {
   return (
     <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
-      <Text style={{ color: '#cbd5e1', fontFamily: FONT.regular, fontSize: 12 }}>{label}</Text>
+      <Text style={{ color: colors.dim, fontFamily: FONT.regular, fontSize: 12 }}>{label}</Text>
       <Text
         style={{
           color: warn ? colors.warningText : highlight ? colors.brandLight : colors.text,

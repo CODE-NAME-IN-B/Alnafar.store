@@ -15,6 +15,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useQuery } from '@tanstack/react-query';
 import { router } from 'expo-router';
 import { fetchGames } from '@/api/games';
+import { ENGLISH_LETTERS } from '@/lib/arabic';
 import { fetchCategories, fetchGenres, fetchSeries } from '@/api/categories';
 import { fetchBranches } from '@/api/branches';
 import { fetchHealth } from '@/api/settings';
@@ -106,6 +107,12 @@ export default function StoreHomeScreen() {
     [games, filters, activeCategoryId, query]
   );
 
+  /** تبديل حرف سريع من الشريط — ضغطة على الحرف تفعّله وضغطته الثانية تُلغيه */
+  const toggleLetter = (ltr: string) => {
+    triggerLightHaptic();
+    setFilters((f) => ({ ...f, letter: f.letter === ltr ? null : ltr }));
+  };
+
   const handlePressGame = (game: Game) => {
     if (isPs4Game(game, categories)) {
       setPickingGame(game);
@@ -141,7 +148,7 @@ export default function StoreHomeScreen() {
                 <View
                   style={[
                     styles.statusDot,
-                    { backgroundColor: healthy ? '#22c55e' : '#eab308' },
+                    { backgroundColor: healthy ? colors.success : colors.warningText },
                   ]}
                 />
                 <Text style={styles.statusText} numberOfLines={1}>
@@ -196,7 +203,7 @@ export default function StoreHomeScreen() {
                   hitSlop={6}
                   style={[styles.headerActionBtn, styles.headerActionDanger]}
                 >
-                  <Icon name="logout" size={16} color="#fda4af" />
+                  <Icon name="logout" size={16} color={colors.dangerText} />
                 </ScalePressable>
               </>
             ) : (
@@ -218,12 +225,12 @@ export default function StoreHomeScreen() {
 
         {/* Search + Filter Row */}
         <View style={styles.searchBar}>
-          <Icon name="search" size={18} color="#94a3b8" />
+          <Icon name="search" size={18} color={colors.faint} />
           <TextInput
             value={query}
             onChangeText={setQuery}
             placeholder="ابحث عن لعبة أو سلسلة..."
-            placeholderTextColor="#94a3b8"
+            placeholderTextColor={colors.faint}
             textAlign="right"
             style={styles.searchInput}
           />
@@ -250,7 +257,7 @@ export default function StoreHomeScreen() {
             <Icon
               name="filter"
               size={14}
-              color={activeFilterCount > 0 ? '#042f2e' : '#e2e8f0'}
+              color={activeFilterCount > 0 ? colors.brandDark : colors.dim}
             />
             <Text
               style={[
@@ -261,6 +268,35 @@ export default function StoreHomeScreen() {
               {activeFilterCount > 0 ? `فلترة (${activeFilterCount})` : 'فلترة'}
             </Text>
           </Pressable>
+        </View>
+
+        {/* شريط الأحرف السريع — خارج زر «فلترة»: بضغطة واحدة على حرف تُصفّى
+            القائمة فوراً (أ بـLatin); والضغط على الحرف المفعّل يُلغيه */}
+        <View style={styles.letterStripRow}>
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.letterStripScroll}
+          >
+            {ENGLISH_LETTERS.map((ltr) => {
+              const active = filters.letter === ltr;
+              return (
+                <Pressable
+                  key={ltr}
+                  onPress={() => toggleLetter(ltr)}
+                  hitSlop={8}
+                  accessibilityRole="button"
+                  accessibilityLabel={`تصفية الألعاب التي تبدأ بـ ${ltr}`}
+                  accessibilityState={{ selected: active }}
+                  style={[styles.letterPill, active && styles.letterPillOn]}
+                >
+                  <Text style={[styles.letterPillText, active && styles.letterPillTextOn]}>
+                    {ltr}
+                  </Text>
+                </Pressable>
+              );
+            })}
+          </ScrollView>
         </View>
 
         {/* Category Strip */}
@@ -365,7 +401,7 @@ export default function StoreHomeScreen() {
                       <Icon
                         name="grid"
                         size={13}
-                        color={!cashierCompact ? '#042f2e' : '#94a3b8'}
+                        color={!cashierCompact ? colors.brandDark : colors.faint}
                       />
                       <Text
                         style={[
@@ -385,7 +421,7 @@ export default function StoreHomeScreen() {
                       <Icon
                         name="list"
                         size={13}
-                        color={cashierCompact ? '#042f2e' : '#94a3b8'}
+                        color={cashierCompact ? colors.brandDark : colors.faint}
                       />
                       <Text
                         style={[
@@ -465,15 +501,15 @@ export default function StoreHomeScreen() {
 const styles = StyleSheet.create({
   safe: {
     flex: 1,
-    backgroundColor: '#090f1d',
+    backgroundColor: colors.deep,
   },
   header: {
     paddingHorizontal: 14,
     paddingTop: 8,
     paddingBottom: 10,
-    backgroundColor: '#090f1d',
+    backgroundColor: colors.deep,
     borderBottomWidth: 1,
-    borderBottomColor: 'rgba(255, 255, 255, 0.08)',
+    borderBottomColor: colors.borderSubtle,
     gap: 10,
   },
   topBar: {
@@ -500,7 +536,7 @@ const styles = StyleSheet.create({
   },
   brandTitle: {
     fontFamily: FONT.bold,
-    color: '#f8fafc',
+    color: colors.text,
     fontSize: 15,
     includeFontPadding: false,
   },
@@ -516,7 +552,7 @@ const styles = StyleSheet.create({
   },
   statusText: {
     fontFamily: FONT.medium,
-    color: '#94a3b8',
+    color: colors.faint,
     fontSize: 12,
     includeFontPadding: false,
   },
@@ -532,21 +568,21 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#131d31',
+    backgroundColor: colors.elevatedRaised,
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.08)',
+    borderColor: colors.borderSubtle,
   },
   headerActionDanger: {
-    borderColor: 'rgba(239, 68, 68, 0.35)',
-    backgroundColor: 'rgba(239, 68, 68, 0.10)',
+    borderColor: colors.dangerBorder,
+    backgroundColor: colors.dangerSoft,
   },
   searchBar: {
     flexDirection: ROW,
     alignItems: 'center',
-    backgroundColor: '#131d31',
+    backgroundColor: colors.elevatedRaised,
     borderRadius: 14,
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.08)',
+    borderColor: colors.borderSubtle,
     paddingHorizontal: 12,
     height: 46,
     gap: 8,
@@ -554,7 +590,7 @@ const styles = StyleSheet.create({
   searchInput: {
     flex: 1,
     fontFamily: FONT.medium,
-    color: '#f8fafc',
+    color: colors.text,
     fontSize: 13,
     paddingVertical: 6,
     writingDirection: 'rtl',
@@ -568,7 +604,7 @@ const styles = StyleSheet.create({
     paddingVertical: 9,
     minHeight: 40,
     borderRadius: 10,
-    backgroundColor: 'rgba(255, 255, 255, 0.06)',
+    backgroundColor: colors.surfaceRaised,
     borderWidth: 1,
     borderColor: colors.borderSubtle,
   },
@@ -578,12 +614,43 @@ const styles = StyleSheet.create({
   },
   filterBtnText: {
     fontFamily: FONT.bold,
-    color: '#e2e8f0',
+    color: colors.dim,
     fontSize: 11,
     includeFontPadding: false,
   },
   filterBtnTextActive: {
-    color: '#042f2e',
+    color: colors.brandDark,
+  },
+  letterStripRow: {
+    marginTop: 10,
+  },
+  letterStripScroll: {
+    flexDirection: 'row',
+    gap: 7,
+    paddingVertical: 2,
+  },
+  letterPill: {
+    width: 38,
+    height: 38,
+    borderRadius: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: colors.surfaceRaised,
+    borderWidth: 1,
+    borderColor: colors.borderSubtle,
+  },
+  letterPillOn: {
+    backgroundColor: colors.brand,
+    borderColor: colors.brandBorder,
+  },
+  letterPillText: {
+    color: colors.dim,
+    fontFamily: FONT.bold,
+    fontSize: 12.5,
+    includeFontPadding: false,
+  },
+  letterPillTextOn: {
+    color: colors.brandDark,
   },
   catScroll: {
     flexDirection: ROW,
@@ -611,7 +678,7 @@ const styles = StyleSheet.create({
   },
   gamesHeadText: {
     fontFamily: FONT.bold,
-    color: '#f8fafc',
+    color: colors.text,
     fontSize: 13,
     includeFontPadding: false,
   },
@@ -620,7 +687,7 @@ const styles = StyleSheet.create({
     color: colors.dim,
     fontSize: 11,
     includeFontPadding: false,
-    backgroundColor: 'rgba(255, 255, 255, 0.07)',
+    backgroundColor: colors.surfaceRaised,
     borderColor: colors.borderSubtle,
     borderWidth: 1,
     borderRadius: 9,
@@ -631,10 +698,10 @@ const styles = StyleSheet.create({
   viewToggle: {
     flexDirection: ROW,
     alignItems: 'center',
-    backgroundColor: '#131d31',
+    backgroundColor: colors.elevatedRaised,
     borderRadius: 10,
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.08)',
+    borderColor: colors.borderSubtle,
     padding: 2,
     gap: 2,
   },
@@ -651,12 +718,12 @@ const styles = StyleSheet.create({
   },
   viewToggleText: {
     fontFamily: FONT.bold,
-    color: '#94a3b8',
+    color: colors.faint,
     fontSize: 11,
     includeFontPadding: false,
   },
   viewToggleTextOn: {
-    color: '#042f2e',
+    color: colors.brandDark,
   },
   gridRow: {
     gap: 10,
