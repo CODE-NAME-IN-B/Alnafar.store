@@ -9,6 +9,8 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 import * as SystemUI from 'expo-system-ui';
 import { CAIRO_FONTS } from '@/lib/fonts';
 import { colors } from '@/lib/colors';
+import { DESIGN_FONTS } from '@/design/fonts';
+import { ThemeProvider } from '@/design/theme';
 import { registerForPushNotifications, useForegroundNotifications } from '@/lib/notifications';
 import TrackedOrderWatcher from '@/components/track/TrackedOrderWatcher';
 import { setTokenGetter, setUnauthorizedHandler } from '@/api/client';
@@ -31,7 +33,8 @@ const queryClient = new QueryClient({
 
 /** جذر التطبيق: الخطوط، المزودون، والمسارات */
 export default function RootLayout() {
-  const [fontsLoaded, fontsError] = useFonts(CAIRO_FONTS);
+  // Cairo (الشاشات الحالية) + خطا الهوية الجديدان (IBM Plex Sans Arabic + Space Grotesk)
+  const [fontsLoaded, fontsError] = useFonts({ ...CAIRO_FONTS, ...DESIGN_FONTS });
 
   useEffect(() => {
     // قراءة الجلسة والحالة المحفوظة مرة واحدة عند الإقلاع + لون خلفية النظام
@@ -67,21 +70,23 @@ export default function RootLayout() {
     <GestureHandlerRootView style={{ flex: 1 }}>
       <SafeAreaProvider>
         <QueryClientProvider client={queryClient}>
-          <StatusBar style="light" />
-          <Stack
-            screenOptions={{
-              headerShown: false,
-              contentStyle: { backgroundColor: colors.base },
-            }}
-          >
-            <Stack.Screen name="(store)" />
-            <Stack.Screen name="(admin)" />
-            <Stack.Screen name="login" />
-            <Stack.Screen name="track/[id]" />
-          </Stack>
-          {/* مراقب الطلبات المحفوظة محلياً — إشعار «جاهز للاستلام» حتى خارج شاشة التتبع */}
-          <TrackedOrderWatcher />
-          <ToastHost />
+          <ThemeProvider>
+            <StatusBar style="light" />
+            <Stack
+              screenOptions={{
+                headerShown: false,
+                contentStyle: { backgroundColor: colors.base },
+              }}
+            >
+              <Stack.Screen name="(store)" />
+              <Stack.Screen name="(admin)" />
+              <Stack.Screen name="login" />
+              <Stack.Screen name="track/[id]" />
+            </Stack>
+            {/* مراقب الطلبات المحفوظة محلياً — إشعار «جاهز للاستلام» حتى خارج شاشة التتبع */}
+            <TrackedOrderWatcher />
+            <ToastHost />
+          </ThemeProvider>
         </QueryClientProvider>
       </SafeAreaProvider>
     </GestureHandlerRootView>
