@@ -10,7 +10,6 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import Animated from 'react-native-reanimated';
 import {
   AnimatedUnderline,
-  EdgeSweep,
   EntryIn,
   SignalBeacon,
   useFloatMotion,
@@ -160,7 +159,7 @@ export default function DesignProbe() {
           </View>
         </EntryIn>
 
-        {/* حركة الموقع المنقولة */}
+        {/* حركة الأساس */}
         <EntryIn index={4}>
           <View
             style={[
@@ -168,29 +167,26 @@ export default function DesignProbe() {
               { backgroundColor: palette.surface, borderColor: palette.surfaceLine },
             ]}
           >
-            <Text style={[TYPE.label, { color: palette.textSub }]}>حركة الموقع المنقولة</Text>
+            <Text style={[TYPE.label, { color: palette.textSub }]}>حركة الأساس المعتمدة</Text>
 
             <View style={styles.rowBeacon}>
               <Text style={[TYPE.body, { color: palette.text }]}>نقطة نبض الشارة</Text>
               <SignalBeacon color={palette.primary} size={8} />
             </View>
 
-            {/* حاوية edge lime + مسح 8s */}
+            {/* مربع الأساس المعتمد */}
             <View
               style={[
                 styles.edgeDemo,
                 { backgroundColor: palette.surfaceRaised },
               ]}
             >
-              <View style={{ padding: 16 }}>
-                <Text style={[TYPE.body, { color: palette.text }]}>
-                  حاوية بـ lime edge + مسح 8s
-                </Text>
-                <Text style={[TYPE.label, { color: palette.textSub, marginTop: 4 }]}>
-                  خطوط الموقع: tabular + forest أزرار (فاتح)
-                </Text>
-              </View>
-              <EdgeSweep />
+              <Text style={[TYPE.body, { color: palette.text }]}>
+                الأساس: EntryIn + SignalBeacon + underline + طفو
+              </Text>
+              <Text style={[TYPE.label, { color: palette.textSub, marginTop: 4 }]}>
+                الحركات الزخرفية المنقولة حُذفت — التطبيق تصميم أصلي
+              </Text>
             </View>
 
             {/* demo: underline من ينطفئ/يشتغل */}
@@ -210,7 +206,7 @@ export default function DesignProbe() {
             {/* طفو */}
             <Animated.View style={[styles.floatBox, { backgroundColor: palette.primary }, floatStyle]}>
               <Text style={[TYPE.label, { color: palette.onPrimary }]}>
-                طفو 4.3s ±2° — من phone-float
+                طفو 4.3s ±2° — شاشة الترحيب حصراً
               </Text>
             </Animated.View>
           </View>

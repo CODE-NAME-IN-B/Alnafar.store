@@ -33,12 +33,11 @@ export const EASE = {
   linear: Easing.linear,
 } as const;
 
-/** أزمنة الحركات الدورية المنقولة من الموقع (ملي ثانية) */
+/** أزمنة الحركات الدورية المبرَّرة لمكان محدد (ملّي ثانية) */
 export const SITE = {
+  /** طفو العنصر البطل — شاشة الترحيب حصراً (phone-float مثقل بالقيم الأصلية، 4.3s بدورة) */
   floatPeriod: 4300,
   floatHalf: 2150,
+  /** نقطة الحالة النابضة — مؤشر الاتصال (2.4s) */
   beaconPeriod: 2400,
-  sweepPeriod: 8000,
-  orbitShort: 23000,
-  orbitLong: 31000,
 } as const;

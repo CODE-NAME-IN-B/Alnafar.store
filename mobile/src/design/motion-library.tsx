@@ -1,9 +1,12 @@
 /**
- * motion-library.tsx — مكتبة الحركة المنقولة من الموقع (00b-web-reference §D)
+ * motion-library.tsx — الأساسيات الأصلية للحركة في التطبيق
  *
- * قاعدة PLAN §5: كل worklets على خيط الواجهة (transform/opacity فقط)،
- * واحترام reduced motion بالتحول إلى سلوك فوري، والانضباط:
- * الحركات الدورية (طفو/هالة/أوربت) للشاشات الترحيبية فقط — لا شيء في قوائم الكاشير.
+ * مبدأ معتمد (PLAN §2.5 + 01-design-plan §4): موقع التحميل مرجع **هوية وإحساس**
+ * فقط (اللون، الخط، المنحنى، الإيقاع) — وليس مصدراً للنسخ. كل مكوّن هنا مبرَّر
+ * بمكان محدد يخدمه، وحركات التطبيق الأثرية (§4.2 من الوثيقة) تُلَّف عند موافقتها.
+ *
+ * جميع التنفيذات: Reanimated worklets على خيط الواجهة (transform/opacity)،
+ * مع تحويل reduced motion إلى سلوك فوري.
  */
 import React, { useEffect, useState } from 'react';
 import { View, ViewStyle } from 'react-native';
@@ -18,14 +21,13 @@ import Animated, {
   withSequence,
   withTiming,
 } from 'react-native-reanimated';
-import Svg, { Defs, LinearGradient, Rect, Stop } from 'react-native-svg';
-import { PRIM } from './tokens';
 import { DUR, EASE, SITE } from './motion';
 import { isSystemRTL } from '../lib/rtl';
 
 /* ============================================================
- * EntryIn — نمط دخول الموقع (copy-arrive):
- * fade + slide-up بسلسلة stagger: delay = i * DUR.stagger
+ * EntryIn — إيقاع الدخول الأساسي للشاشات والقوائم:
+ * fade + slide-up بسلسلة stagger (delay = i * 80ms، 720ms، signature easing).
+ * الاستعمال: بطاقات القوائم، مقاطع الشاشة. يبقى ثابتاً مع reduced motion.
  * ============================================================ */
 
 export function EntryIn({
@@ -52,86 +54,18 @@ export function EntryIn({
 }
 
 /* ============================================================
- * EdgeSweep — خط edge lime (3px) أسفل الحاوية مع مسح ضوئي 8s
- * مستخرج حرفياً: linear-gradient(transparent→lime→green→transparent)
- * translateY داخل مسح span. في reduced motion: ثابت بلا مسح.
- * ============================================================ */
-
-export function EdgeSweep({ style }: { style?: ViewStyle }) {
-  const reduced = useReducedMotion();
-  const [width, setWidth] = useState(0);
-  const sweep = useSharedValue(0);
-
-  useEffect(() => {
-    if (reduced || width === 0) {
-      sweep.value = 0;
-      return;
-    }
-    sweep.value = withRepeat(
-      withTiming(1, { duration: SITE.sweepPeriod, easing: Easing.linear }),
-      -1,
-      true,
-    );
-  }, [reduced, width, sweep]);
-
-  const sweepStyle = useAnimatedStyle(() => ({
-    transform: [
-      { translateX: interpolate(sweep.value, [0, 1], [-width, width / 4]) },
-    ],
-  }));
-
-  return (
-    <View
-      pointerEvents="none"
-      style={[{ height: 3, overflow: 'hidden', opacity: 0.62 }, style]}
-      onLayout={(e) => setWidth(e.nativeEvent.layout.width)}
-    >
-      <Svg width="100%" height={3} preserveAspectRatio="none">
-        <Defs>
-          <LinearGradient id="alnafarEdge" x1="0" y1="0" x2="1" y2="0">
-            <Stop offset="0" stopColor={PRIM.lime} stopOpacity={0} />
-            <Stop offset="0.25" stopColor={PRIM.lime} stopOpacity={1} />
-            <Stop offset="0.7" stopColor={PRIM.forest} stopOpacity={1} />
-            <Stop offset="1" stopColor={PRIM.forest} stopOpacity={0} />
-          </LinearGradient>
-          <LinearGradient id="alnafarEdgeSweep" x1="0" y1="0" x2="1" y2="0">
-            <Stop offset="0" stopColor={PRIM.white} stopOpacity={0} />
-            <Stop offset="0.5" stopColor={PRIM.white} stopOpacity={0.35} />
-            <Stop offset="1" stopColor={PRIM.white} stopOpacity={0} />
-          </LinearGradient>
-        </Defs>
-        <Rect x={0} y={0} width={width || 1} height={3} fill="url(#alnafarEdge)" />
-      </Svg>
-      {/* عنصر المسح — طبقة بيضاء شبه شفافة تمر على الخط */}
-      <Animated.View
-        style={[
-          sweepStyle,
-          {
-            position: 'absolute',
-            top: 0,
-            bottom: 0,
-            width: Math.max(120, width * 0.3),
-          },
-        ]}
-      >
-        <Svg width="100%" height={3} preserveAspectRatio="none">
-          <Rect x={0} y={0} width="100%" height={3} fill="url(#alnafarEdgeSweep)" />
-        </Svg>
-      </Animated.View>
-    </View>
-  );
-}
-
-/* ============================================================
- * SignalBeacon — نقطة الحالة بنبضة الموقع (signal-beacon 2.4s):
- * نقطة + هالة تتقلص/تنتفخ (scale .94→1.08، opacity .72→1)
+ * SignalBeacon — نقطة الحالة النابضة (2.4s):
+ * نقطة صلبة + هالة تتنفس (scale 0.94→1.08، opacity). الاستعمال:
+ * مؤشر الاتصال بالخادم في ترويسة المتجر، وحالات «جارٍ العمل».
+ * بالـ reduced motion: هالة ثابتة شبه شفافة بلا تنفس.
  * ============================================================ */
 
 export function SignalBeacon({
-  color = PRIM.forest,
+  color,
   size = 8,
   style,
 }: {
+  /** لون الحالة — يُمرَّر من usePalette (لا لون افتراضي مخفي) */
   color: string;
   size?: number;
   style?: ViewStyle;
@@ -162,9 +96,7 @@ export function SignalBeacon({
 
   const haloStyle = useAnimatedStyle(() => ({
     opacity: interpolate(pulse.value, [0, 1], [0.28, 0.55]),
-    transform: [
-      { scale: interpolate(pulse.value, [0, 1], [0.94, 1.08]) },
-    ],
+    transform: [{ scale: interpolate(pulse.value, [0, 1], [0.94, 1.08]) }],
   }));
 
   const ring = Math.round(size * 2.6);
@@ -173,7 +105,10 @@ export function SignalBeacon({
   return (
     <View
       pointerEvents="none"
-      style={[{ width: ring, height: ring, alignItems: 'center', justifyContent: 'center' }, style]}
+      style={[
+        { width: ring, height: ring, alignItems: 'center', justifyContent: 'center' },
+        style,
+      ]}
     >
       <Animated.View
         style={[
@@ -200,18 +135,20 @@ export function SignalBeacon({
 }
 
 /* ============================================================
- * AnimatedUnderline — خط تعريف تفاعلي (نمط حلقة الأوربت):
- * يمتد تنازلياً من حده: LTR من اليسار، RTL من اليمين، 200ms، signature easing.
+ * AnimatedUnderline — خط التفعيل للروابط/التبويبات:
+ * يثبت من حده البديل (من اليمين في RTL، من اليسار في LTR) — 200ms signature.
+ * الاستعمال: تبويب نشط في صف تبويبات، رابط مختار.
  * ============================================================ */
 
 export function AnimatedUnderline({
   active,
-  color = PRIM.lime,
+  color,
   height = 2,
   style,
 }: {
   active: boolean;
-  color?: string;
+  /** لون الخط من usePalette */
+  color: string;
   height?: number;
   style?: ViewStyle;
 }) {
@@ -226,18 +163,33 @@ export function AnimatedUnderline({
     });
   }, [active, progress]);
 
-  const dir = isSystemRTL ? 1 : -1; // يثبت حده: RTL من اليمين، LTR من اليسار
+  // يثبت الحد البديل: RTL يرسو يميناً، LTR يساراً (scaleX حول المنتصف + إزاحة تعويضية)
+  const dir = isSystemRTL ? 1 : -1;
   const barStyle = useAnimatedStyle(() => {
     return {
       transform: [
         {
-          translateX:
-            interpolate(progress.value, [0, 1], [dir * measured * 0.5, 0]),
+          translateX: interpolate(progress.value, [0, 1], [dir * measured * 0.5, 0]),
         },
         { scaleX: interpolate(progress.value, [0, 1], [0, 1]) },
       ],
     };
   });
+
+  if (reduced) {
+    // سلوك فوري: ظاهر/مختفٍ بدون انيميشن
+    return (
+      <View pointerEvents="none" style={[{ height }, style]}>
+        <View
+          style={{
+            height,
+            backgroundColor: active ? color : 'transparent',
+            borderRadius: height / 2,
+          }}
+        />
+      </View>
+    );
+  }
 
   return (
     <View
@@ -252,7 +204,6 @@ export function AnimatedUnderline({
             height,
             backgroundColor: color,
             borderRadius: height / 2,
-            opacity: reduced ? (active ? 1 : 0) : undefined,
           },
         ]}
       />
@@ -261,9 +212,10 @@ export function AnimatedUnderline({
 }
 
 /* ============================================================
- * useFloatMotion — طفو الهاتف العائم (phone-float من الموقع، مخفّض):
- * translateY 4→-8 و rotate ±2° بمتتالية 4.3s ودوران تنفس.
- * استعماله بالشاشات الترحيبية فقط (السلوك الحساس يبقى ثابتاً).
+ * useFloatMotion — طفو خفيف للعنصر البطل (شاشة الترحيب حصراً):
+ * translateY 4→−8 و rotate ±2° بدورة 4.3s متوازنة (نصف اتجاه 2.15s).
+ * مبرراته فقط: mockup الهاتف في hero شاشة الترحيب. أي استعمال آخر ممنوع
+ * (PLAN §5: الحركة تخدم هدفاً).
  * ============================================================ */
 
 export function useFloatMotion(enabled = true) {
