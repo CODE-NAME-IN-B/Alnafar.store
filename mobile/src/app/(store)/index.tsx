@@ -47,7 +47,8 @@ import { FONT } from '@/lib/fonts';
 import { colors, triggerLightHaptic } from '@/lib/colors';
 import { ROW } from '@/lib/rtl';
 
-const LOGO = require('../../../assets/_brand/logo.png');
+/* علامة الشعار (كريمية بلا بلاقة) — تباين كامل على الخلفية الداكنة */
+const LOGO = require('../../../assets/_brand/logo-mark.png');
 
 export default function StoreHomeScreen() {
   const selectedBranchId = useAppStore((s) => s.selectedBranchId);
@@ -525,11 +526,9 @@ const styles = StyleSheet.create({
     flexShrink: 1,
   },
   brandLogo: {
-    width: 38,
-    height: 38,
-    borderRadius: 11,
-    borderWidth: 1,
-    borderColor: colors.borderSubtle,
+    /* علامة الشعار الكريمية — أكبر ويوماً على الداكن (لا بلاقة ولا إطار) */
+    width: 46,
+    height: 46,
   },
   brandTextCol: {
     alignItems: 'flex-end',

@@ -53,7 +53,7 @@ export default function BranchGate() {
             }}
           >
             <Image
-              source={require('../../../assets/_brand/logo.png')}
+              source={require('../../../assets/_brand/logo-mark.png')}
               style={{ width: 68, height: 68 }}
               contentFit="contain"
               accessibilityLabel="شعار المتجر"

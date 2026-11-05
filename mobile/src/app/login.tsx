@@ -19,7 +19,7 @@ import Icon from '@/components/ui/Icon';
 import { FONT } from '@/lib/fonts';
 import { ROW } from '@/lib/rtl';
 
-const LOGO = require('../../assets/_brand/logo.png');
+const LOGO = require('../../assets/_brand/logo-mark.png');
 
 export default function LoginScreen() {
   const loginWithPassword = useAuthStore((s) => s.loginWithPassword);
@@ -194,20 +194,21 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   logoFrame: {
-    width: 84,
-    height: 84,
-    borderRadius: 24,
+    width: 96,
+    height: 96,
+    borderRadius: 28,
     padding: 3,
     backgroundColor: '#131d31',
+    /* lime الهوية بدلاً عن التيل القديم — حبر واضح حول العلامة على الداكن */
     borderWidth: 2,
-    borderColor: '#14b8a6',
-    marginBottom: 10,
+    borderColor: 'rgba(193, 215, 146, 0.5)',
+    marginBottom: 12,
     overflow: 'hidden',
   },
   logo: {
     width: '100%',
     height: '100%',
-    borderRadius: 20,
+    borderRadius: 24,
   },
   brandTitle: {
     fontFamily: FONT.bold,
