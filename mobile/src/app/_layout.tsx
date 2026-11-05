@@ -40,7 +40,7 @@ export default function RootLayout() {
     // قراءة الجلسة والحالة المحفوظة مرة واحدة عند الإقلاع + لون خلفية النظام
     void useAuthStore.getState().hydrate();
     void useAppStore.getState().hydrate();
-    void SystemUI.setBackgroundColorAsync('#0f1724');
+    void SystemUI.setBackgroundColorAsync('#F5F1E8');
     // طلب صلاحية الإشعارات وتسجيل الجهاز (فشل صامت في Expo Go)
     void registerForPushNotifications();
   }, []);

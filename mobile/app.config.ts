@@ -16,13 +16,14 @@ const config: ExpoConfig = {
   description:
     'تطبيق الشاردة ستور — متجر ألعاب النفار: استعراض الألعاب والباقات وإرسال الطلبات وتتبعها',
   icon: './assets/_brand/icon.png',
-  primaryColor: '#0f1724',
+  primaryColor: '#2D6A4F',
   android: {
     package: 'com.inb.alsharda',
     versionCode: 7,
     adaptiveIcon: {
       foregroundImage: './assets/_brand/icon-maskable.png',
-      backgroundColor: '#0f1724',
+      monochromeImage: './assets/android-icon-monochrome.png',
+      backgroundColor: '#2D6A4F',
     },
     softwareKeyboardLayoutMode: 'resize',
   },
@@ -63,7 +64,7 @@ const config: ExpoConfig = {
         image: './assets/_brand/splash-icon.png',
         imageWidth: 200,
         resizeMode: 'contain',
-        backgroundColor: '#0f1724',
+        backgroundColor: '#F5F1E8',
       },
     ],
     [
@@ -71,9 +72,9 @@ const config: ExpoConfig = {
       {
         /* أيقونة شريط الإشعارات: ظليّة بيضاء-شفافة (النظام يلوّنها) —
            الأيقونة الملونة كاملة لا تظهر جيدة على الشريط */
-        icon: './assets/android-icon-monochrome.png',
+        icon: './assets/android-icon-foreground-white.png',
         largeIcon: './assets/_brand/icon.png',
-        color: '#14b8a6',
+        color: '#C5DE8F',
         androidMode: 'default',
       },
     ],
