@@ -23,7 +23,8 @@ const config: ExpoConfig = {
     adaptiveIcon: {
       foregroundImage: './assets/_brand/icon-maskable.png',
       monochromeImage: './assets/android-icon-monochrome.png',
-      backgroundColor: '#2D6A4F',
+      /* بلاقة الحبر — مطابقة الشعار (الخيار أعلى اليمين من logos.png) */
+      backgroundColor: '#1B2A21',
     },
     softwareKeyboardLayoutMode: 'resize',
   },

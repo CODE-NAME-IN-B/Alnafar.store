@@ -11,12 +11,15 @@ import { CAIRO_FONTS } from '@/lib/fonts';
 import { colors } from '@/lib/colors';
 import { DESIGN_FONTS } from '@/design/fonts';
 import { ThemeProvider } from '@/design/theme';
+import { BrandSplash } from '@/design/brand-splash';
 import { registerForPushNotifications, useForegroundNotifications } from '@/lib/notifications';
 import TrackedOrderWatcher from '@/components/track/TrackedOrderWatcher';
 import { setTokenGetter, setUnauthorizedHandler } from '@/api/client';
 import { useAuthStore } from '@/stores/auth';
 import { useAppStore } from '@/stores/app';
 import ToastHost from '@/components/ui/ToastHost';
+
+import { useCallback, useState } from 'react';
 
 // نمنع إخفاء شاشة البدء حتى تجهز الخطوط
 SplashScreen.preventAutoHideAsync().catch(() => undefined);
@@ -35,6 +38,9 @@ const queryClient = new QueryClient({
 export default function RootLayout() {
   // Cairo (الشاشات الحالية) + خطا الهوية الجديدان (IBM Plex Sans Arabic + Space Grotesk)
   const [fontsLoaded, fontsError] = useFonts({ ...CAIRO_FONTS, ...DESIGN_FONTS });
+  // افتتاحية الشعار (N يُبنى ثم يسقط مربع lime) — تُرفع بعد مشهدها الكامل
+  const [brandSplashDone, setBrandSplashDone] = useState(false);
+  const onBrandSplashDone = useCallback(() => setBrandSplashDone(true), []);
 
   useEffect(() => {
     // قراءة الجلسة والحالة المحفوظة مرة واحدة عند الإقلاع + لون خلفية النظام
@@ -86,6 +92,8 @@ export default function RootLayout() {
             {/* مراقب الطلبات المحفوظة محلياً — إشعار «جاهز للاستلام» حتى خارج شاشة التتبع */}
             <TrackedOrderWatcher />
             <ToastHost />
+            {/* افتتاحية الشعار فوق كل شيء — تُبنى الشرائح ثم يسقط المربع ثم تلاشٍ */}
+            {!brandSplashDone && <BrandSplash onDone={onBrandSplashDone} />}
           </ThemeProvider>
         </QueryClientProvider>
       </SafeAreaProvider>
