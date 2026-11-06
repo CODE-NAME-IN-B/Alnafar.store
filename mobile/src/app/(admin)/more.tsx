@@ -18,7 +18,8 @@ import KeyboardScroll from '@/components/ui/KeyboardScroll';
 import { EmptyState, ErrorState, LoadingState } from '@/components/ui/StateView';
 import { formatArabicDate } from '@/components/ui/LtrText';
 import { AR_FONT } from '@/design/fonts';
-import { usePalette } from '@/design/theme';
+import { usePalette, useThemeMode } from '@/design/theme';
+import { triggerLightHaptic } from '@/lib/colors';
 import { formatDinar } from '@/lib/money';
 import { showToast } from '@/lib/toast';
 import { ROW } from '@/lib/rtl';
@@ -30,6 +31,8 @@ type TabKey = 'stats' | 'invoice-settings' | 'users' | 'branches' | 'audit';
 
 export default function AdminMoreScreen() {
   const palette = usePalette();
+  const mode = useThemeMode((s) => s.mode);
+  const setMode = useThemeMode((s) => s.setMode);
   const user = useAuthStore((s) => s.user);
   const branchScope = useAppStore((s) => s.adminScopeBranchId);
   const isAdmin = user?.role === 'admin';
@@ -384,7 +387,38 @@ export default function AdminMoreScreen() {
             ))
           )
         ) : null}
-        <View style={{ marginTop: 24, paddingTop: 16, borderTopWidth: 1, borderTopColor: palette.surfaceLine }}>
+        {/* السمة ومظهر التطبيق */}
+        <View style={{ marginTop: 24, paddingTop: 16, borderTopWidth: 1, borderTopColor: palette.surfaceLine, gap: 8 }}>
+          <Text style={[styles.settingLabel, { color: palette.textSub }]}>مظهر التطبيق والسمة</Text>
+          <View style={styles.chipsRow}>
+            <Chip
+              label="كريمي فاتح"
+              active={mode === 'light'}
+              onPress={() => {
+                triggerLightHaptic();
+                setMode('light');
+              }}
+            />
+            <Chip
+              label="داكن حبري"
+              active={mode === 'dark'}
+              onPress={() => {
+                triggerLightHaptic();
+                setMode('dark');
+              }}
+            />
+            <Chip
+              label="تلقائي النظام"
+              active={mode === 'system'}
+              onPress={() => {
+                triggerLightHaptic();
+                setMode('system');
+              }}
+            />
+          </View>
+        </View>
+
+        <View style={{ marginTop: 16 }}>
           <Button
             label="تسجيل الخروج من الحساب"
             variant="danger"

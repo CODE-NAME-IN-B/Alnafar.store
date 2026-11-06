@@ -42,7 +42,7 @@ import { EmptyState, ErrorState } from '@/components/ui/StateView';
 import { Animated } from 'react-native';
 import { triggerLightHaptic } from '@/lib/colors';
 import { ROW } from '@/lib/rtl';
-import { usePalette } from '@/design/theme';
+import { usePalette, useThemeMode, useThemeName } from '@/design/theme';
 import { AR_FONT, LAT_FONT } from '@/design/fonts';
 import { EntryIn, SignalBeacon } from '@/design/motion-library';
 import Skeleton from '@/design/Skeleton';
@@ -58,7 +58,9 @@ const LOGO_FULL = require('../../../assets/_brand/logo.png');
 
 export default function StoreHomeScreen() {
   const palette = usePalette();
-  const dark = palette.name === 'dark';
+  const setThemeMode = useThemeMode((s) => s.setMode);
+  const themeName = useThemeName();
+  const dark = themeName === 'dark';
   const selectedBranchId = useAppStore((s) => s.selectedBranchId);
   const selectBranch = useAppStore((s) => s.selectBranch);
   const activeCategoryId = useAppStore((s) => s.activeCategoryId);
@@ -225,6 +227,22 @@ export default function StoreHomeScreen() {
               <Icon name="sparkles" size={17} color={palette.textSub} />
             </ScalePressable>
 
+            {/* زر التبديل السريع بين الوضع الفاتح والداكن */}
+            <ScalePressable
+              onPress={() => {
+                triggerLightHaptic();
+                const next = dark ? 'light' : 'dark';
+                setThemeMode(next);
+                showToast(next === 'light' ? 'تم تفعيل الوضع الفاتح (كريمي)' : 'تم تفعيل الوضع الداكن');
+              }}
+              accessibilityRole="button"
+              accessibilityLabel={dark ? 'التبديل إلى الوضع الفاتح' : 'التبديل إلى الوضع الداكن'}
+              hitSlop={6}
+              style={[styles.headerActionBtn, { borderColor: palette.surfaceLine }]}
+            >
+              <Icon name={dark ? 'sun' : 'moon'} size={17} color={palette.textSub} />
+            </ScalePressable>
+
             {token ? (
               <>
                 <ScalePressable
@@ -350,6 +368,73 @@ export default function StoreHomeScreen() {
             </ScrollView>
           </View>
         ) : null}
+
+        {/* شريط الفهرس الأبجدي A–Z السريع للألعاب */}
+        <View style={styles.alphaStripRow}>
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.alphaScroll}
+          >
+            <Pressable
+              onPress={() => {
+                triggerLightHaptic();
+                setFilters((f) => ({ ...f, letter: null }));
+              }}
+              style={[
+                styles.letterBtn,
+                {
+                  backgroundColor: filters.letter === null ? palette.primary : palette.surfaceRaised,
+                  borderColor: filters.letter === null ? palette.primary : palette.surfaceLine,
+                },
+              ]}
+              accessibilityRole="button"
+              accessibilityLabel="عرض كل الألعاب بالحروف"
+            >
+              <Text
+                style={[
+                  styles.letterText,
+                  {
+                    color: filters.letter === null ? palette.onPrimary : palette.textSub,
+                    fontFamily: AR_FONT.bold,
+                  },
+                ]}
+              >
+                A–Z
+              </Text>
+            </Pressable>
+            {ENGLISH_LETTERS.map((ltr) => {
+              const active = filters.letter === ltr;
+              return (
+                <Pressable
+                  key={ltr}
+                  onPress={() => toggleLetter(ltr)}
+                  style={[
+                    styles.letterBtn,
+                    {
+                      backgroundColor: active ? palette.primary : palette.surfaceRaised,
+                      borderColor: active ? palette.primary : palette.surfaceLine,
+                    },
+                  ]}
+                  accessibilityRole="button"
+                  accessibilityLabel={`تصفية بحرف ${ltr}`}
+                >
+                  <Text
+                    style={[
+                      styles.letterText,
+                      {
+                        color: active ? palette.onPrimary : palette.textSub,
+                        fontFamily: AR_FONT.bold,
+                      },
+                    ]}
+                  >
+                    {ltr}
+                  </Text>
+                </Pressable>
+              );
+            })}
+          </ScrollView>
+        </View>
       </View>
 
       {gamesQ.isLoading ? (
@@ -758,6 +843,29 @@ const styles = StyleSheet.create({
     gap: 8,
     paddingHorizontal: 14,
     paddingVertical: 2,
+  },
+  alphaStripRow: {
+    marginTop: 2,
+    marginBottom: 4,
+  },
+  alphaScroll: {
+    flexDirection: ROW,
+    gap: 5,
+    paddingHorizontal: 14,
+    paddingVertical: 2,
+  },
+  letterBtn: {
+    minWidth: 32,
+    height: 30,
+    paddingHorizontal: 8,
+    borderRadius: 8,
+    borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  letterText: {
+    fontSize: 11.5,
+    includeFontPadding: false,
   },
   scroll: {
     flex: 1,
