@@ -1,3 +1,4 @@
+import React from 'react';
 import { Pressable, ScrollView, Text, View } from 'react-native';
 import { useQuery } from '@tanstack/react-query';
 import ModalSheet from '@/components/ui/ModalSheet';
@@ -5,8 +6,8 @@ import Icon from '@/components/ui/Icon';
 import { EmptyState, ErrorState, LoadingState } from '@/components/ui/StateView';
 import { fetchServices } from '@/api/settings';
 import { addServiceToCart } from '@/features/cartActions';
-import { FONT } from '@/lib/fonts';
-import { colors } from '@/lib/colors';
+import { AR_FONT } from '@/design/fonts';
+import { usePalette } from '@/design/theme';
 import { ROW } from '@/lib/rtl';
 import { formatDinar } from '@/lib/money';
 import { showToast } from '@/lib/toast';
@@ -16,8 +17,9 @@ interface Props {
   onClose: () => void;
 }
 
-/** نافذة الخدمات الإضافية في المتجر (مهام، حسابات، صيانة...) */
+/** نافذة الخدمات الإضافية في المتجر (مهام، حسابات، صيانة...) بنظام v5 */
 export default function ServicesSheet({ visible, onClose }: Props) {
+  const palette = usePalette();
   const { data, isLoading, isError, refetch } = useQuery({
     queryKey: ['public-services'],
     queryFn: fetchServices,
@@ -44,10 +46,10 @@ export default function ServicesSheet({ visible, onClose }: Props) {
                   flexDirection: ROW,
                   alignItems: 'center',
                   justifyContent: 'space-between',
-                  backgroundColor: colors.elevatedRaised,
+                  backgroundColor: palette.surface,
                   borderRadius: 14,
                   borderWidth: 1,
-                  borderColor: colors.borderSubtle,
+                  borderColor: palette.surfaceLine,
                   padding: 14,
                   gap: 12,
                 }}
@@ -55,19 +57,18 @@ export default function ServicesSheet({ visible, onClose }: Props) {
                 <View style={{ flex: 1 }}>
                   <Text
                     style={{
-                      color: colors.text,
-                      fontFamily: FONT.bold,
+                      color: palette.text,
+                      fontFamily: AR_FONT.bold,
                       fontSize: 15,
                       textAlign: 'right',
                     }}
                   >
                     {svc.title}
                   </Text>
-                  {/* المبلغ لون نص لا لون إجراء */}
                   <Text
                     style={{
-                      color: colors.text,
-                      fontFamily: FONT.bold,
+                      color: palette.money,
+                      fontFamily: AR_FONT.bold,
                       fontSize: 13,
                       textAlign: 'right',
                       marginTop: 2,
@@ -83,7 +84,7 @@ export default function ServicesSheet({ visible, onClose }: Props) {
                     showToast(`أضيفت الخدمة: ${svc.title}`);
                   }}
                   style={{
-                    backgroundColor: colors.brand,
+                    backgroundColor: palette.primary,
                     borderRadius: 10,
                     paddingHorizontal: 14,
                     minHeight: 44,
@@ -91,13 +92,19 @@ export default function ServicesSheet({ visible, onClose }: Props) {
                     paddingVertical: 9,
                     flexDirection: ROW,
                     alignItems: 'center',
-                    gap: 5,
+                    gap: 6,
                   }}
                   accessible
                   accessibilityLabel={`إضافة خدمة ${svc.title}`}
                 >
-                  <Icon name="plus" size={15} color={colors.brandDark} strokeWidth={2.4} />
-                  <Text style={{ color: colors.brandDark, fontFamily: FONT.bold, fontSize: 13 }}>
+                  <Icon name="plus" size={15} color={palette.onPrimary} strokeWidth={2.4} />
+                  <Text
+                    style={{
+                      color: palette.onPrimary,
+                      fontFamily: AR_FONT.bold,
+                      fontSize: 13,
+                    }}
+                  >
                     أضف للسلة
                   </Text>
                 </Pressable>

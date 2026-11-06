@@ -1,15 +1,19 @@
+import React from 'react';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import Screen from '@/components/ui/Screen';
 import Icon from '@/components/ui/Icon';
 import AccountCard from '@/components/store/AccountCard';
 import TrackedOrdersList from '@/components/store/TrackedOrdersList';
-import { FONT } from '@/lib/fonts';
+import { AR_FONT } from '@/design/fonts';
+import { usePalette } from '@/design/theme';
 import { ROW } from '@/lib/rtl';
 
 /**
- * تبويب «المزيد» — بعد السلة: حول التطبيق + زر التحديث + معلومات المتجر.
+ * تبويب «المزيد» — بعد السلة: بطاقة الحساب + تتبع الطلبات + معلومات المتجر بهوية v5.
  */
 export default function MoreScreen() {
+  const palette = usePalette();
+
   return (
     <Screen edges={['top']}>
       <ScrollView
@@ -17,33 +21,41 @@ export default function MoreScreen() {
         showsVerticalScrollIndicator={false}
       >
         <View style={styles.headRow}>
-          <Icon name="more" size={15} color="#2dd4bf" />
-          <Text style={styles.title}>المزيد</Text>
+          <Icon name="more" size={16} color={palette.primary} />
+          <Text style={[styles.title, { color: palette.text }]}>المزيد</Text>
         </View>
 
         {/* بطاقة الحساب: تتبع + تحديث + المطور + فكرة التطبيق */}
         <AccountCard />
 
         {/* تتبع طلباتي — الأوامر المسحوبة بـ QR محفوظة على الجهاز */}
-        <View style={styles.headRow}>
-          <Icon name="invoice" size={15} color="#2dd4bf" />
-          <Text style={styles.title}>تتبع طلباتي</Text>
+        <View style={[styles.headRow, { marginTop: 14 }]}>
+          <Icon name="invoice" size={16} color={palette.primary} />
+          <Text style={[styles.title, { color: palette.text }]}>تتبع طلباتي</Text>
         </View>
         <TrackedOrdersList />
 
         {/* معلومات المتجر */}
-        <View style={styles.headRow}>
-          <Icon name="store" size={15} color="#2dd4bf" />
-          <Text style={styles.title}>عن المتجر</Text>
+        <View style={[styles.headRow, { marginTop: 14 }]}>
+          <Icon name="store" size={16} color={palette.primary} />
+          <Text style={[styles.title, { color: palette.text }]}>عن المتجر</Text>
         </View>
-        <View style={styles.card}>
-          <Text style={styles.rowText}>
+        <View
+          style={[
+            styles.card,
+            {
+              backgroundColor: palette.surface,
+              borderColor: palette.surfaceLine,
+            },
+          ]}
+        >
+          <Text style={[styles.rowText, { color: palette.textSub }]}>
             الشاردة ستور — متجر ألعاب النفار: أحدث ألعاب PS4/PS5، باقات
             وشحن أرصدة، إرسال الطلبات مباشرة وتتبعها برقم الطلب أو بمسح
             رمز QR على الفاتورة.
           </Text>
-          <View style={styles.divider} />
-          <Text style={styles.rowText}>
+          <View style={[styles.divider, { backgroundColor: palette.surfaceLine }]} />
+          <Text style={[styles.rowText, { color: palette.textSub }]}>
             للاستفسار عن طلبك مرّر من شريط QR في أعلى الصفحة الرئيسية، أو
             تواصل مع فرعنا الأقرب عبر درج الفروع.
           </Text>
@@ -55,40 +67,35 @@ export default function MoreScreen() {
 
 const styles = StyleSheet.create({
   content: {
-    paddingVertical: 10,
-    gap: 6,
+    paddingVertical: 12,
+    gap: 8,
   },
   headRow: {
     flexDirection: ROW,
     alignItems: 'center',
-    gap: 6,
-    paddingHorizontal: 14,
+    gap: 8,
+    paddingHorizontal: 16,
   },
   title: {
-    fontFamily: FONT.bold,
-    color: '#f8fafc',
-    fontSize: 13.5,
+    fontFamily: AR_FONT.bold,
+    fontSize: 15,
     includeFontPadding: false,
   },
   card: {
     marginHorizontal: 14,
-    backgroundColor: '#0d1629',
-    borderRadius: 16,
+    borderRadius: 20,
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.08)',
-    padding: 12,
-    gap: 10,
+    padding: 16,
+    gap: 12,
   },
   rowText: {
-    fontFamily: FONT.regular,
-    color: '#94a3b8',
-    fontSize: 12,
-    lineHeight: 19,
+    fontFamily: AR_FONT.regular,
+    fontSize: 13,
+    lineHeight: 21,
     textAlign: 'right',
     writingDirection: 'rtl',
   },
   divider: {
     height: 1,
-    backgroundColor: 'rgba(255, 255, 255, 0.08)',
   },
 });

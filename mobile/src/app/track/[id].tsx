@@ -11,8 +11,8 @@ import { ItemSection, StatusCard, TotalsCard } from '@/components/track/TrackCar
 import { toggleOrderItemInstalled, trackOrder, updateOrderStatus } from '@/api/orders';
 import { apiErrorText } from '@/api/client';
 import { useAuthStore } from '@/stores/auth';
-import { FONT } from '@/lib/fonts';
-import { colors } from '@/lib/colors';
+import { AR_FONT } from '@/design/fonts';
+import { usePalette } from '@/design/theme';
 import { statusLabel, type OrderStatus } from '@/lib/statuses';
 import { notifyOrderStatusChanged, registerForOrderNotifications } from '@/lib/notifications';
 import { addTrackedOrder, saveTrackedStatus } from '@/lib/trackedOrders';
@@ -29,6 +29,7 @@ const STAFF_STATUSES: OrderStatus[] = [
 
 /** تتبع الطلب: يُحدَّث تلقائياً كل 30 ثانية + إشعارات الحالة + تحكم مباشر للموظف */
 export default function TrackScreen() {
+  const palette = usePalette();
   const params = useLocalSearchParams<{ id: string }>();
   const trackingKey = params.id ?? '';
   const token = useAuthStore((s) => s.token);
@@ -53,8 +54,7 @@ export default function TrackScreen() {
     lastStatusRef.current = data.status;
   }, [data?.invoice_number, data?.status]);
 
-  /* حفظ الطلب محلياً بمجرد فتح تتبعه (عبر QR) — تظل الصفحة متاحة لاحقاً
-     من «تتبع طلباتي» دون إعادة المسح، وتتغذى منه إشعارات الجاهزية */
+  /* حفظ الطلب محلياً بمجرد فتح تتبعه (عبر QR) */
   useEffect(() => {
     if (!trackingKey || !data?.invoice_number) return;
     void addTrackedOrder(trackingKey);
@@ -98,38 +98,87 @@ export default function TrackScreen() {
 
   return (
     <Screen>
-      <View style={headerRow}>
+      <View
+        style={{
+          flexDirection: 'row',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          paddingHorizontal: 16,
+          paddingVertical: 12,
+          backgroundColor: palette.canvas,
+          borderBottomWidth: 1,
+          borderBottomColor: palette.surfaceLine,
+        }}
+      >
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
           <Pressable
             onPress={() => router.replace('/(store)')}
             accessibilityLabel="عودة للمتجر"
-            style={topActionBtn}
+            style={{
+              flexDirection: 'row',
+              alignItems: 'center',
+              gap: 5,
+              backgroundColor: palette.surface,
+              borderRadius: 10,
+              borderWidth: 1,
+              borderColor: palette.surfaceLine,
+              paddingHorizontal: 10,
+              paddingVertical: 8,
+              minHeight: 38,
+            }}
           >
-            <Icon name="store" size={15} color={colors.dim} />
-            <Text style={{ color: colors.dim, fontFamily: FONT.bold, fontSize: 13 }}>المتجر</Text>
+            <Icon name="store" size={15} color={palette.textSub} />
+            <Text style={{ color: palette.textSub, fontFamily: AR_FONT.bold, fontSize: 13 }}>
+              المتجر
+            </Text>
           </Pressable>
-          <AppText style={{ color: colors.text, fontFamily: FONT.bold, fontSize: 18 }}>
+          <AppText style={{ color: palette.text, fontFamily: AR_FONT.bold, fontSize: 18 }}>
             تتبع الطلب
           </AppText>
         </View>
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-          {/* مسح QR هو الفعل الأساسي في هذا الشاشة — التيل له وحده */}
           <Pressable
             onPress={() => setQrOpen(true)}
             accessibilityLabel="مسح QR آخر"
-            style={[topActionBtn, { borderColor: colors.brandBorder }]}
+            style={{
+              flexDirection: 'row',
+              alignItems: 'center',
+              gap: 5,
+              backgroundColor: palette.surfaceRaised,
+              borderRadius: 10,
+              borderWidth: 1,
+              borderColor: palette.primary,
+              paddingHorizontal: 10,
+              paddingVertical: 8,
+              minHeight: 38,
+            }}
           >
-            <Icon name="qr" size={15} color={colors.brandLight} />
-            <Text style={{ color: colors.brandLight, fontFamily: FONT.bold, fontSize: 12 }}>مسح QR</Text>
+            <Icon name="qr" size={15} color={palette.primary} />
+            <Text style={{ color: palette.primary, fontFamily: AR_FONT.bold, fontSize: 12 }}>
+              مسح QR
+            </Text>
           </Pressable>
           <Pressable
             onPress={() => refetch()}
             accessible
             accessibilityLabel="تحديث الحالة"
-            style={topActionBtn}
+            style={{
+              flexDirection: 'row',
+              alignItems: 'center',
+              gap: 5,
+              backgroundColor: palette.surface,
+              borderRadius: 10,
+              borderWidth: 1,
+              borderColor: palette.surfaceLine,
+              paddingHorizontal: 10,
+              paddingVertical: 8,
+              minHeight: 38,
+            }}
           >
-            <Icon name="refresh" size={15} color={colors.dim} />
-            <Text style={{ color: colors.dim, fontFamily: FONT.bold, fontSize: 12 }}>تحديث</Text>
+            <Icon name="refresh" size={15} color={palette.textSub} />
+            <Text style={{ color: palette.textSub, fontFamily: AR_FONT.bold, fontSize: 12 }}>
+              تحديث
+            </Text>
           </Pressable>
         </View>
       </View>
@@ -146,7 +195,6 @@ export default function TrackScreen() {
       ) : isError || !data ? (
         <ErrorState
           message={error instanceof Error ? error.message : 'تعذر جلب الطلب'}
-          hint="تأكد من رقم الطلب أو امسح رمز QR من الفاتورة"
           onRetry={() => refetch()}
         />
       ) : (
@@ -156,7 +204,7 @@ export default function TrackScreen() {
             <RefreshControl
               refreshing={isRefetching}
               onRefresh={() => void refetch()}
-              tintColor={colors.brand}
+              tintColor={palette.primary}
             />
           }
         >
@@ -167,8 +215,18 @@ export default function TrackScreen() {
           />
 
           {token ? (
-            <View style={staffCard}>
-              <AppText style={{ color: '#cbd5e1', fontFamily: FONT.bold, fontSize: 13 }}>
+            <View
+              style={{
+                backgroundColor: palette.surface,
+                borderRadius: 16,
+                borderWidth: 1,
+                borderColor: palette.surfaceLine,
+                padding: 14,
+                marginTop: 12,
+                gap: 10,
+              }}
+            >
+              <AppText style={{ color: palette.textSub, fontFamily: AR_FONT.bold, fontSize: 13 }}>
                 تحكم الموظف: تغيير حالة الطلب
               </AppText>
               <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
@@ -180,18 +238,18 @@ export default function TrackScreen() {
                       disabled={busyStatus || active}
                       onPress={() => void handleStatusChange(st)}
                       style={{
-                        backgroundColor: active ? colors.brand : colors.surfaceRaised,
+                        backgroundColor: active ? palette.primary : palette.surfaceRaised,
                         borderRadius: 10,
                         borderWidth: 1,
-                        borderColor: active ? colors.brandLight : colors.borderSubtle,
+                        borderColor: active ? palette.primary : palette.surfaceLine,
                         paddingHorizontal: 12,
                         paddingVertical: 7,
                       }}
                     >
                       <Text
                         style={{
-                          color: active ? '#ffffff' : '#f8fafc',
-                          fontFamily: FONT.bold,
+                          color: active ? palette.onPrimary : palette.text,
+                          fontFamily: AR_FONT.bold,
                           fontSize: 12,
                         }}
                       >
@@ -206,7 +264,17 @@ export default function TrackScreen() {
 
           <ItemSection data={data} canToggle={!!token} onToggle={handleToggleItem} />
           <TotalsCard data={data} />
-          <AppText style={footnote}>التحديث تلقائي كل 30 ثانية حتى إغلاق الشاشة</AppText>
+          <AppText
+            style={{
+              color: palette.textFaint,
+              fontFamily: AR_FONT.regular,
+              fontSize: 12,
+              textAlign: 'center',
+              marginTop: 22,
+            }}
+          >
+            التحديث تلقائي كل 30 ثانية حتى إغلاق الشاشة
+          </AppText>
         </ScrollView>
       )}
 
@@ -221,45 +289,3 @@ export default function TrackScreen() {
     </Screen>
   );
 }
-
-const headerRow = {
-  flexDirection: 'row' as const,
-  alignItems: 'center' as const,
-  justifyContent: 'space-between' as const,
-  paddingHorizontal: 14,
-  paddingVertical: 10,
-  backgroundColor: colors.base,
-  borderBottomWidth: 1,
-  borderBottomColor: colors.borderSubtle,
-};
-
-const topActionBtn = {
-  flexDirection: 'row' as const,
-  alignItems: 'center' as const,
-  gap: 5,
-  backgroundColor: colors.surfaceRaised,
-  borderRadius: 10,
-  borderWidth: 1,
-  borderColor: colors.borderSubtle,
-  paddingHorizontal: 10,
-  paddingVertical: 9,
-  minHeight: 40,
-};
-
-const staffCard = {
-  backgroundColor: colors.elevated,
-  borderRadius: 14,
-  borderWidth: 1,
-  borderColor: colors.borderSubtle,
-  padding: 14,
-  marginTop: 12,
-  gap: 10,
-} as const;
-
-const footnote = {
-  color: colors.faint,
-  fontFamily: FONT.regular,
-  fontSize: 12,
-  textAlign: 'center' as const,
-  marginTop: 22,
-};

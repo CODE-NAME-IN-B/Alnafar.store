@@ -1,10 +1,11 @@
+import React from 'react';
 import { Image } from 'expo-image';
 import { Text, View, ScrollView } from 'react-native';
 import ModalSheet from '@/components/ui/ModalSheet';
 import AppButton from '@/components/ui/AppButton';
 import AppText from '@/components/ui/AppText';
-import { FONT } from '@/lib/fonts';
-import { colors } from '@/lib/colors';
+import { AR_FONT } from '@/design/fonts';
+import { usePalette } from '@/design/theme';
 import { formatDinar } from '@/lib/money';
 import type { StorePackage } from '@/api/types';
 
@@ -16,8 +17,10 @@ interface Props {
   onAdd: (pkg: StorePackage) => void;
 }
 
-/** نافذة «عرض الألعاب» — محتويات الباقة بتباين عالٍ وصور واضحة */
+/** نافذة «عرض الألعاب» — محتويات الباقة بتباين عالٍ وصور واضحة بهوية v5 */
 export default function PackageDetailsSheet({ visible, pkg, onClose, onAdd }: Props) {
+  const palette = usePalette();
+
   return (
     <ModalSheet visible={visible} onClose={onClose} title={pkg ? `محتويات: ${pkg.name}` : undefined}>
       {pkg ? (
@@ -27,19 +30,19 @@ export default function PackageDetailsSheet({ visible, pkg, onClose, onAdd }: Pr
               flexDirection: 'row',
               alignItems: 'center',
               justifyContent: 'space-between',
-              backgroundColor: colors.elevatedRaised,
-              borderRadius: 12,
+              backgroundColor: palette.surface,
+              borderRadius: 14,
               paddingHorizontal: 14,
-              paddingVertical: 10,
+              paddingVertical: 12,
               marginBottom: 12,
               borderWidth: 1,
-              borderColor: colors.borderSubtle,
+              borderColor: palette.surfaceLine,
             }}
           >
-            <AppText style={{ color: colors.dim, fontFamily: FONT.bold, fontSize: 13 }}>
+            <AppText style={{ color: palette.textSub, fontFamily: AR_FONT.bold, fontSize: 13 }}>
               عدد الألعاب: {pkg.packageGames.length}
             </AppText>
-            <AppText style={{ color: colors.brandLight, fontFamily: FONT.bold, fontSize: 15 }}>
+            <AppText style={{ color: palette.money, fontFamily: AR_FONT.bold, fontSize: 16 }}>
               السعر: {formatDinar(Number(pkg.price))}
             </AppText>
           </View>
@@ -53,16 +56,16 @@ export default function PackageDetailsSheet({ visible, pkg, onClose, onAdd }: Pr
                     flexDirection: 'row',
                     alignItems: 'center',
                     gap: 12,
-                    backgroundColor: colors.elevatedRaised,
+                    backgroundColor: palette.surface,
                     borderRadius: 12,
                     borderWidth: 1,
-                    borderColor: colors.borderSubtle,
+                    borderColor: palette.surfaceLine,
                     padding: 10,
                   }}
                 >
                   <Image
                     source={{ uri: pg.image }}
-                    style={{ width: 48, height: 48, borderRadius: 10, backgroundColor: colors.elevated }}
+                    style={{ width: 48, height: 48, borderRadius: 10, backgroundColor: palette.surfaceRaised }}
                     contentFit="cover"
                     accessibilityLabel={`غلاف ${pg.title}`}
                   />
@@ -70,8 +73,8 @@ export default function PackageDetailsSheet({ visible, pkg, onClose, onAdd }: Pr
                     <Text
                       numberOfLines={1}
                       style={{
-                        color: colors.text,
-                        fontFamily: FONT.bold,
+                        color: palette.text,
+                        fontFamily: AR_FONT.bold,
                         fontSize: 14,
                         textAlign: 'right',
                       }}
@@ -80,8 +83,8 @@ export default function PackageDetailsSheet({ visible, pkg, onClose, onAdd }: Pr
                     </Text>
                     <Text
                       style={{
-                        color: colors.brandLight,
-                        fontFamily: FONT.medium,
+                        color: palette.textSub,
+                        fontFamily: AR_FONT.medium,
                         fontSize: 12,
                         textAlign: 'right',
                         marginTop: 2,

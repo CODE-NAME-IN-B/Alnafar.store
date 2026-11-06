@@ -10,8 +10,8 @@ import QrScannerModal from '@/components/track/QrScannerModal';
 import UpdateSheet from '@/components/store/UpdateSheet';
 import Icon from '@/components/ui/Icon';
 import { ScalePressable } from '@/components/ui/motion';
-import { FONT } from '@/lib/fonts';
-import { colors } from '@/lib/colors';
+import { AR_FONT } from '@/design/fonts';
+import { usePalette } from '@/design/theme';
 import { ROW } from '@/lib/rtl';
 import {
   CURRENT_VERSION,
@@ -21,6 +21,7 @@ import {
 import { router } from 'expo-router';
 
 export default function AccountCard() {
+  const palette = usePalette();
   const [checking, setChecking] = useState(true);
   const [newer, setNewer] = useState(false);
   const [updateTag, setUpdateTag] = useState<string | null>(null);
@@ -52,19 +53,53 @@ export default function AccountCard() {
   return (
     <>
       {/* ── البطاقة الرئيسية ── */}
-      <View style={styles.card}>
+      <View
+        style={[
+          styles.card,
+          {
+            backgroundColor: palette.surface,
+            borderColor: palette.surfaceLine,
+          },
+        ]}
+      >
         <View style={styles.head}>
-          <View style={styles.avatar}>
-            <Icon name="user" size={26} color={colors.brandLight} />
-            <View style={styles.avatarDot} />
+          <View
+            style={[
+              styles.avatar,
+              {
+                backgroundColor: palette.surfaceRaised,
+                borderColor: palette.primary,
+              },
+            ]}
+          >
+            <Icon name="user" size={26} color={palette.primary} />
+            <View
+              style={[
+                styles.avatarDot,
+                {
+                  backgroundColor: palette.success,
+                  borderColor: palette.surface,
+                },
+              ]}
+            />
           </View>
           <View style={styles.headBody}>
-            <Text style={styles.appName}>الشاردة ستور</Text>
+            <Text style={[styles.appName, { color: palette.text }]}>الشاردة ستور</Text>
             <View style={styles.versionRow}>
-              <View style={styles.betaChip}>
-                <Text style={styles.betaText}>β</Text>
+              <View
+                style={[
+                  styles.betaChip,
+                  {
+                    backgroundColor: palette.surfaceRaised,
+                    borderColor: palette.primary,
+                  },
+                ]}
+              >
+                <Text style={[styles.betaText, { color: palette.primary }]}>β</Text>
               </View>
-              <Text style={styles.versionText}>الإصدار {CURRENT_VERSION}</Text>
+              <Text style={[styles.versionText, { color: palette.textSub }]}>
+                الإصدار {CURRENT_VERSION}
+              </Text>
             </View>
           </View>
         </View>
@@ -75,16 +110,16 @@ export default function AccountCard() {
             onPress={() => setQrOpen(true)}
             accessibilityRole="button"
             accessibilityLabel="تتبع طلب بمسح رمز QR"
-            style={styles.row}
+            style={[styles.row, { borderBottomColor: palette.surfaceLine }]}
           >
-            <View style={[styles.rowIcon, { backgroundColor: 'rgba(20, 184, 166, 0.14)' }]}>
-              <Icon name="qr" size={16} color={colors.brandLight} />
+            <View style={[styles.rowIcon, { backgroundColor: palette.surfaceRaised }]}>
+              <Icon name="qr" size={16} color={palette.primary} />
             </View>
             <View style={styles.rowBody}>
-              <Text style={styles.rowTitle}>تتبع طلباتي</Text>
-              <Text style={styles.rowHint}>مسح QR على الفاتورة</Text>
+              <Text style={[styles.rowTitle, { color: palette.text }]}>تتبع طلباتي</Text>
+              <Text style={[styles.rowHint, { color: palette.textFaint }]}>مسح QR على الفاتورة</Text>
             </View>
-            <Icon name="chevron-left" size={14} color={colors.faint} />
+            <Icon name="chevron-left" size={14} color={palette.textFaint} />
           </ScalePressable>
 
           <ScalePressable
@@ -98,74 +133,77 @@ export default function AccountCard() {
             }
             accessibilityRole="button"
             accessibilityLabel={newer ? 'تحميل التحديث' : 'فحص التحديث'}
-            style={styles.row}
-            disabled={!newer || !updateUrl}
+            style={[styles.row, { borderBottomColor: palette.surfaceLine }]}
           >
-            <View
-              style={[
-                styles.rowIcon,
-                newer ? styles.rowIconWarn : { backgroundColor: colors.brandSoft },
-              ]}
-            >
-              <Icon name={newer ? 'refresh' : 'check'} size={16} color={newer ? colors.warningText : colors.brandLight} />
+            <View style={[styles.rowIcon, { backgroundColor: palette.surfaceRaised }]}>
+              <Icon name="refresh" size={16} color={palette.primary} />
             </View>
             <View style={styles.rowBody}>
-              <Text style={styles.rowTitle}>تحديث التطبيق</Text>
-              <Text
-                style={[styles.rowHint, newer && styles.rowHintWarn]}
-                numberOfLines={1}
-              >
+              <Text style={[styles.rowTitle, { color: palette.text }]}>
                 {checking
-                  ? 'تُفحص وجود تحديث...'
+                  ? 'جاري فحص التحديثات...'
                   : newer
-                  ? `متوفر ${updateTag ?? ''} — اضغط للتحميل والتثبيت`
-                  : 'محدّث لأحدث نسخة ✓'}
+                  ? `تحديث جديد متاح (${updateTag ?? ''})`
+                  : 'التطبيق محدث لأحدث إصدار'}
+              </Text>
+              <Text style={[styles.rowHint, { color: palette.textFaint }]}>
+                {newer ? 'اضغط للتحميل والتثبيت الفوري' : 'v' + CURRENT_VERSION}
               </Text>
             </View>
-            {newer ? <Icon name="chevron-left" size={14} color={colors.faint} /> : null}
+            {newer ? (
+              <View style={[styles.newBadge, { backgroundColor: palette.primary }]}>
+                <Text style={[styles.newBadgeText, { color: palette.onPrimary }]}>جديد</Text>
+              </View>
+            ) : null}
           </ScalePressable>
 
           <ScalePressable
             onPress={openDev}
-            accessibilityRole="link"
-            accessibilityLabel="صفحة المطور على GitHub"
-            style={styles.row}
+            accessibilityRole="button"
+            accessibilityLabel="عن المطور"
+            style={[styles.row, { borderBottomColor: palette.surfaceLine }]}
           >
-            <View style={[styles.rowIcon, { backgroundColor: 'rgba(148, 163, 184, 0.12)' }]}>
-              <Icon name="user" size={16} color={colors.faint} />
+            <View style={[styles.rowIcon, { backgroundColor: palette.surfaceRaised }]}>
+              <Icon name="user" size={16} color={palette.textSub} />
             </View>
             <View style={styles.rowBody}>
-              <Text style={styles.rowTitle}>المطور</Text>
-              <Text style={styles.rowHint}>
-                <Text style={styles.mono}>CODE-NAME-IN-B@github</Text>
-              </Text>
+              <Text style={[styles.rowTitle, { color: palette.text }]}>المطور والمشروع</Text>
+              <Text style={[styles.rowHint, { color: palette.textFaint }]}>مكتبة ألعاب الشاردة ستور</Text>
             </View>
-            <Icon name="chevron-left" size={14} color={colors.faint} />
+            <Icon name="chevron-left" size={14} color={palette.textFaint} />
           </ScalePressable>
 
           <ScalePressable
-            onPress={() => setIdeaOpen((v) => !v)}
+            onPress={() => setIdeaOpen((o) => !o)}
             accessibilityRole="button"
             accessibilityLabel="فكرة التطبيق"
             style={styles.row}
           >
-            <View style={[styles.rowIcon, { backgroundColor: 'rgba(239, 68, 68, 0.10)' }]}>
-              <Icon name="sparkles" size={16} color={colors.dangerStrong} />
+            <View style={[styles.rowIcon, { backgroundColor: palette.surfaceRaised }]}>
+              <Icon name="sparkles" size={16} color={palette.primary} />
             </View>
             <View style={styles.rowBody}>
-              <Text style={styles.rowTitle}>فكرة التطبيق</Text>
-              <Text style={styles.rowHint}>لماذا وُجد الشاردة ستور</Text>
+              <Text style={[styles.rowTitle, { color: palette.text }]}>فكرة التطبيق</Text>
+              <Text style={[styles.rowHint, { color: palette.textFaint }]}>لماذا وُجد الشاردة ستور</Text>
             </View>
-            <Icon name={ideaOpen ? 'chevron-down' : 'chevron-left'} size={14} color={colors.faint} />
+            <Icon name={ideaOpen ? 'chevron-down' : 'chevron-left'} size={14} color={palette.textFaint} />
           </ScalePressable>
 
           {ideaOpen ? (
-            <View style={styles.ideaBox}>
-              <Text style={styles.ideaText}>
+            <View
+              style={[
+                styles.ideaBox,
+                {
+                  backgroundColor: palette.surfaceRaised,
+                  borderColor: palette.surfaceLine,
+                },
+              ]}
+            >
+              <Text style={[styles.ideaText, { color: palette.textSub }]}>
                 صُمم الشاردة ستور ليطابق «أسرع» تجربة مثل متجر الألعاب:
-                تختار لعبتك في سلة، تكتب اسمك، وتضغط إرسال — الكاشير يجهّز
+                تختار لعبتك في سلة، وتطلب مباشرة — الكاشير يجهّز
                 طلبك، وأنت تتابعه بمسح QR أو من طلباتك المحفوظة، وتصلك
-                سبق تنبيه عند جاهزيته. لا حاجة للانتظار في الصف.
+                تنبيهات عند جاهزيته بدون انتظار في الطابور.
               </Text>
             </View>
           ) : null}
@@ -197,11 +235,9 @@ export default function AccountCard() {
 const styles = StyleSheet.create({
   card: {
     marginHorizontal: 14,
-    backgroundColor: colors.elevatedRaised,
-    borderRadius: 18,
+    borderRadius: 20,
     borderWidth: 1,
-    borderColor: colors.borderSubtle,
-    padding: 14,
+    padding: 16,
   },
   head: {
     flexDirection: ROW,
@@ -209,30 +245,25 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   avatar: {
-    width: 54,
-    height: 54,
+    width: 50,
+    height: 50,
     borderRadius: 999,
-    backgroundColor: colors.brandSoft,
-    borderWidth: 2,
-    borderColor: colors.brandBorder,
+    borderWidth: 1.5,
     alignItems: 'center',
     justifyContent: 'center',
   },
   avatarDot: {
     position: 'absolute',
-    bottom: 3,
-    right: 3,
-    width: 12,
-    height: 12,
+    bottom: 2,
+    right: 2,
+    width: 11,
+    height: 11,
     borderRadius: 999,
-    backgroundColor: colors.success,
     borderWidth: 2,
-    borderColor: colors.elevatedRaised,
   },
   headBody: { flex: 1 },
   appName: {
-    fontFamily: FONT.bold,
-    color: colors.text,
+    fontFamily: AR_FONT.bold,
     fontSize: 16,
     textAlign: 'right',
     writingDirection: 'rtl',
@@ -245,33 +276,31 @@ const styles = StyleSheet.create({
     marginTop: 4,
   },
   betaChip: {
-    backgroundColor: 'rgba(20, 184, 166, 0.18)',
     borderWidth: 1,
-    borderColor: 'rgba(45, 212, 191, 0.4)',
     borderRadius: 6,
     paddingHorizontal: 5,
     paddingVertical: 1,
   },
   betaText: {
-    fontFamily: FONT.bold,
-    color: '#042f2e',
+    fontFamily: AR_FONT.bold,
     fontSize: 11,
     includeFontPadding: false,
   },
   versionText: {
-    fontFamily: FONT.regular,
-    color: colors.faint,
+    fontFamily: AR_FONT.medium,
     fontSize: 12,
     includeFontPadding: false,
   },
-  rows: { marginTop: 12, gap: 4 },
+  rows: {
+    marginTop: 14,
+    gap: 4,
+  },
   row: {
     flexDirection: ROW,
     alignItems: 'center',
     gap: 10,
-    paddingVertical: 9,
-    paddingHorizontal: 8,
-    borderRadius: 12,
+    paddingVertical: 10,
+    borderBottomWidth: StyleSheet.hairlineWidth,
   },
   rowIcon: {
     width: 34,
@@ -280,51 +309,42 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  rowIconWarn: {
-    backgroundColor: 'rgba(251, 191, 36, 0.14)',
-    borderWidth: 1,
-    borderColor: 'rgba(251, 191, 36, 0.4)',
-  },
   rowBody: { flex: 1 },
   rowTitle: {
-    fontFamily: FONT.bold,
-    color: colors.text,
-    fontSize: 13,
+    fontFamily: AR_FONT.bold,
+    fontSize: 13.5,
     textAlign: 'right',
     writingDirection: 'rtl',
     includeFontPadding: false,
   },
   rowHint: {
-    fontFamily: FONT.regular,
-    color: colors.faint,
-    fontSize: 11,
+    fontFamily: AR_FONT.regular,
+    fontSize: 11.5,
     textAlign: 'right',
     writingDirection: 'rtl',
     marginTop: 2,
     includeFontPadding: false,
   },
-  rowHintWarn: {
-    color: colors.warningText,
-    fontFamily: FONT.bold,
+  newBadge: {
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 999,
   },
-  mono: {
-    fontFamily: FONT.regular,
-    color: colors.faint,
+  newBadgeText: {
+    fontFamily: AR_FONT.bold,
+    fontSize: 11,
+    includeFontPadding: false,
   },
   ideaBox: {
-    marginHorizontal: 8,
-    marginTop: 4,
-    padding: 10,
-    borderRadius: 10,
-    backgroundColor: 'rgba(255, 255, 255, 0.04)',
-    borderStartWidth: 3,
-    borderStartColor: colors.dangerStrong,
+    padding: 12,
+    borderRadius: 12,
+    borderWidth: 1,
+    marginTop: 6,
   },
   ideaText: {
-    fontFamily: FONT.regular,
-    color: colors.dim,
-    fontSize: 11.5,
-    lineHeight: 19,
+    fontFamily: AR_FONT.regular,
+    fontSize: 12.5,
+    lineHeight: 20,
     textAlign: 'right',
     writingDirection: 'rtl',
   },
