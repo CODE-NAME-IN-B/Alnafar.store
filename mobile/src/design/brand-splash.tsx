@@ -1,75 +1,42 @@
 import React, { useEffect, useRef } from 'react';
-import { StyleSheet, View } from 'react-native';
+import { Image, StyleSheet, Text, View } from 'react-native';
 import Animated, {
   useAnimatedStyle,
   useReducedMotion,
   useSharedValue,
   withDelay,
+  withSequence,
   withTiming,
 } from 'react-native-reanimated';
 import { EASE } from './motion';
+import { AR_FONT } from './fonts';
 
-/**
- * BrandSplash — افتتاحية الشعار داخل التطبيق (منفَّذة في الخطوة 2 بقرار المالك)
- *
- * المشهد: خلفية كريمية (استمرارية الـ native splash) يُبنى فيها حرف N
- * شريحة شريحة (الس silicon upper ← الذراع اليمنى ← القطر ← الشق السفلي) ثم
- * يسقط المربعان lime بسلّم، ويقودها المنحنى التوقيعي. هللة الأخيرة:
- * تلاشٍ سريع يكشف التطبيق.
- *
- * هندسة الشرائح مرآة للسيد `assets/_brand/logo.svg` (G في مولد الأصول
- * gen_brand3) — أي تعديل للشعار يبدأ من السيد ثم يُنقل هنا.
- *
- * القواعد:
- * - reduced motion → ترتلك الفتلة فوراً وينكشف التطبيق مباشرة.
- * - على الكريمي تظهر الكريمية شرائح حبرية (مقيسة من المرجع) + المربعان lime.
- */
+const LOGO = require('../../assets/_brand/icon.png');
 
-/* ألوان الهوية المقيسة من المرجع (لا ثيم هنا — الافتتاحية كريمية دائماً) */
 const CREAM = '#F5F1E8';
 const INK = '#1F241D';
+const FOREST = '#2D6A4F';
 const LIME = '#C1D792';
 
-/* هندسة الرسم — مرآة G في logo.svg: İç نفس القيم (0..1000) على ART */
-const ART = 176;
-const GEO = {
-  stemUpper: [179, 199, 366, 402],
-  stemLower: [179, 462, 366, 793],
-  stemRight: [654, 199, 821, 487],
-  diag: [179, 199, 394, 199, 654, 463, 654, 631, 595, 631],
-  limeA: [692, 532, 823, 667],
-  limeB: [557, 671, 688, 793],
-} as const;
+const TOTAL_MS = 1_350;
 
-/* القطع: شريط مائل 45° (skewX) داخل حاوية قصّ عند حاجة الذراع اليمنى (x=654)
-   وأسفل الحرف (y=631) — فتطابق القطع العمودي المقطوع في المرجع تماماً.
-   مستطيل الشريط: أعلى y=215 (دون ثغرة الشق العلوية)، ارتفاع إلى 631،
-   عرض القطع الأفقي 230، والحواف العمودية تُمِل بمقدار 45°. */
-const DIAG_SKEW_DEG = 45;
-const DIAG_CLIP = { left: 179, top: 215, w: 475, h: 416 };
-/* موضع الشريط داخل القماش: يسار = 179 + h/2 (تعويض الإزاحة حول المركز) */
-const DIAG_BAND = { left: 179 + DIAG_CLIP.h / 2, top: 215, w: 230, h: DIAG_CLIP.h };
-
-/** زمن العرض الكامل قبل نداء onDone (مطابق للتتابع أدناه) */
-const TOTAL_MS = 1_080;
-
-const px = (f: number) => Math.round((f / 1000) * ART);
-
+/**
+ * BrandSplash — افتتاحية الشعار الرسمية الفاخرة للتطبيق:
+ * ظهور ناعم ومتدرج لأيقونة الشعار المعتمدة متبوعة باسم «الشاردة ستور»
+ * والوصف «النفار للألعاب»، مع نبضة ليمونية أنيقة ثم تلاشٍ ناعم يكشف التطبيق.
+ */
 export function BrandSplash({ onDone }: { onDone: () => void }) {
   const reduced = useReducedMotion();
   const fired = useRef(false);
 
-  /* قيم الأجزاء: 0 = مخفي/مُزاح، 1 = في مكانه */
-  const up = useSharedValue(0);
-  const right = useSharedValue(0);
-  const diag = useSharedValue(0);
-  const down = useSharedValue(0);
-  const sqA = useSharedValue(0);
-  const sqB = useSharedValue(0);
-  const veil = useSharedValue(1); /* قناع الإخفاء النهائي */
+  const logoScale = useSharedValue(0.84);
+  const logoOpacity = useSharedValue(0);
+  const textOpacity = useSharedValue(0);
+  const textTranslate = useSharedValue(12);
+  const dotScale = useSharedValue(1);
+  const veilOpacity = useSharedValue(1);
 
   useEffect(() => {
-    /* reduced motion: لا مشهد — التطبيق فوراً */
     if (reduced) {
       if (!fired.current) {
         fired.current = true;
@@ -78,16 +45,34 @@ export function BrandSplash({ onDone }: { onDone: () => void }) {
       return;
     }
 
-    /* الشرائح تُبنى بالتتابع (أعلى يسار → ذراع يمين → قطر → أسفل يسار)،
-       ثم المربعان يهبطان سلّماً */
-    up.value = withDelay(110, withTiming(1, { duration: 120, easing: EASE.signature }));
-    right.value = withDelay(210, withTiming(1, { duration: 120, easing: EASE.signature }));
-    diag.value = withDelay(330, withTiming(1, { duration: 120, easing: EASE.signature }));
-    down.value = withDelay(430, withTiming(1, { duration: 120, easing: EASE.signature }));
-    sqA.value = withDelay(560, withTiming(1, { duration: 180, easing: EASE.signature }));
-    sqB.value = withDelay(650, withTiming(1, { duration: 180, easing: EASE.signature }));
-    /* سيناريو ختامي: تلاشٍ ثم رفع الستار (نداء onDone) */
-    veil.value = withDelay(900, withTiming(0, { duration: 180, easing: EASE.signature }));
+    // 1. الشعار يظهر ويكبر بسلاسة
+    logoOpacity.value = withTiming(1, { duration: 380, easing: EASE.signature });
+    logoScale.value = withTiming(1, { duration: 520, easing: EASE.signature });
+
+    // 2. النص يصعد ويوضح
+    textOpacity.value = withDelay(
+      180,
+      withTiming(1, { duration: 420, easing: EASE.signature })
+    );
+    textTranslate.value = withDelay(
+      180,
+      withTiming(0, { duration: 420, easing: EASE.signature })
+    );
+
+    // 3. نبضة النقطة الليمونية
+    dotScale.value = withDelay(
+      450,
+      withSequence(
+        withTiming(1.35, { duration: 220, easing: EASE.signature }),
+        withTiming(1, { duration: 220, easing: EASE.signature })
+      )
+    );
+
+    // 4. التلاشي الختامي ورفع الستار
+    veilOpacity.value = withDelay(
+      1_020,
+      withTiming(0, { duration: 320, easing: EASE.signature })
+    );
 
     const t = setTimeout(() => {
       if (!fired.current) {
@@ -95,138 +80,46 @@ export function BrandSplash({ onDone }: { onDone: () => void }) {
         onDone();
       }
     }, TOTAL_MS);
-    return () => clearTimeout(t);
-  }, [reduced, up, right, diag, down, sqA, sqB, veil, onDone]);
 
-  /* مقابض الحركة */
-  const upStyle = useAnimatedStyle(() => ({
-    opacity: up.value,
-    transform: [{ translateY: -8 * (1 - up.value) }],
+    return () => clearTimeout(t);
+  }, [reduced, logoOpacity, logoScale, textOpacity, textTranslate, dotScale, veilOpacity, onDone]);
+
+  const logoStyle = useAnimatedStyle(() => ({
+    opacity: logoOpacity.value,
+    transform: [{ scale: logoScale.value }],
   }));
-  const rightStyle = useAnimatedStyle(() => ({
-    opacity: right.value,
-    transform: [{ translateY: -8 * (1 - right.value) }],
+
+  const textStyle = useAnimatedStyle(() => ({
+    opacity: textOpacity.value,
+    transform: [{ translateY: textTranslate.value }],
   }));
-  const diagStyle = useAnimatedStyle(() => ({
-    opacity: diag.value,
-    transform: [
-      /* الإمالة مع حركة الدخول قطرياً */
-      { skewX: `${DIAG_SKEW_DEG}deg` },
-      { translateX: -8 * (1 - diag.value) },
-      { translateY: -8 * (1 - diag.value) },
-    ],
+
+  const dotStyle = useAnimatedStyle(() => ({
+    transform: [{ scale: dotScale.value }],
   }));
-  const downStyle = useAnimatedStyle(() => ({
-    opacity: down.value,
-    transform: [{ translateY: 8 * (1 - down.value) }],
+
+  const veilStyle = useAnimatedStyle(() => ({
+    opacity: veilOpacity.value,
   }));
-  const sqAStyle = useAnimatedStyle(() => ({
-    opacity: sqA.value,
-    transform: [{ translateY: -26 * (1 - sqA.value) }],
-  }));
-  const sqBStyle = useAnimatedStyle(() => ({
-    opacity: sqB.value,
-    transform: [{ translateY: -26 * (1 - sqB.value) }],
-  }));
-  const veilStyle = useAnimatedStyle(() => ({ opacity: veil.value }));
 
   if (reduced) return null;
 
   return (
     <Animated.View style={[styles.veil, veilStyle]} pointerEvents="auto">
-      {/* فن الشعار: شرائح حبرية بحاد الأركان + المربعان (بلا بلاقة — على الكريمي) */}
-      <View style={{ width: ART, height: ART }}>
-        <Animated.View
-          style={[
-            styles.slab,
-            {
-              left: px(GEO.stemUpper[0]),
-              top: px(GEO.stemUpper[1]),
-              width: px(GEO.stemUpper[2] - GEO.stemUpper[0]),
-              height: px(GEO.stemUpper[3] - GEO.stemUpper[1]),
-              backgroundColor: INK,
-            },
-            upStyle,
-          ]}
-        />
-        <Animated.View
-          style={[
-            styles.slab,
-            {
-              left: px(GEO.stemRight[0]),
-              top: px(GEO.stemRight[1]),
-              width: px(GEO.stemRight[2] - GEO.stemRight[0]),
-              height: px(GEO.stemRight[3] - GEO.stemRight[1]),
-              backgroundColor: INK,
-            },
-            rightStyle,
-          ]}
-        />
-        {/* القطع: شريط 45° داخل حاوية قصّ عند حافة الذراع اليمنى — مطابق للمرجع */}
-        <View
-          style={{
-            position: 'absolute',
-            left: px(DIAG_CLIP.left),
-            top: px(DIAG_CLIP.top),
-            width: px(DIAG_CLIP.w),
-            height: px(DIAG_CLIP.h),
-            overflow: 'hidden',
-          }}
-        >
-          <Animated.View
-            style={[
-              styles.slab,
-              {
-                left: px(DIAG_BAND.left - DIAG_CLIP.left),
-                top: px(DIAG_BAND.top - DIAG_CLIP.top),
-                width: px(DIAG_BAND.w),
-                height: px(DIAG_BAND.h),
-                backgroundColor: INK,
-              },
-              diagStyle,
-            ]}
-          />
-        </View>
-        <Animated.View
-          style={[
-            styles.slab,
-            {
-              left: px(GEO.stemLower[0]),
-              top: px(GEO.stemLower[1]),
-              width: px(GEO.stemLower[2] - GEO.stemLower[0]),
-              height: px(GEO.stemLower[3] - GEO.stemLower[1]),
-              backgroundColor: INK,
-            },
-            downStyle,
-          ]}
-        />
-        {/* المربعان lime يهبطان سلّماً */}
-        <Animated.View
-          style={[
-            styles.slab,
-            {
-              left: px(GEO.limeA[0]),
-              top: px(GEO.limeA[1]),
-              width: px(GEO.limeA[2] - GEO.limeA[0]),
-              height: px(GEO.limeA[3] - GEO.limeA[1]),
-              backgroundColor: LIME,
-            },
-            sqAStyle,
-          ]}
-        />
-        <Animated.View
-          style={[
-            styles.slab,
-            {
-              left: px(GEO.limeB[0]),
-              top: px(GEO.limeB[1]),
-              width: px(GEO.limeB[2] - GEO.limeB[0]),
-              height: px(GEO.limeB[3] - GEO.limeB[1]),
-              backgroundColor: LIME,
-            },
-            sqBStyle,
-          ]}
-        />
+      <View style={styles.centerBox}>
+        {/* إطار الشعار المعتمد */}
+        <Animated.View style={[styles.logoCard, logoStyle]}>
+          <Image source={LOGO} style={styles.logoImg} resizeMode="contain" />
+        </Animated.View>
+
+        {/* هوية المتجر */}
+        <Animated.View style={[styles.textBlock, textStyle]}>
+          <Text style={styles.title}>الشاردة ستور</Text>
+          <View style={styles.subRow}>
+            <Text style={styles.subtitle}>النفار للألعاب • بلايستيشن و PC</Text>
+            <Animated.View style={[styles.limeDot, dotStyle]} />
+          </View>
+        </Animated.View>
       </View>
     </Animated.View>
   );
@@ -238,10 +131,61 @@ const styles = StyleSheet.create({
     backgroundColor: CREAM,
     alignItems: 'center',
     justifyContent: 'center',
-    zIndex: 100,
-    elevation: 100,
+    zIndex: 9999,
+    elevation: 9999,
   },
-  slab: {
-    position: 'absolute',
+  centerBox: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 24,
+  },
+  logoCard: {
+    width: 110,
+    height: 110,
+    borderRadius: 28,
+    backgroundColor: INK,
+    padding: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: INK,
+    shadowOffset: { width: 0, height: 12 },
+    shadowOpacity: 0.16,
+    shadowRadius: 20,
+    elevation: 10,
+  },
+  logoImg: {
+    width: '100%',
+    height: '100%',
+    borderRadius: 20,
+  },
+  textBlock: {
+    alignItems: 'center',
+    marginTop: 20,
+  },
+  title: {
+    fontFamily: AR_FONT.bold,
+    fontSize: 24,
+    color: INK,
+    letterSpacing: -0.3,
+    includeFontPadding: false,
+    textAlign: 'center',
+  },
+  subRow: {
+    flexDirection: 'row-reverse',
+    alignItems: 'center',
+    gap: 6,
+    marginTop: 6,
+  },
+  subtitle: {
+    fontFamily: AR_FONT.medium,
+    fontSize: 13,
+    color: FOREST,
+    includeFontPadding: false,
+  },
+  limeDot: {
+    width: 7,
+    height: 7,
+    borderRadius: 4,
+    backgroundColor: LIME,
   },
 });

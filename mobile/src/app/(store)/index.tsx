@@ -45,6 +45,7 @@ import { ROW } from '@/lib/rtl';
 import { usePalette, useThemeMode, useThemeName } from '@/design/theme';
 import { AR_FONT, LAT_FONT } from '@/design/fonts';
 import { EntryIn, SignalBeacon } from '@/design/motion-library';
+import AnimatedReanimated, { FadeInDown } from 'react-native-reanimated';
 import Skeleton from '@/design/Skeleton';
 import GameCard from '@/design/GameCard';
 import PlatformChip from '@/design/PlatformChip';
@@ -75,8 +76,10 @@ export default function StoreHomeScreen() {
   const [servicesOpen, setServicesOpen] = useState(false);
   const [trackOpen, setTrackOpen] = useState(false);
   const [pickingGame, setPickingGame] = useState<Game | null>(null);
-  /* وضع عرض الكتالوج للكاشير: صفوف 72dp (III) أو شبكة أكبر */
-  const [cashierGrid, setCashierGrid] = useState(false);
+  /* وضع عرض الكتالوج: شبكة 2-column (افتراضي) أو صفوف 72dp */
+  const [isGridView, setIsGridView] = useState(true);
+  /* تصفح كامل مكتبة الألعاب دفعة واحدة كشبكة */
+  const [browseAll, setBrowseAll] = useState(false);
 
   const gamesQ = useQuery({
     queryKey: ['games', 'all'],
@@ -137,9 +140,9 @@ export default function StoreHomeScreen() {
   const scrollRef = useRef<ScrollViewInstance | null>(null);
   const entranceStyle = useScreenEntrance({ durationMs: 260, dy: 14 });
 
-  /* وضع الكتالوج (III): أي بحث/فلترة/تصنيف يحوّل الرئيسية إلى دفتر كتالوج
-     بصفوف 72dp. الوضع الطبيعي = بطاقة البطل + رفوف التصنيفات (II). */
-  const catalogMode = Boolean(query.trim()) || activeFilterCount > 0 || activeCategoryId !== null;
+  /* وضع الكتالوج (III): أي بحث/فلترة/تصنيف أو تصفح كل الألعاب يحوّل الرئيسية لشبكة الكتالوج */
+  const catalogMode =
+    browseAll || Boolean(query.trim()) || activeFilterCount > 0 || activeCategoryId !== null;
 
   /* الرفوف: كل تصنيف صفّه بأنقل عشرة مرتبة أبجدياً — والتخطي لإقسام فارغة */
   const shelves = useMemo(() => {
@@ -359,10 +362,22 @@ export default function StoreHomeScreen() {
               contentContainerStyle={styles.categoryStripScroll}
             >
               <Chip
-                label="الكل"
-                active={activeCategoryId === null}
+                label="الرئيسية"
+                active={!catalogMode}
                 onPress={() => {
                   triggerLightHaptic();
+                  setBrowseAll(false);
+                  setActiveCategory(null);
+                  setQuery('');
+                  setFilters(EMPTY_FILTERS);
+                }}
+              />
+              <Chip
+                label="جميع الألعاب (شبكة)"
+                active={browseAll && activeCategoryId === null && !query.trim()}
+                onPress={() => {
+                  triggerLightHaptic();
+                  setBrowseAll(true);
                   setActiveCategory(null);
                 }}
               />
@@ -373,6 +388,7 @@ export default function StoreHomeScreen() {
                   active={activeCategoryId === cat.id}
                   onPress={() => {
                     triggerLightHaptic();
+                    setBrowseAll(false);
                     setActiveCategory(activeCategoryId === cat.id ? null : cat.id);
                   }}
                 />
@@ -478,12 +494,12 @@ export default function StoreHomeScreen() {
             {catalogMode ? (
               <CatalogView
                 items={filtered}
-                grid={Boolean(token) && cashierGrid}
-                cashier={Boolean(token)}
-                onCashierGrid={setCashierGrid}
+                grid={isGridView}
+                onToggleGrid={setIsGridView}
                 onOpenGame={handlePressGame}
                 categories={categories}
                 onAllGames={() => {
+                  setBrowseAll(false);
                   setFilters(EMPTY_FILTERS);
                   setQuery('');
                   setActiveCategory(null);
@@ -629,16 +645,14 @@ export default function StoreHomeScreen() {
 function CatalogView({
   items,
   grid,
-  cashier,
-  onCashierGrid,
+  onToggleGrid,
   onOpenGame,
   categories,
   onAllGames,
 }: {
   items: Game[];
   grid: boolean;
-  cashier: boolean;
-  onCashierGrid: (v: boolean) => void;
+  onToggleGrid: (v: boolean) => void;
   onOpenGame: (g: Game) => void;
   categories: Category[];
   onAllGames: () => void;
@@ -653,40 +667,71 @@ function CatalogView({
           <View style={[styles.catalogCount, { backgroundColor: palette.surfaceRaised }]}>
             <Text style={[styles.catalogCountTxt, { color: palette.textSub }]}>{items.length}</Text>
           </View>
-          {cashier ? (
-            <View style={styles.gridToggle}>
-              <Pressable
-                onPress={() => onCashierGrid(false)}
-                accessibilityRole="button"
-                accessibilityState={{ selected: !grid }}
-                style={styles.gridToggleBtn}
+          <View
+            style={[
+              styles.gridToggle,
+              { backgroundColor: palette.surfaceRaised, borderColor: palette.surfaceLine },
+            ]}
+          >
+            <Pressable
+              onPress={() => {
+                triggerLightHaptic();
+                onToggleGrid(true);
+              }}
+              accessibilityRole="button"
+              accessibilityState={{ selected: grid }}
+              style={[
+                styles.gridToggleBtn,
+                grid ? { backgroundColor: palette.primary } : undefined,
+              ]}
+            >
+              <Icon
+                name="grid"
+                size={13}
+                color={grid ? palette.onPrimary : palette.textSub}
+              />
+              <Text
+                style={[
+                  styles.gridToggleTxt,
+                  {
+                    color: grid ? palette.onPrimary : palette.textSub,
+                    fontFamily: AR_FONT.bold,
+                  },
+                ]}
               >
-                <Text
-                  style={[
-                    styles.gridToggleTxt,
-                    { color: !grid ? palette.primary : palette.textFaint, fontFamily: AR_FONT.bold },
-                  ]}
-                >
-                  صفوف
-                </Text>
-              </Pressable>
-              <Pressable
-                onPress={() => onCashierGrid(true)}
-                accessibilityRole="button"
-                accessibilityState={{ selected: grid }}
-                style={styles.gridToggleBtn}
+                شبكة
+              </Text>
+            </Pressable>
+            <Pressable
+              onPress={() => {
+                triggerLightHaptic();
+                onToggleGrid(false);
+              }}
+              accessibilityRole="button"
+              accessibilityState={{ selected: !grid }}
+              style={[
+                styles.gridToggleBtn,
+                !grid ? { backgroundColor: palette.primary } : undefined,
+              ]}
+            >
+              <Icon
+                name="list"
+                size={13}
+                color={!grid ? palette.onPrimary : palette.textSub}
+              />
+              <Text
+                style={[
+                  styles.gridToggleTxt,
+                  {
+                    color: !grid ? palette.onPrimary : palette.textSub,
+                    fontFamily: AR_FONT.bold,
+                  },
+                ]}
               >
-                <Text
-                  style={[
-                    styles.gridToggleTxt,
-                    { color: grid ? palette.primary : palette.textFaint, fontFamily: AR_FONT.bold },
-                  ]}
-                >
-                  شبكة
-                </Text>
-              </Pressable>
-            </View>
-          ) : null}
+                قائمة
+              </Text>
+            </Pressable>
+          </View>
         </View>
       </View>
 
@@ -699,27 +744,35 @@ function CatalogView({
         />
       ) : grid ? (
         <View style={styles.gridWrap}>
-          {items.map((g) => (
-            <View key={String(g.id)} style={styles.gridCell}>
+          {items.map((g, idx) => (
+            <AnimatedReanimated.View
+              key={String(g.id)}
+              entering={FadeInDown.duration(240).delay(Math.min(idx * 25, 300))}
+              style={styles.gridCell}
+            >
               <GameCard
                 game={g}
                 hasVersions={isPs4Game(g, categories)}
                 onPress={onOpenGame}
               />
-            </View>
+            </AnimatedReanimated.View>
           ))}
         </View>
       ) : (
         <View style={styles.rowsWrap}>
-          {items.map((g) => (
-            <View key={String(g.id)} style={styles.rowCell}>
+          {items.map((g, idx) => (
+            <AnimatedReanimated.View
+              key={String(g.id)}
+              entering={FadeInDown.duration(240).delay(Math.min(idx * 25, 300))}
+              style={styles.rowCell}
+            >
               <GameCard
                 compact
                 game={g}
                 hasVersions={isPs4Game(g, categories)}
                 onPress={onOpenGame}
               />
-            </View>
+            </AnimatedReanimated.View>
           ))}
         </View>
       )}
@@ -976,8 +1029,10 @@ const styles = StyleSheet.create({
     gap: 2,
   },
   gridToggleBtn: {
-    paddingHorizontal: 10,
-    minHeight: 34,
+    flexDirection: ROW,
+    gap: 4,
+    paddingHorizontal: 8,
+    minHeight: 30,
     borderRadius: 7,
     alignItems: 'center',
     justifyContent: 'center',
