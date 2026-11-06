@@ -16,6 +16,9 @@ import {
 } from '@/design/motion-library';
 import { usePalette, useThemeName, useThemeMode, type ThemeModeName } from '@/design/theme';
 import { TABULAR, TYPE, LAT } from '@/design/type';
+import Button from '@/design/Button';
+import SearchField from '@/design/SearchField';
+import { EmptyState, ErrorState } from '@/design/StateView';
 
 const MODES: readonly ThemeModeName[] = ['light', 'dark', 'system'] as const;
 const MODE_LABEL: Record<ThemeModeName, string> = {
@@ -244,6 +247,44 @@ export default function DesignProbe() {
             <Text style={[TYPE.micro, { color: palette.textFaint, marginTop: 8 }]}>
               نصوص البادجات ≥ 4.5:1 على أسطح بادجاتها — يُحسب في المراجعة النهائية.
             </Text>
+          </View>
+        </EntryIn>
+
+        {/* معرض مكونات الخطوة 4 (Design Gallery) */}
+        <EntryIn index={6}>
+          <View
+            style={[
+              styles.card,
+              { backgroundColor: palette.surface, borderColor: palette.surfaceLine },
+            ]}
+          >
+            <Text style={[TYPE.title, { color: palette.text, fontSize: 16 }]}>
+              معرض المكونات المشتركة (v5 Gallery)
+            </Text>
+
+            {/* الأزرار المشتركة */}
+            <Text style={[TYPE.label, { color: palette.textSub, marginTop: 10 }]}>الأزرار (Buttons)</Text>
+            <View style={{ gap: 8 }}>
+              <Button label="إجراء رئيسي (Primary)" variant="primary" icon="check" onPress={() => {}} />
+              <Button label="إجراء ثانوي (Secondary)" variant="secondary" icon="printer" onPress={() => {}} />
+              <Button label="إجراء خطر (Danger)" variant="danger" icon="trash" onPress={() => {}} />
+              <Button label="زر شبح (Ghost)" variant="ghost" onPress={() => {}} />
+            </View>
+
+            {/* حقل البحث */}
+            <Text style={[TYPE.label, { color: palette.textSub, marginTop: 14 }]}>حقل البحث (SearchField)</Text>
+            <SearchField
+              value=""
+              onChangeText={() => {}}
+              placeholder="ابحث عن لعبة أو سلسلة..."
+              onFilterPress={() => {}}
+              filterCount={2}
+            />
+
+            {/* حالات العرض */}
+            <Text style={[TYPE.label, { color: palette.textSub, marginTop: 14 }]}>حالات العرض (State Views)</Text>
+            <EmptyState message="لا توجد بيانات مطابقة" subMessage="جرّب تغيير عبارة البحث أو الفلتر" icon="gamepad" />
+            <ErrorState message="تعذر الاتصال بالخادم" onRetry={() => {}} />
           </View>
         </EntryIn>
 
