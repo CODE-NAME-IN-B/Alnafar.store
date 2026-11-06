@@ -1,4 +1,0 @@
-/* استيراد إلزامي في app/_layout.tsx لتشغيل NativeWind */
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
