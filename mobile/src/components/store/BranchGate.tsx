@@ -1,6 +1,7 @@
 /**
- * بوابة اختيار الفرع — أول شاشة للزبون (مصممة وفق ui-ux-pro-max وهوية النفار).
+ * بوابة اختيار الفرع — أول شاشة للزبون (مصممة وفق v4 Modern Minimalism).
  */
+import React from 'react';
 import { Image } from 'expo-image';
 import { Text, View, Pressable, ScrollView } from 'react-native';
 import { router } from 'expo-router';
@@ -11,10 +12,12 @@ import AppButton from '@/components/ui/AppButton';
 import Icon from '@/components/ui/Icon';
 import { LoadingState, ErrorState } from '@/components/ui/StateView';
 import { fetchBranches } from '@/api/branches';
-import { FONT } from '@/lib/fonts';
+import { AR_FONT } from '@/design/fonts';
+import { usePalette } from '@/design/theme';
 import { useAppStore } from '@/stores/app';
 
 export default function BranchGate() {
+  const palette = usePalette();
   const selectBranch = useAppStore((s) => s.selectBranch);
   const { data, isLoading, isError, refetch } = useQuery({
     queryKey: ['branches'],
@@ -33,37 +36,38 @@ export default function BranchGate() {
         contentContainerStyle={{
           flexGrow: 1,
           paddingHorizontal: 20,
-          paddingVertical: 24,
+          paddingVertical: 28,
           justifyContent: 'center',
+          backgroundColor: palette.canvas,
         }}
         showsVerticalScrollIndicator={false}
       >
-        <View style={{ alignItems: 'center', marginBottom: 24 }}>
+        <View style={{ alignItems: 'center', marginBottom: 28 }}>
           <View
             style={{
-              width: 96,
-              height: 96,
-              borderRadius: 26,
-              backgroundColor: '#141e30',
-              borderWidth: 1.5,
-              borderColor: 'rgba(45,212,191,0.4)',
+              width: 88,
+              height: 88,
+              borderRadius: 24,
+              backgroundColor: palette.surface,
+              borderWidth: 1,
+              borderColor: palette.surfaceLine,
               alignItems: 'center',
               justifyContent: 'center',
-              marginBottom: 14,
+              marginBottom: 16,
             }}
           >
             <Image
               source={require('../../../assets/_brand/logo-mark.png')}
-              style={{ width: 68, height: 68 }}
+              style={{ width: 60, height: 60 }}
               contentFit="contain"
               accessibilityLabel="شعار المتجر"
             />
           </View>
           <AppText
             style={{
-              color: '#f8fafc',
-              fontFamily: FONT.bold,
-              fontSize: 24,
+              color: palette.text,
+              fontFamily: AR_FONT.bold,
+              fontSize: 22,
               textAlign: 'center',
             }}
           >
@@ -71,11 +75,12 @@ export default function BranchGate() {
           </AppText>
           <AppText
             style={{
-              color: '#cbd5e1',
-              fontFamily: FONT.regular,
+              color: palette.textSub,
+              fontFamily: AR_FONT.regular,
               fontSize: 14,
               textAlign: 'center',
-              marginTop: 6,
+              marginTop: 8,
+              lineHeight: 22,
             }}
           >
             اختر الفرع الأقرب إليك لتصفح مكتبة الألعاب والباقات والطلب المباشر
@@ -91,7 +96,7 @@ export default function BranchGate() {
         ) : null}
 
         {data ? (
-          <View style={{ gap: 12, marginBottom: 20 }}>
+          <View style={{ gap: 12, marginBottom: 24 }}>
             {data.map((branch) => {
               const isMain = !!branch.is_main;
               return (
@@ -99,10 +104,10 @@ export default function BranchGate() {
                   key={branch.id}
                   onPress={() => selectBranch(branch.id)}
                   style={{
-                    backgroundColor: '#141e30',
+                    backgroundColor: palette.surface,
                     borderRadius: 16,
-                    borderWidth: 1.5,
-                    borderColor: isMain ? '#14b8a6' : 'rgba(255, 255, 255, 0.1)',
+                    borderWidth: 1,
+                    borderColor: isMain ? palette.primary : palette.surfaceLine,
                     padding: 16,
                     flexDirection: 'row',
                     alignItems: 'center',
@@ -111,20 +116,20 @@ export default function BranchGate() {
                 >
                   <View
                     style={{
-                      width: 46,
-                      height: 46,
-                      borderRadius: 14,
+                      width: 44,
+                      height: 44,
+                      borderRadius: 12,
                       backgroundColor: isMain
-                        ? 'rgba(20,184,166,0.18)'
-                        : 'rgba(255,255,255,0.06)',
+                        ? palette.surfaceRaised
+                        : palette.surfaceRaised,
                       alignItems: 'center',
                       justifyContent: 'center',
                     }}
                   >
                     <Icon
                       name="branch"
-                      size={22}
-                      color={isMain ? '#2dd4bf' : '#94a3b8'}
+                      size={20}
+                      color={isMain ? palette.primary : palette.textSub}
                     />
                   </View>
 
@@ -139,9 +144,9 @@ export default function BranchGate() {
                     >
                       <Text
                         style={{
-                          color: '#f8fafc',
-                          fontFamily: FONT.bold,
-                          fontSize: 16,
+                          color: palette.text,
+                          fontFamily: AR_FONT.bold,
+                          fontSize: 15,
                           textAlign: 'right',
                         }}
                       >
@@ -150,16 +155,18 @@ export default function BranchGate() {
                       {isMain ? (
                         <View
                           style={{
-                            backgroundColor: 'rgba(20,184,166,0.2)',
-                            borderRadius: 8,
+                            backgroundColor: palette.surfaceRaised,
+                            borderRadius: 6,
                             paddingHorizontal: 8,
                             paddingVertical: 2,
+                            borderWidth: 1,
+                            borderColor: palette.primary,
                           }}
                         >
                           <Text
                             style={{
-                              color: '#2dd4bf',
-                              fontFamily: FONT.bold,
+                              color: palette.primary,
+                              fontFamily: AR_FONT.bold,
                               fontSize: 11,
                             }}
                           >
@@ -172,9 +179,9 @@ export default function BranchGate() {
                     {branch.address ? (
                       <Text
                         style={{
-                          color: '#cbd5e1',
-                          fontFamily: FONT.regular,
-                          fontSize: 13,
+                          color: palette.textSub,
+                          fontFamily: AR_FONT.regular,
+                          fontSize: 12,
                           marginTop: 4,
                           textAlign: 'right',
                         }}
@@ -184,7 +191,7 @@ export default function BranchGate() {
                     ) : null}
                   </View>
 
-                  <Icon name="arrow-left" size={18} color="#2dd4bf" />
+                  <Icon name="arrow-left" size={16} color={palette.textFaint} />
                 </Pressable>
               );
             })}

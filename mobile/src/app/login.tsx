@@ -16,7 +16,8 @@ import { useAuthStore } from '@/stores/auth';
 import { useAppStore } from '@/stores/app';
 import AppInput from '@/components/ui/AppInput';
 import Icon from '@/components/ui/Icon';
-import { FONT } from '@/lib/fonts';
+import { AR_FONT } from '@/design/fonts';
+import { usePalette } from '@/design/theme';
 import { ROW } from '@/lib/rtl';
 
 const LOGO = require('../../assets/_brand/logo-mark.png');
@@ -26,6 +27,7 @@ export default function LoginScreen() {
   const enterGuest = useAuthStore((s) => s.enterGuest);
   const selectBranch = useAppStore((s) => s.selectBranch);
   const selectedBranchId = useAppStore((s) => s.selectedBranchId);
+  const palette = usePalette();
 
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
@@ -42,7 +44,7 @@ export default function LoginScreen() {
     try {
       const ok = await loginWithPassword(username.trim(), password);
       if (!ok) {
-        setErr(useAuthStore.getState().lastError || 'فشل تسجيل الدخول');
+        setErr(useAuthStore.getState().lastError || 'فشل تسجيل الدخول — تحقق من البيانات');
         return;
       }
       const me = useAuthStore.getState().user;
@@ -51,7 +53,6 @@ export default function LoginScreen() {
       } else if (!selectedBranchId) {
         selectBranch(1);
       }
-      // After login, go to Store (Cashier POS view) with direct access to Admin dashboard
       router.replace('/(store)');
     } catch (e: unknown) {
       const msg = e instanceof Error ? e.message : 'فشل تسجيل الدخول';
@@ -70,10 +71,10 @@ export default function LoginScreen() {
   };
 
   return (
-    <SafeAreaView style={styles.safe}>
+    <SafeAreaView style={[styles.safe, { backgroundColor: palette.canvas }]}>
       <KeyboardAvoidingView
         style={styles.flex}
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       >
         <ScrollView
           contentContainerStyle={styles.scrollContent}
@@ -82,22 +83,50 @@ export default function LoginScreen() {
         >
           {/* Brand Header */}
           <View style={styles.brandBlock}>
-            <View style={styles.logoFrame}>
+            <View
+              style={[
+                styles.logoFrame,
+                {
+                  backgroundColor: palette.surface,
+                  borderColor: palette.surfaceLine,
+                },
+              ]}
+            >
               <Image source={LOGO} style={styles.logo} resizeMode="cover" />
             </View>
-            <Text style={styles.brandTitle}>الشاردة ستور</Text>
-            <Text style={styles.brandSubtitle}>النفار للألعاب • بلايستيشن و PC</Text>
+            <Text style={[styles.brandTitle, { color: palette.text }]}>الشاردة ستور</Text>
+            <Text style={[styles.brandSubtitle, { color: palette.textSub }]}>
+              النفار للألعاب • بلايستيشن و PC
+            </Text>
           </View>
 
-          {/* Login Form Card */}
-          <View style={styles.card}>
+          {/* Login Form Bento Card */}
+          <View
+            style={[
+              styles.card,
+              {
+                backgroundColor: palette.surface,
+                borderColor: palette.surfaceLine,
+              },
+            ]}
+          >
             <View style={styles.cardHeader}>
-              <View style={styles.cardBadge}>
-                <Icon name="lock" size={14} color="#2dd4bf" />
+              <View
+                style={[
+                  styles.cardBadge,
+                  {
+                    backgroundColor: palette.surfaceRaised,
+                    borderColor: palette.surfaceLine,
+                  },
+                ]}
+              >
+                <Icon name="lock" size={16} color={palette.primary} />
               </View>
               <View style={styles.flex1}>
-                <Text style={styles.cardTitle}>دخول الموظفين والكاشير</Text>
-                <Text style={styles.cardDesc}>
+                <Text style={[styles.cardTitle, { color: palette.text }]}>
+                  دخول الموظفين والكاشير
+                </Text>
+                <Text style={[styles.cardDesc, { color: palette.textSub }]}>
                   سجّل دخولك لإصدار الفواتير وإدارة المتجر
                 </Text>
               </View>
@@ -124,23 +153,39 @@ export default function LoginScreen() {
             </View>
 
             {err ? (
-              <View style={styles.errBox}>
-                <Icon name="alert" size={16} color="#f87171" />
-                <Text style={styles.errText}>{err}</Text>
+              <View
+                style={[
+                  styles.errBox,
+                  {
+                    borderColor: palette.danger,
+                    backgroundColor: palette.danger + '18',
+                  },
+                ]}
+              >
+                <Icon name="alert" size={16} color={palette.danger} />
+                <Text style={[styles.errText, { color: palette.danger }]}>{err}</Text>
               </View>
             ) : null}
 
             <Pressable
               onPress={submit}
               disabled={busy}
-              style={[styles.loginBtn, busy && styles.btnDisabled]}
+              style={({ pressed }) => [
+                styles.loginBtn,
+                {
+                  backgroundColor: pressed ? palette.primaryPressed : palette.primary,
+                },
+                busy && styles.btnDisabled,
+              ]}
             >
               {busy ? (
-                <ActivityIndicator color="#042f2e" />
+                <ActivityIndicator color={palette.onPrimary} />
               ) : (
                 <View style={styles.btnRow}>
-                  <Icon name="login" size={19} color="#042f2e" />
-                  <Text style={styles.loginBtnText}>تسجيل الدخول للكاشير</Text>
+                  <Icon name="login" size={18} color={palette.onPrimary} />
+                  <Text style={[styles.loginBtnText, { color: palette.onPrimary }]}>
+                    تسجيل الدخول للكاشير
+                  </Text>
                 </View>
               )}
             </Pressable>
@@ -148,23 +193,44 @@ export default function LoginScreen() {
 
           {/* Divider */}
           <View style={styles.dividerRow}>
-            <View style={styles.dividerLine} />
-            <Text style={styles.dividerLabel}>أو تصفح المتجر كزبون</Text>
-            <View style={styles.dividerLine} />
+            <View style={[styles.dividerLine, { backgroundColor: palette.surfaceLine }]} />
+            <Text style={[styles.dividerLabel, { color: palette.textSub }]}>
+              أو تصفح المتجر كزبون
+            </Text>
+            <View style={[styles.dividerLine, { backgroundColor: palette.surfaceLine }]} />
           </View>
 
-          {/* Prominent Guest Button */}
-          <Pressable onPress={handleGuest} style={styles.guestBtn}>
-            <View style={styles.guestIconWrap}>
-              <Icon name="store" size={20} color="#2dd4bf" />
+          {/* Prominent Guest Bento Button */}
+          <Pressable
+            onPress={handleGuest}
+            style={({ pressed }) => [
+              styles.guestBtn,
+              {
+                backgroundColor: pressed ? palette.surfaceLine : palette.surfaceRaised,
+                borderColor: palette.surfaceLine,
+              },
+            ]}
+          >
+            <View
+              style={[
+                styles.guestIconWrap,
+                {
+                  backgroundColor: palette.surface,
+                  borderColor: palette.surfaceLine,
+                },
+              ]}
+            >
+              <Icon name="store" size={20} color={palette.primary} />
             </View>
             <View style={styles.guestTextCol}>
-              <Text style={styles.guestTitle}>دخول كضيف — تصفح المتجر الآن</Text>
-              <Text style={styles.guestSubtitle}>
-                استعرض جميع الألعاب والأسعار وأرسل طلبك عبر واتساب
+              <Text style={[styles.guestTitle, { color: palette.text }]}>
+                دخول كضيف — تصفح المتجر الآن
+              </Text>
+              <Text style={[styles.guestSubtitle, { color: palette.textSub }]}>
+                استعرض جميع الألعاب والأسعار وأرسل طلبك بسهولة
               </Text>
             </View>
-            <Icon name="arrow-left" size={18} color="#2dd4bf" />
+            <Icon name="arrow-left" size={18} color={palette.primary} />
           </Pressable>
         </ScrollView>
       </KeyboardAvoidingView>
@@ -175,7 +241,6 @@ export default function LoginScreen() {
 const styles = StyleSheet.create({
   safe: {
     flex: 1,
-    backgroundColor: '#090f1d',
   },
   flex: {
     flex: 1,
@@ -194,41 +259,35 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   logoFrame: {
-    width: 96,
-    height: 96,
-    borderRadius: 28,
+    width: 90,
+    height: 90,
+    borderRadius: 24,
     padding: 3,
-    backgroundColor: '#131d31',
-    /* lime الهوية بدلاً عن التيل القديم — حبر واضح حول العلامة على الداكن */
-    borderWidth: 2,
-    borderColor: 'rgba(193, 215, 146, 0.5)',
+    borderWidth: 1.5,
     marginBottom: 12,
     overflow: 'hidden',
   },
   logo: {
     width: '100%',
     height: '100%',
-    borderRadius: 24,
+    borderRadius: 20,
   },
   brandTitle: {
-    fontFamily: FONT.bold,
-    color: '#f8fafc',
+    fontFamily: AR_FONT.bold,
     fontSize: 24,
     includeFontPadding: false,
+    letterSpacing: -0.2,
   },
   brandSubtitle: {
-    fontFamily: FONT.medium,
-    color: '#2dd4bf',
+    fontFamily: AR_FONT.medium,
     fontSize: 13,
-    marginTop: 2,
+    marginTop: 4,
     includeFontPadding: false,
   },
   card: {
-    backgroundColor: '#131d31',
     borderRadius: 22,
     padding: 18,
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.08)',
   },
   cardHeader: {
     flexDirection: ROW,
@@ -237,29 +296,26 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   cardBadge: {
-    width: 36,
-    height: 36,
-    borderRadius: 11,
-    backgroundColor: 'rgba(20, 184, 166, 0.14)',
+    width: 38,
+    height: 38,
+    borderRadius: 12,
     borderWidth: 1,
-    borderColor: 'rgba(20, 184, 166, 0.35)',
     alignItems: 'center',
     justifyContent: 'center',
   },
   cardTitle: {
-    fontFamily: FONT.bold,
-    color: '#f8fafc',
+    fontFamily: AR_FONT.bold,
     fontSize: 16,
     textAlign: 'right',
     writingDirection: 'rtl',
     includeFontPadding: false,
   },
   cardDesc: {
-    fontFamily: FONT.regular,
-    color: '#94a3b8',
+    fontFamily: AR_FONT.regular,
     fontSize: 12,
     textAlign: 'right',
     writingDirection: 'rtl',
+    marginTop: 2,
     includeFontPadding: false,
   },
   fieldsWrap: {
@@ -273,14 +329,11 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 10,
     borderRadius: 12,
-    backgroundColor: 'rgba(127, 29, 29, 0.35)',
     borderWidth: 1,
-    borderColor: '#ef4444',
   },
   errText: {
     flex: 1,
-    fontFamily: FONT.medium,
-    color: '#fca5a5',
+    fontFamily: AR_FONT.medium,
     fontSize: 12,
     textAlign: 'right',
     writingDirection: 'rtl',
@@ -290,9 +343,6 @@ const styles = StyleSheet.create({
     marginTop: 18,
     minHeight: 52,
     borderRadius: 14,
-    backgroundColor: '#14b8a6',
-    borderWidth: 1,
-    borderColor: '#5eead4',
     alignItems: 'center',
     justifyContent: 'center',
     paddingHorizontal: 18,
@@ -307,9 +357,8 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   loginBtnText: {
-    fontFamily: FONT.bold,
-    color: '#042f2e',
-    fontSize: 16,
+    fontFamily: AR_FONT.bold,
+    fontSize: 15,
     includeFontPadding: false,
   },
   dividerRow: {
@@ -321,11 +370,9 @@ const styles = StyleSheet.create({
   dividerLine: {
     flex: 1,
     height: 1,
-    backgroundColor: 'rgba(255, 255, 255, 0.12)',
   },
   dividerLabel: {
-    fontFamily: FONT.medium,
-    color: '#94a3b8',
+    fontFamily: AR_FONT.medium,
     fontSize: 12,
     includeFontPadding: false,
   },
@@ -333,9 +380,7 @@ const styles = StyleSheet.create({
     flexDirection: ROW,
     alignItems: 'center',
     gap: 12,
-    backgroundColor: 'rgba(20,184,166,0.12)',
-    borderWidth: 1.5,
-    borderColor: 'rgba(45,212,191,0.45)',
+    borderWidth: 1,
     borderRadius: 18,
     paddingHorizontal: 14,
     paddingVertical: 14,
@@ -343,10 +388,8 @@ const styles = StyleSheet.create({
   guestIconWrap: {
     width: 44,
     height: 44,
-    borderRadius: 13,
-    backgroundColor: 'rgba(20, 184, 166, 0.18)',
+    borderRadius: 14,
     borderWidth: 1,
-    borderColor: 'rgba(45, 212, 191, 0.45)',
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -354,16 +397,14 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   guestTitle: {
-    fontFamily: FONT.bold,
-    color: '#f5f3ff',
-    fontSize: 15,
+    fontFamily: AR_FONT.bold,
+    fontSize: 14,
     textAlign: 'right',
     writingDirection: 'rtl',
     includeFontPadding: false,
   },
   guestSubtitle: {
-    fontFamily: FONT.regular,
-    color: '#94a3b8',
+    fontFamily: AR_FONT.regular,
     fontSize: 11,
     marginTop: 2,
     textAlign: 'right',

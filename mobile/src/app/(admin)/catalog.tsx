@@ -22,8 +22,8 @@ import AppButton from '@/components/ui/AppButton';
 import Icon from '@/components/ui/Icon';
 import KeyboardScroll from '@/components/ui/KeyboardScroll';
 import { EmptyState, ErrorState, LoadingState } from '@/components/ui/StateView';
-import { FONT } from '@/lib/fonts';
-import { colors } from '@/lib/colors';
+import { AR_FONT } from '@/design/fonts';
+import { usePalette } from '@/design/theme';
 import { formatDinar } from '@/lib/money';
 import { showToast } from '@/lib/toast';
 import { ROW } from '@/lib/rtl';
@@ -31,6 +31,7 @@ import { ROW } from '@/lib/rtl';
 type SectionKey = 'packages' | 'categories' | 'services' | 'taxonomy';
 
 export default function AdminCatalogScreen() {
+  const palette = usePalette();
   const [section, setSection] = useState<SectionKey>('packages');
   const [editingPkg, setEditingPkg] = useState<AdminPackage | null>(null);
   const [pkgModalOpen, setPkgModalOpen] = useState(false);
@@ -65,8 +66,16 @@ export default function AdminCatalogScreen() {
   };
 
   return (
-    <View style={styles.screen}>
-      <View style={styles.tabsHeader}>
+    <View style={[styles.screen, { backgroundColor: palette.canvas }]}>
+      <View
+        style={[
+          styles.tabsHeader,
+          {
+            backgroundColor: palette.canvas,
+            borderBottomColor: palette.surfaceLine,
+          },
+        ]}
+      >
         <ScrollView
           horizontal
           showsHorizontalScrollIndicator={false}
@@ -121,20 +130,28 @@ export default function AdminCatalogScreen() {
                 const pkgGames = pkg.games ?? pkg.packageGames ?? [];
                 const count = pkgGames.length;
                 return (
-                  <View key={pkg.id} style={styles.pkgCard}>
+                  <View
+                    key={String(pkg.id)}
+                    style={[
+                      styles.pkgCard,
+                      {
+                        backgroundColor: palette.surface,
+                        borderColor: palette.surfaceLine,
+                      },
+                    ]}
+                  >
                     <View style={styles.cardTopRow}>
                       <View style={styles.flex1}>
-                        <Text style={styles.cardTitle}>
+                        <Text style={[styles.cardTitle, { color: palette.text }]}>
                           {pkg.name} {!pkg.is_active ? ' (مخفية)' : ''}
                         </Text>
-                        <Text style={styles.pkgPrice}>
+                        <Text style={[styles.pkgPrice, { color: palette.money }]}>
                           {formatDinar(Number(pkg.price))} • {count} لعبة
                         </Text>
                       </View>
                       <View style={styles.btnGroup}>
                         <SmallBtn
                           label="تعديل"
-                          color="colors.brandLight"
                           onPress={() => {
                             setEditingPkg(pkg);
                             setPkgModalOpen(true);
@@ -142,7 +159,7 @@ export default function AdminCatalogScreen() {
                         />
                         <SmallBtn
                           label="حذف"
-                          color="colors.dangerText"
+                          danger
                           onPress={() =>
                             void runAction(() => deletePackage(pkg.id), 'حُذفت الباقة')
                           }
@@ -150,17 +167,42 @@ export default function AdminCatalogScreen() {
                       </View>
                     </View>
                     {pkgGames.length > 0 ? (
-                      <View style={styles.gamesTagsWrap}>
+                      <View
+                        style={[
+                          styles.gamesTagsWrap,
+                          { borderTopColor: palette.surfaceLine },
+                        ]}
+                      >
                         {pkgGames.slice(0, 6).map((g) => (
-                          <View key={g.id} style={styles.gameTag}>
-                            <Text style={styles.gameTagText} numberOfLines={1}>
+                          <View
+                            key={String(g.id)}
+                            style={[
+                              styles.gameTag,
+                              {
+                                backgroundColor: palette.surfaceRaised,
+                                borderColor: palette.surfaceLine,
+                              },
+                            ]}
+                          >
+                            <Text
+                              style={[styles.gameTagText, { color: palette.textSub }]}
+                              numberOfLines={1}
+                            >
                               {g.title}
                             </Text>
                           </View>
                         ))}
                         {pkgGames.length > 6 ? (
-                          <View style={styles.gameTag}>
-                            <Text style={styles.gameTagText}>
+                          <View
+                            style={[
+                              styles.gameTag,
+                              {
+                                backgroundColor: palette.surfaceRaised,
+                                borderColor: palette.surfaceLine,
+                              },
+                            ]}
+                          >
+                            <Text style={[styles.gameTagText, { color: palette.textSub }]}>
                               +{pkgGames.length - 6} أخرى
                             </Text>
                           </View>
@@ -180,152 +222,206 @@ export default function AdminCatalogScreen() {
               <TextInput
                 value={newCatName}
                 onChangeText={setNewCatName}
-                placeholder="اسم تصنيف جديد (مثل PS5)..."
-                placeholderTextColor="colors.faint"
+                placeholder="اسم تصنيف جديد..."
+                placeholderTextColor={palette.textFaint}
                 textAlign="right"
-                style={[styles.inputBox, styles.flex1]}
+                style={[
+                  styles.inputBox,
+                  styles.flex1,
+                  {
+                    backgroundColor: palette.surface,
+                    borderColor: palette.surfaceLine,
+                    color: palette.text,
+                  },
+                ]}
               />
               <Pressable
                 onPress={() => {
                   if (!newCatName.trim()) return;
-                  const name = newCatName.trim();
-                  setNewCatName('');
                   void runAction(async () => {
-                    await createCategory(name, true);
+                    await createCategory(newCatName.trim());
+                    setNewCatName('');
                   }, 'أضيف التصنيف');
                 }}
-                style={styles.addBtn}
+                style={({ pressed }) => [
+                  styles.addBtn,
+                  {
+                    backgroundColor: pressed ? palette.primaryPressed : palette.primary,
+                    borderColor: palette.primary,
+                  },
+                ]}
               >
-                <Icon name="plus" size={16} color="colors.brandDark" strokeWidth={2.4} />
-                <Text style={styles.addBtnText}>إضافة</Text>
+                <Icon name="plus" size={15} color={palette.onPrimary} />
+                <Text style={[styles.addBtnText, { color: palette.onPrimary }]}>إضافة</Text>
               </Pressable>
             </View>
-            {categoriesQ.isError ? (
+
+            {categoriesQ.isLoading ? (
+              <LoadingState message="جاري جلب التصنيفات..." />
+            ) : categoriesQ.isError ? (
               <ErrorState
                 message="تعذر جلب التصنيفات"
                 onRetry={() => void categoriesQ.refetch()}
               />
-            ) : (categoriesQ.data ?? []).map((cat) => (
-              <View key={cat.id} style={styles.cardRow}>
-                <Text style={[styles.cardTitle, styles.flex1]}>
-                  {cat.name} {!cat.is_visible ? ' (مخفي)' : ''}
-                </Text>
-                <View style={styles.btnGroup}>
-                  <SmallBtn
-                    label={cat.is_visible ? 'إخفاء' : 'إظهار'}
-                    color="colors.warningText"
-                    onPress={() =>
-                      void runAction(
-                        () => updateCategory(cat.id, { is_visible: !cat.is_visible }),
-                        'حُدّث ظهور التصنيف'
-                      )
-                    }
-                  />
-                  <SmallBtn
-                    label="حذف"
-                    color="colors.dangerText"
-                    onPress={() =>
-                      void runAction(() => deleteCategory(cat.id), 'حُذف التصنيف')
-                    }
-                  />
+            ) : !(categoriesQ.data ?? []).length ? (
+              <EmptyState message="لا توجد تصنيفات بعد" icon="tag" />
+            ) : (
+              (categoriesQ.data ?? []).map((cat) => (
+                <View
+                  key={String(cat.id)}
+                  style={[
+                    styles.cardRow,
+                    {
+                      backgroundColor: palette.surface,
+                      borderColor: palette.surfaceLine,
+                    },
+                  ]}
+                >
+                  <Text style={[styles.cardTitle, { color: palette.text }]}>{cat.name}</Text>
+                  <View style={styles.btnGroup}>
+                    <SmallBtn
+                      label={cat.is_active ? 'تعطيل' : 'تفعيل'}
+                      onPress={() =>
+                        void runAction(
+                          () => updateCategory(cat.id, { is_visible: !cat.is_active }),
+                          'تم تحديث الحالة'
+                        )
+                      }
+                    />
+                    <SmallBtn
+                      label="حذف"
+                      danger
+                      onPress={() =>
+                        void runAction(() => deleteCategory(cat.id), 'حُذف التصنيف')
+                      }
+                    />
+                  </View>
                 </View>
-              </View>
-            ))}
+              ))
+            )}
           </>
         ) : null}
 
         {section === 'services' ? (
           <>
-            <View style={styles.addRow}>
+            <View style={{ gap: 8 }}>
               <TextInput
                 value={newSvcTitle}
                 onChangeText={setNewSvcTitle}
-                placeholder="عنوان الخدمة..."
-                placeholderTextColor="colors.faint"
+                placeholder="عنوان الخدمة الجديدة..."
+                placeholderTextColor={palette.textFaint}
                 textAlign="right"
-                style={[styles.inputBox, { flex: 2 }]}
+                style={[
+                  styles.inputBox,
+                  {
+                    backgroundColor: palette.surface,
+                    borderColor: palette.surfaceLine,
+                    color: palette.text,
+                  },
+                ]}
               />
-              <TextInput
-                value={newSvcPrice}
-                onChangeText={setNewSvcPrice}
-                placeholder="السعر"
-                placeholderTextColor="colors.faint"
-                keyboardType="numeric"
-                textAlign="right"
-                style={[styles.inputBox, styles.flex1]}
-              />
-              <Pressable
-                onPress={() => {
-                  if (!newSvcTitle.trim()) return;
-                  const t = newSvcTitle.trim();
-                  const p = Number(newSvcPrice) || 0;
-                  setNewSvcTitle('');
-                  setNewSvcPrice('');
-                  void runAction(async () => {
-                    await createService({ title: t, price: p, is_active: true });
-                  }, 'أضيفت الخدمة');
-                }}
-                style={styles.addBtn}
-              >
-                <Icon name="plus" size={16} color="colors.brandDark" strokeWidth={2.4} />
-                <Text style={styles.addBtnText}>إضافة</Text>
-              </Pressable>
+              <View style={styles.addRow}>
+                <TextInput
+                  value={newSvcPrice}
+                  onChangeText={setNewSvcPrice}
+                  placeholder="السعر (د.ل)"
+                  placeholderTextColor={palette.textFaint}
+                  keyboardType="numeric"
+                  textAlign="right"
+                  style={[
+                    styles.inputBox,
+                    styles.flex1,
+                    {
+                      backgroundColor: palette.surface,
+                      borderColor: palette.surfaceLine,
+                      color: palette.text,
+                    },
+                  ]}
+                />
+                <Pressable
+                  onPress={() => {
+                    const price = Number(newSvcPrice);
+                    if (!newSvcTitle.trim() || isNaN(price)) {
+                      showToast('أدخل عنواناً وسعراً صالحين', 'error');
+                      return;
+                    }
+                    void runAction(async () => {
+                      await createService({ title: newSvcTitle.trim(), price });
+                      setNewSvcTitle('');
+                      setNewSvcPrice('');
+                    }, 'أضيفت الخدمة');
+                  }}
+                  style={({ pressed }) => [
+                    styles.addBtn,
+                    {
+                      backgroundColor: pressed ? palette.primaryPressed : palette.primary,
+                      borderColor: palette.primary,
+                    },
+                  ]}
+                >
+                  <Icon name="plus" size={15} color={palette.onPrimary} />
+                  <Text style={[styles.addBtnText, { color: palette.onPrimary }]}>إضافة</Text>
+                </Pressable>
+              </View>
             </View>
-            {servicesQ.isError ? (
+
+            {servicesQ.isLoading ? (
+              <LoadingState message="جاري جلب الخدمات..." />
+            ) : servicesQ.isError ? (
               <ErrorState
                 message="تعذر جلب الخدمات"
                 onRetry={() => void servicesQ.refetch()}
               />
-            ) : (servicesQ.data ?? []).map((svc) => (
-              <View key={svc.id} style={styles.cardRow}>
-                <View style={styles.flex1}>
-                  <Text style={styles.cardTitle}>
-                    {svc.title} {!svc.is_active ? ' (معطلة)' : ''}
-                  </Text>
-                  <Text style={styles.svcPrice}>
-                    {formatDinar(Number(svc.price))}
-                  </Text>
+            ) : !(servicesQ.data ?? []).length ? (
+              <EmptyState message="لا توجد خدمات إضافية" icon="sparkles" />
+            ) : (
+              (servicesQ.data ?? []).map((svc) => (
+                <View
+                  key={String(svc.id)}
+                  style={[
+                    styles.cardRow,
+                    {
+                      backgroundColor: palette.surface,
+                      borderColor: palette.surfaceLine,
+                    },
+                  ]}
+                >
+                  <View style={styles.flex1}>
+                    <Text style={[styles.cardTitle, { color: palette.text }]}>{svc.title}</Text>
+                    <Text style={[styles.svcPrice, { color: palette.money }]}>
+                      {formatDinar(Number(svc.price))}
+                    </Text>
+                  </View>
+                  <View style={styles.btnGroup}>
+                    <SmallBtn
+                      label={svc.is_active ? 'تعطيل' : 'تفعيل'}
+                      onPress={() =>
+                        void runAction(
+                          () => updateService(svc.id, { is_active: !svc.is_active }),
+                          'تم تحديث الحالة'
+                        )
+                      }
+                    />
+                    <SmallBtn
+                      label="حذف"
+                      danger
+                      onPress={() =>
+                        void runAction(() => deleteService(svc.id), 'حُذفت الخدمة')
+                      }
+                    />
+                  </View>
                 </View>
-                <View style={styles.btnGroup}>
-                  <SmallBtn
-                    label={svc.is_active ? 'تعطيل' : 'تفعيل'}
-                    color="colors.warningText"
-                    onPress={() =>
-                      void runAction(
-                        () => updateService(svc.id, { is_active: !svc.is_active }),
-                        'حُدّثت الخدمة'
-                      )
-                    }
-                  />
-                  <SmallBtn
-                    label="حذف"
-                    color="colors.dangerText"
-                    onPress={() =>
-                      void runAction(() => deleteService(svc.id), 'حُذفت الخدمة')
-                    }
-                  />
-                </View>
-              </View>
-            ))}
+              ))
+            )}
           </>
         ) : null}
 
         {section === 'taxonomy' ? (
-          genresQ.isError || seriesQ.isError ? (
-            <ErrorState
-              message="تعذر جلب الأنواع والسلاسل"
-              onRetry={() => {
-                void genresQ.refetch();
-                void seriesQ.refetch();
-              }}
-            />
-          ) : (
-            <TaxonomySection
-              genres={genresQ.data ?? []}
-              seriesList={seriesQ.data ?? []}
-              runAction={runAction}
-            />
-          )
+          <TaxonomySection
+            genres={genresQ.data ?? []}
+            seriesList={seriesQ.data ?? []}
+            runAction={runAction}
+          />
         ) : null}
       </KeyboardScroll>
 
@@ -345,41 +441,54 @@ export default function AdminCatalogScreen() {
 
 function SmallBtn({
   label,
-  color,
+  danger,
   onPress,
 }: {
   label: string;
-  color: string;
+  danger?: boolean;
   onPress: () => void;
 }) {
+  const palette = usePalette();
   return (
-    <Pressable onPress={onPress} style={[styles.smallBtn, { borderColor: color }]}>
-      <Text style={[styles.smallBtnText, { color }]}>{label}</Text>
+    <Pressable
+      onPress={onPress}
+      style={({ pressed }) => [
+        styles.smallBtn,
+        {
+          backgroundColor: danger
+            ? pressed ? palette.danger + '25' : palette.danger + '14'
+            : pressed ? palette.surfaceLine : palette.surfaceRaised,
+          borderColor: danger ? palette.danger + '40' : palette.surfaceLine,
+        },
+      ]}
+    >
+      <Text
+        style={[
+          styles.smallBtnText,
+          { color: danger ? palette.danger : palette.text },
+        ]}
+      >
+        {label}
+      </Text>
     </Pressable>
   );
 }
 
 const styles = StyleSheet.create({
-  screen: {
-    flex: 1,
-    backgroundColor: colors.deep,
-  },
+  screen: { flex: 1 },
   flex1: { flex: 1 },
   tabsHeader: {
-    padding: 12,
-    backgroundColor: colors.base,
+    paddingVertical: 8,
     borderBottomWidth: 1,
-    borderBottomColor: colors.borderSubtle,
   },
   tabsScroll: {
     flexDirection: ROW,
     gap: 8,
+    paddingHorizontal: 14,
   },
   pkgCard: {
-    backgroundColor: colors.elevated,
-    borderRadius: 15,
+    borderRadius: 16,
     borderWidth: 1,
-    borderColor: colors.borderSubtle,
     padding: 14,
     gap: 10,
   },
@@ -393,24 +502,20 @@ const styles = StyleSheet.create({
     flexDirection: ROW,
     alignItems: 'center',
     justifyContent: 'space-between',
-    backgroundColor: colors.elevated,
     borderRadius: 14,
     borderWidth: 1,
-    borderColor: colors.borderSubtle,
     padding: 14,
     gap: 8,
   },
   cardTitle: {
-    color: colors.text,
-    fontFamily: FONT.bold,
+    fontFamily: AR_FONT.bold,
     fontSize: 15,
     textAlign: 'right',
     writingDirection: 'rtl',
     includeFontPadding: false,
   },
   pkgPrice: {
-    color: colors.brandLight,
-    fontFamily: FONT.bold,
+    fontFamily: AR_FONT.bold,
     fontSize: 12.5,
     textAlign: 'right',
     writingDirection: 'rtl',
@@ -418,8 +523,7 @@ const styles = StyleSheet.create({
     includeFontPadding: false,
   },
   svcPrice: {
-    color: colors.brandLight,
-    fontFamily: FONT.bold,
+    fontFamily: AR_FONT.bold,
     fontSize: 12.5,
     textAlign: 'right',
     writingDirection: 'rtl',
@@ -431,21 +535,17 @@ const styles = StyleSheet.create({
     flexWrap: 'wrap',
     gap: 6,
     borderTopWidth: 1,
-    borderTopColor: colors.borderSubtle,
     paddingTop: 8,
   },
   gameTag: {
-    backgroundColor: colors.surfaceInset,
     borderRadius: 8,
     borderWidth: 1,
-    borderColor: colors.borderSubtle,
     paddingHorizontal: 8,
     paddingVertical: 4,
     maxWidth: 160,
   },
   gameTagText: {
-    fontFamily: FONT.medium,
-    color: colors.dim,
+    fontFamily: AR_FONT.medium,
     fontSize: 11,
     includeFontPadding: false,
   },
@@ -454,14 +554,13 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   smallBtn: {
-    backgroundColor: colors.surfaceInset,
     borderWidth: 1,
     borderRadius: 9,
     paddingHorizontal: 11,
     paddingVertical: 7,
   },
   smallBtnText: {
-    fontFamily: FONT.bold,
+    fontFamily: AR_FONT.bold,
     fontSize: 11.5,
     includeFontPadding: false,
   },
@@ -470,12 +569,9 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   inputBox: {
-    backgroundColor: colors.elevated,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: colors.borderSubtle,
-    color: colors.text,
-    fontFamily: FONT.medium,
+    fontFamily: AR_FONT.medium,
     paddingHorizontal: 12,
     paddingVertical: 9,
     writingDirection: 'rtl',
@@ -486,15 +582,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: 5,
-    backgroundColor: colors.brand,
     borderWidth: 1,
-    borderColor: colors.brandBorder,
     borderRadius: 12,
     paddingHorizontal: 14,
   },
   addBtnText: {
-    color: colors.brandDark,
-    fontFamily: FONT.bold,
+    fontFamily: AR_FONT.bold,
     fontSize: 13,
     includeFontPadding: false,
   },

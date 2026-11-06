@@ -1,8 +1,8 @@
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { parseInvoiceItems, type InvoiceRecord } from '@/api/invoices';
 import Icon, { type IconName } from '@/components/ui/Icon';
-import { FONT } from '@/lib/fonts';
-import { colors } from '@/lib/colors';
+import { AR_FONT } from '@/design/fonts';
+import { usePalette } from '@/design/theme';
 import { formatDinar } from '@/lib/money';
 import { statusLabel } from '@/lib/statuses';
 import { formatArabicDate, formatInvoiceCode, LtrText } from '@/components/ui/LtrText';
@@ -19,9 +19,9 @@ interface Props {
 }
 
 /**
- * بطاقة فاتورة لوحة الإدارة — نسخة مرتبة:
- * لون محايد واحد للبطاقة، شريط جانبي رفيع فقط يعبّر عن حالة الدفع،
- * زر أساسي واحد للإجراء الأهم، وبقية الإجراءات بأيقونات مقتطعة.
+ * بطاقة فاتورة لوحة الإدارة — متوافقة بالكامل مع Modern Minimalism ورموز tokens:
+ * شريط جانبي دلالي رفيع (4px)، رقم فاتورة معزول LTR، زر أساسي واحد متباين،
+ * وخلو كامل من التيل القديم #14b8a6.
  */
 export default function AdminInvoiceCard({
   inv,
@@ -32,6 +32,7 @@ export default function AdminInvoiceCard({
   onEditInStore,
   onDelete,
 }: Props) {
+  const palette = usePalette();
   const items = parseInvoiceItems(inv.items);
   const finalTotal = Math.max(0, Number(inv.total) - Number(inv.discount ?? 0));
   const paid = Number(inv.paid_amount ?? 0);
@@ -39,73 +40,109 @@ export default function AdminInvoiceCard({
   const unpaid = rem > 0;
 
   return (
-    <View style={styles.card}>
-      {/* شريط الحالة: كهرماني للآجل، أخضر للمدفوعة */}
-      <View style={[styles.statusStrip, { backgroundColor: unpaid ? colors.warning : colors.success }]} />
+    <View
+      style={[
+        styles.card,
+        {
+          backgroundColor: palette.surface,
+          borderColor: palette.surfaceLine,
+        },
+      ]}
+    >
+      {/* شريط الحالة الجانبي */}
+      <View
+        style={[
+          styles.statusStrip,
+          { backgroundColor: unpaid ? palette.warning : palette.success },
+        ]}
+      />
 
       {/* الرأس: رقم الفاتورة + شارة الترحيل + المبلغ */}
       <View style={styles.headerRow}>
         <View style={styles.numberRow}>
-          <LtrText style={styles.invoiceNum}>
+          <LtrText style={[styles.invoiceNum, { color: palette.text }]}>
             {formatInvoiceCode(inv.invoice_number)}
           </LtrText>
           {inv.isCarried ? (
-            <View style={styles.carriedBadge}>
-              <Text style={styles.carriedText}>آجل مرحّل</Text>
+            <View
+              style={[
+                styles.carriedBadge,
+                {
+                  backgroundColor: palette.warning + '18',
+                  borderColor: palette.warning + '40',
+                },
+              ]}
+            >
+              <Text style={[styles.carriedText, { color: palette.warning }]}>آجل مرحّل</Text>
             </View>
           ) : null}
         </View>
-        <Text style={styles.totalAmount}>{formatDinar(finalTotal)}</Text>
+        <Text style={[styles.totalAmount, { color: palette.money }]}>
+          {formatDinar(finalTotal)}
+        </Text>
       </View>
 
       {/* بيانات العميل */}
-      <Text numberOfLines={1} style={styles.customerText}>
+      <Text numberOfLines={1} style={[styles.customerText, { color: palette.text }]}>
         {inv.customer_name || 'عميل نقدي'}
         {inv.customer_phone ? ` • ${inv.customer_phone}` : ''}
       </Text>
 
-      {/* البنود — سطر واحد هادئ يعطي فكرة سريعة دون تشتيت */}
-      <Text numberOfLines={1} style={styles.itemsText}>
+      {/* البنود */}
+      <Text numberOfLines={1} style={[styles.itemsText, { color: palette.textSub }]}>
         {items.map((i) => i.title).join('، ') || 'بدون بنود'}
       </Text>
 
       {/* حالة الدفع والتاريخ */}
-      <View style={styles.statusRow}>
+      <View style={[styles.statusRow, { borderTopColor: palette.surfaceLine }]}>
         <Text
           style={[
             styles.statusText,
-            { color: unpaid ? colors.warningText : colors.successBright },
+            { color: unpaid ? palette.warning : palette.success },
           ]}
         >
-          {unpaid ? `المتبقي: ${formatDinar(rem)}` : 'مدفوعة بالكامل'} (
-          {statusLabel(inv.status)})
+          {unpaid ? `المتبقي: ${formatDinar(rem)} (قيد الانتظار)` : `مدفوعة بالكامل (${statusLabel(inv.status)})`}
         </Text>
-        <Text style={styles.dateText}>{formatArabicDate(inv.created_at)}</Text>
+        <Text style={[styles.dateText, { color: palette.textFaint }]}>
+          {formatArabicDate(inv.created_at)}
+        </Text>
       </View>
 
-      {/* الإجراءات: زر أساسي واحد صلب + ثانوية هادئة + أيقونات */}
+      {/* الإجراءات: تسلسل هرمي واضح */}
       <View style={styles.actionsRow}>
         {unpaid ? (
           <Pressable
             onPress={onSettle}
-            style={styles.primaryBtn}
+            style={({ pressed }) => [
+              styles.primaryBtn,
+              {
+                backgroundColor: pressed ? palette.primaryPressed : palette.primary,
+                borderColor: palette.primary,
+              },
+            ]}
             accessibilityRole="button"
             accessibilityLabel={`تسديد المتبقي ${formatDinar(rem)}`}
           >
-            <Icon name="cash" size={14} color={colors.brandDark} />
-            <Text numberOfLines={1} style={styles.primaryText}>
+            <Icon name="cash" size={15} color={palette.onPrimary} />
+            <Text numberOfLines={1} style={[styles.primaryText, { color: palette.onPrimary }]}>
               تسديد المتبقي
             </Text>
           </Pressable>
         ) : (
           <Pressable
             onPress={onOpenReceipt}
-            style={styles.primaryBtn}
+            style={({ pressed }) => [
+              styles.primaryBtn,
+              {
+                backgroundColor: pressed ? palette.surfaceLine : palette.surfaceRaised,
+                borderColor: palette.surfaceLine,
+              },
+            ]}
             accessibilityRole="button"
             accessibilityLabel="طباعة الفاتورة أو عرض QR"
           >
-            <Icon name="printer" size={14} color={colors.brandDark} />
-            <Text numberOfLines={1} style={styles.primaryText}>
+            <Icon name="printer" size={15} color={palette.text} />
+            <Text numberOfLines={1} style={[styles.primaryText, { color: palette.text }]}>
               طباعة / QR
             </Text>
           </Pressable>
@@ -114,32 +151,53 @@ export default function AdminInvoiceCard({
         {unpaid ? (
           <Pressable
             onPress={onOpenReceipt}
-            style={styles.softChip}
+            style={({ pressed }) => [
+              styles.softChip,
+              {
+                backgroundColor: pressed ? palette.surfaceLine : palette.surfaceRaised,
+                borderColor: palette.surfaceLine,
+              },
+            ]}
             accessibilityRole="button"
             accessibilityLabel="عرض الفاتورة ورمز QR"
           >
-            <Icon name="printer" size={13} color={colors.brandLight} />
-            <Text numberOfLines={1} style={styles.softChipText}>
+            <Icon name="printer" size={14} color={palette.text} />
+            <Text numberOfLines={1} style={[styles.softChipText, { color: palette.text }]}>
               طباعة / QR
             </Text>
           </Pressable>
         ) : (
           <Pressable
             onPress={onMarkUnpaid}
-            style={styles.warnChip}
+            style={({ pressed }) => [
+              styles.warnChip,
+              {
+                backgroundColor: pressed ? palette.warning + '25' : palette.warning + '15',
+                borderColor: palette.warning + '40',
+              },
+            ]}
             accessibilityRole="button"
             accessibilityLabel="إرجاع الفاتورة إلى غير مدفوعة"
           >
-            <Icon name="undo" size={13} color={colors.warningText} />
-            <Text numberOfLines={1} style={[styles.softChipText, { color: colors.warningText }]}>
+            <Icon name="undo" size={14} color={palette.warning} />
+            <Text numberOfLines={1} style={[styles.softChipText, { color: palette.warning }]}>
               إرجاع آجل
             </Text>
           </Pressable>
         )}
 
-        <IconButton icon="edit" label="تعديل الفاتورة" onPress={onEditInStore} />
+        <IconButton
+          icon="edit"
+          label="تعديل الفاتورة"
+          onPress={onEditInStore}
+        />
         {isAdmin ? (
-          <IconButton icon="trash" label="حذف الفاتورة" danger onPress={onDelete} />
+          <IconButton
+            icon="trash"
+            label="حذف الفاتورة"
+            danger
+            onPress={onDelete}
+          />
         ) : null}
       </View>
     </View>
@@ -157,31 +215,38 @@ function IconButton({
   danger?: boolean;
   onPress: () => void;
 }) {
+  const palette = usePalette();
   return (
     <Pressable
       onPress={onPress}
       accessibilityRole="button"
       accessibilityLabel={label}
       hitSlop={4}
-      style={[styles.iconBtn, danger ? styles.iconBtnDanger : null]}
+      style={({ pressed }) => [
+        styles.iconBtn,
+        {
+          backgroundColor: danger
+            ? pressed ? palette.danger + '25' : palette.danger + '14'
+            : pressed ? palette.surfaceLine : palette.surfaceRaised,
+          borderColor: danger ? palette.danger + '40' : palette.surfaceLine,
+        },
+      ]}
     >
-      <Icon name={icon} size={15} color={danger ? colors.dangerText : colors.faint} />
+      <Icon name={icon} size={15} color={danger ? palette.danger : palette.textSub} />
     </Pressable>
   );
 }
 
 const styles = StyleSheet.create({
   card: {
-    backgroundColor: colors.elevated,
-    borderRadius: 16,
+    borderRadius: 18,
     borderWidth: 1,
-    borderColor: colors.borderSubtle,
     overflow: 'hidden',
-    paddingVertical: 12,
-    paddingHorizontal: 14,
-    paddingLeft: 14 + 4,
-    marginBottom: 10,
-    gap: 7,
+    paddingVertical: 14,
+    paddingHorizontal: 16,
+    paddingLeft: 16 + 4,
+    marginBottom: 12,
+    gap: 8,
   },
   statusStrip: {
     position: 'absolute',
@@ -202,44 +267,37 @@ const styles = StyleSheet.create({
     flexShrink: 1,
   },
   invoiceNum: {
-    color: colors.text,
-    fontFamily: FONT.bold,
-    fontSize: 14.5,
+    fontFamily: AR_FONT.bold,
+    fontSize: 15,
     includeFontPadding: false,
   },
   carriedBadge: {
-    backgroundColor: 'rgba(245,158,11,0.14)',
     borderRadius: 6,
-    paddingHorizontal: 6,
+    paddingHorizontal: 7,
     paddingVertical: 2,
     borderWidth: 1,
-    borderColor: 'rgba(245,158,11,0.35)',
   },
   carriedText: {
-    color: colors.warningText,
-    fontFamily: FONT.bold,
-    fontSize: 10.5,
+    fontFamily: AR_FONT.bold,
+    fontSize: 11,
     includeFontPadding: false,
   },
   totalAmount: {
-    color: colors.text,
-    fontFamily: FONT.bold,
+    fontFamily: AR_FONT.bold,
     fontSize: 16,
     flexShrink: 0,
     includeFontPadding: false,
   },
   customerText: {
-    color: colors.text,
-    fontFamily: FONT.bold,
+    fontFamily: AR_FONT.bold,
     fontSize: 13,
     textAlign: 'right',
     writingDirection: 'rtl',
     includeFontPadding: false,
   },
   itemsText: {
-    color: colors.faint,
-    fontFamily: FONT.regular,
-    fontSize: 11.5,
+    fontFamily: AR_FONT.regular,
+    fontSize: 12,
     textAlign: 'right',
     writingDirection: 'rtl',
     includeFontPadding: false,
@@ -248,19 +306,17 @@ const styles = StyleSheet.create({
     flexDirection: ROW,
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingTop: 7,
+    paddingTop: 8,
     borderTopWidth: 1,
-    borderTopColor: 'rgba(255,255,255,0.06)',
   },
   statusText: {
-    fontFamily: FONT.bold,
-    fontSize: 11.5,
+    fontFamily: AR_FONT.bold,
+    fontSize: 12,
     includeFontPadding: false,
     flexShrink: 1,
   },
   dateText: {
-    color: colors.faint,
-    fontFamily: FONT.medium,
+    fontFamily: AR_FONT.medium,
     fontSize: 11,
     flexShrink: 0,
     includeFontPadding: false,
@@ -268,8 +324,8 @@ const styles = StyleSheet.create({
   actionsRow: {
     flexDirection: ROW,
     alignItems: 'center',
-    gap: 6,
-    marginTop: 2,
+    gap: 8,
+    marginTop: 4,
   },
   primaryBtn: {
     flex: 1,
@@ -277,17 +333,14 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: 6,
-    backgroundColor: colors.brand,
     borderWidth: 1,
-    borderColor: colors.brandBorder,
     borderRadius: 12,
-    paddingVertical: 9,
-    paddingHorizontal: 10,
+    minHeight: 42,
+    paddingHorizontal: 12,
   },
   primaryText: {
-    color: colors.brandDark,
-    fontFamily: FONT.bold,
-    fontSize: 12,
+    fontFamily: AR_FONT.bold,
+    fontSize: 12.5,
     includeFontPadding: false,
   },
   softChip: {
@@ -295,43 +348,32 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: 5,
-    backgroundColor: 'rgba(20,184,166,0.12)',
     borderWidth: 1,
-    borderColor: 'rgba(45,212,191,0.35)',
     borderRadius: 12,
-    paddingVertical: 9,
-    paddingHorizontal: 10,
+    minHeight: 42,
+    paddingHorizontal: 12,
   },
   warnChip: {
     flexDirection: ROW,
     alignItems: 'center',
     justifyContent: 'center',
     gap: 5,
-    backgroundColor: 'rgba(245,158,11,0.12)',
     borderWidth: 1,
-    borderColor: 'rgba(251,191,36,0.35)',
     borderRadius: 12,
-    paddingVertical: 9,
-    paddingHorizontal: 10,
+    minHeight: 42,
+    paddingHorizontal: 12,
   },
   softChipText: {
-    color: colors.text,
-    fontFamily: FONT.bold,
-    fontSize: 12,
+    fontFamily: AR_FONT.bold,
+    fontSize: 12.5,
     includeFontPadding: false,
   },
   iconBtn: {
-    width: 44,
-    height: 44,
+    width: 42,
+    height: 42,
     borderRadius: 12,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: 'rgba(255,255,255,0.04)',
     borderWidth: 1,
-    borderColor: colors.borderSubtle,
-  },
-  iconBtnDanger: {
-    backgroundColor: 'rgba(239,68,68,0.12)',
-    borderColor: 'rgba(248,113,113,0.35)',
   },
 });

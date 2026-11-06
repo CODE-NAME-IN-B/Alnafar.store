@@ -1,46 +1,47 @@
 import * as Haptics from 'expo-haptics';
 
 /**
- * رموز التصميم الموحّدة (Design Tokens) — المرحلة U1
- * لون علامة واحد (#14b8a6) للإجراءات والتفعيل، و3 مستويات للسطوح، وتباين >= 4.5:1 للنصوص.
+ * رموز التصميم الموحّدة (Design Tokens) — متوافقة مع v4 Modern Minimalism
+ * أخضر الغابة (#2D6A4F) للعلامة والإجراءات، والليمي (#C5DE8F) للتمييز،
+ * وأسطح هادئة خالية من التيل والكحلي القديمين.
  */
 export const colors = {
-  brand: '#14b8a6',
-  brandLight: '#2dd4bf',
-  brandBright: '#5eead4',
-  brandSoft: 'rgba(20, 184, 166, 0.14)',
-  brandBorder: 'rgba(45, 212, 191, 0.35)',
-  brandDark: '#042f2e',
-  accent: '#14b8a6',
-  deep: '#090f1d',
-  base: '#0f1724',
-  elevated: '#141e30',
-  /** سطور/بطاقات بين base و elevated (كانت #131d31/#121c2e/#0f1829 متفرقة) */
-  elevatedRaised: '#131d31',
-  /** شرائح وأزرار غير مفعّلة (دمجت #1b2b48 المتناثرة في 7 ملفات) */
-  surfaceRaised: '#1b2b48',
-  /** حقول الإدخال وشرائح الأحرف والكاميرا (كانت #0b1220) */
-  surfaceInset: '#0b1220',
-  borderSubtle: 'rgba(255, 255, 255, 0.08)',
-  text: '#f8fafc',
-  dim: '#cbd5e1',
-  faint: '#94a3b8',
-  success: '#22c55e',
-  successBright: '#34d399',
-  successSoft: 'rgba(34, 197, 94, 0.14)',
-  successBorder: 'rgba(34, 197, 94, 0.4)',
-  danger: '#ef4444',
-  dangerStrong: '#f87171',
-  dangerText: '#fca5a5',
-  dangerSoft: 'rgba(239, 68, 68, 0.14)',
-  dangerBorder: 'rgba(252, 165, 165, 0.25)',
-  warning: '#f59e0b',
-  warningText: '#fbbf24',
-  warningBorder: 'rgba(251, 191, 36, 0.4)',
-  warningSoft: 'rgba(245, 158, 11, 0.16)',
-  info: '#3b82f6',
-  ps4Badge: '#0ea5e9',
-  ps5Badge: '#a855f7',
+  brand: '#2D6A4F',
+  brandLight: '#3D8C68',
+  brandBright: '#C5DE8F',
+  brandSoft: 'rgba(45, 106, 79, 0.12)',
+  brandBorder: 'rgba(45, 106, 79, 0.28)',
+  brandDark: '#1B2A21',
+  accent: '#2D6A4F',
+  deep: '#121610',
+  base: '#1A2018',
+  elevated: '#232B20',
+  /** سطور/بطاقات بين base و elevated */
+  elevatedRaised: '#2C3529',
+  /** شرائح وأزرار غير مفعّلة */
+  surfaceRaised: '#242C21',
+  /** حقول الإدخال وشرائح الأحرف */
+  surfaceInset: '#121610',
+  borderSubtle: 'rgba(227, 221, 203, 0.15)',
+  text: '#F5F1E8',
+  dim: '#9AA596',
+  faint: '#7E8A7F',
+  success: '#7FBF8E',
+  successBright: '#A2D9AE',
+  successSoft: 'rgba(127, 191, 142, 0.15)',
+  successBorder: 'rgba(127, 191, 142, 0.35)',
+  danger: '#E57A66',
+  dangerStrong: '#F08C78',
+  dangerText: '#F08C78',
+  dangerSoft: 'rgba(229, 122, 102, 0.15)',
+  dangerBorder: 'rgba(229, 122, 102, 0.35)',
+  warning: '#E8B64C',
+  warningText: '#F0C76B',
+  warningBorder: 'rgba(232, 182, 76, 0.35)',
+  warningSoft: 'rgba(232, 182, 76, 0.15)',
+  info: '#6BA4B8',
+  ps4Badge: '#5E6F63',
+  ps5Badge: '#7A877C',
 } as const;
 
 /** قالب الإيصال الورقي (سطح فاتح) — أزواج تباين مُحسوبة على الأبيض */

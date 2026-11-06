@@ -17,8 +17,8 @@ import Chip from '@/components/ui/Chip';
 import KeyboardScroll from '@/components/ui/KeyboardScroll';
 import { EmptyState, ErrorState, LoadingState } from '@/components/ui/StateView';
 import { formatArabicDate } from '@/components/ui/LtrText';
-import { FONT } from '@/lib/fonts';
-import { colors } from '@/lib/colors';
+import { AR_FONT } from '@/design/fonts';
+import { usePalette } from '@/design/theme';
 import { formatDinar } from '@/lib/money';
 import { showToast } from '@/lib/toast';
 import { ROW } from '@/lib/rtl';
@@ -26,6 +26,7 @@ import { ROW } from '@/lib/rtl';
 type TabKey = 'stats' | 'invoice-settings' | 'users' | 'branches' | 'audit';
 
 export default function AdminMoreScreen() {
+  const palette = usePalette();
   const user = useAuthStore((s) => s.user);
   const branchScope = useAppStore((s) => s.adminScopeBranchId);
   const isAdmin = user?.role === 'admin';
@@ -61,10 +62,9 @@ export default function AdminMoreScreen() {
   const [busySettings, setBusySettings] = useState(false);
 
   useEffect(() => {
+    /* eslint-disable react-hooks/set-state-in-effect */
     const s = invSettingsQ.data;
     if (!s) return;
-    // إعادة تهيئة استمارة من إعدادات السيرفر عند وصولها (نموذج استمارة، وليس حالة مشتقة للعرض)
-    // eslint-disable-next-line react-hooks/set-state-in-effect
     setStoreName(s.store_name ?? 'الشاردة ستور');
     setStoreNameEn(s.store_name_english ?? 'Alnafar Store');
     setStoreAddress(s.store_address ?? '');
@@ -98,8 +98,16 @@ export default function AdminMoreScreen() {
   };
 
   return (
-    <View style={styles.screen}>
-      <View style={styles.tabsHeader}>
+    <View style={[styles.screen, { backgroundColor: palette.canvas }]}>
+      <View
+        style={[
+          styles.tabsHeader,
+          {
+            backgroundColor: palette.canvas,
+            borderBottomColor: palette.surfaceLine,
+          },
+        ]}
+      >
         <ScrollView
           horizontal
           showsHorizontalScrollIndicator={false}
@@ -146,155 +154,229 @@ export default function AdminMoreScreen() {
           ) : statsQ.isError || !statsQ.data ? (
             <ErrorState
               message="تعذر جلب الإحصائيات"
-              onRetry={() => statsQ.refetch()}
+              onRetry={() => void statsQ.refetch()}
             />
           ) : (
-            <View style={{ gap: 10 }}>
-              <View style={styles.metricsGrid}>
-                <Metric
-                  label="فواتير اليوم"
-                  value={String(statsQ.data.today.orders)}
-                />
-                <Metric
-                  label="مبيعات اليوم"
-                  value={formatDinar(statsQ.data.today.revenue)}
-                />
-                <Metric
-                  label="المحصّل اليوم"
-                  value={formatDinar(statsQ.data.today.collected)}
-                />
-                <Metric
-                  label="إجمالي الفواتير"
-                  value={String(statsQ.data.month.orders)}
-                />
-                <Metric
-                  label="إجمالي المبيعات"
-                  value={formatDinar(statsQ.data.month.revenue)}
-                />
-                <Metric
-                  label="المحصّل الكلي"
-                  value={formatDinar(statsQ.data.month.collected)}
-                />
+            <>
+              <View style={styles.grid2}>
+                <View
+                  style={[
+                    styles.metricCard,
+                    {
+                      backgroundColor: palette.surface,
+                      borderColor: palette.surfaceLine,
+                    },
+                  ]}
+                >
+                  <Text style={[styles.metricLabel, { color: palette.textSub }]}>إجمالي الألعاب</Text>
+                  <Text style={[styles.metricVal, { color: palette.text }]}>
+                    {statsQ.data.totalGames}
+                  </Text>
+                </View>
+                <View
+                  style={[
+                    styles.metricCard,
+                    {
+                      backgroundColor: palette.surface,
+                      borderColor: palette.surfaceLine,
+                    },
+                  ]}
+                >
+                  <Text style={[styles.metricLabel, { color: palette.textSub }]}>فواتير اليوم</Text>
+                  <Text style={[styles.metricVal, { color: palette.text }]}>
+                    {statsQ.data.today.orders}
+                  </Text>
+                </View>
+                <View
+                  style={[
+                    styles.metricCard,
+                    {
+                      backgroundColor: palette.surface,
+                      borderColor: palette.surfaceLine,
+                    },
+                  ]}
+                >
+                  <Text style={[styles.metricLabel, { color: palette.textSub }]}>مبيعات اليوم</Text>
+                  <Text style={[styles.metricVal, { color: palette.money }]}>
+                    {formatDinar(statsQ.data.today.revenue)}
+                  </Text>
+                </View>
+                <View
+                  style={[
+                    styles.metricCard,
+                    {
+                      backgroundColor: palette.surface,
+                      borderColor: palette.surfaceLine,
+                    },
+                  ]}
+                >
+                  <Text style={[styles.metricLabel, { color: palette.textSub }]}>الآجل المعلق</Text>
+                  <Text style={[styles.metricVal, { color: palette.warning }]}>
+                    {statsQ.data.pendingOrders}
+                  </Text>
+                </View>
               </View>
 
-              <Text style={styles.sectionHeading}>أكثر الألعاب مبيعاً</Text>
-              {(statsQ.data.topGames ?? []).length === 0 ? (
-                <EmptyState message="لا توجد بيانات مبيعات للألعاب بعد" icon="gamepad" />
-              ) : (
-                (statsQ.data.topGames ?? []).map((g, i) => (
-                  <View key={`${g.title}-${i}`} style={styles.cardRow}>
-                    <View style={styles.rankRow}>
-                      <View style={styles.rankBadge}>
-                        <Text style={styles.rankText}>#{i + 1}</Text>
-                      </View>
-                      <Text style={styles.gameTitle} numberOfLines={1}>
-                        {g.title}
+              <Text style={[styles.sectionHeading, { color: palette.text }]}>
+                الأكثر طلباً (Top 5)
+              </Text>
+              {(statsQ.data.topGames ?? []).map((tg, idx: number) => (
+                <View
+                  key={String(tg.title + idx)}
+                  style={[
+                    styles.cardRow,
+                    {
+                      backgroundColor: palette.surface,
+                      borderColor: palette.surfaceLine,
+                    },
+                  ]}
+                >
+                  <View style={styles.rankRow}>
+                    <View
+                      style={[
+                        styles.rankBadge,
+                        {
+                          backgroundColor: palette.surfaceRaised,
+                          borderColor: palette.surfaceLine,
+                        },
+                      ]}
+                    >
+                      <Text style={[styles.rankText, { color: palette.primary }]}>
+                        #{idx + 1}
                       </Text>
                     </View>
-                    <Text style={styles.gameCount}>
-                      {g.count} طلب
-                      {g.revenue > 0 ? ` • ${formatDinar(g.revenue)}` : ''}
+                    <Text
+                      numberOfLines={1}
+                      style={[styles.gameTitle, { color: palette.text }]}
+                    >
+                      {tg.title}
                     </Text>
                   </View>
-                ))
-              )}
-            </View>
+                  <Text style={[styles.gameCount, { color: palette.textSub }]}>
+                    {tg.count} طلب
+                  </Text>
+                </View>
+              ))}
+            </>
           )
         ) : null}
 
         {tab === 'invoice-settings' ? (
-          <View style={styles.settingsCard}>
+          <View
+            style={[
+              styles.settingsCard,
+              {
+                backgroundColor: palette.surface,
+                borderColor: palette.surfaceLine,
+              },
+            ]}
+          >
             <AppInput
-              label="اسم المتجر على الفاتورة"
+              label="اسم المتجر (عربي)"
               value={storeName}
               onChangeText={setStoreName}
             />
             <AppInput
-              label="الاسم الإنجليزي"
+              label="اسم المتجر (إنجليزي)"
               value={storeNameEn}
               onChangeText={setStoreNameEn}
             />
             <AppInput
-              label="عنوان المتجر"
+              label="عنوان المحل"
               value={storeAddress}
               onChangeText={setStoreAddress}
             />
             <AppInput
-              label="هاتف المتجر"
+              label="هاتف المحل"
               value={storePhone}
               onChangeText={setStorePhone}
               keyboard="phone-pad"
             />
             <AppInput
-              label="رسالة أسفل الفاتورة"
+              label="رسالة تذييل الفاتورة"
               value={footerMsg}
               onChangeText={setFooterMsg}
+              multiline
             />
 
-            <Text style={styles.settingLabel}>عرض ورق الطابعة الحرارية</Text>
-            <View style={styles.chipsRow}>
-              {[58, 80, 100].map((w) => (
+            <View style={{ gap: 6 }}>
+              <Text style={[styles.settingLabel, { color: palette.textSub }]}>عرض ورق الطابعة</Text>
+              <View style={styles.chipsRow}>
                 <Chip
-                  key={w}
-                  label={`${w} مم`}
-                  active={paperWidth === w}
-                  onPress={() => setPaperWidth(w)}
+                  label="58 مم (حراري قياسي)"
+                  active={paperWidth === 58}
+                  onPress={() => setPaperWidth(58)}
                 />
-              ))}
+                <Chip
+                  label="80 مم (عريض)"
+                  active={paperWidth === 80}
+                  onPress={() => setPaperWidth(80)}
+                />
+              </View>
             </View>
 
-            <Text style={styles.settingLabel}>حجم الخط</Text>
-            <View style={styles.chipsRow}>
-              <Chip
-                label="صغير"
-                active={fontSize === 'small'}
-                onPress={() => setFontSize('small')}
-              />
-              <Chip
-                label="عادي"
-                active={fontSize === 'normal'}
-                onPress={() => setFontSize('normal')}
-              />
-              <Chip
-                label="كبير"
-                active={fontSize === 'large'}
-                onPress={() => setFontSize('large')}
-              />
+            <View style={{ gap: 6 }}>
+              <Text style={[styles.settingLabel, { color: palette.textSub }]}>حجم خط الفاتورة</Text>
+              <View style={styles.chipsRow}>
+                <Chip
+                  label="عادي"
+                  active={fontSize === 'normal'}
+                  onPress={() => setFontSize('normal')}
+                />
+                <Chip
+                  label="كبير"
+                  active={fontSize === 'large'}
+                  onPress={() => setFontSize('large')}
+                />
+              </View>
             </View>
 
             <AppButton
-              label="حفظ إعدادات الفاتورة"
-              icon="check"
-              onPress={handleSaveInvoiceSettings}
-              loading={busySettings}
+              label={busySettings ? 'جاري الحفظ...' : 'حفظ إعدادات الفاتورة'}
+              onPress={() => void handleSaveInvoiceSettings()}
+              disabled={busySettings}
             />
           </View>
         ) : null}
 
-        {tab === 'users' && isAdmin ? <UsersBranchesSection mode="users" /> : null}
-        {tab === 'branches' && superAdmin ? (
-          <UsersBranchesSection mode="branches" />
-        ) : null}
+        {tab === 'users' ? <UsersBranchesSection mode="users" /> : null}
+        {tab === 'branches' ? <UsersBranchesSection mode="branches" /> : null}
 
-        {tab === 'audit' && isAdmin ? (
+        {tab === 'audit' ? (
           auditQ.isLoading ? (
             <LoadingState message="جاري جلب سجل النشاط..." />
+          ) : auditQ.isError ? (
+            <ErrorState
+              message="تعذر جلب سجل النشاط"
+              onRetry={() => void auditQ.refetch()}
+            />
+          ) : !(auditQ.data ?? []).length ? (
+            <EmptyState message="سجل النشاط فارغ" icon="info" />
           ) : (
-            <View style={{ gap: 8 }}>
-              {(auditQ.data ?? []).map((log) => (
-                <View key={log.id} style={styles.cardRow}>
-                  <View style={{ flex: 1 }}>
-                    <Text style={styles.auditTitle}>
-                      {log.action} • {log.entity_type ?? ''} #{log.entity_id ?? ''}
-                    </Text>
-                    <Text style={styles.auditSub}>
-                      المستخدم: {log.username || log.user_id || 'نظام'} •{' '}
-                      {formatArabicDate(log.created_at)}
-                    </Text>
-                  </View>
+            (auditQ.data ?? []).map((l) => (
+              <View
+                key={String(l.id)}
+                style={[
+                  styles.cardRow,
+                  {
+                    backgroundColor: palette.surface,
+                    borderColor: palette.surfaceLine,
+                  },
+                ]}
+              >
+                <View style={{ flex: 1 }}>
+                  <Text style={[styles.auditTitle, { color: palette.text }]}>
+                    {l.action} • {l.username ?? 'النظام'}
+                  </Text>
+                  <Text style={[styles.auditSub, { color: palette.textSub }]}>
+                    {l.entity_type ? `${l.entity_type} #${l.entity_id ?? ''}` : '—'}
+                  </Text>
                 </View>
-              ))}
-            </View>
+                <Text style={{ color: palette.textFaint, fontFamily: AR_FONT.medium, fontSize: 11 }}>
+                  {formatArabicDate(l.created_at)}
+                </Text>
+              </View>
+            ))
           )
         ) : null}
       </KeyboardScroll>
@@ -302,60 +384,43 @@ export default function AdminMoreScreen() {
   );
 }
 
-function Metric({ label, value }: { label: string; value: string }) {
-  return (
-    <View style={styles.metricCard}>
-      <Text style={styles.metricLabel}>{label}</Text>
-      <Text style={styles.metricVal}>{value}</Text>
-    </View>
-  );
-}
-
 const styles = StyleSheet.create({
-  screen: {
-    flex: 1,
-    backgroundColor: colors.deep,
-  },
+  screen: { flex: 1 },
   tabsHeader: {
-    padding: 12,
-    backgroundColor: colors.base,
+    paddingVertical: 8,
     borderBottomWidth: 1,
-    borderBottomColor: 'rgba(255, 255, 255, 0.08)',
   },
   tabsScroll: {
     flexDirection: ROW,
     gap: 8,
+    paddingHorizontal: 14,
   },
-  metricsGrid: {
-    flexDirection: ROW,
+  grid2: {
+    flexDirection: 'row',
     flexWrap: 'wrap',
     gap: 8,
   },
   metricCard: {
     width: '48.5%',
-    backgroundColor: colors.elevated,
     borderRadius: 14,
     borderWidth: 1,
-    borderColor: colors.borderSubtle,
     padding: 12,
-    alignItems: 'flex-end',
   },
   metricLabel: {
-    color: colors.faint,
-    fontFamily: FONT.medium,
+    fontFamily: AR_FONT.regular,
     fontSize: 11.5,
+    textAlign: 'right',
     includeFontPadding: false,
   },
   metricVal: {
-    color: colors.brandLight,
-    fontFamily: FONT.bold,
+    fontFamily: AR_FONT.bold,
     fontSize: 17,
     marginTop: 4,
+    textAlign: 'right',
     includeFontPadding: false,
   },
   sectionHeading: {
-    color: colors.text,
-    fontFamily: FONT.bold,
+    fontFamily: AR_FONT.bold,
     fontSize: 15,
     marginTop: 8,
     textAlign: 'right',
@@ -366,10 +431,8 @@ const styles = StyleSheet.create({
     flexDirection: ROW,
     alignItems: 'center',
     justifyContent: 'space-between',
-    backgroundColor: colors.elevated,
     borderRadius: 14,
     borderWidth: 1,
-    borderColor: colors.borderSubtle,
     padding: 12,
     gap: 8,
   },
@@ -380,45 +443,37 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   rankBadge: {
-    backgroundColor: 'rgba(20,184,166,0.16)',
     borderWidth: 1,
-    borderColor: colors.brand,
     borderRadius: 8,
     paddingHorizontal: 7,
     paddingVertical: 2,
   },
   rankText: {
-    fontFamily: FONT.bold,
-    color: colors.brandLight,
+    fontFamily: AR_FONT.bold,
     fontSize: 11,
     includeFontPadding: false,
   },
   gameTitle: {
     flex: 1,
-    color: colors.text,
-    fontFamily: FONT.bold,
+    fontFamily: AR_FONT.bold,
     fontSize: 13.5,
     textAlign: 'right',
     writingDirection: 'rtl',
     includeFontPadding: false,
   },
   gameCount: {
-    color: colors.brandLight,
-    fontFamily: FONT.bold,
+    fontFamily: AR_FONT.bold,
     fontSize: 12.5,
     includeFontPadding: false,
   },
   settingsCard: {
-    backgroundColor: colors.elevated,
     borderRadius: 16,
     borderWidth: 1,
-    borderColor: colors.borderSubtle,
     padding: 14,
     gap: 12,
   },
   settingLabel: {
-    color: colors.dim,
-    fontFamily: FONT.bold,
+    fontFamily: AR_FONT.bold,
     fontSize: 12.5,
     textAlign: 'right',
     writingDirection: 'rtl',
@@ -429,16 +484,14 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   auditTitle: {
-    color: colors.text,
-    fontFamily: FONT.bold,
+    fontFamily: AR_FONT.bold,
     fontSize: 13,
     textAlign: 'right',
     writingDirection: 'rtl',
     includeFontPadding: false,
   },
   auditSub: {
-    color: colors.faint,
-    fontFamily: FONT.regular,
+    fontFamily: AR_FONT.regular,
     fontSize: 11,
     textAlign: 'right',
     writingDirection: 'rtl',

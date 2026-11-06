@@ -15,7 +15,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useQuery } from '@tanstack/react-query';
 import { router } from 'expo-router';
 import { fetchGames } from '@/api/games';
-import { ENGLISH_LETTERS } from '@/lib/arabic';
+import { ENGLISH_LETTERS, sortGamesAlphabetically } from '@/lib/arabic';
 import { fetchCategories, fetchGenres, fetchSeries } from '@/api/categories';
 import { fetchBranches } from '@/api/branches';
 import { fetchHealth } from '@/api/settings';
@@ -49,6 +49,7 @@ import Skeleton from '@/design/Skeleton';
 import GameCard from '@/design/GameCard';
 import HeroCard from '@/design/HeroCard';
 import PlatformChip from '@/design/PlatformChip';
+import Chip from '@/components/ui/Chip';
 
 /* الشعار: الكرمية بلا بلاقة على الداكن (تباين كامل)، وفي الفاتح أيضًا الكرمية بحرف حبري؟
    لا — على الكريمي نستخدم الشعار الكامل البلاقة. */
@@ -105,7 +106,7 @@ export default function StoreHomeScreen() {
     refetchInterval: 60_000,
   });
 
-  const games = useMemo(() => gamesQ.data ?? [], [gamesQ.data]);
+  const games = useMemo(() => sortGamesAlphabetically(gamesQ.data ?? []), [gamesQ.data]);
   const categories = useMemo(() => categoriesQ.data ?? [], [categoriesQ.data]);
   const branches = useMemo(() => branchesQ.data ?? [], [branchesQ.data]);
 
@@ -138,18 +139,18 @@ export default function StoreHomeScreen() {
      بصفوف 72dp. الوضع الطبيعي = بطاقة البطل + رفوف التصنيفات (II). */
   const catalogMode = Boolean(query.trim()) || activeFilterCount > 0 || activeCategoryId !== null;
 
-  /* الرفوف: كل تصنيف صفّه بأنقل عشرة — والتخطي لإقسام فارغة */
+  /* الرفوف: كل تصنيف صفّه بأنقل عشرة مرتبة أبجدياً — والتخطي لإقسام فارغة */
   const shelves = useMemo(() => {
     if (catalogMode || !games.length) return [];
     return categories
       .map((c) => ({
         category: c,
-        items: games
-          .filter((g) => {
+        items: sortGamesAlphabetically(
+          games.filter((g) => {
             const ids = Array.isArray(g.category_ids) ? g.category_ids : [];
             return g.category_id === c.id || ids.includes(c.id);
           })
-          .slice(0, 10),
+        ).slice(0, 10),
       }))
       .filter((sh) => sh.items.length > 0);
   }, [categories, games, catalogMode]);
@@ -319,43 +320,36 @@ export default function StoreHomeScreen() {
           </Pressable>
         </View>
 
-        {/* شريط الأحرف السريع */}
-        <View style={styles.letterStripRow}>
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={styles.letterStripScroll}
-          >
-            {ENGLISH_LETTERS.map((ltr) => {
-              const active = filters.letter === ltr;
-              return (
-                <Pressable
-                  key={ltr}
-                  onPress={() => toggleLetter(ltr)}
-                  hitSlop={8}
-                  accessibilityRole="button"
-                  accessibilityLabel={`تصفية الألعاب التي تبدأ بـ ${ltr}`}
-                  accessibilityState={{ selected: active }}
-                  style={[
-                    styles.letterPill,
-                    {
-                      backgroundColor: active ? palette.primary : palette.surfaceRaised,
-                    },
-                  ]}
-                >
-                  <Text
-                    style={[
-                      styles.letterPillText,
-                      { color: active ? palette.onPrimary : palette.textSub, fontFamily: LAT_FONT.semibold },
-                    ]}
-                  >
-                    {ltr}
-                  </Text>
-                </Pressable>
-              );
-            })}
-          </ScrollView>
-        </View>
+        {/* شريط فئات الأجهزة والتصنيفات في الرئيسية */}
+        {categories.length > 0 ? (
+          <View style={styles.categoryStripRow}>
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.categoryStripScroll}
+            >
+              <Chip
+                label="الكل"
+                active={activeCategoryId === null}
+                onPress={() => {
+                  triggerLightHaptic();
+                  setActiveCategory(null);
+                }}
+              />
+              {categories.map((cat) => (
+                <Chip
+                  key={String(cat.id)}
+                  label={cat.name}
+                  active={activeCategoryId === cat.id}
+                  onPress={() => {
+                    triggerLightHaptic();
+                    setActiveCategory(activeCategoryId === cat.id ? null : cat.id);
+                  }}
+                />
+              ))}
+            </ScrollView>
+          </View>
+        ) : null}
       </View>
 
       {gamesQ.isLoading ? (
@@ -755,24 +749,15 @@ const styles = StyleSheet.create({
     fontSize: 11,
     includeFontPadding: false,
   },
-  letterStripRow: {
-    marginTop: 2,
+  categoryStripRow: {
+    marginTop: 6,
+    marginBottom: 4,
   },
-  letterStripScroll: {
-    flexDirection: 'row',
-    gap: 7,
+  categoryStripScroll: {
+    flexDirection: ROW,
+    gap: 8,
+    paddingHorizontal: 14,
     paddingVertical: 2,
-  },
-  letterPill: {
-    width: 38,
-    height: 38,
-    borderRadius: 10,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  letterPillText: {
-    fontSize: 13,
-    includeFontPadding: false,
   },
   scroll: {
     flex: 1,

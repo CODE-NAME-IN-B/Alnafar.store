@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Pressable, ScrollView, Text, TextInput, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { useQuery } from '@tanstack/react-query';
 import {
   closeDailyReport,
@@ -15,19 +15,21 @@ import Chip from '@/components/ui/Chip';
 import AppButton from '@/components/ui/AppButton';
 import Icon from '@/components/ui/Icon';
 import { EmptyState, ErrorState, LoadingState } from '@/components/ui/StateView';
-import { FONT } from '@/lib/fonts';
+import { AR_FONT } from '@/design/fonts';
+import { usePalette } from '@/design/theme';
 import { ScalePressable } from '@/components/ui/motion';
-import { colors } from '@/lib/colors';
 import DatePickerSheet from '@/components/ui/DatePickerSheet';
 import { formatDinar } from '@/lib/money';
 import { showToast } from '@/lib/toast';
+import { ROW } from '@/lib/rtl';
 
 function todayIso(): string {
   return new Date().toISOString().slice(0, 10);
 }
 
-/** تبويب الجرد اليومي وترقيم الفواتير في لوحة الإدارة */
+/** تبويب الجرد اليومي وترقيم الفواتير في لوحة الإدارة — متوافق مع Modern Minimalism */
 export default function AdminDailyReportScreen() {
+  const palette = usePalette();
   const branchScope = useAppStore((s) => s.adminScopeBranchId);
   const user = useAuthStore((s) => s.user);
   const isAdmin = user?.role === 'admin';
@@ -95,35 +97,38 @@ export default function AdminDailyReportScreen() {
 
   return (
     <ScrollView
-      style={{ flex: 1, backgroundColor: colors.base }}
+      style={{ flex: 1, backgroundColor: palette.canvas }}
       contentContainerStyle={{ padding: 14, gap: 12 }}
       showsVerticalScrollIndicator={false}
     >
       {/* شريط التاريخ والترقيم */}
-      <View style={card}>
-        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+      <View
+        style={[
+          styles.bentoCard,
+          {
+            backgroundColor: palette.surface,
+            borderColor: palette.surfaceLine,
+          },
+        ]}
+      >
+        <View style={{ flexDirection: ROW, alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
           <ScalePressable
             onPress={() => setDatePickerOpen(true)}
             accessibilityRole="button"
             accessibilityLabel="اختيار التاريخ من التقويم"
-            style={{
-              flexDirection: 'row',
-              alignItems: 'center',
-              gap: 6,
-              backgroundColor: colors.surfaceInset,
-              borderRadius: 10,
-              borderWidth: 1,
-              borderColor: colors.borderSubtle,
-              paddingHorizontal: 12,
-              paddingVertical: 11,
-              minHeight: 44,
-            }}
+            style={[
+              styles.datePickerBtn,
+              {
+                backgroundColor: palette.surfaceRaised,
+                borderColor: palette.surfaceLine,
+              },
+            ]}
           >
-            <Icon name="calendar" size={15} color={colors.brandLight} />
+            <Icon name="calendar" size={15} color={palette.primary} />
             <Text
               style={{
-                color: colors.text,
-                fontFamily: FONT.bold,
+                color: palette.text,
+                fontFamily: AR_FONT.bold,
                 fontSize: 13,
                 minWidth: 92,
                 includeFontPadding: false,
@@ -144,33 +149,31 @@ export default function AdminDailyReportScreen() {
         {numberingQuery.data ? (
           <View
             style={{
-              flexDirection: 'row',
+              flexDirection: ROW,
               justifyContent: 'space-between',
               alignItems: 'center',
               marginTop: 10,
               paddingTop: 10,
               borderTopWidth: 1,
-              borderTopColor: colors.borderSubtle,
+              borderTopColor: palette.surfaceLine,
             }}
           >
-            <Text style={{ color: colors.dim, fontFamily: FONT.medium, fontSize: 12 }}>
+            <Text style={{ color: palette.textSub, fontFamily: AR_FONT.medium, fontSize: 12 }}>
               رقم الفاتورة التالي اليوم: #{numberingQuery.data.nextInvoiceNumber}
             </Text>
             {isAdmin ? (
               <Pressable
                 onPress={() => void handleResetNumbering()}
-                style={{
-                  flexDirection: 'row',
-                  alignItems: 'center',
-                  gap: 5,
-                  backgroundColor: 'rgba(245,158,11,0.14)',
-                  borderRadius: 8,
-                  paddingHorizontal: 10,
-                  paddingVertical: 5,
-                }}
+                style={({ pressed }) => [
+                  styles.resetBtn,
+                  {
+                    backgroundColor: pressed ? palette.warning + '25' : palette.warning + '15',
+                    borderColor: palette.warning + '40',
+                  },
+                ]}
               >
-                <Icon name="refresh" size={14} color="colors.warningText" />
-                <Text style={{ color: colors.warningText, fontFamily: FONT.bold, fontSize: 12 }}>
+                <Icon name="refresh" size={14} color={palette.warning} />
+                <Text style={{ color: palette.warning, fontFamily: AR_FONT.bold, fontSize: 12 }}>
                   تصفير الترقيم
                 </Text>
               </Pressable>
@@ -185,7 +188,7 @@ export default function AdminDailyReportScreen() {
         <ErrorState message="تعذر جلب التقرير اليومي" onRetry={() => reportQuery.refetch()} />
       ) : (
         <>
-          {/* بطاقات ملخص الجرد */}
+          {/* بطاقات ملخص الجرد Bento */}
           <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
             <StatBox label="عدد الفواتير" value={String(report.total_invoices)} />
             <StatBox label="إجمالي المبيعات" value={formatDinar(report.total_revenue)} />
@@ -199,150 +202,79 @@ export default function AdminDailyReportScreen() {
           </View>
 
           {/* حالة الجرد وإغلاقه */}
-          <View style={card}>
-            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-              <Text style={{ color: colors.text, fontFamily: FONT.bold, fontSize: 15 }}>
+          <View
+            style={[
+              styles.bentoCard,
+              {
+                backgroundColor: palette.surface,
+                borderColor: palette.surfaceLine,
+              },
+            ]}
+          >
+            <View style={{ flexDirection: ROW, justifyContent: 'space-between', alignItems: 'center' }}>
+              <Text style={{ color: palette.text, fontFamily: AR_FONT.bold, fontSize: 15 }}>
                 حالة جرد {report.date}
               </Text>
               <View
                 style={{
-                  flexDirection: 'row',
+                  flexDirection: ROW,
                   alignItems: 'center',
                   gap: 5,
-                  backgroundColor: report.is_closed
-                    ? 'rgba(239,68,68,0.18)'
-                    : 'rgba(34,197,94,0.18)',
+                  backgroundColor: report.is_closed ? palette.danger + '18' : palette.success + '18',
                   borderRadius: 8,
                   paddingHorizontal: 10,
                   paddingVertical: 4,
+                  borderWidth: 1,
+                  borderColor: report.is_closed ? palette.danger + '40' : palette.success + '40',
                 }}
               >
                 <Icon
                   name={report.is_closed ? 'lock' : 'check'}
-                  size={13}
-                  color={report.is_closed ? colors.dangerText : colors.successBright}
+                  size={14}
+                  color={report.is_closed ? palette.danger : palette.success}
                 />
                 <Text
                   style={{
-                    color: report.is_closed ? colors.dangerText : colors.successBright,
-                    fontFamily: FONT.bold,
+                    color: report.is_closed ? palette.danger : palette.success,
+                    fontFamily: AR_FONT.bold,
                     fontSize: 12,
                   }}
                 >
-                  {report.is_closed ? 'مغلق' : 'مفتوح'}
+                  {report.is_closed ? 'مغلق' : 'مفتوح للعمل'}
                 </Text>
               </View>
             </View>
 
-            {report.notes ? (
-              <Text style={{ color: colors.dim, fontFamily: FONT.regular, fontSize: 12, marginTop: 6 }}>
-                ملاحظة الإغلاق: {report.notes}
-              </Text>
-            ) : null}
-
-            {!report.is_closed ? (
-              <View style={{ gap: 10, marginTop: 12 }}>
+            {!report.is_closed && isAdmin ? (
+              <View style={{ marginTop: 12, gap: 10 }}>
                 <TextInput
                   value={closeNotes}
                   onChangeText={setCloseNotes}
                   placeholder="ملاحظات إغلاق اليوم (اختياري)..."
-                  placeholderTextColor="colors.faint"
+                  placeholderTextColor={palette.textFaint}
                   textAlign="right"
-                  style={[inputBox, { width: '100%' }]}
+                  style={[
+                    styles.notesInput,
+                    {
+                      backgroundColor: palette.surfaceRaised,
+                      borderColor: palette.surfaceLine,
+                      color: palette.text,
+                    },
+                  ]}
                 />
                 <AppButton
-                  label="إغلاق الجرد اليومي"
-                  icon="lock"
-                  onPress={handleCloseDay}
-                  loading={busyClose}
+                  label={busyClose ? 'جاري الإغلاق...' : 'إغلاق وردية اليوم'}
+                  variant="primary"
+                  onPress={() => void handleCloseDay()}
+                  disabled={busyClose}
                 />
               </View>
             ) : null}
           </View>
-
-          {/* فواتير اليوم */}
-          <Text style={{ color: colors.text, fontFamily: FONT.bold, fontSize: 15, textAlign: 'right' }}>
-            فواتير الجرد ({allInvoices.length})
-          </Text>
-          {!allInvoices.length ? (
-            <EmptyState message="لا توجد فواتير مسجلة في هذا التاريخ" icon="report" />
-          ) : (
-            <View style={{ gap: 8 }}>
-              {allInvoices.map((inv) => {
-                const finalT = Math.max(0, Number(inv.total) - Number(inv.discount ?? 0));
-                const rem = Math.max(0, finalT - Number(inv.paid_amount ?? 0));
-                return (
-                  <View
-                    key={`${inv.id}-${inv.isCarried ? 'c' : 'd'}`}
-                    style={[card, { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }]}
-                  >
-                    <View style={{ flex: 1 }}>
-                      <Text style={{ color: colors.text, fontFamily: FONT.bold, fontSize: 14, textAlign: 'right' }}>
-                        #{inv.invoice_number} • {inv.customer_name || 'عميل نقدي'}
-                        {inv.isCarried ? ' (آجل مرحّل)' : ''}
-                      </Text>
-                      <Text
-                        style={{
-                          color: rem > 0 ? colors.warningText : colors.successBright,
-                          fontFamily: FONT.medium,
-                          fontSize: 12,
-                          textAlign: 'right',
-                        }}
-                      >
-                        {rem > 0 ? `متبقي: ${formatDinar(rem)}` : 'مدفوع بالكامل'}
-                      </Text>
-                    </View>
-                    <Text style={{ color: colors.brandLight, fontFamily: FONT.bold, fontSize: 14 }}>
-                      {formatDinar(finalT)}
-                    </Text>
-                  </View>
-                );
-              })}
-            </View>
-          )}
         </>
       )}
 
-      {/* سجل تقارير الأيام السابقة */}
-      {historyQuery.data && historyQuery.data.length ? (
-        <View style={{ gap: 8, marginTop: 8 }}>
-          <Text style={{ color: colors.text, fontFamily: FONT.bold, fontSize: 15, textAlign: 'right' }}>
-            الأيام السابقة
-          </Text>
-          {historyQuery.data.slice(0, 10).map((r) => (
-            <Pressable
-              key={r.date}
-              onPress={() => setDate(r.date)}
-              style={[
-                card,
-                {
-                  flexDirection: 'row',
-                  justifyContent: 'space-between',
-                  alignItems: 'center',
-                  borderColor: r.date === date ? colors.brand : colors.borderSubtle,
-                },
-              ]}
-            >
-              <View>
-                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-                  <Text style={{ color: colors.text, fontFamily: FONT.bold, fontSize: 14 }}>
-                    {r.date}
-                  </Text>
-                  {r.is_closed ? <Icon name="lock" size={14} color="colors.faint" /> : null}
-                </View>
-                <Text style={{ color: colors.faint, fontFamily: FONT.regular, fontSize: 12 }}>
-                  {r.total_invoices} فاتورة
-                </Text>
-              </View>
-              <Text style={{ color: colors.brandLight, fontFamily: FONT.bold }}>
-                {formatDinar(r.net_revenue)}
-              </Text>
-            </Pressable>
-          ))}
-        </View>
-      ) : null}
-
-      {/* التقويم (يوم واحد — التقرير اليومي لا يدعم المدى) */}
+      {/* التقويم */}
       <DatePickerSheet
         visible={datePickerOpen}
         onClose={() => setDatePickerOpen(false)}
@@ -366,25 +298,25 @@ function StatBox({
   highlight?: boolean;
   warn?: boolean;
 }) {
+  const palette = usePalette();
   return (
     <View
-      style={{
-        width: '48%',
-        backgroundColor: colors.elevated,
-        borderRadius: 12,
-        borderWidth: 1,
-        borderColor: colors.borderSubtle,
-        padding: 12,
-      }}
+      style={[
+        styles.statBox,
+        {
+          backgroundColor: palette.surface,
+          borderColor: palette.surfaceLine,
+        },
+      ]}
     >
-      <Text style={{ color: colors.dim, fontFamily: FONT.regular, fontSize: 11, textAlign: 'right' }}>
+      <Text style={{ color: palette.textSub, fontFamily: AR_FONT.regular, fontSize: 11.5, textAlign: 'right' }}>
         {label}
       </Text>
       <Text
         style={{
-          color: warn ? colors.warningText : highlight ? colors.brandLight : colors.text,
-          fontFamily: FONT.bold,
-          fontSize: 15,
+          color: warn ? palette.warning : highlight ? palette.primary : palette.text,
+          fontFamily: AR_FONT.bold,
+          fontSize: 16,
           marginTop: 4,
           textAlign: 'right',
         }}
@@ -395,22 +327,43 @@ function StatBox({
   );
 }
 
-const card = {
-  backgroundColor: colors.elevated,
-  borderRadius: 14,
-  borderWidth: 1,
-  borderColor: colors.borderSubtle,
-  padding: 14,
-} as const;
-
-const inputBox = {
-  backgroundColor: colors.surfaceInset,
-  borderRadius: 10,
-  borderWidth: 1,
-  borderColor: colors.borderSubtle,
-  color: colors.text,
-  fontFamily: FONT.regular,
-  paddingHorizontal: 12,
-  paddingVertical: 8,
-  minWidth: 115,
-} as const;
+const styles = StyleSheet.create({
+  bentoCard: {
+    borderRadius: 18,
+    borderWidth: 1,
+    padding: 14,
+  },
+  datePickerBtn: {
+    flexDirection: ROW,
+    alignItems: 'center',
+    gap: 6,
+    borderRadius: 10,
+    borderWidth: 1,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    minHeight: 42,
+  },
+  resetBtn: {
+    flexDirection: ROW,
+    alignItems: 'center',
+    gap: 5,
+    borderRadius: 8,
+    borderWidth: 1,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+  },
+  notesInput: {
+    borderRadius: 12,
+    borderWidth: 1,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    fontFamily: AR_FONT.regular,
+    fontSize: 13,
+  },
+  statBox: {
+    width: '48.5%',
+    borderRadius: 14,
+    borderWidth: 1,
+    padding: 12,
+  },
+});

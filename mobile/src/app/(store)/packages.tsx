@@ -1,5 +1,5 @@
 import { useEffect, useState, type ReactNode } from 'react';
-import { Animated, Pressable, ScrollView, Text, View } from 'react-native';
+import { Animated, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { FlashList } from '@shopify/flash-list';
 import { useQuery } from '@tanstack/react-query';
 import { fetchCategories } from '@/api/categories';
@@ -10,16 +10,18 @@ import PackageDetailsSheet from '@/components/store/PackageDetailsSheet';
 import Screen from '@/components/ui/Screen';
 import Icon from '@/components/ui/Icon';
 import Chip from '@/components/ui/Chip';
-import AppText from '@/components/ui/AppText';
 import { useScreenEntrance, useEntrance } from '@/components/ui/motion';
 import { LoadingState, ErrorState, EmptyState } from '@/components/ui/StateView';
-import { FONT } from '@/lib/fonts';
+import { AR_FONT } from '@/design/fonts';
+import { usePalette } from '@/design/theme';
 import { formatDinar } from '@/lib/money';
 import { showToast } from '@/lib/toast';
+import { ROW } from '@/lib/rtl';
 import type { StorePackage } from '@/api/types';
 
-/** شاشة الباقات مع زر «عرض الألعاب» قبل الشراء — متباينة وواضحة بالكامل */
+/** شاشة الباقات مع زر «عرض الألعاب» قبل الشراء — بالهوية والتصميم العصري الموحد */
 export default function PackagesScreen() {
+  const palette = usePalette();
   const activeCategoryId = useAppStore((s) => s.activeCategoryId);
   const setActiveCategory = useAppStore((s) => s.setActiveCategory);
   const [details, setDetails] = useState<StorePackage | null>(null);
@@ -56,37 +58,54 @@ export default function PackagesScreen() {
       <Animated.View
         style={[
           {
-            backgroundColor: '#0f172a',
+            backgroundColor: palette.canvas,
             borderBottomWidth: 1,
-            borderBottomColor: 'rgba(255, 255, 255, 0.08)',
-            paddingHorizontal: 14,
+            borderBottomColor: palette.surfaceLine,
+            paddingHorizontal: 16,
             paddingTop: 12,
             paddingBottom: 12,
-            gap: 10,
+            gap: 12,
           },
           entranceStyle,
         ]}
       >
         <View>
-          <AppText style={{ color: '#f8fafc', fontFamily: FONT.bold, fontSize: 18 }}>
-            الباقات الاقتصادية
-          </AppText>
-          <AppText
-            style={{ color: '#94a3b8', fontFamily: FONT.regular, fontSize: 12.5, marginTop: 2 }}
+          <Text
+            style={{
+              color: palette.text,
+              fontFamily: AR_FONT.bold,
+              fontSize: 20,
+              textAlign: 'right',
+              writingDirection: 'rtl',
+              includeFontPadding: false,
+            }}
+          >
+            باقات الألعاب والتوفير
+          </Text>
+          <Text
+            style={{
+              color: palette.textSub,
+              fontFamily: AR_FONT.regular,
+              fontSize: 12.5,
+              marginTop: 3,
+              textAlign: 'right',
+              writingDirection: 'rtl',
+              includeFontPadding: false,
+            }}
           >
             باقات مختارة — عاين جميع الألعاب داخل الباقة قبل إضافتها للسلة
-          </AppText>
+          </Text>
         </View>
 
         {categories.data && categories.data.length ? (
           <ScrollView
             horizontal
             showsHorizontalScrollIndicator={false}
-            contentContainerStyle={{ gap: 8 }}
+            contentContainerStyle={{ flexDirection: ROW, gap: 8 }}
           >
             {categories.data.map((cat) => (
               <Chip
-                key={cat.id}
+                key={String(cat.id)}
                 label={cat.name}
                 active={activeCategoryId === cat.id}
                 onPress={() => setActiveCategory(cat.id)}
@@ -115,7 +134,7 @@ export default function PackagesScreen() {
               <PackageCard pkg={item} onDetails={setDetails} onAdd={addPack} />
             </EntranceItem>
           )}
-          contentContainerStyle={{ paddingHorizontal: 12, paddingTop: 10, paddingBottom: 24 }}
+          contentContainerStyle={{ paddingHorizontal: 14, paddingTop: 12, paddingBottom: 32 }}
           showsVerticalScrollIndicator={false}
         />
       ) : (
@@ -137,16 +156,7 @@ export default function PackagesScreen() {
   );
 }
 
-const pkgCard = {
-  backgroundColor: '#141e30',
-  borderRadius: 16,
-  borderWidth: 1,
-  borderColor: 'rgba(255, 255, 255, 0.08)',
-  padding: 14,
-  marginVertical: 6,
-} as const;
-
-/** بطاقة باقة بدخول متدرج — يجعل الشاشة تتنفس عند التحميل وفي البدايات */
+/** بطاقة باقة بدخول متدرج */
 function EntranceItem({ children, delay }: { children: ReactNode; delay: number }) {
   const { style } = useEntrance({ durationMs: 200, dy: 10, delayMs: delay });
   return <Animated.View style={style}>{children}</Animated.View>;
@@ -161,109 +171,111 @@ function PackageCard({
   onDetails: (pkg: StorePackage) => void;
   onAdd: (pkg: StorePackage) => void;
 }) {
+  const palette = usePalette();
   const gameCount = pkg.packageGames?.length ?? 0;
+
   return (
-    <View style={pkgCard}>
-      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+    <View
+      style={[
+        styles.pkgCard,
+        {
+          backgroundColor: palette.surface,
+          borderColor: palette.surfaceLine,
+        },
+      ]}
+    >
+      <View style={{ flexDirection: ROW, alignItems: 'center', gap: 12 }}>
         <View
-          style={{
-            width: 46,
-            height: 46,
-            borderRadius: 12,
-            backgroundColor: 'rgba(20,184,166,0.14)',
-            borderWidth: 1,
-            borderColor: 'rgba(45,212,191,0.3)',
-            alignItems: 'center',
-            justifyContent: 'center',
-          }}
+          style={[
+            styles.iconWrap,
+            {
+              backgroundColor: palette.surfaceRaised,
+              borderColor: palette.surfaceLine,
+            },
+          ]}
         >
-          <Icon name="package" size={22} color="#2dd4bf" />
+          <Icon name="package" size={22} color={palette.primary} />
         </View>
         <View style={{ flex: 1 }}>
           <Text
             style={{
-              color: '#f8fafc',
-              fontFamily: FONT.bold,
+              color: palette.text,
+              fontFamily: AR_FONT.bold,
               fontSize: 15,
               textAlign: 'right',
+              writingDirection: 'rtl',
+              includeFontPadding: false,
             }}
           >
             {pkg.name}
           </Text>
           <Text
             style={{
-              color: '#94a3b8',
-              fontFamily: FONT.regular,
+              color: palette.textSub,
+              fontFamily: AR_FONT.regular,
               fontSize: 12,
               textAlign: 'right',
+              writingDirection: 'rtl',
               marginTop: 2,
+              includeFontPadding: false,
             }}
           >
             تحتوي على {gameCount} لعبة مختارة
           </Text>
         </View>
         <View
-          style={{
-            backgroundColor: 'rgba(255, 255, 255, 0.06)',
-            borderRadius: 10,
-            borderWidth: 1,
-            borderColor: 'rgba(255, 255, 255, 0.1)',
-            paddingHorizontal: 10,
-            paddingVertical: 6,
-          }}
+          style={[
+            styles.priceBadge,
+            {
+              backgroundColor: palette.surfaceRaised,
+              borderColor: palette.surfaceLine,
+            },
+          ]}
         >
-          <Text style={{ color: '#2dd4bf', fontFamily: FONT.bold, fontSize: 14 }}>
+          <Text
+            style={{
+              color: palette.money,
+              fontFamily: AR_FONT.bold,
+              fontSize: 14,
+            }}
+          >
             {formatDinar(Number(pkg.price))}
           </Text>
         </View>
       </View>
 
-      <View style={{ flexDirection: 'row', gap: 10, marginTop: 12 }}>
+      <View style={{ flexDirection: ROW, gap: 10, marginTop: 14 }}>
         <Pressable
           onPress={() => onDetails(pkg)}
-          android_ripple={{ color: 'rgba(255,255,255,0.15)', borderless: false }}
-          style={{
-            flex: 1,
-            minHeight: 44,
-            borderRadius: 11,
-            backgroundColor: 'rgba(255, 255, 255, 0.06)',
-            paddingVertical: 10,
-            flexDirection: 'row',
-            alignItems: 'center',
-            justifyContent: 'center',
-            gap: 6,
-            borderWidth: 1,
-            borderColor: 'rgba(255, 255, 255, 0.1)',
-          }}
+          style={({ pressed }) => [
+            styles.actionBtn,
+            {
+              backgroundColor: pressed ? palette.surfaceLine : palette.surfaceRaised,
+              borderColor: palette.surfaceLine,
+            },
+          ]}
           accessible
           accessibilityLabel={`عرض ألعاب الباقة ${pkg.name}`}
         >
-          <Icon name="eye" size={16} color="#e2e8f0" />
-          <Text style={{ color: '#f8fafc', fontFamily: FONT.bold, fontSize: 13.5 }}>
+          <Icon name="eye" size={16} color={palette.text} />
+          <Text style={{ color: palette.text, fontFamily: AR_FONT.bold, fontSize: 13 }}>
             عرض الألعاب
           </Text>
         </Pressable>
         <Pressable
           onPress={() => onAdd(pkg)}
-          android_ripple={{ color: 'rgba(255,255,255,0.18)', borderless: false }}
-          style={{
-            flex: 1,
-            minHeight: 44,
-            borderRadius: 11,
-            backgroundColor: '#14b8a6',
-            borderWidth: 1,
-            borderColor: '#14b8a6',
-            paddingVertical: 10,
-            flexDirection: 'row',
-            alignItems: 'center',
-            justifyContent: 'center',
-            gap: 6,
-          }}
+          style={({ pressed }) => [
+            styles.actionBtn,
+            {
+              backgroundColor: pressed ? palette.primaryPressed : palette.primary,
+              borderColor: palette.primary,
+            },
+          ]}
           accessible
           accessibilityLabel={`إضافة الباقة ${pkg.name} إلى السلة`}
         >
-          <Icon name="plus" size={16} color="#ffffff" strokeWidth={2.3} />
-          <Text style={{ color: '#ffffff', fontFamily: FONT.bold, fontSize: 13.5 }}>
+          <Icon name="plus" size={16} color={palette.onPrimary} strokeWidth={2.3} />
+          <Text style={{ color: palette.onPrimary, fontFamily: AR_FONT.bold, fontSize: 13 }}>
             أضف إلى السلة
           </Text>
         </Pressable>
@@ -271,3 +283,37 @@ function PackageCard({
     </View>
   );
 }
+
+const styles = StyleSheet.create({
+  pkgCard: {
+    borderRadius: 18,
+    borderWidth: 1,
+    padding: 14,
+    marginVertical: 6,
+  },
+  iconWrap: {
+    width: 46,
+    height: 46,
+    borderRadius: 14,
+    borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  priceBadge: {
+    borderRadius: 10,
+    borderWidth: 1,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+  },
+  actionBtn: {
+    flex: 1,
+    minHeight: 44,
+    borderRadius: 12,
+    paddingVertical: 10,
+    flexDirection: ROW,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    borderWidth: 1,
+  },
+});

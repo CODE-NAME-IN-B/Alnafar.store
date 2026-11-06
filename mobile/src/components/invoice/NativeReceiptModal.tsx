@@ -98,26 +98,28 @@ export default function NativeReceiptModal({ visible, invoice, onClose, autoPrin
   return (
     <ModalSheet visible={visible} onClose={onClose} title={`فاتورة ${formatInvoiceCode(invoice.invoice_number)}`}>
       <ScrollView style={{ maxHeight: 460 }} showsVerticalScrollIndicator={false}>
-        {/* بطاقة إيصال حراري أصلية (مطابقة للمطبوع المضغوط — بلا شعار) */}
+        {/* بطاقة إيصال حراري أصلية (مطابقة للمطبوع المضغوط — ورق أبيض دائماً) */}
         <View
           style={{
-            backgroundColor: colors.brandDark,
+            backgroundColor: '#FFFFFF',
             borderRadius: 16,
             padding: 16,
             alignItems: 'center',
             gap: 5,
+            borderWidth: 1,
+            borderColor: '#E3DDCB',
           }}
         >
-          <Text style={{ color: colors.base, fontFamily: FONT.bold, fontSize: 17 }}>
+          <Text style={{ color: '#1B2A21', fontFamily: FONT.bold, fontSize: 17 }}>
             {storeName}
           </Text>
-          <Text style={{ color: '#475569', fontFamily: FONT.medium, fontSize: 11 }}>
+          <Text style={{ color: '#5E6F63', fontFamily: FONT.medium, fontSize: 11 }}>
             {storeNameEn}
           </Text>
           {storeAddr ? (
             <Text
               style={{
-                color: receiptColors.muted,
+                color: '#5E6F63',
                 fontFamily: FONT.regular,
                 fontSize: 11,
                 textAlign: 'center',
@@ -129,14 +131,14 @@ export default function NativeReceiptModal({ visible, invoice, onClose, autoPrin
 
           <View style={dashedLine} />
 
-          <LtrText style={{ color: colors.base, fontSize: 16 }}>
+          <LtrText style={{ color: '#1B2A21', fontSize: 16 }}>
             {formatInvoiceCode(invoice.invoice_number)}
           </LtrText>
-          <Text style={{ color: '#1e293b', fontFamily: FONT.bold, fontSize: 14 }}>
+          <Text style={{ color: '#1B2A21', fontFamily: FONT.bold, fontSize: 14 }}>
             {invoice.customer_name || 'عميل نقدي'}
           </Text>
           {invoice.customer_phone ? (
-            <Text style={{ color: '#475569', fontFamily: FONT.regular, fontSize: 12 }}>
+            <Text style={{ color: '#5E6F63', fontFamily: FONT.regular, fontSize: 12 }}>
               {invoice.customer_phone}
             </Text>
           ) : null}
@@ -144,7 +146,7 @@ export default function NativeReceiptModal({ visible, invoice, onClose, autoPrin
           <View style={dashedLine} />
 
           {/* السعر النهائي فقط — بلا بيانات الألعاب (مطابقة لما تظهره واجهة التتبع) */}
-          <Text style={{ color: colors.base, fontFamily: FONT.bold, fontSize: 19 }}>
+          <Text style={{ color: '#1B2A21', fontFamily: FONT.bold, fontSize: 19 }}>
             {formatDinar(finalTotal)}
           </Text>
           {/* المتبقي يظهر مرة واحدة داخل شارة الحالة فقط (كان يتكرر سطراً وشارة) */}

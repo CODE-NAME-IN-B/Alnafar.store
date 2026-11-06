@@ -31,12 +31,15 @@ import { colors } from '@/lib/colors';
 import { formatDinar } from '@/lib/money';
 import { showToast } from '@/lib/toast';
 import { ROW } from '@/lib/rtl';
+import { usePalette } from '@/design/theme';
+import { AR_FONT } from '@/design/fonts';
 
 function todayIso(): string {
   return new Date().toISOString().slice(0, 10);
 }
 
 export default function AdminInvoicesScreen() {
+  const palette = usePalette();
   const branchScope = useAppStore((s) => s.adminScopeBranchId);
   const user = useAuthStore((s) => s.user);
   const startEditingInvoice = useCartStore((s) => s.startEditingInvoice);
@@ -170,24 +173,45 @@ export default function AdminInvoicesScreen() {
   };
 
   return (
-    <View style={styles.screen}>
-      {/* الهيدر المبسّط: سطر واحد فقط ظاهر — البحث + تسديد الكل + إعدادات الفلاتر.
-          كل ما عداه (التاريخ، الشraiths، الإحصائيات) ينتقل إلى درج «خيارات القائمة». */}
-      <View style={styles.filterHeader}>
+    <View style={[styles.screen, { backgroundColor: palette.canvas }]}>
+      {/* الهيدر المبسّط: سطر واحد فقط ظاهر — البحث + تسديد الكل + إعدادات الفلاتر */}
+      <View
+        style={[
+          styles.filterHeader,
+          {
+            backgroundColor: palette.canvas,
+            borderBottomColor: palette.surfaceLine,
+          },
+        ]}
+      >
         <View style={styles.searchRow}>
-          <View style={styles.searchBox}>
-            <Icon name="search" size={16} color="#94a3b8" />
+          <View
+            style={[
+              styles.searchBox,
+              {
+                backgroundColor: palette.surface,
+                borderColor: palette.surfaceLine,
+              },
+            ]}
+          >
+            <Icon name="search" size={16} color={palette.textFaint} />
             <TextInput
               value={searchQ}
               onChangeText={setSearchQ}
               placeholder="بحث: رقم فاتورة، عميل، هاتف..."
-              placeholderTextColor="#94a3b8"
+              placeholderTextColor={palette.textFaint}
               textAlign="right"
-              style={styles.searchInput}
+              style={[
+                styles.searchInput,
+                {
+                  color: palette.text,
+                  fontFamily: AR_FONT.medium,
+                },
+              ]}
             />
             {searchQ ? (
               <Pressable onPress={() => setSearchQ('')} hitSlop={8}>
-                <Icon name="close" size={15} color="#94a3b8" />
+                <Icon name="close" size={15} color={palette.textFaint} />
               </Pressable>
             ) : null}
           </View>
@@ -196,10 +220,16 @@ export default function AdminInvoicesScreen() {
             onPress={() => void handleBulkPay()}
             accessibilityRole="button"
             accessibilityLabel="تسديد كل الفواتير غير المدفوعة"
-            style={styles.bulkPayBtn}
+            style={[
+              styles.bulkPayBtn,
+              {
+                backgroundColor: palette.primary,
+                borderColor: palette.primary,
+              },
+            ]}
           >
-            <Icon name="cash" size={14} color="#042f2e" />
-            <Text style={styles.bulkPayText}>
+            <Icon name="cash" size={14} color={palette.onPrimary} />
+            <Text style={[styles.bulkPayText, { color: palette.onPrimary, fontFamily: AR_FONT.bold }]}>
               {busyBulk ? '...' : 'تسديد الكل'}
             </Text>
           </ScalePressable>
@@ -208,10 +238,22 @@ export default function AdminInvoicesScreen() {
             onPress={() => setOptionsOpen(true)}
             accessibilityRole="button"
             accessibilityLabel="خيارات القائمة والإحصائيات"
-            style={styles.optionsBtn}
+            style={[
+              styles.optionsBtn,
+              {
+                backgroundColor: palette.surface,
+                borderColor: palette.surfaceLine,
+              },
+            ]}
           >
-            <Icon name="filter" size={16} color={optionsDirty ? '#042f2e' : '#2dd4bf'} />
-            {optionsDirty ? <View style={styles.optionsDot} /> : null}
+            <Icon
+              name="filter"
+              size={16}
+              color={optionsDirty ? palette.primary : palette.textSub}
+            />
+            {optionsDirty ? (
+              <View style={[styles.optionsDot, { backgroundColor: palette.accent }]} />
+            ) : null}
           </ScalePressable>
         </View>
       </View>
@@ -349,10 +391,23 @@ export default function AdminInvoicesScreen() {
 }
 
 function MiniStat({ label, value }: { label: string; value: string }) {
+  const palette = usePalette();
   return (
-    <View style={styles.miniStat}>
-      <Text style={styles.miniStatLabel}>{label}</Text>
-      <Text style={styles.miniStatVal}>{value}</Text>
+    <View
+      style={[
+        styles.miniStat,
+        {
+          backgroundColor: palette.surface,
+          borderColor: palette.surfaceLine,
+        },
+      ]}
+    >
+      <Text style={[styles.miniStatLabel, { color: palette.textSub, fontFamily: AR_FONT.medium }]}>
+        {label}
+      </Text>
+      <Text style={[styles.miniStatVal, { color: palette.money, fontFamily: AR_FONT.bold }]}>
+        {value}
+      </Text>
     </View>
   );
 }
@@ -360,31 +415,25 @@ function MiniStat({ label, value }: { label: string; value: string }) {
 const styles = StyleSheet.create({
   screen: {
     flex: 1,
-    backgroundColor: '#090d16',
   },
   filterHeader: {
     paddingHorizontal: 12,
     paddingVertical: 10,
     gap: 8,
-    backgroundColor: '#0f172a',
     borderBottomWidth: 1,
-    borderBottomColor: 'rgba(255, 255, 255, 0.08)',
   },
   dateInputWrap: {
     flexDirection: ROW,
     alignItems: 'center',
     gap: 8,
-    backgroundColor: colors.surfaceInset,
     borderRadius: 10,
     borderWidth: 1,
-    borderColor: colors.borderSubtle,
     paddingHorizontal: 12,
     paddingVertical: 12,
     minHeight: 44,
   },
   dateHint: {
-    color: colors.faint,
-    fontFamily: FONT.regular,
+    fontFamily: AR_FONT.regular,
     fontSize: 11.5,
     lineHeight: 17,
     marginBottom: 6,
@@ -399,8 +448,7 @@ const styles = StyleSheet.create({
   },
   dateInput: {
     flex: 1,
-    color: colors.text,
-    fontFamily: FONT.bold,
+    fontFamily: AR_FONT.bold,
     fontSize: 13,
     includeFontPadding: false,
   },
@@ -413,18 +461,15 @@ const styles = StyleSheet.create({
     flex: 1,
     flexDirection: ROW,
     alignItems: 'center',
-    backgroundColor: '#141e30',
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.08)',
     paddingHorizontal: 10,
     height: 42,
     gap: 6,
   },
   searchInput: {
     flex: 1,
-    color: '#f8fafc',
-    fontFamily: FONT.medium,
+    fontFamily: AR_FONT.medium,
     fontSize: 13,
     paddingVertical: 4,
     writingDirection: 'rtl',
@@ -435,16 +480,13 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: 5,
-    backgroundColor: '#14b8a6',
     borderWidth: 1,
-    borderColor: '#2dd4bf',
     borderRadius: 12,
     paddingHorizontal: 12,
     height: 42,
   },
   bulkPayText: {
-    color: '#042f2e',
-    fontFamily: FONT.bold,
+    fontFamily: AR_FONT.bold,
     fontSize: 12,
     includeFontPadding: false,
   },
@@ -454,9 +496,7 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#141e30',
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.08)',
   },
   optionsDot: {
     position: 'absolute',
@@ -465,11 +505,9 @@ const styles = StyleSheet.create({
     width: 7,
     height: 7,
     borderRadius: 999,
-    backgroundColor: '#f59e0b',
   },
   sheetSectionTitle: {
-    color: '#94a3b8',
-    fontFamily: FONT.bold,
+    fontFamily: AR_FONT.bold,
     fontSize: 12,
     marginBottom: 8,
     marginTop: 4,
@@ -480,10 +518,8 @@ const styles = StyleSheet.create({
   },
   miniStat: {
     flex: 1,
-    backgroundColor: '#141e30',
     borderRadius: 10,
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.08)',
     paddingVertical: 6,
     paddingHorizontal: 8,
     alignItems: 'center',
@@ -491,14 +527,10 @@ const styles = StyleSheet.create({
     gap: 2,
   },
   miniStatLabel: {
-    color: '#94a3b8',
-    fontFamily: FONT.medium,
     fontSize: 10.5,
     includeFontPadding: false,
   },
   miniStatVal: {
-    color: '#2dd4bf',
-    fontFamily: FONT.bold,
     fontSize: 13,
     includeFontPadding: false,
   },

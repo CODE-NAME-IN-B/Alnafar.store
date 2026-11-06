@@ -40,9 +40,11 @@ export function matchesLetter(title: string, letter: string | null): boolean {
 }
 
 export function sortGamesAlphabetically<T extends { title?: string | null }>(games: T[]): T[] {
-  return [...games].sort((a, b) =>
-    (a.title || '').localeCompare(b.title || '', undefined, { sensitivity: 'base' })
-  );
+  return [...games].sort((a, b) => {
+    const titleA = (a.title || '').trim();
+    const titleB = (b.title || '').trim();
+    return titleA.localeCompare(titleB, 'en', { sensitivity: 'base', numeric: true });
+  });
 }
 
 export const GENRE_AR_LABELS: Record<string, string> = {

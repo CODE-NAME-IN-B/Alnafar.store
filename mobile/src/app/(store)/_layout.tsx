@@ -17,12 +17,16 @@ function TabIcon({
   badge,
   activeColor,
   inactiveColor,
+  badgeBg,
+  badgeText,
 }: {
   icon: IconName;
   focused: boolean;
   badge?: number;
   activeColor: string;
   inactiveColor: string;
+  badgeBg: string;
+  badgeText: string;
 }) {
   return (
     <View style={styles.tabIconWrap}>
@@ -33,8 +37,8 @@ function TabIcon({
         strokeWidth={focused ? 2.2 : 1.8}
       />
       {badge && badge > 0 ? (
-        <View style={styles.badge}>
-          <Text style={styles.badgeText}>{badge > 99 ? '99+' : badge}</Text>
+        <View style={[styles.badge, { backgroundColor: badgeBg }]}>
+          <Text style={[styles.badgeText, { color: badgeText }]}>{badge > 99 ? '99+' : badge}</Text>
         </View>
       ) : null}
     </View>
@@ -91,7 +95,7 @@ export default function StoreLayout() {
         options={{
           title: 'المتجر',
           tabBarIcon: ({ focused }) => (
-            <TabIcon icon="store" focused={focused} activeColor={palette.primary} inactiveColor={palette.textFaint} />
+            <TabIcon icon="store" focused={focused} activeColor={palette.primary} inactiveColor={palette.textFaint} badgeBg={palette.accent} badgeText={palette.onAccent} />
           ),
         }}
       />
@@ -100,7 +104,7 @@ export default function StoreLayout() {
         options={{
           title: 'الباقات',
           tabBarIcon: ({ focused }) => (
-            <TabIcon icon="package" focused={focused} activeColor={palette.primary} inactiveColor={palette.textFaint} />
+            <TabIcon icon="package" focused={focused} activeColor={palette.primary} inactiveColor={palette.textFaint} badgeBg={palette.accent} badgeText={palette.onAccent} />
           ),
         }}
       />
@@ -109,7 +113,7 @@ export default function StoreLayout() {
         options={{
           title: token ? 'فاتورة الكاشير' : 'السلة',
           tabBarIcon: ({ focused }) => (
-            <TabIcon icon="cart" focused={focused} badge={count} activeColor={palette.primary} inactiveColor={palette.textFaint} />
+            <TabIcon icon="cart" focused={focused} badge={count} activeColor={palette.primary} inactiveColor={palette.textFaint} badgeBg={palette.accent} badgeText={palette.onAccent} />
           ),
         }}
       />
@@ -118,7 +122,7 @@ export default function StoreLayout() {
         options={{
           title: 'المزيد',
           tabBarIcon: ({ focused }) => (
-            <TabIcon icon="more" focused={focused} activeColor={palette.primary} inactiveColor={palette.textFaint} />
+            <TabIcon icon="more" focused={focused} activeColor={palette.primary} inactiveColor={palette.textFaint} badgeBg={palette.accent} badgeText={palette.onAccent} />
           ),
         }}
       />
@@ -142,15 +146,11 @@ const styles = StyleSheet.create({
     height: 18,
     borderRadius: 999,
     paddingHorizontal: 4,
-    backgroundColor: '#14b8a6',
-    borderWidth: 1.5,
-    borderColor: '#090f1d',
     alignItems: 'center',
     justifyContent: 'center',
   },
   badgeText: {
-    fontFamily: FONT.bold,
-    color: '#042f2e',
+    fontFamily: AR_FONT.bold,
     fontSize: 10,
     includeFontPadding: false,
   },

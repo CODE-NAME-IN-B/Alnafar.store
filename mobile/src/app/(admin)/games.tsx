@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import { Image } from 'expo-image';
-import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { Alert, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { FlashList } from '@shopify/flash-list';
 import { useQuery } from '@tanstack/react-query';
 import { fetchGames } from '@/api/games';
@@ -19,8 +19,8 @@ import {
   matchesLetter,
   sortGamesAlphabetically,
 } from '@/lib/arabic';
-import { FONT } from '@/lib/fonts';
-import { colors } from '@/lib/colors';
+import { AR_FONT } from '@/design/fonts';
+import { usePalette } from '@/design/theme';
 import { formatDinar } from '@/lib/money';
 import { mainPriceOf } from '@/lib/gamePrices';
 import { showToast } from '@/lib/toast';
@@ -28,6 +28,7 @@ import { ROW } from '@/lib/rtl';
 import type { Game } from '@/api/types';
 
 export default function AdminGamesScreen() {
+  const palette = usePalette();
   const user = useAuthStore((s) => s.user);
   const isAdmin = user?.role === 'admin';
 
@@ -62,6 +63,21 @@ export default function AdminGamesScreen() {
     return sortGamesAlphabetically(byLetter);
   }, [gamesQuery.data, letterFilter]);
 
+  const confirmDelete = (game: Game) => {
+    Alert.alert(
+      'تأكيد حذف اللعبة',
+      `هل أنت متأكد من حذف لعبة "${game.title}" نهائياً؟ هذا الإجراء لا يمكن التراجع عنه.`,
+      [
+        { text: 'إلغاء', style: 'cancel' },
+        {
+          text: 'حذف نهائياً',
+          style: 'destructive',
+          onPress: () => void handleDelete(game),
+        },
+      ]
+    );
+  };
+
   const handleDelete = async (game: Game) => {
     try {
       await deleteGame(game.id);
@@ -75,22 +91,44 @@ export default function AdminGamesScreen() {
   const categories = categoriesQuery.data ?? [];
 
   return (
-    <View style={styles.screen}>
-      <View style={styles.header}>
+    <View style={[styles.screen, { backgroundColor: palette.canvas }]}>
+      <View
+        style={[
+          styles.header,
+          {
+            backgroundColor: palette.canvas,
+            borderBottomColor: palette.surfaceLine,
+          },
+        ]}
+      >
         <View style={styles.searchRow}>
-          <View style={styles.searchBox}>
-            <Icon name="search" size={16} color="colors.faint" />
+          <View
+            style={[
+              styles.searchBox,
+              {
+                backgroundColor: palette.surface,
+                borderColor: palette.surfaceLine,
+              },
+            ]}
+          >
+            <Icon name="search" size={16} color={palette.textFaint} />
             <TextInput
               value={searchQ}
               onChangeText={setSearchQ}
               placeholder="ابحث عن لعبة في المكتبة..."
-              placeholderTextColor="colors.faint"
+              placeholderTextColor={palette.textFaint}
               textAlign="right"
-              style={styles.searchInput}
+              style={[
+                styles.searchInput,
+                {
+                  color: palette.text,
+                  fontFamily: AR_FONT.medium,
+                },
+              ]}
             />
             {searchQ ? (
               <Pressable onPress={() => setSearchQ('')} hitSlop={8}>
-                <Icon name="close" size={15} color="colors.faint" />
+                <Icon name="close" size={15} color={palette.textFaint} />
               </Pressable>
             ) : null}
           </View>
@@ -99,10 +137,18 @@ export default function AdminGamesScreen() {
               setEditingGame(null);
               setModalOpen(true);
             }}
-            style={styles.addBtn}
+            style={({ pressed }) => [
+              styles.addBtn,
+              {
+                backgroundColor: pressed ? palette.primaryPressed : palette.primary,
+                borderColor: palette.primary,
+              },
+            ]}
           >
-            <Icon name="plus" size={15} color="colors.brandDark" strokeWidth={2.4} />
-            <Text style={styles.addBtnText}>إضافة لعبة</Text>
+            <Icon name="plus" size={15} color={palette.onPrimary} strokeWidth={2.4} />
+            <Text style={[styles.addBtnText, { color: palette.onPrimary, fontFamily: AR_FONT.bold }]}>
+              إضافة لعبة
+            </Text>
           </Pressable>
         </View>
 
@@ -119,7 +165,7 @@ export default function AdminGamesScreen() {
           />
           {categories.map((c) => (
             <Chip
-              key={c.id}
+              key={String(c.id)}
               label={c.name}
               compact
               active={catFilter === c.id}
@@ -128,7 +174,7 @@ export default function AdminGamesScreen() {
           ))}
         </ScrollView>
 
-        {/* فهرس أبجدي بالإنجليزية A - Z */}
+        {/* فهرس أبجدي A - Z */}
         <ScrollView
           horizontal
           showsHorizontalScrollIndicator={false}
@@ -138,13 +184,19 @@ export default function AdminGamesScreen() {
             onPress={() => setLetterFilter(null)}
             style={[
               styles.letterBtn,
-              letterFilter === null && styles.letterBtnActive,
+              {
+                backgroundColor: letterFilter === null ? palette.primary : palette.surface,
+                borderColor: letterFilter === null ? palette.primary : palette.surfaceLine,
+              },
             ]}
           >
             <Text
               style={[
                 styles.letterText,
-                letterFilter === null && styles.letterTextActive,
+                {
+                  color: letterFilter === null ? palette.onPrimary : palette.textSub,
+                  fontFamily: AR_FONT.bold,
+                },
               ]}
             >
               A–Z
@@ -156,10 +208,22 @@ export default function AdminGamesScreen() {
               <Pressable
                 key={ltr}
                 onPress={() => setLetterFilter(active ? null : ltr)}
-                style={[styles.letterBtn, active && styles.letterBtnActive]}
+                style={[
+                  styles.letterBtn,
+                  {
+                    backgroundColor: active ? palette.primary : palette.surface,
+                    borderColor: active ? palette.primary : palette.surfaceLine,
+                  },
+                ]}
               >
                 <Text
-                  style={[styles.letterText, active && styles.letterTextActive]}
+                  style={[
+                    styles.letterText,
+                    {
+                      color: active ? palette.onPrimary : palette.textSub,
+                      fontFamily: AR_FONT.bold,
+                    },
+                  ]}
                 >
                   {ltr}
                 </Text>
@@ -189,23 +253,35 @@ export default function AdminGamesScreen() {
             const { genre: hGenre } = classifyGameHeuristic(item);
             const gLabel = formatGenreLabel(item.genre) || hGenre;
             return (
-              <View style={styles.gameRow}>
+              <Pressable
+                onPress={() => {
+                  setEditingGame(item);
+                  setModalOpen(true);
+                }}
+                style={({ pressed }) => [
+                  styles.gameRow,
+                  {
+                    backgroundColor: pressed ? palette.surfaceRaised : palette.surface,
+                    borderColor: palette.surfaceLine,
+                  },
+                ]}
+              >
                 <Image
                   source={{ uri: item.image }}
-                  style={styles.thumb}
+                  style={[styles.thumb, { backgroundColor: palette.surfaceRaised }]}
                   contentFit="cover"
                 />
                 <View style={styles.infoCol}>
-                  <Text numberOfLines={1} style={styles.gameTitle}>
+                  <Text numberOfLines={1} style={[styles.gameTitle, { color: palette.text }]}>
                     {item.title}
                   </Text>
-                  <Text style={styles.gamePrice}>
+                  <Text style={[styles.gamePrice, { color: palette.money }]}>
                     {formatDinar(mainPriceOf(item))}
                     {item.price_ps5
                       ? ` • فايف: ${formatDinar(Number(item.price_ps5))}`
                       : ''}
                   </Text>
-                  <Text style={styles.gameMeta}>
+                  <Text style={[styles.gameMeta, { color: palette.textSub }]}>
                     {gLabel}
                     {item.size_gb
                       ? ` • ${Math.round(Number(item.size_gb))} GB`
@@ -218,22 +294,34 @@ export default function AdminGamesScreen() {
                       setEditingGame(item);
                       setModalOpen(true);
                     }}
-                    style={[styles.rowBtn, styles.editBtn]}
+                    style={({ pressed }) => [
+                      styles.rowBtn,
+                      {
+                        backgroundColor: pressed ? palette.surfaceLine : palette.surfaceRaised,
+                        borderColor: palette.surfaceLine,
+                      },
+                    ]}
                   >
-                    <Icon name="edit" size={13} color="colors.brandLight" />
-                    <Text style={styles.editBtnText}>تعديل</Text>
+                    <Icon name="edit" size={13} color={palette.text} />
+                    <Text style={[styles.editBtnText, { color: palette.text }]}>تعديل</Text>
                   </Pressable>
                   {isAdmin ? (
                     <Pressable
-                      onPress={() => void handleDelete(item)}
-                      style={[styles.rowBtn, styles.delBtn]}
+                      onPress={() => confirmDelete(item)}
+                      style={({ pressed }) => [
+                        styles.rowBtn,
+                        {
+                          backgroundColor: pressed ? palette.danger + '25' : palette.danger + '14',
+                          borderColor: palette.danger + '40',
+                        },
+                      ]}
                     >
-                      <Icon name="trash" size={13} color="colors.dangerText" />
-                      <Text style={styles.delBtnText}>حذف</Text>
+                      <Icon name="trash" size={13} color={palette.danger} />
+                      <Text style={[styles.delBtnText, { color: palette.danger }]}>حذف</Text>
                     </Pressable>
                   ) : null}
                 </View>
-              </View>
+              </Pressable>
             );
           }}
         />
@@ -258,15 +346,12 @@ export default function AdminGamesScreen() {
 const styles = StyleSheet.create({
   screen: {
     flex: 1,
-    backgroundColor: colors.deep,
   },
   header: {
     paddingHorizontal: 12,
     paddingVertical: 10,
     gap: 8,
-    backgroundColor: colors.base,
     borderBottomWidth: 1,
-    borderBottomColor: colors.borderSubtle,
   },
   searchRow: {
     flexDirection: ROW,
@@ -277,18 +362,14 @@ const styles = StyleSheet.create({
     flex: 1,
     flexDirection: ROW,
     alignItems: 'center',
-    backgroundColor: colors.elevated,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: colors.borderSubtle,
     paddingHorizontal: 10,
     height: 42,
     gap: 6,
   },
   searchInput: {
     flex: 1,
-    color: colors.text,
-    fontFamily: FONT.medium,
     fontSize: 13,
     paddingVertical: 4,
     writingDirection: 'rtl',
@@ -299,16 +380,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: 5,
-    backgroundColor: colors.brand,
     borderWidth: 1,
-    borderColor: colors.brandBorder,
     borderRadius: 12,
     paddingHorizontal: 14,
     height: 42,
   },
   addBtnText: {
-    color: colors.brandDark,
-    fontFamily: FONT.bold,
     fontSize: 12.5,
     includeFontPadding: false,
   },
@@ -326,24 +403,13 @@ const styles = StyleSheet.create({
     height: 30,
     paddingHorizontal: 8,
     borderRadius: 8,
-    backgroundColor: colors.elevated,
     borderWidth: 1,
-    borderColor: colors.borderSubtle,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  letterBtnActive: {
-    backgroundColor: colors.brand,
-    borderColor: colors.brandBorder,
-  },
   letterText: {
-    fontFamily: FONT.bold,
-    color: colors.dim,
     fontSize: 11.5,
     includeFontPadding: false,
-  },
-  letterTextActive: {
-    color: colors.brandDark,
   },
   emptyWrap: {
     flex: 1,
@@ -353,42 +419,36 @@ const styles = StyleSheet.create({
     flexDirection: ROW,
     alignItems: 'center',
     gap: 12,
-    backgroundColor: colors.elevated,
-    borderRadius: 14,
+    borderRadius: 16,
     borderWidth: 1,
-    borderColor: colors.borderSubtle,
     padding: 10,
     marginBottom: 8,
   },
   thumb: {
-    width: 54,
-    height: 68,
+    width: 52,
+    height: 66,
     borderRadius: 10,
-    backgroundColor: colors.deep,
   },
   infoCol: {
     flex: 1,
-    gap: 2,
+    gap: 3,
   },
   gameTitle: {
-    color: colors.text,
-    fontFamily: FONT.bold,
+    fontFamily: AR_FONT.bold,
     fontSize: 14,
     textAlign: 'right',
     writingDirection: 'rtl',
     includeFontPadding: false,
   },
   gamePrice: {
-    color: colors.brandLight,
-    fontFamily: FONT.bold,
-    fontSize: 12,
+    fontFamily: AR_FONT.bold,
+    fontSize: 12.5,
     textAlign: 'right',
     writingDirection: 'rtl',
     includeFontPadding: false,
   },
   gameMeta: {
-    color: colors.faint,
-    fontFamily: FONT.regular,
+    fontFamily: AR_FONT.regular,
     fontSize: 11,
     textAlign: 'right',
     writingDirection: 'rtl',
@@ -405,26 +465,17 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderRadius: 9,
     paddingHorizontal: 10,
-    paddingVertical: 6,
-  },
-  editBtn: {
-    backgroundColor: 'rgba(20,184,166,0.12)',
-    borderColor: 'rgba(45,212,191,0.35)',
+    paddingVertical: 5,
+    minHeight: 30,
   },
   editBtnText: {
-    color: colors.brandLight,
-    fontFamily: FONT.bold,
-    fontSize: 11.5,
+    fontFamily: AR_FONT.bold,
+    fontSize: 11,
     includeFontPadding: false,
   },
-  delBtn: {
-    backgroundColor: 'rgba(239,68,68,0.12)',
-    borderColor: 'rgba(248,113,113,0.35)',
-  },
   delBtnText: {
-    color: colors.dangerText,
-    fontFamily: FONT.bold,
-    fontSize: 11.5,
+    fontFamily: AR_FONT.bold,
+    fontSize: 11,
     includeFontPadding: false,
   },
 });
