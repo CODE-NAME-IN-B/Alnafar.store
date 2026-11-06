@@ -4,6 +4,8 @@ import { StyleSheet, Text, View } from 'react-native';
 import { useAppStore } from '@/stores/app';
 import { useAuthStore } from '@/stores/auth';
 import { useCartStore, cartCount } from '@/stores/cart';
+import { usePalette } from '@/design/theme';
+import { AR_FONT } from '@/design/fonts';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import LoginScreen from '../login';
 import Icon, { IconName } from '@/components/ui/Icon';
@@ -13,17 +15,21 @@ function TabIcon({
   icon,
   focused,
   badge,
+  activeColor,
+  inactiveColor,
 }: {
   icon: IconName;
   focused: boolean;
   badge?: number;
+  activeColor: string;
+  inactiveColor: string;
 }) {
   return (
     <View style={styles.tabIconWrap}>
       <Icon
         name={icon}
         size={22}
-        color={focused ? '#2dd4bf' : '#94a3b8'}
+        color={focused ? activeColor : inactiveColor}
         strokeWidth={focused ? 2.2 : 1.8}
       />
       {badge && badge > 0 ? (
@@ -45,6 +51,7 @@ export default function StoreLayout() {
   const items = useCartStore((s) => s.items);
   const count = cartCount(items);
   const insets = useSafeAreaInsets();
+  const palette = usePalette();
 
   useEffect(() => {
     if (appReady && !selectedBranchId) {
@@ -62,18 +69,18 @@ export default function StoreLayout() {
       screenOptions={{
         headerShown: false,
         tabBarStyle: {
-          backgroundColor: '#090f1d',
-          borderTopColor: 'rgba(255, 255, 255, 0.08)',
+          backgroundColor: palette.canvas,
+          borderTopColor: palette.surfaceLine,
           borderTopWidth: 1,
           // S2/V4: احترام شريط الإيماءات بالكامل (Arabic RTL + Android gesture bar)
           height: 66 + Math.max(insets.bottom, 8),
           paddingBottom: Math.max(insets.bottom, 8),
           paddingTop: 7,
         },
-        tabBarActiveTintColor: '#2dd4bf',
-        tabBarInactiveTintColor: '#94a3b8',
+        tabBarActiveTintColor: palette.primary,
+        tabBarInactiveTintColor: palette.textFaint,
         tabBarLabelStyle: {
-          fontFamily: FONT.bold,
+          fontFamily: AR_FONT.bold,
           fontSize: 12,
           includeFontPadding: false,
         },
@@ -84,7 +91,7 @@ export default function StoreLayout() {
         options={{
           title: 'المتجر',
           tabBarIcon: ({ focused }) => (
-            <TabIcon icon="store" focused={focused} />
+            <TabIcon icon="store" focused={focused} activeColor={palette.primary} inactiveColor={palette.textFaint} />
           ),
         }}
       />
@@ -93,7 +100,7 @@ export default function StoreLayout() {
         options={{
           title: 'الباقات',
           tabBarIcon: ({ focused }) => (
-            <TabIcon icon="package" focused={focused} />
+            <TabIcon icon="package" focused={focused} activeColor={palette.primary} inactiveColor={palette.textFaint} />
           ),
         }}
       />
@@ -102,7 +109,7 @@ export default function StoreLayout() {
         options={{
           title: token ? 'فاتورة الكاشير' : 'السلة',
           tabBarIcon: ({ focused }) => (
-            <TabIcon icon="cart" focused={focused} badge={count} />
+            <TabIcon icon="cart" focused={focused} badge={count} activeColor={palette.primary} inactiveColor={palette.textFaint} />
           ),
         }}
       />
@@ -111,7 +118,7 @@ export default function StoreLayout() {
         options={{
           title: 'المزيد',
           tabBarIcon: ({ focused }) => (
-            <TabIcon icon="more" focused={focused} />
+            <TabIcon icon="more" focused={focused} activeColor={palette.primary} inactiveColor={palette.textFaint} />
           ),
         }}
       />

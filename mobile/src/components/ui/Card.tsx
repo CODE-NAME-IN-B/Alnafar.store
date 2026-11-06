@@ -1,6 +1,7 @@
 import React, { ReactNode } from 'react';
 import { Pressable, StyleSheet, View, ViewStyle } from 'react-native';
-import { colors, tokens, triggerLightHaptic } from '@/lib/colors';
+import { tokens, triggerLightHaptic } from '@/lib/colors';
+import { usePalette } from '@/design/theme';
 
 interface Props {
   children: ReactNode;
@@ -11,6 +12,7 @@ interface Props {
 }
 
 export function Card({ children, onPress, statusColor, style }: Props) {
+  const palette = usePalette();
   const content = (
     <>
       {statusColor ? (
@@ -29,24 +31,42 @@ export function Card({ children, onPress, statusColor, style }: Props) {
           triggerLightHaptic();
           onPress();
         }}
-        style={[styles.card, style]}
+        style={[
+          styles.card,
+          {
+            backgroundColor: palette.surface,
+            borderColor: palette.surfaceLine,
+          },
+          style,
+        ]}
       >
         {content}
       </Pressable>
     );
   }
 
-  return <View style={[styles.card, style]}>{content}</View>;
+  return (
+    <View
+      style={[
+        styles.card,
+        {
+          backgroundColor: palette.surface,
+          borderColor: palette.surfaceLine,
+        },
+        style,
+      ]}
+    >
+      {content}
+    </View>
+  );
 }
 
 export default Card;
 
 const styles = StyleSheet.create({
   card: {
-    backgroundColor: colors.elevated,
     borderRadius: tokens.radius.card,
     borderWidth: 1,
-    borderColor: colors.borderSubtle,
     overflow: 'hidden',
     position: 'relative',
   },

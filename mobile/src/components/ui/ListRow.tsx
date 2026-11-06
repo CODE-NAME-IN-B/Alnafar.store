@@ -1,8 +1,9 @@
 import React, { ReactNode } from 'react';
 import { Pressable, StyleSheet, Text, View, ViewStyle } from 'react-native';
 import Icon, { IconName } from './Icon';
-import { FONT } from '@/lib/fonts';
-import { colors, tokens, triggerLightHaptic } from '@/lib/colors';
+import { AR_FONT } from '@/design/fonts';
+import { usePalette } from '@/design/theme';
+import { tokens, triggerLightHaptic } from '@/lib/colors';
 import { ROW } from '@/lib/rtl';
 
 interface Props {
@@ -28,6 +29,7 @@ export function ListRow({
   showChevron,
   style,
 }: Props) {
+  const palette = usePalette();
   return (
     <Pressable
       disabled={!onPress}
@@ -36,21 +38,28 @@ export function ListRow({
         triggerLightHaptic();
         onPress();
       }}
-      style={[styles.row, style]}
+      style={[
+        styles.row,
+        {
+          backgroundColor: palette.surface,
+          borderColor: palette.surfaceLine,
+        },
+        style,
+      ]}
     >
       {leading ? <View style={styles.leading}>{leading}</View> : null}
 
       <View style={styles.body}>
-        <Text numberOfLines={1} style={styles.title}>
+        <Text numberOfLines={1} style={[styles.title, { color: palette.text }]}>
           {title}
         </Text>
         {subtitle ? (
-          <Text numberOfLines={1} style={styles.subtitle}>
+          <Text numberOfLines={1} style={[styles.subtitle, { color: palette.textSub }]}>
             {subtitle}
           </Text>
         ) : null}
         {meta ? (
-          <Text numberOfLines={1} style={styles.meta}>
+          <Text numberOfLines={1} style={[styles.meta, { color: palette.textFaint }]}>
             {meta}
           </Text>
         ) : null}
@@ -69,10 +78,10 @@ export function ListRow({
           accessibilityLabel={`خيارات ${title}`}
           style={styles.moreBtn}
         >
-          <Icon name="more" size={20} color={colors.dim} />
+          <Icon name="more" size={20} color={palette.textSub} />
         </Pressable>
       ) : showChevron ? (
-        <Icon name="chevron-left" size={18} color={colors.faint} />
+        <Icon name="chevron-left" size={18} color={palette.textFaint} />
       ) : null}
     </Pressable>
   );
@@ -85,10 +94,8 @@ const styles = StyleSheet.create({
     flexDirection: ROW,
     alignItems: 'center',
     gap: 12,
-    backgroundColor: colors.elevated,
     borderRadius: tokens.radius.card,
     borderWidth: 1,
-    borderColor: colors.borderSubtle,
     paddingHorizontal: 12,
     paddingVertical: 10,
     minHeight: 68,
@@ -102,8 +109,7 @@ const styles = StyleSheet.create({
     alignItems: 'stretch',
   },
   title: {
-    fontFamily: FONT.bold,
-    color: colors.text,
+    fontFamily: AR_FONT.bold,
     fontSize: 15,
     lineHeight: 22,
     textAlign: 'right',
@@ -112,8 +118,7 @@ const styles = StyleSheet.create({
     includeFontPadding: false,
   },
   subtitle: {
-    fontFamily: FONT.bold,
-    color: colors.brandLight,
+    fontFamily: AR_FONT.semibold,
     fontSize: 13,
     lineHeight: 19,
     textAlign: 'right',
@@ -122,8 +127,7 @@ const styles = StyleSheet.create({
     includeFontPadding: false,
   },
   meta: {
-    fontFamily: FONT.medium,
-    color: colors.faint,
+    fontFamily: AR_FONT.medium,
     fontSize: 12,
     lineHeight: 18,
     textAlign: 'right',

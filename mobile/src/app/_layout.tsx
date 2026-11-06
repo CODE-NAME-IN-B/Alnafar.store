@@ -8,9 +8,7 @@ import * as SplashScreen from 'expo-splash-screen';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import * as SystemUI from 'expo-system-ui';
 import { CAIRO_FONTS } from '@/lib/fonts';
-import { colors } from '@/lib/colors';
 import { DESIGN_FONTS } from '@/design/fonts';
-import { ThemeProvider } from '@/design/theme';
 import { BrandSplash } from '@/design/brand-splash';
 import { registerForPushNotifications, useForegroundNotifications } from '@/lib/notifications';
 import TrackedOrderWatcher from '@/components/track/TrackedOrderWatcher';
@@ -18,6 +16,7 @@ import { setTokenGetter, setUnauthorizedHandler } from '@/api/client';
 import { useAuthStore } from '@/stores/auth';
 import { useAppStore } from '@/stores/app';
 import ToastHost from '@/components/ui/ToastHost';
+import { ThemeProvider, usePalette } from '@/design/theme';
 
 import { useCallback, useState } from 'react';
 
@@ -77,18 +76,8 @@ export default function RootLayout() {
       <SafeAreaProvider>
         <QueryClientProvider client={queryClient}>
           <ThemeProvider>
-            <StatusBar style="light" />
-            <Stack
-              screenOptions={{
-                headerShown: false,
-                contentStyle: { backgroundColor: colors.base },
-              }}
-            >
-              <Stack.Screen name="(store)" />
-              <Stack.Screen name="(admin)" />
-              <Stack.Screen name="login" />
-              <Stack.Screen name="track/[id]" />
-            </Stack>
+            <StatusBar style="auto" />
+            <ThemedStack />
             {/* مراقب الطلبات المحفوظة محلياً — إشعار «جاهز للاستلام» حتى خارج شاشة التتبع */}
             <TrackedOrderWatcher />
             <ToastHost />
@@ -98,5 +87,23 @@ export default function RootLayout() {
         </QueryClientProvider>
       </SafeAreaProvider>
     </GestureHandlerRootView>
+  );
+}
+
+/** شجرة المسارات بخلفية من السمة (كريمي/حبر) */
+function ThemedStack() {
+  const palette = usePalette();
+  return (
+    <Stack
+      screenOptions={{
+        headerShown: false,
+        contentStyle: { backgroundColor: palette.canvas },
+      }}
+    >
+      <Stack.Screen name="(store)" />
+      <Stack.Screen name="(admin)" />
+      <Stack.Screen name="login" />
+      <Stack.Screen name="track/[id]" />
+    </Stack>
   );
 }

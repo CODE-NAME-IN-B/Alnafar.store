@@ -1,7 +1,15 @@
 import React, { useRef } from 'react';
-import { Animated, Pressable, StyleSheet, Text, ViewStyle } from 'react-native';
+import {
+  Animated,
+  Pressable,
+  StyleSheet,
+  Text,
+  ViewStyle,
+} from 'react-native';
 import { FONT } from '@/lib/fonts';
-import { colors, tokens, triggerLightHaptic } from '@/lib/colors';
+import { tokens, triggerLightHaptic } from '@/lib/colors';
+import { AR_FONT } from '@/design/fonts';
+import { usePalette } from '@/design/theme';
 
 interface Props {
   label: string;
@@ -10,14 +18,13 @@ interface Props {
   compact?: boolean;
   onPress?: () => void;
   style?: ViewStyle;
-  /** محتفظ به للتوافق فقط — لون التفعيل موحّد بلون العلامة الأخضر المزرق */
-  accent?: string;
 }
 
 const AnimatedChip = Animated.createAnimatedComponent(Pressable);
 
 export function Chip({ label, active, compact, onPress, style }: Props) {
   const scale = useRef(new Animated.Value(1)).current;
+  const palette = usePalette();
 
   const animate = (to: number, speed: number) => {
     Animated.spring(scale, { toValue: to, useNativeDriver: true, speed }).start();
@@ -39,12 +46,22 @@ export function Chip({ label, active, compact, onPress, style }: Props) {
       style={[
         styles.chip,
         compact ? styles.compact : null,
-        active ? styles.chipActive : styles.chipIdle,
+        {
+          backgroundColor: active ? palette.primary : palette.surface,
+          borderColor: active ? 'transparent' : palette.surfaceLine,
+        },
         style,
       ]}
     >
       <Text
-        style={[styles.text, compact ? styles.textCompact : null, active ? styles.textActive : styles.textIdle]}
+        style={[
+          styles.text,
+          compact ? styles.textCompact : null,
+          {
+            color: active ? palette.onPrimary : palette.textSub,
+            fontFamily: active ? FONT.bold : FONT.semibold,
+          },
+        ]}
         numberOfLines={1}
       >
         {label}
@@ -65,14 +82,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  chipActive: {
-    backgroundColor: colors.brand,
-    borderColor: colors.brandLight,
-  },
-  chipIdle: {
-    backgroundColor: colors.elevated,
-    borderColor: colors.borderSubtle,
-  },
   compact: {
     minHeight: 30,
     paddingHorizontal: 11,
@@ -86,13 +95,5 @@ const styles = StyleSheet.create({
   },
   textCompact: {
     fontSize: 12,
-  },
-  textActive: {
-    fontFamily: FONT.bold,
-    color: colors.brandDark,
-  },
-  textIdle: {
-    fontFamily: FONT.semibold,
-    color: colors.dim,
   },
 });

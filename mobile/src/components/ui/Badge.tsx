@@ -1,16 +1,9 @@
 import React from 'react';
 import { StyleSheet, Text, View, ViewStyle } from 'react-native';
-import { FONT } from '@/lib/fonts';
-import { colors } from '@/lib/colors';
+import { AR_FONT } from '@/design/fonts';
+import { usePalette } from '@/design/theme';
 
-export type BadgeTone =
-  | 'brand'
-  | 'success'
-  | 'warning'
-  | 'danger'
-  | 'neutral'
-  | 'ps4'
-  | 'ps5';
+export type BadgeTone = 'primary' | 'success' | 'warning' | 'danger' | 'neutral';
 
 interface Props {
   label: string;
@@ -18,21 +11,32 @@ interface Props {
   style?: ViewStyle;
 }
 
-const TONE_MAP: Record<BadgeTone, { bg: string; text: string }> = {
-  brand: { bg: colors.brandSoft, text: colors.brandLight },
-  success: { bg: colors.successSoft, text: '#4ade80' },
-  warning: { bg: colors.warningSoft, text: '#fbbf24' },
-  danger: { bg: colors.dangerSoft, text: '#fca5a5' },
-  neutral: { bg: 'rgba(148, 163, 184, 0.14)', text: colors.dim },
-  ps4: { bg: 'rgba(14, 165, 233, 0.22)', text: '#7dd3fc' },
-  ps5: { bg: 'rgba(168, 85, 247, 0.22)', text: '#d8b4fe' },
-};
-
+/** شارة نصف ماليّة: نص دلالي + سطح خفيف — المنصات (PS4/PS5/PC) tone='neutral'
+    بحدٍ رفيع (قرار §12.4: لا ألوان هوية للمنصات) */
 export function Badge({ label, tone = 'neutral', style }: Props) {
-  const palette = TONE_MAP[tone];
+  const palette = usePalette();
+  const color =
+    tone === 'primary'
+      ? palette.textSub
+      : tone === 'success'
+        ? palette.success
+        : tone === 'warning'
+          ? palette.warning
+          : tone === 'danger'
+            ? palette.danger
+            : palette.textSub;
   return (
-    <View style={[styles.badge, { backgroundColor: palette.bg }, style]}>
-      <Text style={[styles.text, { color: palette.text }]} numberOfLines={1}>
+    <View
+      style={[
+        styles.badge,
+        {
+          backgroundColor: palette.surface,
+          borderColor: palette.surfaceLine,
+        },
+        style,
+      ]}
+    >
+      <Text style={[styles.text, { color }]} numberOfLines={1}>
         {label}
       </Text>
     </View>
@@ -46,11 +50,12 @@ const styles = StyleSheet.create({
     paddingHorizontal: 8,
     paddingVertical: 3,
     borderRadius: 999,
+    borderWidth: 1,
     alignItems: 'center',
     justifyContent: 'center',
   },
   text: {
-    fontFamily: FONT.bold,
+    fontFamily: AR_FONT.medium,
     fontSize: 11,
     letterSpacing: 0,
     includeFontPadding: false,

@@ -11,6 +11,8 @@ import { ScalePressable } from './motion';
 import { FONT } from '@/lib/fonts';
 import { colors, tokens, triggerLightHaptic } from '@/lib/colors';
 import { ROW } from '@/lib/rtl';
+import { usePalette } from '@/design/theme';
+import { TYPE } from '@/design/type';
 
 export type ButtonVariant =
   | 'primary'
@@ -34,52 +36,26 @@ interface Props {
   testID?: string;
 }
 
-const PALETTES: Record<
-  ButtonVariant,
-  { bg: string; border: string; text: string; borderWidth: number }
-> = {
-  primary: {
-    bg: colors.brand,
-    border: colors.brandLight,
-    text: colors.brandDark,
-    borderWidth: 0,
-  },
-  tonal: {
-    bg: colors.brandSoft,
-    border: 'transparent',
-    text: colors.brandLight,
-    borderWidth: 0,
-  },
-  secondary: {
-    bg: 'transparent',
-    border: colors.brandBorder,
-    text: colors.brandLight,
-    borderWidth: 1,
-  },
-  tertiary: {
-    bg: 'transparent',
-    border: 'transparent',
-    text: colors.dim,
-    borderWidth: 0,
-  },
-  ghost: {
-    bg: 'transparent',
-    border: 'transparent',
-    text: colors.dim,
-    borderWidth: 0,
-  },
-  danger: {
-    bg: colors.dangerSoft,
-    border: 'transparent',
-    text: colors.dangerText,
-    borderWidth: 0,
-  },
-  icon: {
-    bg: colors.elevated,
-    border: colors.borderSubtle,
-    text: colors.text,
-    borderWidth: 1,
-  },
+/** لواحق كل variant من الرموز الدلالية — فاتح/داكن بنفس الأسماء */
+const useVariant = (variant: ButtonVariant) => {
+  const p = usePalette();
+  switch (variant) {
+    case 'primary':
+      return { bg: p.primary, border: 'transparent' as const, text: p.onPrimary, bw: 0 };
+    case 'tonal':
+      return { bg: p.surfaceRaised, border: 'transparent' as const, text: p.text, bw: 0 };
+    case 'secondary':
+      return { bg: 'transparent' as const, border: p.surfaceLine, text: p.text, bw: 1 };
+    case 'tertiary':
+      return { bg: 'transparent' as const, border: 'transparent' as const, text: p.textSub, bw: 0 };
+    case 'ghost':
+      return { bg: 'transparent' as const, border: 'transparent' as const, text: p.textSub, bw: 0 };
+    case 'danger':
+      return { bg: 'transparent' as const, border: p.danger, text: p.danger, bw: 1 };
+    case 'icon':
+    default:
+      return { bg: p.surface, border: p.surfaceLine, text: p.text, bw: 1 };
+  }
 };
 
 export function AppButton({
@@ -95,7 +71,7 @@ export function AppButton({
   testID,
 }: Props) {
   const isDisabled = disabled || loading;
-  const palette = PALETTES[variant];
+  const palette = useVariant(variant);
   const isIconOnly = variant === 'icon' || (!label && Boolean(icon));
 
   const handlePress = () => {
@@ -115,7 +91,7 @@ export function AppButton({
         {
           backgroundColor: palette.bg,
           borderColor: palette.border,
-          borderWidth: palette.borderWidth,
+          borderWidth: palette.bw,
           opacity: isDisabled ? 0.5 : 1,
         },
         style,
@@ -138,7 +114,23 @@ export function AppButton({
         <View style={styles.content}>
           {icon ? <Icon name={icon} size={18} color={palette.text} /> : null}
           {label ? (
-            <Text style={[styles.text, { color: palette.text }]}>{label}</Text>
+            <Text
+              style={[
+                styles.label,
+                { color: palette.text },
+                badgeCount && badgeCount > 0 ? { minWidth: 64 } : null,
+              ]}
+              numberOfLines={1}
+            >
+              {label}
+            </Text>
+          ) : null}
+          {badgeCount && badgeCount > 0 ? (
+            <View style={styles.badge}>
+              <Text style={styles.badgeText}>
+                {badgeCount > 99 ? '99+' : badgeCount}
+              </Text>
+            </View>
           ) : null}
         </View>
       )}
@@ -146,61 +138,49 @@ export function AppButton({
   );
 }
 
-export { AppButton as Button };
 export default AppButton;
 
 const styles = StyleSheet.create({
   base: {
-    minHeight: tokens.touch.button,
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    borderRadius: tokens.radius.control,
+    minHeight: 52,
+    borderRadius: tokens.radius.pill,
     alignItems: 'center',
     justifyContent: 'center',
+    paddingHorizontal: 20,
   },
   iconCircle: {
     width: 44,
     height: 44,
-    borderRadius: 999,
+    borderRadius: 22,
     alignItems: 'center',
     justifyContent: 'center',
   },
   iconInner: {
+    flexDirection: ROW,
+  },
+  content: {
+    flexDirection: ROW,
     alignItems: 'center',
-    justifyContent: 'center',
-    position: 'relative',
+    gap: 8,
+  },
+  label: {
+    ...TYPE.label,
+    fontFamily: FONT.bold,
+    fontSize: 15,
+    lineHeight: 22,
   },
   badge: {
-    position: 'absolute',
-    top: -6,
-    right: -8,
+    backgroundColor: colors.success,
+    borderRadius: 9,
     minWidth: 18,
     height: 18,
-    borderRadius: 999,
-    backgroundColor: colors.brand,
     paddingHorizontal: 4,
     alignItems: 'center',
     justifyContent: 'center',
   },
   badgeText: {
+    fontSize: 11,
     fontFamily: FONT.bold,
-    color: colors.brandDark,
-    fontSize: 10,
-    fontVariant: ['tabular-nums'],
-    includeFontPadding: false,
-  },
-  content: {
-    flexDirection: ROW,
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 8,
-  },
-  text: {
-    fontFamily: FONT.bold,
-    fontSize: 14.5,
-    letterSpacing: 0,
-    fontVariant: ['tabular-nums'],
-    includeFontPadding: false,
-    textAlign: 'center',
+    color: '#0f1d17',
   },
 });

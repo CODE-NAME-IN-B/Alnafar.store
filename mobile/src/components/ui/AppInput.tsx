@@ -10,7 +10,8 @@ import {
   type TextInputInstance,
 } from 'react-native';
 import Icon, { IconName } from './Icon';
-import { FONT } from '@/lib/fonts';
+import { AR_FONT } from '@/design/fonts';
+import { usePalette } from '@/design/theme';
 import { ROW } from '@/lib/rtl';
 
 interface Props {
@@ -53,21 +54,24 @@ export default function AppInput({
 }: Props) {
   const [focused, setFocused] = useState(false);
   const [hidden, setHidden] = useState(Boolean(secure));
+  const palette = usePalette();
 
   return (
     <View style={styles.wrap}>
-      {label ? <Text style={styles.label}>{label}</Text> : null}
+      {label ? <Text style={[styles.label, { color: palette.textSub }]}>{label}</Text> : null}
       <View
         style={[
           styles.fieldWrap,
           multiline && styles.fieldMultiline,
-          focused && styles.fieldFocused,
-          error ? styles.fieldError : null,
+          {
+            backgroundColor: palette.surfaceRaised,
+            borderColor: error ? palette.danger : focused ? palette.primary : palette.surfaceLine,
+          },
         ]}
       >
         {icon ? (
           <View style={styles.iconSlot}>
-            <Icon name={icon} size={18} color={focused ? '#2dd4bf' : '#94a3b8'} />
+            <Icon name={icon} size={18} color={focused ? palette.primary : palette.textFaint} />
           </View>
         ) : null}
         <TextInput
@@ -75,7 +79,7 @@ export default function AppInput({
           value={value}
           onChangeText={onChangeText}
           placeholder={placeholder}
-          placeholderTextColor="#94a3b8"
+          placeholderTextColor={palette.textFaint}
           multiline={multiline}
           keyboardType={keyboard}
           secureTextEntry={hidden}
@@ -88,7 +92,7 @@ export default function AppInput({
           textAlign="right"
           autoFocus={autoFocus}
           ref={inputRef}
-          style={[styles.input, multiline && styles.inputMultiline]}
+          style={[styles.input, { color: palette.text }, multiline && styles.inputMultiline]}
         />
         {secure ? (
           <Pressable
@@ -96,11 +100,11 @@ export default function AppInput({
             hitSlop={10}
             style={styles.eyeBtn}
           >
-            <Icon name={hidden ? 'eye' : 'eye-off'} size={18} color="#94a3b8" />
+            <Icon name={hidden ? 'eye' : 'eye-off'} size={18} color={palette.textFaint} />
           </Pressable>
         ) : null}
       </View>
-      {error ? <Text style={styles.error}>{error}</Text> : null}
+      {error ? <Text style={[styles.error, { color: palette.danger }]}>{error}</Text> : null}
     </View>
   );
 }
@@ -110,8 +114,7 @@ const styles = StyleSheet.create({
     width: '100%',
   },
   label: {
-    fontFamily: FONT.semibold,
-    color: '#cbd5e1',
+    fontFamily: AR_FONT.semibold,
     fontSize: 13,
     marginBottom: 6,
     textAlign: 'right',
@@ -121,9 +124,7 @@ const styles = StyleSheet.create({
   fieldWrap: {
     flexDirection: ROW,
     alignItems: 'center',
-    backgroundColor: '#0b1220',
     borderWidth: 1.5,
-    borderColor: 'rgba(255, 255, 255, 0.08)',
     borderRadius: 14,
     paddingHorizontal: 12,
     minHeight: 50,
@@ -132,13 +133,6 @@ const styles = StyleSheet.create({
     minHeight: 88,
     alignItems: 'flex-start',
     paddingVertical: 10,
-  },
-  fieldFocused: {
-    borderColor: '#14b8a6',
-    backgroundColor: '#0f1b33',
-  },
-  fieldError: {
-    borderColor: '#ef4444',
   },
   iconSlot: {
     marginLeft: 8,
@@ -149,8 +143,7 @@ const styles = StyleSheet.create({
   },
   input: {
     flex: 1,
-    fontFamily: FONT.medium,
-    color: '#f8fafc',
+    fontFamily: AR_FONT.medium,
     fontSize: 15,
     paddingVertical: 10,
     writingDirection: 'rtl',
@@ -162,8 +155,7 @@ const styles = StyleSheet.create({
     textAlignVertical: 'top',
   },
   error: {
-    fontFamily: FONT.medium,
-    color: '#f87171',
+    fontFamily: AR_FONT.medium,
     fontSize: 12,
     marginTop: 5,
     textAlign: 'right',

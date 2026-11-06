@@ -1,6 +1,8 @@
 import { ActivityIndicator, Text, View, Pressable } from 'react-native';
-import { FONT } from '@/lib/fonts';
 import Icon, { type IconName } from './Icon';
+import { AR_FONT } from '@/design/fonts';
+import { usePalette } from '@/design/theme';
+import { tokens } from '@/lib/colors';
 
 interface BaseProps {
   message?: string;
@@ -8,10 +10,11 @@ interface BaseProps {
 
 /** حالة تحميل موحدة */
 export function LoadingState({ message = 'جاري التحميل...' }: BaseProps) {
+  const palette = usePalette();
   return (
     <View style={[center, { padding: 32 }]} accessibilityRole="status">
-      <ActivityIndicator color="#14b8a6" size="large" />
-      <Text style={{ color: '#cbd5e1', fontFamily: FONT.medium, marginTop: 12, fontSize: 14 }}>
+      <ActivityIndicator color={palette.primary} size="large" />
+      <Text style={{ color: palette.textSub, fontFamily: AR_FONT.medium, marginTop: 12, fontSize: 14 }}>
         {message}
       </Text>
     </View>
@@ -25,6 +28,7 @@ interface ErrorStateProps extends BaseProps {
 
 /** حالة خطأ مع زر إعادة المحاولة وأيقونة SVG */
 export function ErrorState({ message = 'حدث خطأ', hint, onRetry }: ErrorStateProps) {
+  const palette = usePalette();
   return (
     <View style={[center, { padding: 32 }]}>
       <View
@@ -32,27 +36,26 @@ export function ErrorState({ message = 'حدث خطأ', hint, onRetry }: ErrorSt
           width: 56,
           height: 56,
           borderRadius: 18,
-          backgroundColor: 'rgba(239,68,68,0.14)',
           borderWidth: 1,
-          borderColor: 'rgba(239,68,68,0.3)',
+          borderColor: palette.danger,
           alignItems: 'center',
           justifyContent: 'center',
           marginBottom: 12,
         }}
       >
-        <Icon name="alert" size={28} color="#f87171" />
+        <Icon name="alert" size={28} color={palette.danger} />
       </View>
-      <Text style={{ color: '#f87171', fontFamily: FONT.bold, fontSize: 16, marginBottom: 6 }}>
+      <Text style={{ color: palette.danger, fontFamily: AR_FONT.bold, fontSize: 16, marginBottom: 6 }}>
         تعذر إكمال العملية
       </Text>
-      <Text style={{ color: '#cbd5e1', fontFamily: FONT.medium, textAlign: 'center', fontSize: 14 }}>
+      <Text style={{ color: palette.textSub, fontFamily: AR_FONT.medium, textAlign: 'center', fontSize: 14 }}>
         {message}
       </Text>
       {hint ? (
         <Text
           style={{
-            color: '#94a3b8',
-            fontFamily: FONT.regular,
+            color: palette.textFaint,
+            fontFamily: AR_FONT.regular,
             fontSize: 12,
             marginTop: 6,
             textAlign: 'center',
@@ -70,15 +73,15 @@ export function ErrorState({ message = 'حدث خطأ', hint, onRetry }: ErrorSt
             gap: 8,
             borderRadius: 12,
             marginTop: 18,
-            backgroundColor: '#1b2b48',
             paddingHorizontal: 22,
             paddingVertical: 11,
             borderWidth: 1,
-            borderColor: 'rgba(45,212,191,0.35)',
+            borderColor: palette.surfaceLine,
+            backgroundColor: palette.surface,
           }}
         >
-          <Icon name="refresh" size={16} color="#2dd4bf" />
-          <Text style={{ color: '#f8fafc', fontFamily: FONT.bold, fontSize: 14 }}>
+          <Icon name="refresh" size={16} color={palette.primary} />
+          <Text style={{ color: palette.text, fontFamily: AR_FONT.bold, fontSize: 14 }}>
             إعادة المحاولة
           </Text>
         </Pressable>
@@ -113,6 +116,7 @@ export function EmptyState({
   actionLabel,
   onAction,
 }: EmptyStateProps) {
+  const palette = usePalette();
   const iconName: IconName = VALID_ICONS.has(icon) ? (icon as IconName) : 'gamepad';
 
   return (
@@ -122,20 +126,20 @@ export function EmptyState({
           width: 64,
           height: 64,
           borderRadius: 20,
-          backgroundColor: 'rgba(20,184,166,0.12)',
           borderWidth: 1,
-          borderColor: 'rgba(20,184,166,0.28)',
+          borderColor: palette.surfaceLine,
+          backgroundColor: palette.surface,
           alignItems: 'center',
           justifyContent: 'center',
           marginBottom: 14,
         }}
       >
-        <Icon name={iconName} size={30} color="#2dd4bf" />
+        <Icon name={iconName} size={30} color={palette.textFaint} />
       </View>
       <Text
         style={{
-          color: '#cbd5e1',
-          fontFamily: FONT.medium,
+          color: palette.textSub,
+          fontFamily: AR_FONT.medium,
           textAlign: 'center',
           fontSize: 14,
           lineHeight: 22,
@@ -147,16 +151,14 @@ export function EmptyState({
         <Pressable
           onPress={onAction}
           style={{
-            borderRadius: 12,
+            borderRadius: tokens.radius.pill,
             marginTop: 18,
-            backgroundColor: '#14b8a6',
-            borderWidth: 1,
-            borderColor: '#2dd4bf',
+            backgroundColor: palette.primary,
             paddingHorizontal: 24,
             paddingVertical: 11,
           }}
         >
-          <Text style={{ color: '#ffffff', fontFamily: FONT.bold, fontSize: 14 }}>
+          <Text style={{ color: palette.onPrimary, fontFamily: AR_FONT.bold, fontSize: 14 }}>
             {actionLabel}
           </Text>
         </Pressable>

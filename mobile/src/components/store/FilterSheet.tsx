@@ -11,7 +11,7 @@ import {
   matchesLetter,
   sortGamesAlphabetically,
 } from '@/lib/arabic';
-import { hasSplitScreen } from '@/components/GameCard';
+import { hasSplitScreen } from '@/design/GameCard';
 import { FONT } from '@/lib/fonts';
 import { colors } from '@/lib/colors';
 import { ROW } from '@/lib/rtl';

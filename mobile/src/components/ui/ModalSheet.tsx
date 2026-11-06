@@ -11,7 +11,8 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Icon from './Icon';
-import { FONT } from '@/lib/fonts';
+import { AR_FONT } from '@/design/fonts';
+import { usePalette } from '@/design/theme';
 import { ROW } from '@/lib/rtl';
 
 interface Props {
@@ -24,6 +25,7 @@ interface Props {
 }
 
 export default function ModalSheet({ visible, onClose, title, children, footer }: Props) {
+  const palette = usePalette();
   return (
     <Modal
       visible={visible}
@@ -35,17 +37,17 @@ export default function ModalSheet({ visible, onClose, title, children, footer }
         style={styles.flex}
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       >
-        <View style={styles.backdrop}>
+        <View style={[styles.backdrop, { backgroundColor: palette.scrim }]}>
           <Pressable style={styles.dismissArea} onPress={onClose} />
-          <SafeAreaView edges={['bottom']} style={styles.sheet}>
-            <View style={styles.handle} />
+          <SafeAreaView edges={['bottom']} style={[styles.sheet, { backgroundColor: palette.canvas }]}>
+            <View style={[styles.handle, { backgroundColor: palette.surfaceLine }]} />
             {title ? (
-              <View style={styles.header}>
-                <Text style={styles.title} numberOfLines={1}>
+              <View style={[styles.header, { borderBottomColor: palette.surfaceLine }]}>
+                <Text style={[styles.title, { color: palette.text }]} numberOfLines={1}>
                   {title}
                 </Text>
-                <Pressable onPress={onClose} hitSlop={10} style={styles.closeBtn}>
-                  <Icon name="close" size={18} color="#94a3b8" />
+                <Pressable onPress={onClose} hitSlop={10} style={[styles.closeBtn, { backgroundColor: palette.surface }]}>
+                  <Icon name="close" size={18} color={palette.textFaint} />
                 </Pressable>
               </View>
             ) : null}
@@ -56,7 +58,7 @@ export default function ModalSheet({ visible, onClose, title, children, footer }
             >
               {children}
             </ScrollView>
-            {footer ? <View style={styles.footer}>{footer}</View> : null}
+            {footer ? <View style={[styles.footer, { borderTopColor: palette.surfaceLine }]}>{footer}</View> : null}
           </SafeAreaView>
         </View>
       </KeyboardAvoidingView>
@@ -64,23 +66,22 @@ export default function ModalSheet({ visible, onClose, title, children, footer }
   );
 }
 
+/* ملاحظة: السمة تتدفق من ThemeProvider — لا حاجة لقراءة الاسم هنا. */
+
 const styles = StyleSheet.create({
   flex: { flex: 1 },
   backdrop: {
     flex: 1,
     justifyContent: 'flex-end',
-    backgroundColor: 'rgba(2, 6, 23, 0.78)',
   },
   dismissArea: {
     flex: 1,
   },
   sheet: {
     maxHeight: '90%',
-    backgroundColor: '#0f172a',
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
     borderTopWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.08)',
     paddingHorizontal: 18,
     paddingTop: 10,
   },
@@ -89,7 +90,6 @@ const styles = StyleSheet.create({
     width: 44,
     height: 4,
     borderRadius: 999,
-    backgroundColor: '#334155',
     marginBottom: 10,
   },
   header: {
@@ -100,12 +100,10 @@ const styles = StyleSheet.create({
     paddingBottom: 12,
     marginBottom: 12,
     borderBottomWidth: 1,
-    borderBottomColor: 'rgba(255, 255, 255, 0.08)',
   },
   title: {
     flexShrink: 1,
-    fontFamily: FONT.bold,
-    color: '#f8fafc',
+    fontFamily: AR_FONT.bold,
     fontSize: 16,
     textAlign: 'right',
     writingDirection: 'rtl',
@@ -115,7 +113,6 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 12,
-    backgroundColor: 'rgba(255, 255, 255, 0.06)',
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -126,6 +123,5 @@ const styles = StyleSheet.create({
     paddingTop: 8,
     paddingBottom: 12,
     borderTopWidth: 1,
-    borderTopColor: 'rgba(255, 255, 255, 0.08)',
   },
 });
