@@ -15,11 +15,12 @@ import { getSavedStatuses, getTrackedOrders, removeTrackedOrder } from '@/lib/tr
 import { ensureNotificationPermission } from '@/lib/notifications';
 import { statusLabel } from '@/lib/statuses';
 import { showToast } from '@/lib/toast';
-import { FONT } from '@/lib/fonts';
-import { colors } from '@/lib/colors';
+import { AR_FONT } from '@/design/fonts';
+import { usePalette } from '@/design/theme';
 import { ROW } from '@/lib/rtl';
 
 export default function TrackedOrdersList() {
+  const palette = usePalette();
   const [removing, setRemoving] = useState<string | null>(null);
   const [notifAllowed, setNotifAllowed] = useState(true);
   const queryClient = useQueryClient();
@@ -96,7 +97,7 @@ export default function TrackedOrdersList() {
       {refsQ.isError && !refsQ.data ? (
         <View style={styles.card}>
           <View style={styles.emptyRow}>
-            <Icon name="close" size={16} color={colors.dangerStrong} />
+            <Icon name="close" size={16} color={palette.danger} />
             <Text style={styles.emptyText}>
               تعذّر قراءة قائمة التتبع من الجهاز — اسحب للأسفل لإعادة المحاولة
               أو أعد فتح التبويب.
@@ -104,10 +105,15 @@ export default function TrackedOrdersList() {
           </View>
         </View>
       ) : refs.length === 0 ? (
-        <View style={styles.card}>
+        <View
+          style={[
+            styles.card,
+            { backgroundColor: palette.surface, borderColor: palette.surfaceLine },
+          ]}
+        >
           <View style={styles.emptyRow}>
-            <Icon name="qr" size={16} color="#2dd4bf" />
-            <Text style={styles.emptyText}>
+            <Icon name="qr" size={16} color={palette.primary} />
+            <Text style={[styles.emptyText, { color: palette.textSub }]}>
               امسح رمز QR على فاتورتك (أعلى الرئيسية) — يُحفظ طلبك هنا تلقائياً
               ويصلك إشعار عند جاهزيته.
             </Text>
@@ -120,7 +126,11 @@ export default function TrackedOrdersList() {
           return (
             <View
               key={ref.invoice_number}
-              style={[styles.card, isReady && styles.cardReady]}
+              style={[
+                styles.card,
+                { backgroundColor: palette.surface, borderColor: palette.surfaceLine },
+                isReady && { borderColor: palette.success, backgroundColor: palette.surfaceRaised },
+              ]}
             >
               <ScalePressable
                 onPress={() =>
@@ -133,19 +143,23 @@ export default function TrackedOrdersList() {
                 <Icon
                   name={isReady ? 'check' : 'invoice'}
                   size={15}
-                  color={isReady ? '#34d399' : '#2dd4bf'}
+                  color={isReady ? palette.success : palette.primary}
                 />
                 <View style={styles.body}>
-                  <Text style={styles.orderId}>طلب #{ref.invoice_number}</Text>
+                  <Text style={[styles.orderId, { color: palette.text }]}>طلب #{ref.invoice_number}</Text>
                   <Text
-                    style={[styles.status, isReady && styles.statusReady]}
+                    style={[
+                      styles.status,
+                      { color: palette.textSub },
+                      isReady && { color: palette.success, fontFamily: AR_FONT.bold },
+                    ]}
                   >
                     {info
                       ? statusLabel(info)
                       : 'جاري الفحص...'}
                   </Text>
                 </View>
-                <Icon name="chevron-left" size={14} color={colors.faint} />
+                <Icon name="chevron-left" size={14} color={palette.textFaint} />
               </ScalePressable>
 
               <Pressable
@@ -161,8 +175,8 @@ export default function TrackedOrdersList() {
                   size={14}
                   color={
                     removing === ref.invoice_number
-                      ? colors.faint
-                      : colors.dangerText
+                      ? palette.textFaint
+                      : palette.danger
                   }
                 />
               </Pressable>
@@ -180,17 +194,14 @@ const styles = StyleSheet.create({
     marginHorizontal: 14,
     flexDirection: ROW,
     alignItems: 'center',
-    backgroundColor: '#0d1629',
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.08)',
     borderRadius: 14,
     paddingVertical: 10,
     paddingLeft: 10,
     paddingRight: 12,
   },
   cardReady: {
-    borderColor: 'rgba(52, 211, 153, 0.45)',
-    backgroundColor: 'rgba(16, 185, 129, 0.08)',
+    borderWidth: 1,
   },
   row: {
     flex: 1,
@@ -200,44 +211,35 @@ const styles = StyleSheet.create({
   },
   body: { flex: 1 },
   orderId: {
-    fontFamily: FONT.bold,
-    color: '#f8fafc',
+    fontFamily: AR_FONT.bold,
     fontSize: 13,
     textAlign: 'right',
     writingDirection: 'rtl',
   },
   status: {
-    fontFamily: FONT.medium,
-    color: '#94a3b8',
+    fontFamily: AR_FONT.medium,
     fontSize: 11,
     textAlign: 'right',
     writingDirection: 'rtl',
     marginTop: 2,
   },
-  statusReady: {
-    color: '#34d399',
-    fontFamily: FONT.bold,
-  },
+  statusReady: {},
   removeBtn: {
     padding: 6,
   },
   notifHint: {
-    backgroundColor: 'rgba(251, 191, 36, 0.08)',
-    borderColor: 'rgba(251, 191, 36, 0.35)',
     paddingLeft: 12,
   },
   notifHintText: {
     flex: 1,
-    fontFamily: FONT.medium,
-    color: '#d6c98d',
+    fontFamily: AR_FONT.medium,
     fontSize: 11.5,
     lineHeight: 18,
     textAlign: 'right',
     writingDirection: 'rtl',
   },
   notifHintBtn: {
-    fontFamily: FONT.bold,
-    color: '#fbbf24',
+    fontFamily: AR_FONT.bold,
     fontSize: 12,
   },
   emptyRow: {
@@ -247,8 +249,7 @@ const styles = StyleSheet.create({
   },
   emptyText: {
     flex: 1,
-    fontFamily: FONT.regular,
-    color: '#94a3b8',
+    fontFamily: AR_FONT.regular,
     fontSize: 11.5,
     lineHeight: 18,
     textAlign: 'right',

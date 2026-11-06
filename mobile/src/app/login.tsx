@@ -20,7 +20,8 @@ import { AR_FONT } from '@/design/fonts';
 import { usePalette } from '@/design/theme';
 import { ROW } from '@/lib/rtl';
 
-const LOGO = require('../../assets/_brand/logo-mark.png');
+const LOGO_MARK = require('../../assets/_brand/logo-mark.png');
+const LOGO_FULL = require('../../assets/_brand/logo.png');
 
 export default function LoginScreen() {
   const loginWithPassword = useAuthStore((s) => s.loginWithPassword);
@@ -28,6 +29,7 @@ export default function LoginScreen() {
   const selectBranch = useAppStore((s) => s.selectBranch);
   const selectedBranchId = useAppStore((s) => s.selectedBranchId);
   const palette = usePalette();
+  const dark = palette.name === 'dark';
 
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
@@ -87,14 +89,24 @@ export default function LoginScreen() {
               style={[
                 styles.logoFrame,
                 {
-                  backgroundColor: palette.surface,
+                  backgroundColor: dark ? palette.surface : palette.surfaceRaised,
                   borderColor: palette.surfaceLine,
                 },
               ]}
             >
-              <Image source={LOGO} style={styles.logo} resizeMode="cover" />
+              <Image
+                source={dark ? LOGO_MARK : LOGO_FULL}
+                style={styles.logo}
+                resizeMode="contain"
+              />
             </View>
-            <Text style={[styles.brandTitle, { color: palette.text }]}>الشاردة ستور</Text>
+            <Text
+              style={[styles.brandTitle, { color: palette.text }]}
+              numberOfLines={1}
+              adjustsFontSizeToFit
+            >
+              الشاردة ستور
+            </Text>
             <Text style={[styles.brandSubtitle, { color: palette.textSub }]}>
               النفار للألعاب • بلايستيشن و PC
             </Text>
@@ -257,26 +269,31 @@ const styles = StyleSheet.create({
   brandBlock: {
     alignItems: 'center',
     marginBottom: 20,
+    width: '100%',
+    paddingHorizontal: 16,
   },
   logoFrame: {
     width: 90,
     height: 90,
     borderRadius: 24,
-    padding: 3,
+    padding: 6,
     borderWidth: 1.5,
     marginBottom: 12,
     overflow: 'hidden',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   logo: {
     width: '100%',
     height: '100%',
-    borderRadius: 20,
+    borderRadius: 18,
   },
   brandTitle: {
     fontFamily: AR_FONT.bold,
-    fontSize: 24,
+    fontSize: 22,
     includeFontPadding: false,
     letterSpacing: -0.2,
+    textAlign: 'center',
   },
   brandSubtitle: {
     fontFamily: AR_FONT.medium,

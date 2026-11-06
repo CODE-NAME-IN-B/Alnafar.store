@@ -47,9 +47,9 @@ import { AR_FONT, LAT_FONT } from '@/design/fonts';
 import { EntryIn, SignalBeacon } from '@/design/motion-library';
 import Skeleton from '@/design/Skeleton';
 import GameCard from '@/design/GameCard';
-import HeroCard from '@/design/HeroCard';
 import PlatformChip from '@/design/PlatformChip';
 import Chip from '@/components/ui/Chip';
+import TopSlideshow, { type TopSlideItem } from '@/components/store/TopSlideshow';
 
 /* الشعار: الكرمية بلا بلاقة على الداكن (تباين كامل)، وفي الفاتح أيضًا الكرمية بحرف حبري؟
    لا — على الكريمي نستخدم الشعار الكامل البلاقة. */
@@ -162,13 +162,25 @@ export default function StoreHomeScreen() {
     scrollRef.current?.scrollTo({ y: 0, animated: false });
   }, [catalogMode, activeCategoryId, filters, query]);
 
-  /* البطل: الأول من أكثر الطلبات — يُساوى بسجل لعبة كامل من القائمة */
-  const heroTop = useMemo(() => {
-    if (catalogMode) return null;
-    const first = (topQ.data ?? [])[0];
-    if (!first) return null;
-    const found = games.find((g) => g.id === first.id);
-    return found ? { game: found, orders: first.count, rank: 1 } : null;
+  /* السلايد شو: أعلى ألعاب طلباً وتحميلاً مع إحصائياتها */
+  const topSlides = useMemo<TopSlideItem[]>(() => {
+    if (catalogMode) return [];
+    const list = topQ.data ?? [];
+    if (list.length > 0) {
+      const slides: TopSlideItem[] = [];
+      list.slice(0, 6).forEach((item, idx) => {
+        const found = games.find((g) => g.id === item.id) ?? (item as unknown as Game);
+        if (found) {
+          slides.push({ game: found, orders: item.count, rank: idx + 1 });
+        }
+      });
+      if (slides.length > 0) return slides;
+    }
+    return games.slice(0, 5).map((g, idx) => ({
+      game: g,
+      orders: undefined,
+      rank: idx + 1,
+    }));
   }, [topQ.data, games, catalogMode]);
 
   return (
@@ -479,18 +491,14 @@ export default function StoreHomeScreen() {
               />
             ) : (
               <>
-                {/* بطاقة البطل — فتحة واحدة أعلى الصفحة (قرار §4.3) */}
-                {heroTop ? (
+                {/* سلايد شو الأكثر تحميلاً وطلباً */}
+                {topSlides.length > 0 ? (
                   <EntryIn index={0}>
-                    <View style={styles.heroWrap}>
-                      <HeroCard
-                        game={heroTop.game}
-                        orders={heroTop.orders}
-                        rank={heroTop.rank}
-                        platform={isPs4Game(heroTop.game, categories) ? 'PS4' : 'PS5'}
-                        onPress={handlePressGame}
-                      />
-                    </View>
+                    <TopSlideshow
+                      items={topSlides}
+                      categories={categories}
+                      onPress={handlePressGame}
+                    />
                   </EntryIn>
                 ) : null}
 
@@ -794,9 +802,9 @@ const styles = StyleSheet.create({
     flexShrink: 0,
   },
   headerActionBtn: {
-    width: 40,
-    height: 40,
-    borderRadius: 12,
+    width: 36,
+    height: 36,
+    borderRadius: 10,
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 1,

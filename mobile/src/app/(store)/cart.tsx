@@ -37,11 +37,13 @@ import { useScreenEntrance } from '@/components/ui/motion';
 import { formatDinar } from '@/lib/money';
 import { buildOrderMessage, whatsappLink } from '@/lib/whatsapp';
 import { estimateMinutes } from '@/lib/estimate';
-import { FONT } from '@/lib/fonts';
+import { AR_FONT } from '@/design/fonts';
+import { usePalette } from '@/design/theme';
 import { ROW } from '@/lib/rtl';
-import { colors, tokens, triggerLightHaptic } from '@/lib/colors';
+import { triggerLightHaptic } from '@/lib/colors';
 
 export default function CartScreen() {
+  const palette = usePalette();
   const items = useCartStore((s) => s.items);
   const editingInvoice = useCartStore((s) => s.editingInvoice);
   const decrement = useCartStore((s) => s.decrement);
@@ -166,7 +168,7 @@ export default function CartScreen() {
 
   if (!items.length) {
     return (
-      <SafeAreaView style={styles.safe} edges={['top']}>
+      <SafeAreaView style={[styles.safe, { backgroundColor: palette.canvas }]} edges={['top']}>
         <EmptyState
           message={
             isCashier
@@ -182,21 +184,28 @@ export default function CartScreen() {
   }
 
   return (
-    <SafeAreaView style={styles.safe} edges={['top']}>
+    <SafeAreaView style={[styles.safe, { backgroundColor: palette.canvas }]} edges={['top']}>
       <Animated.View style={[styles.flex, entranceStyle]}>
       <KeyboardAvoidingView
         style={styles.flex}
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       >
-        <View style={styles.header}>
+        <View style={[styles.header, { borderBottomColor: palette.surfaceLine }]}>
           <View style={styles.headerTitleRow}>
-            <Text style={styles.headerTitle}>
+            <Text style={[styles.headerTitle, { color: palette.text }]}>
               {isCashier ? 'فاتورة الكاشير' : 'سلة الطلبات'} ({items.length})
             </Text>
             {isCashier && user ? (
-              <View style={styles.cashierPill}>
-                <Icon name="printer" size={12} color={colors.brandLight} />
-                <Text style={styles.cashierPillText}>كاشير: {user.username}</Text>
+              <View
+                style={[
+                  styles.cashierPill,
+                  { backgroundColor: palette.surfaceRaised, borderColor: palette.surfaceLine },
+                ]}
+              >
+                <Icon name="printer" size={12} color={palette.primary} />
+                <Text style={[styles.cashierPillText, { color: palette.primary }]}>
+                  كاشير: {user.username}
+                </Text>
               </View>
             ) : null}
           </View>
@@ -205,28 +214,33 @@ export default function CartScreen() {
               triggerLightHaptic();
               clear();
             }}
-            style={styles.clearBtn}
+            style={[styles.clearBtn, { backgroundColor: palette.surfaceRaised }]}
           >
-            <Icon name="trash" size={14} color={colors.dangerText} />
-            <Text style={styles.clearText}>تفريغ</Text>
+            <Icon name="trash" size={14} color={palette.danger} />
+            <Text style={[styles.clearText, { color: palette.danger }]}>تفريغ</Text>
           </Pressable>
         </View>
 
         {editingInvoice ? (
-          <View style={styles.editBanner}>
+          <View
+            style={[
+              styles.editBanner,
+              { backgroundColor: palette.surfaceRaised, borderBottomColor: palette.surfaceLine },
+            ]}
+          >
             <View style={styles.flex1}>
-              <Text style={styles.editBannerTitle}>
+              <Text style={[styles.editBannerTitle, { color: palette.primary }]}>
                 تعديل الفاتورة #{editingInvoice.invoice_number}
               </Text>
-              <Text style={styles.editBannerSub}>
+              <Text style={[styles.editBannerSub, { color: palette.textSub }]}>
                 عدّل العناصر ثم اضغط &quot;حفظ التعديلات على الفاتورة&quot; بالأسفل
               </Text>
             </View>
             <Pressable
               onPress={cancelEditingInvoice}
-              style={styles.cancelEditBtn}
+              style={[styles.cancelEditBtn, { borderColor: palette.surfaceLine }]}
             >
-              <Text style={styles.cancelEditText}>إلغاء</Text>
+              <Text style={[styles.cancelEditText, { color: palette.textSub }]}>إلغاء</Text>
             </Pressable>
           </View>
         ) : null}
@@ -243,25 +257,35 @@ export default function CartScreen() {
             />
           )}
           ListFooterComponent={
-            <View style={styles.footerCard}>
+            <View
+              style={[
+                styles.footerCard,
+                { backgroundColor: palette.surface, borderColor: palette.surfaceLine },
+              ]}
+            >
               {sizeGb > 0 ? (
                 <View style={styles.summarySubRowBottom}>
-                  <Text style={styles.summarySubLabel}>الحجم التقريبي</Text>
-                  <Text style={styles.summarySubValue}>
+                  <Text style={[styles.summarySubLabel, { color: palette.textFaint }]}>الحجم التقريبي</Text>
+                  <Text style={[styles.summarySubValue, { color: palette.textSub }]}>
                     {Math.round(sizeGb)} GB (~{estimateMinutes(sizeGb)} دقيقة)
                   </Text>
                 </View>
               ) : null}
               {isCashier ? (
-                <View style={styles.cashierHintBox}>
-                  <Icon name="invoice" size={16} color={colors.brandLight} />
-                  <Text style={styles.cashierHintText}>
+                <View
+                  style={[
+                    styles.cashierHintBox,
+                    { backgroundColor: palette.surfaceRaised, borderColor: palette.surfaceLine },
+                  ]}
+                >
+                  <Icon name="invoice" size={16} color={palette.primary} />
+                  <Text style={[styles.cashierHintText, { color: palette.textSub }]}>
                     وضع الكاشير: اضغط «إنشاء فاتورة» بالأسفل لإدخال اسم العميل أو الخصم وحالة الدفع وطباعة الفاتورة فوراً.
                   </Text>
                 </View>
               ) : branches.length > 0 ? (
                 <View style={styles.branchPickWrap}>
-                  <Text style={styles.sectionTitle}>
+                  <Text style={[styles.sectionTitle, { color: palette.text }]}>
                     أرسل الطلب إلى الفرع:
                   </Text>
                   <ScrollView
@@ -280,13 +304,15 @@ export default function CartScreen() {
                           }}
                           style={[
                             styles.branchPill,
-                            active && styles.branchPillActive,
+                            { backgroundColor: palette.surfaceRaised, borderColor: palette.surfaceLine },
+                            active && { backgroundColor: palette.primary, borderColor: palette.primary },
                           ]}
                         >
                           <Text
                             style={[
                               styles.branchPillText,
-                              active && styles.branchPillTextActive,
+                              { color: palette.textSub },
+                              active && { color: palette.onPrimary, fontFamily: AR_FONT.bold },
                             ]}
                           >
                             {b.name}
@@ -301,13 +327,17 @@ export default function CartScreen() {
           }
         />
 
-        {/* شريط سفلي ثابت: المجموع والإجراء الأساسي دائماً في متناول اليد —
-            لا يختفيان مع تمرير القائمة مهما طالت */}
+        {/* شريط سفلي ثابت */}
         {items.length > 0 ? (
-          <View style={styles.bottomBar}>
+          <View
+            style={[
+              styles.bottomBar,
+              { backgroundColor: palette.canvas, borderTopColor: palette.surfaceLine },
+            ]}
+          >
             <View style={styles.summaryRow}>
-              <Text style={styles.summaryLabel}>الإجمالي الكلي</Text>
-              <Text style={styles.summaryValue}>{formatDinar(total)}</Text>
+              <Text style={[styles.summaryLabel, { color: palette.textSub }]}>الإجمالي الكلي</Text>
+              <Text style={[styles.summaryValue, { color: palette.text }]}>{formatDinar(total)}</Text>
             </View>
             {isCashier ? (
               <AppButton
@@ -321,9 +351,12 @@ export default function CartScreen() {
               />
             ) : (
               <View style={styles.actionsCol}>
-                <Pressable onPress={sendWhatsApp} style={styles.waBtn}>
-                  <Icon name="phone" size={18} color="#052e16" />
-                  <Text style={styles.waBtnText}>
+                <Pressable
+                  onPress={sendWhatsApp}
+                  style={[styles.waBtn, { backgroundColor: palette.accent }]}
+                >
+                  <Icon name="phone" size={18} color={palette.onAccent} />
+                  <Text style={[styles.waBtnText, { color: palette.onAccent }]}>
                     إرسال الطلب عبر واتساب
                   </Text>
                 </Pressable>
@@ -369,7 +402,6 @@ export default function CartScreen() {
 const styles = StyleSheet.create({
   safe: {
     flex: 1,
-    backgroundColor: colors.deep,
   },
   flex: { flex: 1 },
   flex1: { flex: 1 },
@@ -380,7 +412,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 12,
     borderBottomWidth: 1,
-    borderBottomColor: colors.borderSubtle,
   },
   headerTitleRow: {
     flexDirection: ROW,
@@ -388,8 +419,7 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   headerTitle: {
-    fontFamily: FONT.bold,
-    color: colors.text,
+    fontFamily: AR_FONT.bold,
     fontSize: 18,
     includeFontPadding: false,
   },
@@ -397,16 +427,13 @@ const styles = StyleSheet.create({
     flexDirection: ROW,
     alignItems: 'center',
     gap: 4,
-    backgroundColor: colors.brandSoft,
     borderWidth: 1,
-    borderColor: colors.brandBorder,
     paddingHorizontal: 8,
     paddingVertical: 3,
     borderRadius: 999,
   },
   cashierPillText: {
-    fontFamily: FONT.bold,
-    color: colors.brandLight,
+    fontFamily: AR_FONT.bold,
     fontSize: 11,
     includeFontPadding: false,
   },
@@ -417,11 +444,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 8,
     borderRadius: 10,
-    backgroundColor: colors.dangerSoft,
   },
   clearText: {
-    fontFamily: FONT.bold,
-    color: colors.dangerText,
+    fontFamily: AR_FONT.bold,
     fontSize: 12,
     includeFontPadding: false,
   },
@@ -429,16 +454,13 @@ const styles = StyleSheet.create({
     flexDirection: ROW,
     alignItems: 'center',
     justifyContent: 'space-between',
-    backgroundColor: colors.brandSoft,
     borderBottomWidth: 1,
-    borderBottomColor: colors.brandBorder,
     paddingHorizontal: 16,
     paddingVertical: 10,
     gap: 10,
   },
   editBannerTitle: {
-    fontFamily: FONT.bold,
-    color: colors.brandBright,
+    fontFamily: AR_FONT.bold,
     fontSize: 13,
     lineHeight: 19,
     textAlign: 'right',
@@ -446,8 +468,7 @@ const styles = StyleSheet.create({
     includeFontPadding: false,
   },
   editBannerSub: {
-    fontFamily: FONT.regular,
-    color: colors.dim,
+    fontFamily: AR_FONT.regular,
     fontSize: 11,
     lineHeight: 17,
     textAlign: 'right',
@@ -458,11 +479,10 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 10,
     borderRadius: 8,
-    backgroundColor: colors.surfaceRaised,
+    borderWidth: 1,
   },
   cancelEditText: {
-    fontFamily: FONT.bold,
-    color: colors.text,
+    fontFamily: AR_FONT.bold,
     fontSize: 12,
     includeFontPadding: false,
   },
@@ -471,17 +491,13 @@ const styles = StyleSheet.create({
     paddingBottom: 32,
   },
   footerCard: {
-    backgroundColor: colors.elevatedRaised,
-    borderRadius: tokens.radius.card,
+    borderRadius: 20,
     padding: 16,
     borderWidth: 1,
-    borderColor: colors.borderSubtle,
     marginTop: 6,
   },
   bottomBar: {
-    backgroundColor: colors.deep,
     borderTopWidth: 1,
-    borderTopColor: colors.borderSubtle,
     paddingHorizontal: 16,
     paddingTop: 10,
     paddingBottom: 16,
@@ -493,14 +509,12 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
   },
   summaryLabel: {
-    fontFamily: FONT.bold,
-    color: colors.dim,
+    fontFamily: AR_FONT.bold,
     fontSize: 15,
     includeFontPadding: false,
   },
   summaryValue: {
-    fontFamily: FONT.bold,
-    color: colors.text,
+    fontFamily: AR_FONT.bold,
     fontSize: 22,
     includeFontPadding: false,
   },
@@ -510,14 +524,12 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
   },
   summarySubLabel: {
-    fontFamily: FONT.regular,
-    color: colors.faint,
+    fontFamily: AR_FONT.regular,
     fontSize: 12,
     includeFontPadding: false,
   },
   summarySubValue: {
-    fontFamily: FONT.semibold,
-    color: colors.dim,
+    fontFamily: AR_FONT.medium,
     fontSize: 12,
     includeFontPadding: false,
   },
@@ -525,16 +537,13 @@ const styles = StyleSheet.create({
     flexDirection: ROW,
     alignItems: 'center',
     gap: 8,
-    backgroundColor: colors.brandSoft,
     borderWidth: 1,
-    borderColor: colors.brandBorder,
     borderRadius: 12,
     padding: 12,
   },
   cashierHintText: {
     flex: 1,
-    fontFamily: FONT.medium,
-    color: colors.dim,
+    fontFamily: AR_FONT.medium,
     fontSize: 12,
     lineHeight: 18,
     textAlign: 'right',
@@ -555,27 +564,15 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     paddingVertical: 8,
     borderRadius: 12,
-    backgroundColor: colors.surfaceInset,
     borderWidth: 1,
-    borderColor: colors.borderSubtle,
-  },
-  branchPillActive: {
-    backgroundColor: colors.brandDark,
-    borderColor: colors.brand,
   },
   branchPillText: {
-    fontFamily: FONT.semibold,
-    color: colors.dim,
+    fontFamily: AR_FONT.medium,
     fontSize: 12,
     includeFontPadding: false,
   },
-  branchPillTextActive: {
-    fontFamily: FONT.bold,
-    color: colors.brandBright,
-  },
   sectionTitle: {
-    fontFamily: FONT.bold,
-    color: colors.text,
+    fontFamily: AR_FONT.bold,
     fontSize: 14,
     textAlign: 'right',
     writingDirection: 'rtl',
@@ -592,14 +589,11 @@ const styles = StyleSheet.create({
     gap: 8,
     minHeight: 50,
     borderRadius: 14,
-    backgroundColor: colors.success,
     borderWidth: 1,
-    borderColor: colors.successBorder,
     paddingHorizontal: 16,
   },
   waBtnText: {
-    fontFamily: FONT.bold,
-    color: '#052e16',
+    fontFamily: AR_FONT.bold,
     fontSize: 15,
     includeFontPadding: false,
   },

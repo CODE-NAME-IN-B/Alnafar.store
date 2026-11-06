@@ -12,8 +12,8 @@ import {
   sortGamesAlphabetically,
 } from '@/lib/arabic';
 import { hasSplitScreen } from '@/design/GameCard';
-import { FONT } from '@/lib/fonts';
-import { colors } from '@/lib/colors';
+import { AR_FONT } from '@/design/fonts';
+import { usePalette } from '@/design/theme';
 import { ROW } from '@/lib/rtl';
 
 export interface StoreFilters {
@@ -95,6 +95,7 @@ export default function FilterSheet({
   extraGenres = [],
   extraSeries = [],
 }: Props) {
+  const palette = usePalette();
   const genres = useMemo(() => {
     const s = new Set<string>();
     for (const x of extraGenres) if (x?.trim()) s.add(formatGenreLabel(x.trim()));
@@ -123,23 +124,41 @@ export default function FilterSheet({
         onPress={() => set({ splitScreenOnly: !filters.splitScreenOnly })}
         style={[
           styles.splitRow,
-          filters.splitScreenOnly ? styles.splitActive : styles.splitIdle,
+          {
+            backgroundColor: filters.splitScreenOnly
+              ? `${palette.primary}18`
+              : palette.surfaceRaised,
+            borderColor: filters.splitScreenOnly
+              ? palette.primary
+              : palette.surfaceLine,
+          },
         ]}
       >
-        <Text style={styles.splitLabel}>شاشة مقسومة (لاعبان)</Text>
+        <Text style={[styles.splitLabel, { color: palette.text }]}>
+          شاشة مقسومة (لاعبان)
+        </Text>
         <View
           style={[
             styles.checkbox,
-            filters.splitScreenOnly ? styles.checkboxOn : styles.checkboxOff,
+            {
+              backgroundColor: filters.splitScreenOnly
+                ? palette.primary
+                : 'transparent',
+              borderColor: filters.splitScreenOnly
+                ? palette.primary
+                : palette.surfaceLine,
+            },
           ]}
         >
-          {filters.splitScreenOnly ? <Text style={styles.check}>✓</Text> : null}
+          {filters.splitScreenOnly ? (
+            <Text style={[styles.check, { color: palette.onPrimary }]}>✓</Text>
+          ) : null}
         </View>
       </Pressable>
 
       {genres.length > 0 ? (
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>النوع</Text>
+          <Text style={[styles.sectionTitle, { color: palette.textSub }]}>النوع</Text>
           <View style={styles.chipWrap}>
             <Chip
               label="الكل"
@@ -160,7 +179,7 @@ export default function FilterSheet({
 
       {seriesList.length > 0 ? (
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>السلسلة</Text>
+          <Text style={[styles.sectionTitle, { color: palette.textSub }]}>السلسلة</Text>
           <View style={styles.chipWrap}>
             <Chip
               label="الكل"
@@ -180,7 +199,7 @@ export default function FilterSheet({
       ) : null}
 
       <View style={styles.section}>
-        <Text style={styles.sectionTitle}>الحرف الأول (A – Z)</Text>
+        <Text style={[styles.sectionTitle, { color: palette.textSub }]}>الحرف الأول (A – Z)</Text>
         <View style={styles.letterGrid}>
           <Chip
             label="الكل"
@@ -193,12 +212,24 @@ export default function FilterSheet({
               <Pressable
                 key={ltr}
                 onPress={() => set({ letter: active ? null : ltr })}
-                style={[styles.letterBtn, active ? styles.letterOn : styles.letterOff]}
+                style={[
+                  styles.letterBtn,
+                  {
+                    backgroundColor: active
+                      ? palette.primary
+                      : palette.surfaceRaised,
+                    borderColor: active
+                      ? palette.primary
+                      : palette.surfaceLine,
+                  },
+                ]}
               >
                 <Text
                   style={[
                     styles.letterText,
-                    active ? styles.letterTextOn : styles.letterTextOff,
+                    {
+                      color: active ? palette.onPrimary : palette.text,
+                    },
                   ]}
                 >
                   {ltr}
@@ -237,17 +268,8 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     marginBottom: 16,
   },
-  splitActive: {
-    backgroundColor: colors.brandDark,
-    borderColor: colors.brand,
-  },
-  splitIdle: {
-    backgroundColor: colors.surfaceInset,
-    borderColor: colors.borderSubtle,
-  },
   splitLabel: {
-    fontFamily: FONT.bold,
-    color: colors.text,
+    fontFamily: AR_FONT.bold,
     fontSize: 13,
     includeFontPadding: false,
   },
@@ -259,24 +281,15 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  checkboxOn: {
-    backgroundColor: colors.brand,
-    borderColor: colors.brandBorder,
-  },
-  checkboxOff: {
-    borderColor: colors.faint,
-  },
   check: {
-    color: colors.brandDark,
     fontSize: 12,
-    fontFamily: FONT.bold,
+    fontFamily: AR_FONT.bold,
   },
   section: {
     marginBottom: 16,
   },
   sectionTitle: {
-    fontFamily: FONT.bold,
-    color: colors.dim,
+    fontFamily: AR_FONT.bold,
     fontSize: 12,
     marginBottom: 8,
     textAlign: 'right',
@@ -301,21 +314,11 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  letterOn: {
-    backgroundColor: colors.brand,
-    borderColor: colors.brandBorder,
-  },
-  letterOff: {
-    backgroundColor: colors.surfaceInset,
-    borderColor: colors.borderSubtle,
-  },
   letterText: {
     fontSize: 13,
-    fontFamily: FONT.bold,
+    fontFamily: AR_FONT.bold,
     includeFontPadding: false,
   },
-  letterTextOn: { color: colors.brandDark },
-  letterTextOff: { color: colors.text },
   footerRow: {
     flexDirection: ROW,
     gap: 8,

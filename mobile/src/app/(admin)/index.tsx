@@ -26,7 +26,6 @@ import Chip from '@/components/ui/Chip';
 import Icon from '@/components/ui/Icon';
 import { ScalePressable } from '@/components/ui/motion';
 import DatePickerSheet from '@/components/ui/DatePickerSheet';
-import { colors } from '@/lib/colors';
 import { formatDinar } from '@/lib/money';
 import { showToast } from '@/lib/toast';
 import { ROW } from '@/lib/rtl';
@@ -270,7 +269,7 @@ export default function AdminInvoicesScreen() {
           accessibilityLabel="اختيار التاريخ من التقويم"
           style={styles.dateInputWrap}
         >
-          <Icon name="calendar" size={14} color={colors.brandLight} />
+          <Icon name="calendar" size={14} color={palette.primary} />
           <Text style={styles.dateInput}>
             {dateFrom == null
               ? 'كل التواريخ'
