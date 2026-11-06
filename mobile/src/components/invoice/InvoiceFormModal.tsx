@@ -31,6 +31,7 @@ import { colors } from '@/lib/colors';
 import { FONT } from '@/lib/fonts';
 import { showToast } from '@/lib/toast';
 import type { InvoiceItemInput } from '@/api/types';
+import type { OrderStatus } from '@/lib/statuses';
 
 interface Props {
   visible: boolean;
@@ -131,7 +132,7 @@ export default function InvoiceFormModal({
         finalTotal,
         paidAmount,
         date: new Date().toISOString(),
-        status: (paidAmount >= finalTotal ? 'completed' : 'pending') as 'completed' | 'pending',
+        status: (editingDraft?.status ?? (paidAmount >= finalTotal ? 'paid' : 'pending')) as OrderStatus,
         ...(selectedBranchId != null ? { branch_id: Number(selectedBranchId) } : {}),
       };
 

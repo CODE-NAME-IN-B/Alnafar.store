@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import { router } from 'expo-router';
 import { FlashList } from '@shopify/flash-list';
 import { useQuery } from '@tanstack/react-query';
@@ -26,7 +26,6 @@ import Chip from '@/components/ui/Chip';
 import Icon from '@/components/ui/Icon';
 import { ScalePressable } from '@/components/ui/motion';
 import DatePickerSheet from '@/components/ui/DatePickerSheet';
-import { FONT } from '@/lib/fonts';
 import { colors } from '@/lib/colors';
 import { formatDinar } from '@/lib/money';
 import { showToast } from '@/lib/toast';
@@ -154,6 +153,7 @@ export default function AdminInvoicesScreen() {
         notes: inv.customer_notes ?? inv.notes,
         discount: inv.discount,
         paid_amount: inv.paid_amount,
+        status: inv.status,
       },
       cartItems
     );

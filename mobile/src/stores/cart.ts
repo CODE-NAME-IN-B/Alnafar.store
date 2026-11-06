@@ -27,6 +27,7 @@ export interface EditingInvoiceDraft {
   notes?: string | null;
   discount?: number | null;
   paid_amount?: number | null;
+  status?: string | null;
 }
 
 interface CartState {

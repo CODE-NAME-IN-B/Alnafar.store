@@ -22,6 +22,9 @@ import { usePalette } from '@/design/theme';
 import { formatDinar } from '@/lib/money';
 import { showToast } from '@/lib/toast';
 import { ROW } from '@/lib/rtl';
+import Button from '@/design/Button';
+import ConfirmDialog from '@/design/ConfirmDialog';
+import { router } from 'expo-router';
 
 type TabKey = 'stats' | 'invoice-settings' | 'users' | 'branches' | 'audit';
 
@@ -32,6 +35,8 @@ export default function AdminMoreScreen() {
   const isAdmin = user?.role === 'admin';
   const superAdmin = isSuperAdmin(user);
 
+  const logout = useAuthStore((s) => s.logout);
+  const [logoutConfirmOpen, setLogoutConfirmOpen] = useState(false);
   const [tab, setTab] = useState<TabKey>('stats');
 
   const statsQ = useQuery({
@@ -379,7 +384,30 @@ export default function AdminMoreScreen() {
             ))
           )
         ) : null}
+        <View style={{ marginTop: 24, paddingTop: 16, borderTopWidth: 1, borderTopColor: palette.surfaceLine }}>
+          <Button
+            label="تسجيل الخروج من الحساب"
+            variant="danger"
+            icon="logout"
+            onPress={() => setLogoutConfirmOpen(true)}
+          />
+        </View>
       </KeyboardScroll>
+
+      <ConfirmDialog
+        visible={logoutConfirmOpen}
+        title="تسجيل الخروج"
+        message="هل أنت متأكد من رغبتك في تسجيل الخروج من لوحة الإدارة؟"
+        confirmLabel="نعم، خروج"
+        cancelLabel="إلغاء"
+        danger
+        onConfirm={async () => {
+          setLogoutConfirmOpen(false);
+          await logout();
+          router.replace('/(store)');
+        }}
+        onCancel={() => setLogoutConfirmOpen(false)}
+      />
     </View>
   );
 }

@@ -18,9 +18,28 @@ export interface PrinterDriver {
   shareInvoicePdf(invoice: InvoiceRecord, settings?: InvoiceSettings): Promise<void>;
 }
 
-/** قراءة الإعدادات مرة واحدة، وبناء HTML الفاتورة المضغوطة مع رمز QR */
+let cachedSettings: InvoiceSettings | null = null;
+let lastFetchTime = 0;
+const CACHE_TTL = 5 * 60 * 1000; // 5 دقائق
+
+async function getCachedInvoiceSettings(): Promise<InvoiceSettings> {
+  const now = Date.now();
+  if (cachedSettings && now - lastFetchTime < CACHE_TTL) {
+    return cachedSettings;
+  }
+  try {
+    const fetched = (await fetchInvoiceSettings()) as InvoiceSettings;
+    cachedSettings = fetched;
+    lastFetchTime = now;
+    return fetched;
+  } catch {
+    return cachedSettings ?? ({} as InvoiceSettings);
+  }
+}
+
+/** قراءة الإعدادات بذاكرة تخزين مؤقتة سريعة (<300ms)، وبناء HTML الفاتورة المضغوطة مع رمز QR */
 async function composeReceiptHtml(invoice: InvoiceRecord, settings?: InvoiceSettings) {
-  const resolvedSettings = (await fetchInvoiceSettings()) as InvoiceSettings;
+  const resolvedSettings = { ...(await getCachedInvoiceSettings()) };
   if (settings) Object.assign(resolvedSettings, settings);
   const qrSvg = buildTrackQrSvg(invoice.invoice_number);
   return {

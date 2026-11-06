@@ -4,7 +4,7 @@
  * ترفع الشارة، ويظهر إشعار (Toast) باسمها وسعرها وجهازها (الفئة = الجهاز).
  * الضغط يفتح درجاً بأحدث الألعاب ويكمّل تعليمها كمقروءة.
  */
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { StyleProp, StyleSheet, Text, View, ViewStyle } from 'react-native';
 import { useQuery } from '@tanstack/react-query';
 import { fetchGames } from '@/api/games';
@@ -13,12 +13,12 @@ import ModalSheet from '@/components/ui/ModalSheet';
 import Icon from '@/components/ui/Icon';
 import { ScalePressable } from '@/components/ui/motion';
 import { EmptyState } from '@/components/ui/StateView';
-import { colors } from '@/lib/colors';
 import { jsonGet, jsonSet } from '@/lib/storage';
 import { showToast } from '@/lib/toast';
 import { formatDinar } from '@/lib/money';
 import { mainPriceOf } from '@/lib/gamePrices';
-import { FONT } from '@/lib/fonts';
+import { AR_FONT } from '@/design/fonts';
+import { usePalette } from '@/design/theme';
 import { ROW } from '@/lib/rtl';
 import type { Game } from '@/api/types';
 
@@ -81,11 +81,14 @@ export default function GuestBell({ style }: { style?: StyleProp<ViewStyle> }) {
       .sort((a, b) => b.date.getTime() - a.date.getTime());
   })();
 
-  const categoryName = (game: Game): string => {
-    const id = typeof game.category_id === 'number' ? game.category_id : null;
-    const cat = categoriesQ.data?.find((c) => c.id === id);
-    return cat?.name ?? 'عام';
-  };
+  const categoryName = useCallback(
+    (game: Game): string => {
+      const id = typeof game.category_id === 'number' ? game.category_id : null;
+      const cat = categoriesQ.data?.find((c) => c.id === id);
+      return cat?.name ?? 'عام';
+    },
+    [categoriesQ.data]
+  );
 
   /* إشعار حيّ: كلما ظهرت لعبة جديدة على القائمة نخبنا باسمها وسعرها وجهازها */
   useEffect(() => {
@@ -121,6 +124,8 @@ export default function GuestBell({ style }: { style?: StyleProp<ViewStyle> }) {
     setNow(now);
   };
 
+  const palette = usePalette();
+
   return (
     <>
       <ScalePressable
@@ -130,10 +135,12 @@ export default function GuestBell({ style }: { style?: StyleProp<ViewStyle> }) {
         hitSlop={6}
         style={[styles.pressable, style]}
       >
-        <Icon name="bell" size={17} color={colors.brandLight} />
+        <Icon name="bell" size={17} color={palette.textSub} />
         {newGames.length > 0 ? (
-          <View style={styles.badge}>
-            <Text style={styles.badgeText}>{newGames.length > 9 ? '9+' : newGames.length}</Text>
+          <View style={[styles.badge, { backgroundColor: palette.primary }]}>
+            <Text style={[styles.badgeText, { color: palette.onPrimary }]}>
+              {newGames.length > 9 ? '9+' : newGames.length}
+            </Text>
           </View>
         ) : null}
       </ScalePressable>
@@ -147,14 +154,29 @@ export default function GuestBell({ style }: { style?: StyleProp<ViewStyle> }) {
           <EmptyState message="لا توجد ألعاب جديدة — تفقّد لاحقاً" icon="bell" />
         ) : (
           newGames.map(({ game }) => (
-            <View key={game.id} style={styles.item}>
-              <Icon name="gamepad" size={14} color={colors.brandLight} />
+            <View
+              key={game.id}
+              style={[
+                styles.item,
+                {
+                  backgroundColor: palette.surface,
+                  borderColor: palette.surfaceLine,
+                },
+              ]}
+            >
+              <Icon name="gamepad" size={14} color={palette.primary} />
               <View style={styles.itemBody}>
-                <Text numberOfLines={1} style={styles.itemTitle}>
+                <Text
+                  numberOfLines={1}
+                  style={[styles.itemTitle, { color: palette.text }]}
+                >
                   {game.title}
                 </Text>
                 {/* الجهاز = الفئة (فور/فايف) + السعر والاسم والوقت */}
-                <Text style={styles.itemMeta} numberOfLines={1}>
+                <Text
+                  style={[styles.itemMeta, { color: palette.textSub }]}
+                  numberOfLines={1}
+                >
                   {categoryName(game)} • {formatDinar(mainPriceOf(game))}
                 </Text>
               </View>
@@ -178,15 +200,11 @@ const styles = StyleSheet.create({
     height: 17,
     borderRadius: 999,
     paddingHorizontal: 3,
-    backgroundColor: '#14b8a6',
-    borderWidth: 1.5,
-    borderColor: '#090f1d',
     alignItems: 'center',
     justifyContent: 'center',
   },
   badgeText: {
-    fontFamily: FONT.bold,
-    color: '#042f2e',
+    fontFamily: AR_FONT.bold,
     fontSize: 9,
     includeFontPadding: false,
   },
@@ -194,24 +212,20 @@ const styles = StyleSheet.create({
     flexDirection: ROW,
     alignItems: 'center',
     gap: 10,
-    backgroundColor: 'rgba(255, 255, 255, 0.04)',
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.08)',
     borderRadius: 12,
+    borderWidth: 1,
     padding: 10,
     marginBottom: 8,
   },
   itemBody: { flex: 1 },
   itemTitle: {
-    fontFamily: FONT.bold,
-    color: '#f8fafc',
+    fontFamily: AR_FONT.bold,
     fontSize: 13,
     textAlign: 'right',
     writingDirection: 'rtl',
   },
   itemMeta: {
-    fontFamily: FONT.regular,
-    color: colors.faint,
+    fontFamily: AR_FONT.regular,
     fontSize: 12,
     lineHeight: 18,
     textAlign: 'right',

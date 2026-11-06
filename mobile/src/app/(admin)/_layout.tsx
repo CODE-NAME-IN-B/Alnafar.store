@@ -18,7 +18,6 @@ export default function AdminLayout() {
   const token = useAuthStore((s) => s.token);
   const user = useAuthStore((s) => s.user);
   const authReady = useAuthStore((s) => s.ready);
-  const logout = useAuthStore((s) => s.logout);
 
   const adminScopeBranchId = useAppStore((s) => s.adminScopeBranchId);
   const setAdminScopeBranch = useAppStore((s) => s.setAdminScopeBranch);
@@ -88,24 +87,6 @@ export default function AdminLayout() {
           >
             <Icon name="store" size={14} color={palette.primary} />
             <Text style={[styles.storeBtnText, { color: palette.text }]}>كاشير المتجر</Text>
-          </Pressable>
-
-          <Pressable
-            onPress={async () => {
-              await logout();
-              router.replace('/(store)');
-            }}
-            style={({ pressed }) => [
-              styles.topBtn,
-              {
-                backgroundColor: pressed ? palette.danger + '25' : palette.danger + '14',
-                borderColor: palette.danger + '40',
-              },
-            ]}
-            accessibilityLabel="تسجيل الخروج"
-          >
-            <Icon name="logout" size={14} color={palette.danger} />
-            <Text style={[styles.logoutBtnText, { color: palette.danger }]}>خروج</Text>
           </Pressable>
         </View>
       </View>

@@ -104,7 +104,7 @@ export async function ensureOrdersChannel(): Promise<void> {
       name: 'تحديثات الطلبات',
       importance: AndroidImportance.HIGH,
       vibrationPattern: [0, 250, 250, 250],
-      lightColor: '#14b8a6',
+      lightColor: '#2D6A4F',
     });
   } catch {
     // غير أندرويد أو فشل غير مؤثر
