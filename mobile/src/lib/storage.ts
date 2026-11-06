@@ -7,9 +7,15 @@ import * as SecureStore from 'expo-secure-store';
  */
 export async function secureGet(key: string): Promise<string | null> {
   try {
-    return await SecureStore.getItemAsync(key);
+    const val = await SecureStore.getItemAsync(key);
+    if (val != null) return val;
+    return await AsyncStorage.getItem(key);
   } catch {
-    return null;
+    try {
+      return await AsyncStorage.getItem(key);
+    } catch {
+      return null;
+    }
   }
 }
 
@@ -17,7 +23,7 @@ export async function secureSet(key: string, value: string): Promise<void> {
   try {
     await SecureStore.setItemAsync(key, value);
   } catch {
-    // المحاكيات قد لا تدعم SecureStore — نجرب AsyncStorage كخطة أخيرة
+    // المحاكيات أو بعض أجهزة أندرويد قد لا تدعم SecureStore — حفظ في AsyncStorage
     await AsyncStorage.setItem(key, value);
   }
 }
@@ -26,7 +32,12 @@ export async function secureDelete(key: string): Promise<void> {
   try {
     await SecureStore.deleteItemAsync(key);
   } catch {
-    // تجاهل — المفتاح غير موجود
+    // تجاهل
+  }
+  try {
+    await AsyncStorage.removeItem(key);
+  } catch {
+    // تجاهل
   }
 }
 
