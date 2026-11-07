@@ -56,7 +56,7 @@ export function PriceButton({
     fn();
   };
 
-  const h = compact ? 30 : 32;
+  const h = compact ? 30 : 36;
 
   return (
     <Animated.View
@@ -136,20 +136,22 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    height: 32,
-    paddingHorizontal: 8,
-    gap: 2,
+    height: 36,
+    paddingHorizontal: 10,
+    gap: 4,
   },
   stageCompact: {
     height: 30,
+    paddingHorizontal: 8,
+    gap: 2,
   },
   price: {
     fontFamily: AR_FONT.bold,
-    fontSize: 13,
+    fontSize: 13.5,
     fontVariant: ['tabular-nums'],
     letterSpacing: 0,
     includeFontPadding: false,
-    minWidth: 46,
+    minWidth: 48,
     textAlign: 'center',
   },
   priceCompact: {

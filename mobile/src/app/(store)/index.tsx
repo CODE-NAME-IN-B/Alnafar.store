@@ -773,7 +773,7 @@ function CatalogView({
           keyExtractor={(g) => String(g.id)}
           numColumns={grid ? 2 : 1}
           contentContainerStyle={styles.flashListContent}
-          ItemSeparatorComponent={() => <View style={{ height: 10 }} />}
+          ItemSeparatorComponent={() => <View style={{ height: grid ? 2 : 6 }} />}
           ListHeaderComponent={renderHeader}
           renderItem={({ item: g }) => (
             <View style={grid ? styles.gridCell : styles.rowCell}>
@@ -1003,7 +1003,7 @@ const styles = StyleSheet.create({
   /* الكتالوج */
   catalogContainer: {
     flex: 1,
-    paddingHorizontal: 14,
+    paddingHorizontal: 8,
   },
   catalog: {
     flex: 1,
@@ -1066,13 +1066,15 @@ const styles = StyleSheet.create({
     gap: 10,
   },
   gridCell: {
-    width: '47.6%',
-    flexGrow: 1,
+    flex: 1,
+    padding: 5,
   },
   rowsWrap: {
     gap: 8,
   },
-  rowCell: {},
+  rowCell: {
+    paddingVertical: 4,
+  },
   /* هيكل التحميل */
   skeletonWrap: {
     padding: 14,

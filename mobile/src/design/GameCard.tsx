@@ -118,61 +118,67 @@ function GameCardComponent({ game, hasVersions, onPress, compact }: Props) {
   }
 
   return (
-    <StaticCard paletteBorder={palette.surfaceLine} paletteSurface={palette.surface}>
-      <View style={styles.cover}>
-        {game.image ? (
-          <Image
-            source={{ uri: game.image }}
-            style={styles.coverImg}
-            contentFit="cover"
-            cachePolicy="memory-disk"
-            recyclingKey={String(game.id)}
-            transition={DUR.quick}
-          />
-        ) : (
-          <View style={[styles.coverFallback, { backgroundColor: palette.surfaceRaised }]}>
-            <Icon name="gamepad" size={30} color={palette.textFaint} />
-          </View>
-        )}
+    <ScalePressable
+      onPress={() => onPress?.(game)}
+      accessibilityRole="button"
+      accessibilityLabel={`لعبة ${game.title}`}
+    >
+      <StaticCard paletteBorder={palette.surfaceLine} paletteSurface={palette.surface}>
+        <View style={styles.cover}>
+          {game.image ? (
+            <Image
+              source={{ uri: game.image }}
+              style={styles.coverImg}
+              contentFit="cover"
+              cachePolicy="memory-disk"
+              recyclingKey={String(game.id)}
+              transition={DUR.quick}
+            />
+          ) : (
+            <View style={[styles.coverFallback, { backgroundColor: palette.surfaceRaised }]}>
+              <Icon name="gamepad" size={30} color={palette.textFaint} />
+            </View>
+          )}
 
-        {/* شارات نصية رفيع فوق scrim — بلا ألوان منصات */}
-        <View style={styles.badgeLayer} pointerEvents="none">
-          <View
-            style={[
-              styles.badgesRow,
-              { backgroundColor: 'rgba(18, 22, 16, 0.55)' },
-            ]}
-          >
-            {hasVersions ? <Text style={styles.badgeTxt}>فور / فايف</Text> : null}
-            {game.size_gb ? (
-              <Text style={styles.badgeLat}>{`${Math.round(Number(game.size_gb))}GB`}</Text>
-            ) : null}
-            {split ? <Text style={styles.badgeTxt}>شاشة مقسومة</Text> : null}
+          {/* شارات نصية رفيع فوق scrim — بلا ألوان منصات */}
+          <View style={styles.badgeLayer} pointerEvents="none">
+            <View
+              style={[
+                styles.badgesRow,
+                { backgroundColor: 'rgba(18, 22, 16, 0.65)' },
+              ]}
+            >
+              {hasVersions ? <Text style={styles.badgeTxt}>فور / فايف</Text> : null}
+              {game.size_gb ? (
+                <Text style={styles.badgeLat}>{`${Math.round(Number(game.size_gb))}GB`}</Text>
+              ) : null}
+              {split ? <Text style={styles.badgeTxt}>شاشة مقسومة</Text> : null}
+            </View>
           </View>
         </View>
-      </View>
 
-      {/* معلومات + زر السعر */}
-      <View style={styles.info}>
-        <Text numberOfLines={1} style={[styles.title, { color: palette.text }]}>
-          {game.title}
-        </Text>
-        {subtitle ? (
-          <Text numberOfLines={1} style={[styles.sub, { color: palette.textSub }]}>
-            {subtitle}
+        {/* معلومات + زر السعر */}
+        <View style={styles.info}>
+          <Text numberOfLines={1} style={[styles.title, { color: palette.text }]}>
+            {game.title}
           </Text>
-        ) : null}
-        <View style={styles.priceRow}>
-          <PriceButton
-            price={main}
-            quantity={quantity}
-            onAdd={() => onPress?.(game)}
-            onIncrement={() => useCartStore.getState().addGame({ id: Number(game.id), title: game.title, price: main, sizeGb: game.size_gb != null ? Number(game.size_gb) : null, platform })}
-            onDecrement={() => (quantity <= 1 ? useCartStore.getState().removeItem(key) : useCartStore.getState().decrement(key))}
-          />
+          {subtitle ? (
+            <Text numberOfLines={1} style={[styles.sub, { color: palette.textSub }]}>
+              {subtitle}
+            </Text>
+          ) : null}
+          <View style={styles.priceRow}>
+            <PriceButton
+              price={main}
+              quantity={quantity}
+              onAdd={() => onPress?.(game)}
+              onIncrement={() => useCartStore.getState().addGame({ id: Number(game.id), title: game.title, price: main, sizeGb: game.size_gb != null ? Number(game.size_gb) : null, platform })}
+              onDecrement={() => (quantity <= 1 ? useCartStore.getState().removeItem(key) : useCartStore.getState().decrement(key))}
+            />
+          </View>
         </View>
-      </View>
-    </StaticCard>
+      </StaticCard>
+    </ScalePressable>
   );
 }
 
@@ -198,13 +204,14 @@ export default GameCard;
 
 const styles = StyleSheet.create({
   card: {
+    flex: 1,
     borderRadius: 16,
     borderWidth: 1,
     overflow: 'hidden',
   },
   cover: {
     width: '100%',
-    aspectRatio: 3 / 2.6,
+    aspectRatio: 0.78,
   },
   coverImg: {
     width: '100%',
