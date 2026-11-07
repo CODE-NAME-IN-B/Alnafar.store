@@ -20,6 +20,9 @@ const config: ExpoConfig = {
   android: {
     package: 'com.inb.alsharda',
     versionCode: 9,
+    permissions: [
+      'android.permission.REQUEST_INSTALL_PACKAGES',
+    ],
     adaptiveIcon: {
       foregroundImage: './assets/_brand/icon-maskable.png',
       monochromeImage: './assets/android-icon-monochrome.png',

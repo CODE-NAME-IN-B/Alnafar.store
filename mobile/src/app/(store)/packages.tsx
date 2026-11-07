@@ -1,10 +1,9 @@
-import { useEffect, useState, type ReactNode } from 'react';
+import { useMemo, useState, type ReactNode } from 'react';
 import { Animated, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { FlashList } from '@shopify/flash-list';
 import { useQuery } from '@tanstack/react-query';
 import { fetchCategories } from '@/api/categories';
 import { fetchActivePackages } from '@/api/packages';
-import { useAppStore } from '@/stores/app';
 import { addPackageToCart } from '@/features/cartActions';
 import PackageDetailsSheet from '@/components/store/PackageDetailsSheet';
 import Screen from '@/components/ui/Screen';
@@ -22,8 +21,7 @@ import type { StorePackage } from '@/api/types';
 /** شاشة الباقات مع زر «عرض الألعاب» قبل الشراء — بالهوية والتصميم العصري الموحد */
 export default function PackagesScreen() {
   const palette = usePalette();
-  const activeCategoryId = useAppStore((s) => s.activeCategoryId);
-  const setActiveCategory = useAppStore((s) => s.setActiveCategory);
+  const [userSelectedCatId, setUserSelectedCatId] = useState<number | null>(null);
   const [details, setDetails] = useState<StorePackage | null>(null);
 
   const addPack = (pkg: StorePackage) => {
@@ -36,22 +34,24 @@ export default function PackagesScreen() {
     queryFn: () => fetchCategories(true),
   });
 
+  const defaultCatId = useMemo(() => {
+    if (!categories.data || !categories.data.length) return null;
+    const ps5 = categories.data.find((c) => /ps5|5/i.test(c.name));
+    return ps5 ? ps5.id : categories.data[0].id;
+  }, [categories.data]);
+
+  const selectedCatId = userSelectedCatId ?? defaultCatId;
+
   const entranceStyle = useScreenEntrance({ durationMs: 240, dy: 12 });
 
   const packages = useQuery({
-    queryKey: ['packages-active', activeCategoryId],
+    queryKey: ['packages-active', selectedCatId],
     queryFn: async () => {
-      if (activeCategoryId == null) return [];
-      return fetchActivePackages(activeCategoryId);
+      if (selectedCatId == null) return [];
+      return fetchActivePackages(selectedCatId);
     },
-    enabled: activeCategoryId != null,
+    enabled: selectedCatId != null,
   });
-
-  useEffect(() => {
-    if (activeCategoryId == null && categories.data && categories.data.length) {
-      setActiveCategory(categories.data[0].id);
-    }
-  }, [activeCategoryId, categories.data, setActiveCategory]);
 
   return (
     <Screen edges={['top']}>
@@ -107,15 +107,15 @@ export default function PackagesScreen() {
               <Chip
                 key={String(cat.id)}
                 label={cat.name}
-                active={activeCategoryId === cat.id}
-                onPress={() => setActiveCategory(cat.id)}
+                active={selectedCatId === cat.id}
+                onPress={() => setUserSelectedCatId(cat.id)}
               />
             ))}
           </ScrollView>
         ) : null}
       </Animated.View>
 
-      {activeCategoryId == null ? (
+      {selectedCatId == null ? (
         <LoadingState message="جاري جلب الفئات..." />
       ) : packages.isLoading ? (
         <LoadingState message="جاري جلب الباقات..." />

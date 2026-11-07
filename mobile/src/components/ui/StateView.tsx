@@ -150,15 +150,30 @@ export function EmptyState({
       {actionLabel && onAction ? (
         <Pressable
           onPress={onAction}
-          style={{
+          style={({ pressed }) => ({
             borderRadius: tokens.radius.pill,
             marginTop: 18,
-            backgroundColor: palette.primary,
-            paddingHorizontal: 24,
-            paddingVertical: 11,
-          }}
+            backgroundColor: pressed ? palette.primaryPressed : palette.primary,
+            paddingHorizontal: 26,
+            paddingVertical: 12,
+            minHeight: 46,
+            alignItems: 'center',
+            justifyContent: 'center',
+          })}
+          accessibilityRole="button"
+          accessibilityLabel={actionLabel}
         >
-          <Text style={{ color: palette.onPrimary, fontFamily: AR_FONT.bold, fontSize: 14 }}>
+          <Text
+            style={{
+              color: palette.onPrimary,
+              fontFamily: AR_FONT.bold,
+              fontSize: 14,
+              lineHeight: 22,
+              textAlign: 'center',
+              writingDirection: 'rtl',
+              includeFontPadding: false,
+            }}
+          >
             {actionLabel}
           </Text>
         </Pressable>

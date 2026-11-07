@@ -3,9 +3,11 @@ import { triggerSuccessFeedback } from '@/lib/colors';
 import { playSuccessSound } from '@/lib/sounds';
 import type { Game, Service, StorePackage } from '@/api/types';
 
-/** ردة النجاح الموحدة: صوت + إهتزاز — مرة واحدة عند أي إضافة للسلة */
+/** ردة النجاح الموحدة: صوت + إهتزاز — مؤجلة لإطار لاحق لضمان تحديث الواجهة الفوري */
 function celebrate(): void {
-  triggerSuccessFeedback(playSuccessSound);
+  requestAnimationFrame(() => {
+    triggerSuccessFeedback(playSuccessSound);
+  });
 }
 
 /**

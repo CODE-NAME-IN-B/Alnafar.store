@@ -1,7 +1,7 @@
-import { useEffect, useRef, useState, type ReactNode } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import {
   Keyboard,
-  ScrollView,
+  StyleSheet,
   Text,
   View,
   type TextInputInstance,
@@ -9,7 +9,6 @@ import {
 import ModalSheet from '@/components/ui/ModalSheet';
 import AppInput from '@/components/ui/AppInput';
 import AppButton from '@/components/ui/AppButton';
-import AppText from '@/components/ui/AppText';
 import { ScalePressable } from '@/components/ui/motion';
 import {
   createInvoice,
@@ -27,11 +26,11 @@ import { useAppStore } from '@/stores/app';
 import { estimateMinutes } from '@/lib/estimate';
 import { formatDinar } from '@/lib/money';
 import { formatInvoiceCode } from '@/components/ui/LtrText';
-import { colors } from '@/lib/colors';
-import { FONT } from '@/lib/fonts';
+import { usePalette } from '@/design/theme';
+import { AR_FONT, LAT_FONT } from '@/design/fonts';
 import { showToast } from '@/lib/toast';
+import { ROW } from '@/lib/rtl';
 import type { InvoiceItemInput } from '@/api/types';
-import type { OrderStatus } from '@/lib/statuses';
 
 interface Props {
   visible: boolean;
@@ -41,7 +40,11 @@ interface Props {
   onSaved: (invoice: InvoiceRecord) => void;
 }
 
-/** نافذة إنشاء أو تعديل فاتورة للموظف/المدير (مطابقة لمنطق Invoice.jsx) */
+/**
+ * نافذة إنشاء أو تعديل فاتورة للكاشير (المرحلة F3):
+ * ترتيب محكم: بطاقة العميل ← بطاقة الدفع السريع والخصم ← بطاقة الملخص المالي
+ * ← تذييل ثابت يحوي فقط زر الإجراء الرئيسي للطباعة دون تغطية المدخلات.
+ */
 export default function InvoiceFormModal({
   visible,
   items,
@@ -49,6 +52,7 @@ export default function InvoiceFormModal({
   onClose,
   onSaved,
 }: Props) {
+  const palette = usePalette();
   const selectedBranchId = useAppStore((s) => s.selectedBranchId);
   const total = cartTotal(items);
   const totalSize = cartTotalSizeGb(items);
@@ -61,7 +65,6 @@ export default function InvoiceFormModal({
   const [paidText, setPaidText] = useState(String(total));
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  /** يُفعِّل عرض خطأ حقل-بحقل بعد أول محاولة إرسال فقط (لا نغرِس المستخدم مبكراً) */
   const [attempted, setAttempted] = useState(false);
 
   const discount = Math.max(0, Math.min(total, Number(discountText) || 0));
@@ -69,13 +72,11 @@ export default function InvoiceFormModal({
   const paidAmount = Math.max(0, Number(paidText) || 0);
   const remaining = Math.max(0, finalTotal - paidAmount);
 
-  /** سلسلة الحقول: اسم ← هاتف — Enter في الاسم ينتقل للهاتف مباشرة */
   const nameRef = useRef<TextInputInstance | null>(null);
   const phoneRef = useRef<TextInputInstance | null>(null);
 
   useEffect(() => {
     if (!visible) return;
-    // إعادة تهيئة استمارة الفاتورة عند فتح النافذة أو تغيّر الهدف (نموذج نافذة مقصود، وليس حالة مشتقة للعرض)
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setName(editingDraft?.customer_name ?? '');
     setPhone(editingDraft?.customer_phone ?? '');
@@ -98,55 +99,60 @@ export default function InvoiceFormModal({
       return;
     }
     if (!items.length) {
-      setError('السلة فارغة');
+      setError('السلة فارغة — أضف ألعاباً أولاً');
       return;
     }
 
     setBusy(true);
     setError(null);
     try {
-      const payloadItems: InvoiceItemInput[] = items.flatMap((item) => {
-        const count = Math.max(1, item.quantity);
-        return Array.from({ length: count }, () => ({
-          ...(item.type === 'game' ? { id: item.refId } : {}),
-          title: item.title,
-          price: item.price,
-          type: item.type,
-          size_gb: item.sizeGb ?? 0,
-          ...(item.platform ? { platform: item.platform } : {}),
-        }));
-      });
+      const payloadItems: InvoiceItemInput[] = items.map((it) => ({
+        id: it.refId,
+        title: it.title,
+        price: it.price,
+        type: it.type === 'package' ? 'package' : 'game',
+        size_gb: it.sizeGb ?? null,
+        quantity: it.quantity,
+        platform: it.platform,
+      }));
 
-      const payload = {
-        customerInfo: {
-          name: name.trim(),
-          phone: phone.trim(),
-          address: editingDraft?.customer_address ?? '',
-          notes: notes.trim(),
-        },
-        items: payloadItems,
-        total,
-        totalSize,
-        estimatedMinutes: minutes,
-        discount,
-        finalTotal,
-        paidAmount,
-        date: new Date().toISOString(),
-        status: (editingDraft?.status ?? (paidAmount >= finalTotal ? 'paid' : 'pending')) as OrderStatus,
-        ...(selectedBranchId != null ? { branch_id: Number(selectedBranchId) } : {}),
-      };
-
-      let saved: InvoiceRecord;
-      if (editingDraft?.id) {
-        saved = await updateInvoice(editingDraft.id, payload);
-        showToast('تم حفظ تعديلات الفاتورة');
+      let inv: InvoiceRecord;
+      if (editingDraft) {
+        inv = await updateInvoice(editingDraft.id, {
+          customerInfo: {
+            name: name.trim(),
+            phone: phone.trim(),
+            notes: notes.trim() || undefined,
+          },
+          discount,
+          paid_amount: paidAmount,
+          items: payloadItems,
+        });
+        showToast('تم تعديل الفاتورة بنجاح', 'success');
       } else {
-        const res = await createInvoice(payload);
-        saved = res.invoice;
-        showToast('تم إنشاء الفاتورة بنجاح');
+        const res = await createInvoice({
+          customerInfo: {
+            name: name.trim(),
+            phone: phone.trim(),
+            notes: notes.trim() || undefined,
+          },
+          discount,
+          paidAmount,
+          items: payloadItems,
+          total,
+          totalSize,
+          estimatedMinutes: minutes,
+          finalTotal,
+          date: new Date().toISOString(),
+          status: 'pending',
+          branch_id: selectedBranchId ?? 1,
+        });
+        inv = res.invoice;
+        showToast('تم إنشاء الفاتورة بنجاح', 'success');
       }
-      saved.items = payloadItems;
-      onSaved(saved);
+
+      onSaved(inv);
+      onClose();
     } catch (err) {
       setError(apiErrorText(err));
     } finally {
@@ -158,78 +164,129 @@ export default function InvoiceFormModal({
     <ModalSheet
       visible={visible}
       onClose={onClose}
-      title={editingDraft ? `تعديل الفاتورة ${formatInvoiceCode(editingDraft.invoice_number)}` : 'إنشاء فاتورة جديدة'}
+      title={
+        editingDraft
+          ? `تعديل الفاتورة ${formatInvoiceCode(editingDraft.invoice_number)}`
+          : 'إنشاء فاتورة جديدة'
+      }
+      footer={
+        <View style={styles.footerWrap}>
+          {error ? (
+            <Text style={[styles.errText, { color: palette.danger }]}>{error}</Text>
+          ) : null}
+          <AppButton
+            label={
+              editingDraft
+                ? 'حفظ التعديلات والمعاينة'
+                : 'إنشاء الفاتورة والمعاينة للطباعة'
+            }
+            icon="printer"
+            onPress={handleSave}
+            loading={busy}
+          />
+        </View>
+      }
     >
-      <ScrollView
-        style={{ maxHeight: 450 }}
-        showsVerticalScrollIndicator={false}
-        keyboardShouldPersistTaps="handled"
-        automaticallyAdjustKeyboardInsets
-      >
-        <View style={{ gap: 10 }}>
-          {/* ملخص سريع لما في السلة */}
-          <View
-            style={{
-              flexDirection: 'row',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              backgroundColor: colors.brandSoft,
-              borderColor: colors.brandBorder,
-              borderWidth: 1,
-              borderRadius: 12,
-              paddingVertical: 9,
-              paddingHorizontal: 12,
-            }}
-          >
-            <Text style={{ color: colors.brandBright, fontFamily: FONT.bold, fontSize: 12.5 }}>
-              {items.length} {items.length === 1 ? 'بند' : 'بنود'} في الفاتورة
-            </Text>
-            <Text style={{ color: colors.brandLight, fontFamily: FONT.bold, fontSize: 13 }}>
-              {formatDinar(total)}
-            </Text>
+      <View style={styles.formContainer}>
+        {/* 1. ملخص سريع للبنود في السلة */}
+        <View
+          style={[
+            styles.banner,
+            {
+              backgroundColor: `${palette.primary}12`,
+              borderColor: `${palette.primary}35`,
+            },
+          ]}
+        >
+          <Text style={[styles.bannerText, { color: palette.primary }]}>
+            {items.length} {items.length === 1 ? 'بند' : 'بنود'} في الفاتورة
+          </Text>
+          <Text style={[styles.bannerTotal, { color: palette.primary }]}>
+            {formatDinar(total)}
+          </Text>
+        </View>
+
+        {/* 2. بطاقة العميل */}
+        <View
+          style={[
+            styles.card,
+            { backgroundColor: palette.surface, borderColor: palette.surfaceLine },
+          ]}
+        >
+          <Text style={[styles.cardHeader, { color: palette.text }]}>بيانات العميل</Text>
+          <View style={styles.cardFields}>
+            <AppInput
+              label="اسم العميل *"
+              placeholder="الاسم الكامل"
+              value={name}
+              icon="user"
+              error={attempted && !name.trim() ? 'الاسم مطلوب' : null}
+              onChangeText={setName}
+              autoFocus={!editingDraft}
+              inputRef={(t) => {
+                nameRef.current = t;
+              }}
+              returnKeyType="next"
+              onSubmitEditing={() => phoneRef.current?.focus()}
+            />
+            <AppInput
+              label="رقم الهاتف *"
+              placeholder="09X XXX XXXX"
+              keyboard="phone-pad"
+              icon="phone"
+              value={phone}
+              error={attempted && !phone.trim() ? 'رقم الهاتف مطلوب' : null}
+              onChangeText={setPhone}
+              inputRef={(t) => {
+                phoneRef.current = t;
+              }}
+              returnKeyType="done"
+              onSubmitEditing={() => Keyboard.dismiss()}
+            />
+            <AppInput
+              label="ملاحظات (اختياري)"
+              placeholder="أي تفاصيل خاصة بالجهاز أو التسليم..."
+              value={notes}
+              multiline
+              onChangeText={setNotes}
+            />
+          </View>
+        </View>
+
+        {/* 3. بطاقة الدفع والتسديد */}
+        <View
+          style={[
+            styles.card,
+            { backgroundColor: palette.surface, borderColor: palette.surfaceLine },
+          ]}
+        >
+          <Text style={[styles.cardHeader, { color: palette.text }]}>خيارات الدفع</Text>
+
+          {/* مفاتيح الدفع السريع */}
+          <View style={styles.quickPayRow}>
+            <QuickPayBtn
+              label="الكل (خالص)"
+              active={paidAmount === finalTotal && finalTotal > 0}
+              onPress={() => setPaidText(String(finalTotal))}
+              palette={palette}
+            />
+            <QuickPayBtn
+              label="نصف القيمة"
+              active={paidAmount === Math.round(finalTotal / 2) && finalTotal > 0}
+              onPress={() => setPaidText(String(Math.round(finalTotal / 2)))}
+              palette={palette}
+            />
+            <QuickPayBtn
+              label="آجل (0)"
+              active={paidAmount === 0}
+              onPress={() => setPaidText('0')}
+              palette={palette}
+            />
           </View>
 
-          <SectionTitle>بيانات الزبون</SectionTitle>
-          <AppInput
-            label="اسم العميل *"
-            placeholder="أدخل الاسم الكامل"
-            value={name}
-            icon="user"
-            error={attempted && !name.trim() ? 'الاسم مطلوب' : null}
-            onChangeText={setName}
-            /* تركيز تلقائي عند إنشاء فاتورة جديدة فقط — في التعديل لا نصخم المستخدم */
-            autoFocus={!editingDraft}
-            inputRef={(t) => {
-              nameRef.current = t;
-            }}
-            returnKeyType="next"
-            onSubmitEditing={() => phoneRef.current?.focus()}
-          />
-          <AppInput
-            label="رقم الهاتف *"
-            placeholder="09X XXX XXXX"
-            keyboard="phone-pad"
-            icon="phone"
-            value={phone}
-            error={attempted && !phone.trim() ? 'رقم الهاتف مطلوب' : null}
-            onChangeText={setPhone}
-            inputRef={(t) => {
-              phoneRef.current = t;
-            }}
-            returnKeyType="done"
-            onSubmitEditing={() => Keyboard.dismiss()}
-          />
-          <AppInput
-            label="ملاحظات (اختياري)"
-            placeholder="أي ملاحظات على الطلب..."
-            value={notes}
-            multiline
-            onChangeText={setNotes}
-          />
-
-          <SectionTitle>الدفع</SectionTitle>
-          <View style={{ flexDirection: 'row', gap: 10 }}>
-            <View style={{ flex: 1 }}>
+          {/* حقلا الخصم والمدفوع جنباً إلى جنب */}
+          <View style={styles.inputsRow}>
+            <View style={styles.flex1}>
               <AppInput
                 label="الخصم (د.ل)"
                 placeholder="0"
@@ -242,9 +299,9 @@ export default function InvoiceFormModal({
                 }}
               />
             </View>
-            <View style={{ flex: 1 }}>
+            <View style={styles.flex1}>
               <AppInput
-                label="المبلغ المدفوع (د.ل)"
+                label="المدفوع حالياً (د.ل)"
                 placeholder="0"
                 keyboard="numeric"
                 value={paidText}
@@ -252,62 +309,49 @@ export default function InvoiceFormModal({
               />
             </View>
           </View>
-
-          {/* أزرار الدفع السريع: الكل / نصف / آجل — الأكتف يميّز الاختيار،
-              والتسمية هي من تحمل المعنى (لا لون لكل خيار) */}
-          <View style={{ flexDirection: 'row', gap: 8 }}>
-            <QuickPayBtn
-              label="الكل (خالص)"
-              active={paidAmount === finalTotal}
-              onPress={() => setPaidText(String(finalTotal))}
-            />
-            <QuickPayBtn
-              label="نصف القيمة"
-              active={paidAmount === finalTotal / 2 && finalTotal > 0}
-              onPress={() => setPaidText(String(finalTotal / 2))}
-            />
-            <QuickPayBtn
-              label="آجل (0)"
-              active={paidAmount === 0}
-              onPress={() => setPaidText('0')}
-            />
-          </View>
         </View>
-      </ScrollView>
 
-      {/* ملخص الأرقام + الخطأ + زر الحفظ: ثابت أسفل النافذة — مرئي دائماً أثناء التمرير */}
-      footer={
-        <View style={{ gap: 10 }}>
-          <View
-            style={{
-              backgroundColor: colors.elevatedRaised,
-              borderRadius: 12,
-              borderWidth: 1,
-              borderColor: colors.borderSubtle,
-              padding: 12,
-              gap: 6,
-            }}
-          >
-            <SummaryLine label="الإجمالي قبل الخصم" value={formatDinar(total)} />
-            {discount > 0 ? <SummaryLine label="الخصم" value={formatDinar(discount)} /> : null}
-            <SummaryLine label="الصافي المطلوب" value={formatDinar(finalTotal)} highlight />
-            {remaining > 0 ? (
-              <SummaryLine label="المتبقي (آجل)" value={formatDinar(remaining)} warn />
-            ) : null}
-          </View>
-
-          {error ? (
-            <AppText style={{ color: colors.dangerStrong, fontFamily: FONT.medium }}>{error}</AppText>
+        {/* 4. بطاقة الملخص المالي */}
+        <View
+          style={[
+            styles.summaryCard,
+            {
+              backgroundColor: palette.surfaceRaised,
+              borderColor: palette.surfaceLine,
+            },
+          ]}
+        >
+          <SummaryLine label="الإجمالي قبل الخصم" value={formatDinar(total)} palette={palette} />
+          {discount > 0 ? (
+            <SummaryLine label="الخصم الممنوح" value={`-${formatDinar(discount)}`} palette={palette} />
           ) : null}
-
-          <AppButton
-            label={editingDraft ? 'حفظ التعديلات وفتح الفاتورة' : 'إنشاء الفاتورة والمعاينة للطباعة'}
-            icon="printer"
-            onPress={handleSave}
-            loading={busy}
+          <SummaryLine
+            label="الصافي المطلوب"
+            value={formatDinar(finalTotal)}
+            highlight
+            palette={palette}
           />
+          <SummaryLine
+            label="المبلغ المسدد"
+            value={formatDinar(paidAmount)}
+            palette={palette}
+          />
+          {remaining > 0 ? (
+            <SummaryLine
+              label="المتبقي (آجل)"
+              value={formatDinar(remaining)}
+              warn
+              palette={palette}
+            />
+          ) : (
+            <View style={styles.paidBadge}>
+              <Text style={[styles.paidBadgeText, { color: palette.success }]}>
+                ✓ الفاتورة مدفوعة بالكامل
+              </Text>
+            </View>
+          )}
         </View>
-      }
+      </View>
     </ModalSheet>
   );
 }
@@ -316,55 +360,38 @@ function QuickPayBtn({
   label,
   active,
   onPress,
+  palette,
 }: {
   label: string;
   active: boolean;
   onPress: () => void;
+  palette: ReturnType<typeof usePalette>;
 }) {
   return (
     <ScalePressable
       onPress={onPress}
       accessibilityRole="button"
       accessibilityState={{ selected: active }}
-      style={{
-        flex: 1,
-        minHeight: 44,
-        justifyContent: 'center',
-        backgroundColor: active ? colors.brand : colors.surfaceRaised,
-        borderRadius: 10,
-        borderWidth: 1,
-        borderColor: active ? colors.brandBorder : colors.borderSubtle,
-        paddingVertical: 9,
-        alignItems: 'center',
-      }}
+      style={[
+        styles.quickBtn,
+        {
+          backgroundColor: active ? palette.primary : palette.surfaceRaised,
+          borderColor: active ? palette.primary : palette.surfaceLine,
+        },
+      ]}
     >
       <Text
-        style={{
-          color: active ? colors.brandDark : colors.text,
-          fontFamily: FONT.bold,
-          fontSize: 12,
-        }}
+        style={[
+          styles.quickBtnText,
+          {
+            color: active ? palette.onPrimary : palette.text,
+            fontFamily: AR_FONT.bold,
+          },
+        ]}
       >
         {label}
       </Text>
     </ScalePressable>
-  );
-}
-
-/** عنوان قسم صغير داخل النافذة */
-function SectionTitle({ children }: { children: ReactNode }) {
-  return (
-    <Text
-      style={{
-        color: colors.faint, textAlign: 'right',
-        fontFamily: FONT.bold,
-        fontSize: 11.5,
-        marginTop: 2,
-        marginBottom: -2,
-      }}
-    >
-      {children}
-    </Text>
   );
 }
 
@@ -373,24 +400,139 @@ function SummaryLine({
   value,
   highlight,
   warn,
+  palette,
 }: {
   label: string;
   value: string;
   highlight?: boolean;
   warn?: boolean;
+  palette: ReturnType<typeof usePalette>;
 }) {
   return (
-    <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
-      <Text style={{ color: colors.dim, fontFamily: FONT.regular, fontSize: 12 }}>{label}</Text>
+    <View style={styles.summaryRow}>
       <Text
-        style={{
-          color: warn ? colors.warningText : highlight ? colors.brandLight : colors.text,
-          fontFamily: FONT.bold,
-          fontSize: 13,
-        }}
+        style={[
+          styles.summaryLabel,
+          {
+            color: warn ? palette.danger : highlight ? palette.text : palette.textSub,
+            fontFamily: highlight || warn ? AR_FONT.bold : AR_FONT.medium,
+          },
+        ]}
+      >
+        {label}
+      </Text>
+      <Text
+        style={[
+          styles.summaryValue,
+          {
+            color: warn ? palette.danger : highlight ? palette.primary : palette.text,
+            fontFamily: highlight || warn ? LAT_FONT.bold : LAT_FONT.medium,
+            fontSize: highlight ? 15 : 13,
+          },
+        ]}
       >
         {value}
       </Text>
     </View>
   );
 }
+
+const styles = StyleSheet.create({
+  formContainer: {
+    gap: 12,
+    paddingBottom: 16,
+  },
+  banner: {
+    flexDirection: ROW,
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    borderWidth: 1,
+    borderRadius: 12,
+    paddingVertical: 10,
+    paddingHorizontal: 14,
+  },
+  bannerText: {
+    fontFamily: AR_FONT.bold,
+    fontSize: 13,
+  },
+  bannerTotal: {
+    fontFamily: LAT_FONT.bold,
+    fontSize: 14,
+  },
+  card: {
+    borderRadius: 16,
+    borderWidth: 1,
+    padding: 14,
+    gap: 12,
+  },
+  cardHeader: {
+    fontFamily: AR_FONT.bold,
+    fontSize: 14,
+    textAlign: 'right',
+    writingDirection: 'rtl',
+  },
+  cardFields: {
+    gap: 10,
+  },
+  quickPayRow: {
+    flexDirection: ROW,
+    gap: 8,
+  },
+  quickBtn: {
+    flex: 1,
+    minHeight: 40,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderRadius: 10,
+    borderWidth: 1,
+    paddingVertical: 8,
+  },
+  quickBtnText: {
+    fontSize: 12,
+    includeFontPadding: false,
+  },
+  inputsRow: {
+    flexDirection: ROW,
+    gap: 10,
+  },
+  flex1: {
+    flex: 1,
+  },
+  summaryCard: {
+    borderRadius: 14,
+    borderWidth: 1,
+    padding: 14,
+    gap: 8,
+  },
+  summaryRow: {
+    flexDirection: ROW,
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  summaryLabel: {
+    fontSize: 12.5,
+    includeFontPadding: false,
+  },
+  summaryValue: {
+    includeFontPadding: false,
+  },
+  paidBadge: {
+    marginTop: 4,
+    paddingTop: 6,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: '#22c55e30',
+    alignItems: 'center',
+  },
+  paidBadgeText: {
+    fontFamily: AR_FONT.bold,
+    fontSize: 12,
+  },
+  footerWrap: {
+    gap: 8,
+  },
+  errText: {
+    fontFamily: AR_FONT.medium,
+    fontSize: 12,
+    textAlign: 'right',
+  },
+});

@@ -1,46 +1,56 @@
 /**
- * نافذة تحديث التطبيق داخلية — لا تفتح المستودع:
- * فحص ← تحميل APK بخطِ تقدّم (بايتات) ← زر «تثبيت» يشغّل مثبّت أندرويد.
+ * نافذة تحديث التطبيق داخلية — معالجة التثبيت والتحميل التلقائي:
+ * فحص ← تحميل APK بخطِ تقدّم ← زر «تثبيت» يشغّل نية أندرويد القياسية.
  */
-import { useEffect, useState } from 'react';
-import { Linking, StyleSheet, Text, View } from 'react-native';
+import { useEffect, useRef, useState } from 'react';
+import { AppState, AppStateStatus, Linking, StyleSheet, Text, View } from 'react-native';
 import * as FileSystem from 'expo-file-system/legacy';
 import * as IntentLauncher from 'expo-intent-launcher';
 import ModalSheet from '@/components/ui/ModalSheet';
 import AppButton from '@/components/ui/AppButton';
 import Icon from '@/components/ui/Icon';
-import { colors } from '@/lib/colors';
-import { FONT } from '@/lib/fonts';
+import { usePalette } from '@/design/theme';
+import { AR_FONT } from '@/design/fonts';
 import { ROW } from '@/lib/rtl';
 import { showToast } from '@/lib/toast';
 
 interface Props {
   visible: boolean;
   onClose: () => void;
-  /** رابط APK من آخر Release */
   apkUrl: string | null;
   tag: string | null;
 }
 
-/** مكان التخزين: مجلد مؤشرات التطبيق — يُستبدل في كل تحميل */
 const APK_PATH = `${FileSystem.cacheDirectory ?? ''}alsharda-update.apk`;
-/** ACTION_VIEW على حزم التثبيت — غير مضمّن في ثوابت المكتبة */
-const ACTION_VIEW_INSTALL_PACKAGES = 'android.intent.action.VIEW_INSTALL_PACKAGES';
+
+/* نوايا أندرويد القياسية لتثبيت الحزم وإذن المصادر غير المعروفة */
+const ACTION_VIEW = 'android.intent.action.VIEW';
 const FLAG_ACTIVITY_NEW_TASK = 0x10000000;
+const FLAG_GRANT_READ_URI_PERMISSION = 0x00000001;
+const ACTION_MANAGE_UNKNOWN_APP_SOURCES = 'android.settings.MANAGE_UNKNOWN_APP_SOURCES';
+const APP_PACKAGE = 'com.inb.alsharda';
 
 const fmtMb = (n: number): string => `${(n / (1024 * 1024)).toFixed(1)} MB`;
 
-/** جولة تحميل واحدة — تُركَّب من جديد بكل فتح/محاولة (key) فتبدأ الحالة ك↓سابقة طازجة */
-function UpdateRun({ apkUrl, onRetry, onClose }: { apkUrl: string; onRetry: () => void; onClose: () => void }) {
+function UpdateRun({
+  apkUrl,
+  onRetry,
+  onClose,
+}: {
+  apkUrl: string;
+  onRetry: () => void;
+  onClose: () => void;
+}) {
+  const palette = usePalette();
   const [phase, setPhase] = useState<'downloading' | 'done' | 'error'>('downloading');
   const [progress, setProgress] = useState(0);
   const [bytes, setBytes] = useState('');
   const [error, setError] = useState<string | null>(null);
+  const [needsPermission, setNeedsPermission] = useState(false);
+  const waitingForPermission = useRef(false);
 
-  /* تحميل واحد لكل ركوبة — الحالات الأولية في البناء، لا تضعية SYNC داخل التأثير */
   useEffect(() => {
     let alive = true;
-    /* في SDK 58 لا يتقبّل downloadAsync ردّ تقدّم — المسار الرسمي: DownloadResumable */
     const resumable = FileSystem.createDownloadResumable(
       apkUrl,
       APK_PATH,
@@ -58,6 +68,7 @@ function UpdateRun({ apkUrl, onRetry, onClose }: { apkUrl: string; onRetry: () =
         );
       }
     );
+
     resumable
       .downloadAsync()
       .then((res) => {
@@ -75,60 +86,93 @@ function UpdateRun({ apkUrl, onRetry, onClose }: { apkUrl: string; onRetry: () =
         setPhase('error');
         setError(err instanceof Error ? err.message : 'فشل التحميل');
       });
+
     return () => {
       alive = false;
       void resumable.cancelAsync().catch(() => undefined);
     };
   }, [apkUrl]);
 
-  const install = async (): Promise<void> => {
+  const openPermissionSettings = async () => {
+    waitingForPermission.current = true;
     try {
-      const contentUri = await FileSystem.getContentUriAsync(APK_PATH);
-      const res = await IntentLauncher.startActivityAsync(ACTION_VIEW_INSTALL_PACKAGES, {
-        data: contentUri,
-        type: 'application/vnd.android.package-archive',
-        flags: FLAG_ACTIVITY_NEW_TASK,
+      await IntentLauncher.startActivityAsync(ACTION_MANAGE_UNKNOWN_APP_SOURCES, {
+        data: `package:${APP_PACKAGE}`,
       });
-      if (res.resultCode !== -1) {
-        onClose();
-        return;
-      }
-      showToast('جاري تثبيت التحديث', 'success');
-      onClose();
     } catch {
-      showToast('تعذّر فتح المثبّت — اسمح بالتثبيت من إعدادات الجهاز', 'error');
-      /* احتياط: افتح صف الإعدادات للسماح بتثبيت التطبيقات غير المتجر */
       Linking.openSettings().catch(() => undefined);
     }
   };
 
+  const install = async (): Promise<void> => {
+    try {
+      const contentUri = await FileSystem.getContentUriAsync(APK_PATH);
+      await IntentLauncher.startActivityAsync(ACTION_VIEW, {
+        data: contentUri,
+        type: 'application/vnd.android.package-archive',
+        flags: FLAG_ACTIVITY_NEW_TASK | FLAG_GRANT_READ_URI_PERMISSION,
+      });
+      showToast('جاري فتح مثبّت التحديث', 'success');
+      onClose();
+    } catch (e: unknown) {
+      setNeedsPermission(true);
+      showToast('يرجى السماح بالتثبيت من إعدادات النظام', 'error');
+    }
+  };
+
+  /* مراقبة عودة التطبيق من الإعدادات لإعادة محاولة التثبيت تلقائياً */
+  useEffect(() => {
+    const sub = AppState.addEventListener('change', (nextState: AppStateStatus) => {
+      if (nextState === 'active' && waitingForPermission.current && phase === 'done') {
+        waitingForPermission.current = false;
+        void install();
+      }
+    });
+    return () => sub.remove();
+  }, [phase]);
+
   return (
     <View style={styles.wrap}>
-      <View style={styles.row}>
+      <View
+        style={[
+          styles.row,
+          { backgroundColor: palette.surfaceRaised, borderColor: palette.surfaceLine },
+        ]}
+      >
         <Icon
           name={phase === 'error' ? 'close' : phase === 'done' ? 'check' : 'refresh'}
           size={18}
           color={
             phase === 'error'
-              ? colors.dangerStrong
+              ? palette.danger
               : phase === 'done'
-                ? colors.successBright
-                : colors.brandLight
+                ? palette.success
+                : palette.accent
           }
         />
-        <Text style={styles.info}>
+        <Text style={[styles.info, { color: palette.text }]}>
           {phase === 'downloading' && 'جاري تحميل النسخة الجديدة...'}
-          {phase === 'done' && 'تم التحميل — تقدر تثبته الآن'}
-          {phase === 'error' && (error ?? 'خطأ')}
+          {phase === 'done' && 'تم التحميل بنجاح — جاهز للتثبيت'}
+          {phase === 'error' && (error ?? 'خطأ في التحميل')}
         </Text>
       </View>
 
       {phase === 'downloading' ? (
         <View style={styles.barWrap}>
-          <View style={styles.barBg}>
-            <View style={[styles.barFill, { width: `${Math.max(4, progress * 100)}%` }]} />
+          <View
+            style={[
+              styles.barBg,
+              { backgroundColor: palette.surface, borderColor: palette.surfaceLine },
+            ]}
+          >
+            <View
+              style={[
+                styles.barFill,
+                { width: `${Math.max(4, progress * 100)}%`, backgroundColor: palette.primary },
+              ]}
+            />
           </View>
-          <Text style={styles.bytes}>{bytes || '...'}</Text>
+          <Text style={[styles.bytes, { color: palette.textSub }]}>{bytes || '...'}</Text>
         </View>
       ) : null}
 
@@ -137,18 +181,31 @@ function UpdateRun({ apkUrl, onRetry, onClose }: { apkUrl: string; onRetry: () =
       ) : null}
 
       {phase === 'done' ? (
-        <AppButton label="تثبيت" icon="check" onPress={() => void install()} />
+        needsPermission ? (
+          <View style={styles.permWrap}>
+            <Text style={[styles.permText, { color: palette.text }]}>
+              يتطلب أندرويد تفعيل خيار «تثبيت التطبيقات غير المعروفة» لتطبيق الشاردة ستور.
+            </Text>
+            <AppButton
+              label="تفعيل الإذن من الإعدادات"
+              icon="settings"
+              onPress={() => void openPermissionSettings()}
+            />
+          </View>
+        ) : (
+          <AppButton label="تثبيت الآن" icon="check" onPress={() => void install()} />
+        )
       ) : null}
 
-      <Text style={styles.hint}>
-        سيطلب أندرويد السماح بتثبيت «مصادر غير معروفة» أول مرة — اقبل فتكتمل النافذة
+      <Text style={[styles.hint, { color: palette.textFaint }]}>
+        يتم تنزيل الحزمة مباشرة وتثبيتها فوق الإصدار الحالي مع الحفاظ على كافة البيانات المحفوظة.
       </Text>
     </View>
   );
 }
 
 export default function UpdateSheet({ visible, onClose, apkUrl, tag }: Props) {
-  /** عدّاد المحاولات — إعادته يعيد ركوب UpdateRun من الصفر (تحميل جديد) */
+  const palette = usePalette();
   const [attempt, setAttempt] = useState(0);
 
   return (
@@ -161,7 +218,9 @@ export default function UpdateSheet({ visible, onClose, apkUrl, tag }: Props) {
           onClose={onClose}
         />
       ) : (
-        <Text style={styles.hint}>لا يوجد تحميل متاح حالياً — تحقق من الشبكة وأعد الفحص لاحقاً</Text>
+        <Text style={[styles.hint, { color: palette.textFaint }]}>
+          لا يوجد تحميل متاح حالياً — تحقق من الشبكة وأعد الفحص لاحقاً
+        </Text>
       )}
     </ModalSheet>
   );
@@ -173,16 +232,13 @@ const styles = StyleSheet.create({
     flexDirection: ROW,
     alignItems: 'center',
     gap: 10,
-    backgroundColor: colors.surfaceInset,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: colors.borderSubtle,
     padding: 14,
   },
   info: {
     flex: 1,
-    color: colors.text,
-    fontFamily: FONT.bold,
+    fontFamily: AR_FONT.bold,
     fontSize: 14,
     lineHeight: 21,
     textAlign: 'right',
@@ -192,26 +248,36 @@ const styles = StyleSheet.create({
   barBg: {
     height: 10,
     borderRadius: 999,
-    backgroundColor: colors.surfaceInset,
     borderWidth: 1,
-    borderColor: colors.borderSubtle,
     overflow: 'hidden',
   },
   barFill: {
     height: '100%',
     borderRadius: 999,
-    backgroundColor: colors.brand,
   },
   bytes: {
-    color: colors.faint,
-    fontFamily: FONT.regular,
+    fontFamily: AR_FONT.medium,
     fontSize: 12,
     textAlign: 'left',
     writingDirection: 'ltr',
   },
+  permWrap: {
+    gap: 10,
+    padding: 12,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#eab30840',
+    backgroundColor: '#eab30810',
+  },
+  permText: {
+    fontFamily: AR_FONT.medium,
+    fontSize: 12.5,
+    lineHeight: 19,
+    textAlign: 'right',
+    writingDirection: 'rtl',
+  },
   hint: {
-    color: colors.faint,
-    fontFamily: FONT.regular,
+    fontFamily: AR_FONT.regular,
     fontSize: 12,
     lineHeight: 19,
     textAlign: 'right',

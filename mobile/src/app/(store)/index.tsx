@@ -46,6 +46,7 @@ import { usePalette, useThemeMode, useThemeName } from '@/design/theme';
 import { AR_FONT, LAT_FONT } from '@/design/fonts';
 import { EntryIn, SignalBeacon } from '@/design/motion-library';
 import AnimatedReanimated, { FadeInDown } from 'react-native-reanimated';
+import { FlashList } from '@shopify/flash-list';
 import Skeleton from '@/design/Skeleton';
 import GameCard from '@/design/GameCard';
 import PlatformChip from '@/design/PlatformChip';
@@ -78,8 +79,8 @@ export default function StoreHomeScreen() {
   const [pickingGame, setPickingGame] = useState<Game | null>(null);
   /* وضع عرض الكتالوج: شبكة 2-column (افتراضي) أو صفوف 72dp */
   const [isGridView, setIsGridView] = useState(true);
-  /* تصفح كامل مكتبة الألعاب دفعة واحدة كشبكة */
-  const [browseAll, setBrowseAll] = useState(false);
+  /* تصفح كامل مكتبة الألعاب دفعة واحدة كشبكة (مفعل افتراضياً استجابة لطلب المالك) */
+  const [browseAll, setBrowseAll] = useState(true);
 
   const gamesQ = useQuery({
     queryKey: ['games', 'all'],
@@ -167,7 +168,6 @@ export default function StoreHomeScreen() {
 
   /* السلايد شو: أعلى ألعاب طلباً وتحميلاً مع إحصائياتها */
   const topSlides = useMemo<TopSlideItem[]>(() => {
-    if (catalogMode) return [];
     const list = topQ.data ?? [];
     if (list.length > 0) {
       const slides: TopSlideItem[] = [];
@@ -184,7 +184,7 @@ export default function StoreHomeScreen() {
       orders: undefined,
       rank: idx + 1,
     }));
-  }, [topQ.data, games, catalogMode]);
+  }, [topQ.data, games]);
 
   return (
     <SafeAreaView style={[styles.safe, { backgroundColor: palette.canvas }]} edges={['top']}>
@@ -362,7 +362,16 @@ export default function StoreHomeScreen() {
               contentContainerStyle={styles.categoryStripScroll}
             >
               <Chip
-                label="الرئيسية"
+                label="الشبكة (كل الألعاب)"
+                active={browseAll && activeCategoryId === null && !query.trim()}
+                onPress={() => {
+                  triggerLightHaptic();
+                  setBrowseAll(true);
+                  setActiveCategory(null);
+                }}
+              />
+              <Chip
+                label="الرفوف"
                 active={!catalogMode}
                 onPress={() => {
                   triggerLightHaptic();
@@ -370,15 +379,6 @@ export default function StoreHomeScreen() {
                   setActiveCategory(null);
                   setQuery('');
                   setFilters(EMPTY_FILTERS);
-                }}
-              />
-              <Chip
-                label="جميع الألعاب (شبكة)"
-                active={browseAll && activeCategoryId === null && !query.trim()}
-                onPress={() => {
-                  triggerLightHaptic();
-                  setBrowseAll(true);
-                  setActiveCategory(null);
                 }}
               />
               {categories.map((cat) => (
@@ -472,6 +472,24 @@ export default function StoreHomeScreen() {
           message="تعذر تحميل قائمة الألعاب"
           onRetry={() => gamesQ.refetch()}
         />
+      ) : catalogMode ? (
+        <View style={styles.catalogContainer}>
+          <CatalogView
+            items={filtered}
+            grid={isGridView}
+            onToggleGrid={setIsGridView}
+            onOpenGame={handlePressGame}
+            categories={categories}
+            topSlides={topSlides}
+            showSlideshow={!query.trim() && activeFilterCount === 0 && activeCategoryId === null}
+            onAllGames={() => {
+              setBrowseAll(false);
+              setFilters(EMPTY_FILTERS);
+              setQuery('');
+              setActiveCategory(null);
+            }}
+          />
+        </View>
       ) : (
         <ScrollView
           ref={scrollRef}
@@ -491,107 +509,89 @@ export default function StoreHomeScreen() {
           showsVerticalScrollIndicator={false}
         >
           <Animated.View style={entranceStyle}>
-            {catalogMode ? (
-              <CatalogView
-                items={filtered}
-                grid={isGridView}
-                onToggleGrid={setIsGridView}
-                onOpenGame={handlePressGame}
-                categories={categories}
-                onAllGames={() => {
-                  setBrowseAll(false);
-                  setFilters(EMPTY_FILTERS);
-                  setQuery('');
-                  setActiveCategory(null);
-                }}
+            {/* سلايد شو الأكثر تحميلاً وطلباً */}
+            {topSlides.length > 0 ? (
+              <EntryIn index={0}>
+                <TopSlideshow
+                  items={topSlides}
+                  categories={categories}
+                  onPress={handlePressGame}
+                />
+              </EntryIn>
+            ) : null}
+
+            {/* اختيار الفرع — يظل وظيفتًا في بطاقة صغيرة أعلى الرفوف */}
+            {branches.length > 0 && branches.length > 1 ? (
+              <EntryIn index={1}>
+                <View style={styles.branchRow}>
+                  {branches.map((b) => (
+                    <PlatformChip
+                      key={b.id}
+                      label={b.name}
+                      active={selectedBranchId === b.id}
+                      onPress={() => selectBranch(b.id)}
+                      style={styles.branchChip}
+                    />
+                  ))}
+                </View>
+              </EntryIn>
+            ) : null}
+
+            {/* رفوف التصنيفات (قرار §4.3 — فكرة II) */}
+            {shelves.length === 0 ? (
+              <EmptyState
+                message="لا توجد ألعاب في المتجر بعد"
+                icon="gamepad"
               />
             ) : (
-              <>
-                {/* سلايد شو الأكثر تحميلاً وطلباً */}
-                {topSlides.length > 0 ? (
-                  <EntryIn index={0}>
-                    <TopSlideshow
-                      items={topSlides}
-                      categories={categories}
-                      onPress={handlePressGame}
-                    />
-                  </EntryIn>
-                ) : null}
-
-                {/* اختيار الفرع — يظل وظيفتًا في بطاقة صغيرة أعلى الرفوف */}
-                {branches.length > 0 && branches.length > 1 ? (
-                  <EntryIn index={1}>
-                    <View style={styles.branchRow}>
-                      {branches.map((b) => (
-                        <PlatformChip
-                          key={b.id}
-                          label={b.name}
-                          active={selectedBranchId === b.id}
-                          onPress={() => selectBranch(b.id)}
-                          style={styles.branchChip}
-                        />
-                      ))}
+              shelves.map((sh, i) => (
+                <EntryIn key={String(sh.category.id)} index={Math.min(i + 1, 8)}>
+                  <View style={styles.shelf}>
+                    <View style={styles.shelfHead}>
+                      <Text style={[styles.shelfTitle, { color: palette.text }]} numberOfLines={1}>
+                        {sh.category.name}
+                      </Text>
+                      <Text style={[styles.shelfCount, { color: palette.textFaint }]}>
+                        {sh.items.length}+
+                      </Text>
+                      <Pressable
+                        onPress={() => {
+                          triggerLightHaptic();
+                          setActiveCategory(sh.category.id);
+                        }}
+                        hitSlop={8}
+                        accessibilityRole="button"
+                        accessibilityLabel={`عرض كل ألعاب ${sh.category.name}`}
+                        style={styles.shelfAll}
+                      >
+                        <Text style={[styles.shelfAllTxt, { color: palette.accent }]}>
+                          عرض الكل
+                        </Text>
+                        <Icon name="chevron-left" size={13} color={palette.accent} />
+                      </Pressable>
                     </View>
-                  </EntryIn>
-                ) : null}
-
-                {/* رفوف التصنيفات (قرار §4.3 — فكرة II) */}
-                {shelves.length === 0 ? (
-                  <EmptyState
-                    message="لا توجد ألعاب في المتجر بعد"
-                    icon="gamepad"
-                  />
-                ) : (
-                  shelves.map((sh, i) => (
-                    <EntryIn key={String(sh.category.id)} index={Math.min(i + 1, 8)}>
-                      <View style={styles.shelf}>
-                        <View style={styles.shelfHead}>
-                          <Text style={[styles.shelfTitle, { color: palette.text }]} numberOfLines={1}>
-                            {sh.category.name}
-                          </Text>
-                          <Text style={[styles.shelfCount, { color: palette.textFaint }]}>
-                            {sh.items.length}+
-                          </Text>
-                          <Pressable
-                            onPress={() => {
-                              triggerLightHaptic();
-                              setActiveCategory(sh.category.id);
-                            }}
-                            hitSlop={8}
-                            accessibilityRole="button"
-                            accessibilityLabel={`عرض كل ألعاب ${sh.category.name}`}
-                            style={styles.shelfAll}
-                          >
-                            <Text style={[styles.shelfAllTxt, { color: palette.accent }]}>
-                              عرض الكل
-                            </Text>
-                            <Icon name="chevron-left" size={13} color={palette.accent} />
-                          </Pressable>
+                    {/* FlatList مقلوبة: أول لعبة يبدأ من اليمين حرفيًا (نمط TopList المجرَّب) */}
+                    <FlatList
+                      data={sh.items}
+                      keyExtractor={(g) => String(g.id)}
+                      horizontal
+                      inverted
+                      showsHorizontalScrollIndicator={false}
+                      contentContainerStyle={styles.shelfScroll}
+                      ItemSeparatorComponent={() => <View style={styles.shelfSep} />}
+                      renderItem={({ item: g }) => (
+                        <View style={styles.shelfCard}>
+                          <GameCard
+                            game={g}
+                            hasVersions={isPs4Game(g, categories)}
+                            onPress={handlePressGame}
+                          />
                         </View>
-                        {/* FlatList مقلوبة: أول لعبة يبدأ من اليمين حرفيًا (نمط TopList المجرَّب) */}
-                        <FlatList
-                          data={sh.items}
-                          keyExtractor={(g) => String(g.id)}
-                          horizontal
-                          inverted
-                          showsHorizontalScrollIndicator={false}
-                          contentContainerStyle={styles.shelfScroll}
-                          ItemSeparatorComponent={() => <View style={styles.shelfSep} />}
-                          renderItem={({ item: g }) => (
-                            <View style={styles.shelfCard}>
-                              <GameCard
-                                game={g}
-                                hasVersions={isPs4Game(g, categories)}
-                                onPress={handlePressGame}
-                              />
-                            </View>
-                          )}
-                        />
-                      </View>
-                    </EntryIn>
-                  ))
-                )}
-              </>
+                      )}
+                    />
+                  </View>
+                </EntryIn>
+              ))
             )}
           </Animated.View>
         </ScrollView>
@@ -649,6 +649,8 @@ function CatalogView({
   onOpenGame,
   categories,
   onAllGames,
+  topSlides,
+  showSlideshow,
 }: {
   items: Game[];
   grid: boolean;
@@ -656,14 +658,28 @@ function CatalogView({
   onOpenGame: (g: Game) => void;
   categories: Category[];
   onAllGames: () => void;
+  topSlides?: TopSlideItem[];
+  showSlideshow?: boolean;
 }) {
   const palette = usePalette();
-  return (
-    <View style={styles.catalog}>
+
+  const renderHeader = () => (
+    <View style={{ marginBottom: 10 }}>
+      {showSlideshow && topSlides && topSlides.length > 0 ? (
+        <View style={{ marginBottom: 14 }}>
+          <TopSlideshow
+            items={topSlides}
+            categories={categories}
+            onPress={onOpenGame}
+          />
+        </View>
+      ) : null}
       <View style={styles.catalogHead}>
         <View style={styles.catalogTitleWrap}>
           <Icon name="gamepad" size={14} color={palette.textFaint} />
-          <Text style={[styles.catalogTitle, { color: palette.text }]}>الألعاب</Text>
+          <Text style={[styles.catalogTitle, { color: palette.text }]}>
+            {showSlideshow ? 'جميع الألعاب' : 'الألعاب المطابقة'}
+          </Text>
           <View style={[styles.catalogCount, { backgroundColor: palette.surfaceRaised }]}>
             <Text style={[styles.catalogCountTxt, { color: palette.textSub }]}>{items.length}</Text>
           </View>
@@ -734,47 +750,42 @@ function CatalogView({
           </View>
         </View>
       </View>
+    </View>
+  );
 
+  return (
+    <View style={styles.catalog}>
       {items.length === 0 ? (
-        <EmptyState
-          message="لا توجد ألعاب مطابقة — جرّب تغيير البحث أو فلترة النافذة"
-          icon="gamepad"
-          actionLabel="رجوع لرفوف المتجر"
-          onAction={onAllGames}
-        />
-      ) : grid ? (
-        <View style={styles.gridWrap}>
-          {items.map((g, idx) => (
-            <AnimatedReanimated.View
-              key={String(g.id)}
-              entering={FadeInDown.duration(240).delay(Math.min(idx * 25, 300))}
-              style={styles.gridCell}
-            >
-              <GameCard
-                game={g}
-                hasVersions={isPs4Game(g, categories)}
-                onPress={onOpenGame}
-              />
-            </AnimatedReanimated.View>
-          ))}
-        </View>
+        <>
+          {renderHeader()}
+          <EmptyState
+            message="لا توجد ألعاب مطابقة — جرّب تغيير البحث أو فلترة النافذة"
+            icon="gamepad"
+            actionLabel="رجوع لرفوف المتجر"
+            onAction={onAllGames}
+          />
+        </>
       ) : (
-        <View style={styles.rowsWrap}>
-          {items.map((g, idx) => (
-            <AnimatedReanimated.View
-              key={String(g.id)}
-              entering={FadeInDown.duration(240).delay(Math.min(idx * 25, 300))}
-              style={styles.rowCell}
-            >
+        <FlashList
+          key={grid ? 'catalog_grid_2' : 'catalog_list_1'}
+          data={items}
+          extraData={grid}
+          keyExtractor={(g) => String(g.id)}
+          numColumns={grid ? 2 : 1}
+          contentContainerStyle={styles.flashListContent}
+          ItemSeparatorComponent={() => <View style={{ height: 10 }} />}
+          ListHeaderComponent={renderHeader}
+          renderItem={({ item: g }) => (
+            <View style={grid ? styles.gridCell : styles.rowCell}>
               <GameCard
-                compact
+                compact={!grid}
                 game={g}
                 hasVersions={isPs4Game(g, categories)}
                 onPress={onOpenGame}
               />
-            </AnimatedReanimated.View>
-          ))}
-        </View>
+            </View>
+          )}
+        />
       )}
     </View>
   );
@@ -990,8 +1001,16 @@ const styles = StyleSheet.create({
     width: 210,
   },
   /* الكتالوج */
+  catalogContainer: {
+    flex: 1,
+    paddingHorizontal: 14,
+  },
   catalog: {
-    marginTop: 12,
+    flex: 1,
+    marginTop: 8,
+  },
+  flashListContent: {
+    paddingBottom: 28,
   },
   catalogHead: {
     flexDirection: ROW,

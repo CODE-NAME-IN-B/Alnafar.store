@@ -26,9 +26,11 @@ SplashScreen.preventAutoHideAsync().catch(() => undefined);
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
-      staleTime: 60_000,
+      staleTime: 10 * 60_000,
+      gcTime: 30 * 60_000,
       retry: 1,
       refetchOnWindowFocus: false,
+      refetchOnReconnect: 'always',
     },
   },
 });

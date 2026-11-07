@@ -16,7 +16,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useMutation, useQuery } from '@tanstack/react-query';
 import { router } from 'expo-router';
 import { fetchBranches } from '@/api/branches';
-import { formatInvoiceCode } from '@/components/ui/LtrText';
+import { formatInvoiceCode, LtrText } from '@/components/ui/LtrText';
 import { fetchInvoiceSettings } from '@/api/settings';
 import { submitOrder, trackOrder } from '@/api/orders';
 import { InvoiceRecord } from '@/api/invoices';
@@ -30,6 +30,8 @@ import { useAuthStore } from '@/stores/auth';
 import CartRow from '@/components/store/CartRow';
 import InvoiceFormModal from '@/components/invoice/InvoiceFormModal';
 import NativeReceiptModal from '@/components/invoice/NativeReceiptModal';
+import ModalSheet from '@/components/ui/ModalSheet';
+import AppInput from '@/components/ui/AppInput';
 import AppButton from '@/components/ui/AppButton';
 import Icon from '@/components/ui/Icon';
 import { EmptyState } from '@/components/ui/StateView';
@@ -61,6 +63,10 @@ export default function CartScreen() {
 
   const [invoiceOpen, setInvoiceOpen] = useState(false);
   const [receiptInvoice, setReceiptInvoice] = useState<InvoiceRecord | null>(null);
+  const [importModalOpen, setImportModalOpen] = useState(false);
+  const [importCode, setImportCode] = useState('');
+  const [importBusy, setImportBusy] = useState(false);
+  const [importErr, setImportErr] = useState<string | null>(null);
 
   const settingsQ = useQuery({
     queryKey: ['invoice-settings'],
@@ -84,6 +90,48 @@ export default function CartScreen() {
   const total = cartTotal(items);
   const sizeGb = cartTotalSizeGb(items);
   const isCashier = Boolean(token);
+
+  /* استيراد طلب زبون إلى سلة الكاشير (المرحلة F5) */
+  const handleImportOrder = async (codeToUse?: string) => {
+    const raw = (codeToUse ?? importCode).trim().replace(/^#+/, '');
+    if (!raw) {
+      setImportErr('يرجى إدخال كود الطلب');
+      return;
+    }
+    setImportBusy(true);
+    setImportErr(null);
+    try {
+      const order = await trackOrder(raw);
+      if (!order || !order.items || order.items.length === 0) {
+        setImportErr('الطلب غير موجود أو لا يحتوي على ألعاب');
+        return;
+      }
+
+      const importedCartItems = order.items.map((it, idx) => ({
+        key: `imported-${Date.now()}-${idx}`,
+        refId: idx + 1,
+        title: it.title,
+        price: Number(it.price) || 0,
+        type: (it.type === 'package' ? 'package' : 'game') as 'game' | 'package',
+        quantity: Number(it.quantity) || 1,
+        sizeGb: it.size_gb ?? undefined,
+      }));
+
+      useCartStore.setState({ items: importedCartItems });
+      setImportModalOpen(false);
+      setImportCode('');
+      setInvoiceOpen(true);
+      Alert.alert(
+        'تم استيراد الطلب',
+        `تم استيراد ${importedCartItems.length} ألعاب بنجاح إلى الفاتورة من الطلب #${order.invoice_number || raw}`
+      );
+    } catch (e: unknown) {
+      const msg = e instanceof Error ? e.message : 'تعذر العثور على الطلب';
+      setImportErr(msg);
+    } finally {
+      setImportBusy(false);
+    }
+  };
 
   /* مثل الموقع: بعد إنشاء الفاتورة تفتح واجهة الطباعة مباشرة مع رقمها من التتبع */
   const openReceiptAfterSubmit = async (orderId: number) => {
@@ -146,20 +194,44 @@ export default function CartScreen() {
     },
   });
 
-  const sendWhatsApp = () => {
+  const sendWhatsApp = async () => {
     const rawPhone =
       branch?.phone?.split('-')[0]?.trim() ||
       settingsQ.data?.store_phone ||
       '0910683599';
-    const msg = buildOrderMessage(
-      items.map((it) => ({
-        title: `${it.title}${it.platform ? ` (${it.platform === 'PS5' ? 'فايف' : 'فور'})` : ''}`,
-        price: it.price * it.quantity,
-        sizeGb: it.sizeGb,
-        quantity: it.quantity,
-      })),
-      total
-    );
+
+    let orderId: number | null = null;
+    try {
+      const res = await submitOrder({
+        games: items.map((it) => ({
+          title: it.title,
+          price: it.price,
+          type: it.type,
+          size_gb: it.sizeGb ?? null,
+          quantity: it.quantity,
+        })),
+        customer_phone: rawPhone,
+      });
+      orderId = res.id;
+    } catch {
+      // إرسال عبر واتساب حتى بدون اتصال بالخادم
+    }
+
+    const orderMeta = orderId
+      ? `\n\n📌 كود الطلب: #${orderId}\nرابط التتبع: https://alnafar.store/track/${orderId}`
+      : '';
+
+    const msg =
+      buildOrderMessage(
+        items.map((it) => ({
+          title: `${it.title}${it.platform ? ` (${it.platform === 'PS5' ? 'فايف' : 'فور'})` : ''}`,
+          price: it.price * it.quantity,
+          sizeGb: it.sizeGb,
+          quantity: it.quantity,
+        })),
+        total
+      ) + orderMeta;
+
     const url = whatsappLink(rawPhone, msg);
     Linking.openURL(url).catch(() =>
       Alert.alert('خطأ', 'تعذر فتح تطبيق واتساب')
@@ -172,13 +244,67 @@ export default function CartScreen() {
         <EmptyState
           message={
             isCashier
-              ? 'قائمة الفاتورة فارغة — اختر الألعاب من المتجر لإصدار فاتورة كاشير جديدة'
+              ? 'قائمة الفاتورة فارغة — اختر الألعاب من المتجر أو استورد طلباً بالرمز'
               : 'السلة فارغة — أضف ألعاباً أو باقات من المتجر للبدء في طلبك'
           }
           icon="cart"
           actionLabel="تصفح الألعاب"
           onAction={() => router.navigate('/(store)')}
         />
+        {isCashier ? (
+          <View style={styles.emptyImportWrap}>
+            <Pressable
+              onPress={() => {
+                triggerLightHaptic();
+                setImportModalOpen(true);
+              }}
+              style={({ pressed }) => [
+                styles.importBtn,
+                {
+                  backgroundColor: pressed ? palette.surfaceLine : palette.surfaceRaised,
+                  borderColor: palette.primary,
+                },
+              ]}
+            >
+              <Icon name="qr" size={16} color={palette.primary} />
+              <Text style={[styles.importBtnText, { color: palette.primary }]}>
+                استيراد طلب زبون بالرمز
+              </Text>
+            </Pressable>
+          </View>
+        ) : null}
+
+        <ModalSheet
+          visible={importModalOpen}
+          onClose={() => setImportModalOpen(false)}
+          title="استيراد طلب زبون إلى الفاتورة"
+        >
+          <View style={styles.importFormWrap}>
+            <Text style={[styles.importDesc, { color: palette.textSub }]}>
+              أدخل كود الطلب الذي أرسله الزبون عبر واتساب (مثلاً #12 أو 12) لاستيراد قائمة الألعاب تلقائياً.
+            </Text>
+            <AppInput
+              label="كود الطلب"
+              placeholder="مثال: 14"
+              value={importCode}
+              onChangeText={setImportCode}
+              icon="search"
+              keyboard="number-pad"
+              autoFocus
+            />
+            {importErr ? (
+              <Text style={[styles.importErrText, { color: palette.danger }]}>{importErr}</Text>
+            ) : null}
+            <View style={{ marginTop: 14 }}>
+              <AppButton
+                label="استيراد الألعاب ومتابعة الفاتورة"
+                icon="qr"
+                loading={importBusy}
+                onPress={() => handleImportOrder()}
+              />
+            </View>
+          </View>
+        </ModalSheet>
       </SafeAreaView>
     );
   }
@@ -209,16 +335,35 @@ export default function CartScreen() {
               </View>
             ) : null}
           </View>
-          <Pressable
-            onPress={() => {
-              triggerLightHaptic();
-              clear();
-            }}
-            style={[styles.clearBtn, { backgroundColor: palette.surfaceRaised }]}
-          >
-            <Icon name="trash" size={14} color={palette.danger} />
-            <Text style={[styles.clearText, { color: palette.danger }]}>تفريغ</Text>
-          </Pressable>
+          <View style={styles.headerBtnsRow}>
+            {isCashier ? (
+              <Pressable
+                onPress={() => {
+                  triggerLightHaptic();
+                  setImportModalOpen(true);
+                }}
+                style={[
+                  styles.importMiniBtn,
+                  { backgroundColor: palette.surfaceRaised, borderColor: palette.surfaceLine },
+                ]}
+              >
+                <Icon name="qr" size={13} color={palette.primary} />
+                <Text style={[styles.importMiniText, { color: palette.primary }]}>
+                  استيراد طلب
+                </Text>
+              </Pressable>
+            ) : null}
+            <Pressable
+              onPress={() => {
+                triggerLightHaptic();
+                clear();
+              }}
+              style={[styles.clearBtn, { backgroundColor: palette.surfaceRaised }]}
+            >
+              <Icon name="trash" size={14} color={palette.danger} />
+              <Text style={[styles.clearText, { color: palette.danger }]}>تفريغ</Text>
+            </Pressable>
+          </View>
         </View>
 
         {editingInvoice ? (
@@ -267,7 +412,9 @@ export default function CartScreen() {
                 <View style={styles.summarySubRowBottom}>
                   <Text style={[styles.summarySubLabel, { color: palette.textFaint }]}>الحجم التقريبي</Text>
                   <Text style={[styles.summarySubValue, { color: palette.textSub }]}>
-                    {Math.round(sizeGb)} GB (~{estimateMinutes(sizeGb)} دقيقة)
+                    <LtrText style={{ color: palette.textSub, fontSize: 13 }}>{Math.round(sizeGb)} GB</LtrText>
+                    {' • '}
+                    {estimateMinutes(sizeGb)} دقيقة تقريباً
                   </Text>
                 </View>
               ) : null}
@@ -285,7 +432,12 @@ export default function CartScreen() {
                 </View>
               ) : branches.length > 0 ? (
                 <View style={styles.branchPickWrap}>
-                  <Text style={[styles.sectionTitle, { color: palette.text }]}>
+                  <Text
+                    style={[
+                      styles.sectionTitle,
+                      { color: palette.text, textAlign: 'right', writingDirection: 'rtl' },
+                    ]}
+                  >
                     أرسل الطلب إلى الفرع:
                   </Text>
                   <ScrollView
@@ -393,6 +545,38 @@ export default function CartScreen() {
           onClose={() => setReceiptInvoice(null)}
           autoPrint
         />
+
+        <ModalSheet
+          visible={importModalOpen}
+          onClose={() => setImportModalOpen(false)}
+          title="استيراد طلب زبون إلى الفاتورة"
+        >
+          <View style={styles.importFormWrap}>
+            <Text style={[styles.importDesc, { color: palette.textSub }]}>
+              أدخل كود الطلب الذي أرسله الزبون عبر واتساب (مثلاً #12 أو 12) لاستيراد قائمة الألعاب تلقائياً.
+            </Text>
+            <AppInput
+              label="كود الطلب"
+              placeholder="مثال: 14"
+              value={importCode}
+              onChangeText={setImportCode}
+              icon="search"
+              keyboard="number-pad"
+              autoFocus
+            />
+            {importErr ? (
+              <Text style={[styles.importErrText, { color: palette.danger }]}>{importErr}</Text>
+            ) : null}
+            <View style={{ marginTop: 14 }}>
+              <AppButton
+                label="استيراد الألعاب ومتابعة الفاتورة"
+                icon="qr"
+                loading={importBusy}
+                onPress={() => handleImportOrder()}
+              />
+            </View>
+          </View>
+        </ModalSheet>
       </KeyboardAvoidingView>
       </Animated.View>
     </SafeAreaView>
@@ -596,5 +780,60 @@ const styles = StyleSheet.create({
     fontFamily: AR_FONT.bold,
     fontSize: 15,
     includeFontPadding: false,
+  },
+  emptyImportWrap: {
+    alignItems: 'center',
+    marginTop: -8,
+    paddingBottom: 24,
+  },
+  importBtn: {
+    flexDirection: ROW,
+    alignItems: 'center',
+    gap: 8,
+    paddingHorizontal: 20,
+    paddingVertical: 11,
+    borderRadius: 14,
+    borderWidth: 1.5,
+  },
+  importBtnText: {
+    fontFamily: AR_FONT.bold,
+    fontSize: 13,
+    includeFontPadding: false,
+  },
+  headerBtnsRow: {
+    flexDirection: ROW,
+    alignItems: 'center',
+    gap: 8,
+  },
+  importMiniBtn: {
+    flexDirection: ROW,
+    alignItems: 'center',
+    gap: 5,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 9,
+    borderWidth: 1,
+  },
+  importMiniText: {
+    fontFamily: AR_FONT.bold,
+    fontSize: 12,
+    includeFontPadding: false,
+  },
+  importFormWrap: {
+    paddingVertical: 8,
+    gap: 12,
+  },
+  importDesc: {
+    fontFamily: AR_FONT.medium,
+    fontSize: 13,
+    lineHeight: 20,
+    textAlign: 'right',
+    writingDirection: 'rtl',
+  },
+  importErrText: {
+    fontFamily: AR_FONT.medium,
+    fontSize: 12,
+    textAlign: 'right',
+    writingDirection: 'rtl',
   },
 });

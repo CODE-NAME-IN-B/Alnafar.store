@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React, { useCallback, useMemo } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import { Image } from 'expo-image';
 import Animated, { Layout } from 'react-native-reanimated';
@@ -31,13 +31,30 @@ interface Props {
 
 /**
  * GameCard — بطاقة اللعبة بلغة الهوية (§5):
- * غلاف expo-image + شارات نصية رفيع فوق scrim + **السعر زر lime** يتحول
- * لعداد +/− بعد الإضافة (حركة 2 المعتمدة بتعديل المالك). المنصات بلا ألوان
- * (نص رفيع فقط — قرار §12.4). الحجم والمقدار دائماً tabular-nums بلون النص.
+ * غلاف expo-image مكيّش على الذاكرة والقرص + شارات نصية رفيع فوق scrim
+ * + زر السعر lime. معزولة عن الاشتراك الشامل في السلة لسرعة استجابة فورية.
  */
-export function GameCard({ game, hasVersions, onPress, compact }: Props) {
+function GameCardComponent({ game, hasVersions, onPress, compact }: Props) {
   const palette = usePalette();
-  const cartItems = useCartStore((s) => s.items);
+  const platform: 'PS4' | 'PS5' = hasVersions ? 'PS4' : 'PS5';
+  const gameId = Number(game.id);
+  const key = `g:${gameId}:${platform}`;
+
+  // الاشتراك الدقيق في كمية هذه اللعبة فقط: يمنع إعادة رندر البطاقات الأخرى
+  const quantity = useCartStore(
+    useCallback(
+      (s) => {
+        for (let i = 0; i < s.items.length; i++) {
+          const it = s.items[i];
+          if (it.type === 'game' && it.refId === gameId && it.platform === platform) {
+            return it.quantity;
+          }
+        }
+        return 0;
+      },
+      [gameId, platform]
+    )
+  );
 
   const subtitle = useMemo(() => {
     const { genre, series } = classifyGameHeuristic(game);
@@ -50,17 +67,6 @@ export function GameCard({ game, hasVersions, onPress, compact }: Props) {
   const split = useMemo(() => hasSplitScreen(game), [game]);
   const main = mainPriceOf(game);
 
-  /* كمية هذه النسخة في السلة (المنصة الأساسية؛ النسخة الثانية عبر المحدد) */
-  const platform: 'PS4' | 'PS5' = hasVersions ? 'PS4' : 'PS5';
-  const key = `g:${Number(game.id)}:${platform}`;
-  const quantity = useMemo(
-    () =>
-      cartItems
-        .filter((it) => it.type === 'game' && it.refId === Number(game.id) && it.platform === platform)
-        .reduce((a, it) => a + it.quantity, 0),
-    [cartItems, game.id, platform]
-  );
-
   if (compact) {
     /* صف الكتالوج 72dp: غلاف مصغّر + اسم/تصنيف/حجم + زر السعر lime */
     return (
@@ -71,7 +77,13 @@ export function GameCard({ game, hasVersions, onPress, compact }: Props) {
       >
         <View style={[styles.rowThumb, { backgroundColor: palette.surfaceRaised }]}>
           {game.image ? (
-            <Image source={{ uri: game.image }} style={styles.rowThumbImg} contentFit="cover" />
+            <Image
+              source={{ uri: game.image }}
+              style={styles.rowThumbImg}
+              contentFit="cover"
+              cachePolicy="memory-disk"
+              recyclingKey={String(game.id)}
+            />
           ) : (
             <Icon name="gamepad" size={20} color={palette.textFaint} />
           )}
@@ -109,7 +121,14 @@ export function GameCard({ game, hasVersions, onPress, compact }: Props) {
     <StaticCard paletteBorder={palette.surfaceLine} paletteSurface={palette.surface}>
       <View style={styles.cover}>
         {game.image ? (
-          <Image source={{ uri: game.image }} style={styles.coverImg} contentFit="cover" transition={DUR.quick} />
+          <Image
+            source={{ uri: game.image }}
+            style={styles.coverImg}
+            contentFit="cover"
+            cachePolicy="memory-disk"
+            recyclingKey={String(game.id)}
+            transition={DUR.quick}
+          />
         ) : (
           <View style={[styles.coverFallback, { backgroundColor: palette.surfaceRaised }]}>
             <Icon name="gamepad" size={30} color={palette.textFaint} />
@@ -174,6 +193,7 @@ function StaticCard({
   );
 }
 
+export const GameCard = React.memo(GameCardComponent);
 export default GameCard;
 
 const styles = StyleSheet.create({
