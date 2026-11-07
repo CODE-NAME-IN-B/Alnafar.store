@@ -63,13 +63,16 @@ export default function RootLayout() {
     });
   }, []);
 
+  const authReady = useAuthStore((s) => s.ready);
+  const appReady = useAppStore((s) => s.ready);
+
   useEffect(() => {
-    if (fontsLoaded || fontsError) {
+    if ((fontsLoaded || fontsError) && authReady && appReady) {
       SplashScreen.hideAsync().catch(() => undefined);
     }
-  }, [fontsLoaded, fontsError]);
+  }, [fontsLoaded, fontsError, authReady, appReady]);
 
-  if (!fontsLoaded && !fontsError) {
+  if ((!fontsLoaded && !fontsError) || !authReady || !appReady) {
     return null;
   }
 

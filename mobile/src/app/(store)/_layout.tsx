@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react';
-import { Tabs } from 'expo-router';
+import { Redirect, Tabs } from 'expo-router';
 import { StyleSheet, Text, View } from 'react-native';
 import { useAppStore } from '@/stores/app';
 import { useAuthStore } from '@/stores/auth';
@@ -7,7 +7,6 @@ import { useCartStore, cartCount } from '@/stores/cart';
 import { usePalette } from '@/design/theme';
 import { AR_FONT } from '@/design/fonts';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import LoginScreen from '../login';
 import Icon, { IconName } from '@/components/ui/Icon';
 import { FONT } from '@/lib/fonts';
 
@@ -63,9 +62,9 @@ export default function StoreLayout() {
     }
   }, [appReady, selectedBranchId, selectBranch]);
 
-  // Match the main website gate: if neither logged in nor in guest mode, show Login / Guest Gate
+  // Match the main website gate: if neither logged in nor in guest mode, redirect cleanly to Login
   if (authReady && !token && !guest) {
-    return <LoginScreen />;
+    return <Redirect href="/login" />;
   }
 
   return (

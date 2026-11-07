@@ -55,7 +55,9 @@ export default function LoginScreen() {
       } else if (!selectedBranchId) {
         selectBranch(1);
       }
-      router.replace('/(store)');
+      setTimeout(() => {
+        router.replace('/(store)');
+      }, 0);
     } catch (e: unknown) {
       const msg = e instanceof Error ? e.message : 'فشل تسجيل الدخول';
       setErr(msg);
@@ -65,11 +67,19 @@ export default function LoginScreen() {
   };
 
   const handleGuest = async () => {
-    if (!selectedBranchId) {
-      await selectBranch(1);
+    try {
+      if (!selectedBranchId) {
+        await selectBranch(1);
+      }
+      enterGuest();
+      setTimeout(() => {
+        router.replace('/(store)');
+      }, 0);
+    } catch {
+      setTimeout(() => {
+        router.replace('/(store)');
+      }, 50);
     }
-    await enterGuest();
-    router.replace('/(store)');
   };
 
   return (
@@ -100,11 +110,7 @@ export default function LoginScreen() {
                 resizeMode="contain"
               />
             </View>
-            <Text
-              style={[styles.brandTitle, { color: palette.text }]}
-              numberOfLines={1}
-              adjustsFontSizeToFit
-            >
+            <Text style={[styles.brandTitle, { color: palette.text }]}>
               الشاردة ستور
             </Text>
             <Text style={[styles.brandSubtitle, { color: palette.textSub }]}>
@@ -290,10 +296,10 @@ const styles = StyleSheet.create({
   },
   brandTitle: {
     fontFamily: AR_FONT.bold,
-    fontSize: 22,
-    includeFontPadding: false,
-    letterSpacing: -0.2,
+    fontSize: 24,
+    lineHeight: 34,
     textAlign: 'center',
+    writingDirection: 'rtl',
   },
   brandSubtitle: {
     fontFamily: AR_FONT.medium,
